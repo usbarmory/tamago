@@ -38,9 +38,9 @@ For the underlying driver support for this board see the `imx6` package
 Supported hardware
 ==================
 
-| Model                                                             | SoC driver package                                                           |
-|-------------------------------------------------------------------|------------------------------------------------------------------------------|
-| [USB armory Mk II](https://github.com/inversepath/usbarmory/wiki) | [imx6](https://github.com/inversepath/tamago/tree/master/usbarmory/mark-two) |
+| SoC           | Board                                                             | SoC package                                                    | Board package                                                                              |
+|---------------|-------------------------------------------------------------------|----------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| NXP i.MX6ULL | [USB armory Mk II](https://github.com/inversepath/usbarmory/wiki) | [imx6](https://github.com/inversepath/tamago/tree/master/imx6) | [usbarmory/mark-two](https://github.com/inversepath/tamago/tree/master/usbarmory/mark-two) |
 
 Compiling
 =========
