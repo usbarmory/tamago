@@ -19,7 +19,7 @@ QEMU ?= qemu-system-arm -machine mcimx6ul-evk -cpu cortex-a7 -m 512M \
 all: $(APP)
 
 $(APP):
-	@if ! test -f ${TAMAGO}; then \
+	@if [ "${TAMAGO}" == "" ] || [ ! -f "${TAMAGO}" ]; then \
 		echo 'You need to set the TAMAGO variable to a compiled version of https://github.com/inversepath/tamago-go'; \
 		exit 1; \
 	fi
