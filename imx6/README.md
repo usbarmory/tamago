@@ -27,9 +27,6 @@ provide support for NXP i.MX 6 series of System-on-Chip (SoCs) parts.
 Documentation
 =============
 
-For the `imx6` package see its
-[API documentation](https://godoc.org/github.com/inversepath/tamago/imx6).
-
 For TamaGo see its [repository](https://github.com/inversepath/tamago) and
 [project wiki](https://github.com/inversepath/usbarmory/wiki) for information.
 

@@ -32,8 +32,8 @@ For more information about TamaGo see its
 [repository](https://github.com/inversepath/tamago) and
 [project wiki](https://github.com/inversepath/tamago/wiki).
 
-For the underlying driver support for this board see the `imx6` package
-[API documentation](https://godoc.org/github.com/inversepath/tamago/imx6).
+For the underlying driver support for this board see package
+[imx6](https://github.com/inversepath/tamago/tree/master/imx6).
 
 Supported hardware
 ==================
