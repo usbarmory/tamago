@@ -57,8 +57,6 @@ var vqc VirtualQueueCache
 
 //go:linkname getRandomDataFromVirtRngPCI runtime.getRandomData
 func getRandomDataFromVirtRngPCI(b []byte) {
-	// found by debugging src/runtime/os_linux.go:alloc_map
-	// pmsg("va:"); _pnum(va); pmsg("pa:"); _pnum(p_pg); pmsg("diff:"); _pnum(va-p_pg); pmsg("\n")
 	// warning this offset changes depending on imported modules
 	va_pa_off := uintptr(0x000000bfff993000)
 
