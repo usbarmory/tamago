@@ -32,7 +32,7 @@ func TestDCP() {
 		fmt.Printf("imx6_dcp: error, %v\n", err)
 	} else {
 		// if the SoC is secure booted we can only print the result
-		if !imx6.DCP.SNVS() {
+		if imx6.DCP.SNVS() {
 			fmt.Printf("imx6_dcp: derived SNVS key %x\n", key)
 			return
 		}
