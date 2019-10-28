@@ -40,7 +40,6 @@ func init() {
 	fmt.Printf("imx6_soc: %#s (%#x, %d.%d) @ freq:%d MHz - native:%v\n", model, family, revMajor, revMinor, imx6.ARMFreq()/1000000, imx6.Native)
 }
 
-
 func main() {
 	start := time.Now()
 	exit = make(chan bool)
@@ -55,9 +54,25 @@ func main() {
 		exit <- true
 	}()
 
+	sleep := 100 * time.Millisecond
+
 	n += 1
 	go func() {
-		sleep := 100 * time.Millisecond
+		fmt.Println("-- timer -------------------------------------------------------------")
+
+		t := time.NewTimer(sleep)
+		fmt.Printf("waking up timer after %v\n", sleep)
+
+		for now := range t.C {
+			fmt.Printf("woke up at %d\n", now.Nanosecond())
+			break
+		}
+
+		exit <- true
+	}()
+
+	n += 1
+	go func() {
 		fmt.Println("-- sleep -------------------------------------------------------------")
 
 		fmt.Printf("sleeping %s @ %d\n", sleep, time.Now().Nanosecond())
