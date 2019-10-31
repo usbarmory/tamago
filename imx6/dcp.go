@@ -198,7 +198,9 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	v7_flush_dcache_all()
 	set(hw.sem, 1)
 
+	print("imx6_dcp: waiting for key derivation...")
 	wait(hw.status, HW_DCP_STAT_IRQ, 0b1, 1)
+	print("done\n")
 
 	if chstatus := get(hw.chstatus, 1, 0b111111); chstatus != 0 {
 		if chstatus == 0x2 {
