@@ -1,4 +1,4 @@
-// NXP i.MX6UL clock control
+// NXP i.MX6UL ARM clock control
 // https://github.com/inversepath/tamago
 //
 // Copyright (c) F-Secure Corporation
@@ -44,8 +44,8 @@ func ARMCoreDiv() (div float32) {
 // Get the ARM PLL divider value
 // (p714, 18.7.1 Analog ARM PLL control Register, IMX6ULLRM).
 func ARMPLLDiv() (div float32) {
-	pllARM := (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_ARM)))
-	return float32(get(pllARM, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111)) / 2
+	pll := (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_ARM)))
+	return float32(get(pll, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111)) / 2
 }
 
 // Get the ARM core frequency.
@@ -106,7 +106,7 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 	var uV uint32
 
 	cacrr := (*uint32)(unsafe.Pointer(uintptr(CCM_CACRR)))
-	pllARM := (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_ARM)))
+	pll := (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_ARM)))
 	curHz := ARMFreq()
 
 	if hz == curHz {
@@ -146,20 +146,21 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 	}
 
 	// set bypass source to main oscillator
-	setN(pllARM, CCM_ANALOG_PLL_ARM_BYPASS_CLK_SRC, 0b11, 0)
+	setN(pll, CCM_ANALOG_PLL_ARM_BYPASS_CLK_SRC, 0b11, 0)
 
 	// bypass
-	set(pllARM, CCM_ANALOG_PLL_ARM_BYPASS)
+	set(pll, CCM_ANALOG_PLL_ARM_BYPASS)
 
 	// set PLL divisor
-	setN(pllARM, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111, div_select)
+	setN(pll, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111, div_select)
 
 	// wait for lock
-	fmt.Printf("imx6_clk: waiting for PLL lock\n")
-	wait(pllARM, CCM_ANALOG_PLL_ARM_LOCK, 0b1, 1)
+	print("imx6_clk: waiting for PLL lock...")
+	wait(pll, CCM_ANALOG_PLL_ARM_LOCK, 0b1, 1)
+	print("done\n")
 
 	// remove bypass
-	clear(pllARM, CCM_ANALOG_PLL_ARM_BYPASS)
+	clear(pll, CCM_ANALOG_PLL_ARM_BYPASS)
 
 	// set core divisor
 	setN(cacrr, CCM_CACRR_ARM_PODF, 0b111, arm_podf)
