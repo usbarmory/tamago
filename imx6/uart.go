@@ -37,14 +37,14 @@ type uart struct {
 	usr2 *uint32
 }
 
-var UART1 = &uart {
+var UART1 = &uart{
 	urxd: (*uint32)(unsafe.Pointer(uintptr(UART1_URXD))),
 	utxd: (*byte)(unsafe.Pointer(uintptr(UART1_UTXD))),
 	uts:  (*uint32)(unsafe.Pointer(uintptr(UART1_UTS))),
 	usr2: (*uint32)(unsafe.Pointer(uintptr(UART1_USR2))),
 }
 
-var UART2 = &uart {
+var UART2 = &uart{
 	urxd: (*uint32)(unsafe.Pointer(uintptr(UART2_URXD))),
 	utxd: (*byte)(unsafe.Pointer(uintptr(UART2_UTXD))),
 	uts:  (*uint32)(unsafe.Pointer(uintptr(UART2_UTS))),

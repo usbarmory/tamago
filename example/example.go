@@ -63,8 +63,10 @@ func main() {
 		t := time.NewTimer(sleep)
 		fmt.Printf("waking up timer after %v\n", sleep)
 
+		start := time.Now()
+
 		for now := range t.C {
-			fmt.Printf("woke up at %d\n", now.Nanosecond())
+			fmt.Printf("woke up at %d (%v)\n", now.Nanosecond(), now.Sub(start))
 			break
 		}
 
@@ -75,9 +77,11 @@ func main() {
 	go func() {
 		fmt.Println("-- sleep -------------------------------------------------------------")
 
-		fmt.Printf("sleeping %s @ %d\n", sleep, time.Now().Nanosecond())
+
+		fmt.Printf("sleeping %s\n", sleep)
+		start := time.Now()
 		time.Sleep(sleep)
-		fmt.Printf("   slept %s @ %d\n", sleep, time.Now().Nanosecond())
+		fmt.Printf("   slept %s (%v)\n", sleep, time.Now().Sub(start))
 
 		exit <- true
 	}()
@@ -113,21 +117,24 @@ func main() {
 		exit <- true
 	}()
 
-	if imx6.Family == imx6.IMX6ULL && imx6.Native {
-		n += 1
-		go func() {
-			fmt.Println("-- i.mx6 dcp ---------------------------------------------------------")
-			TestDCP()
-			exit <- true
-		}()
+	if imx6.Native {
+		if imx6.Family == imx6.IMX6UL || imx6.Family == imx6.IMX6ULL {
+			n += 1
+			go func() {
+				fmt.Println("-- i.mx6 usb ---------------------------------------------------------")
+				TestUSB()
+				exit <- true
+			}()
+		}
 
-		// TODO
-		//n += 2 // account for eth_rx goroutine
-		//go func() {
-		//	fmt.Println("-- u-boot net --------------------------------------------------------")
-		//	TestNet()
-		//	exit <- true
-		//}()
+		if imx6.Family == imx6.IMX6ULL {
+			n += 1
+			go func() {
+				fmt.Println("-- i.mx6 dcp ---------------------------------------------------------")
+				TestDCP()
+				exit <- true
+			}()
+		}
 	}
 
 	fmt.Printf("launched %d test goroutines\n", n)
