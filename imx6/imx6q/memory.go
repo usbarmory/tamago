@@ -21,5 +21,5 @@ var ramStart uint32 = 0x10000000
 //go:linkname ramSize runtime.ramSize
 var ramSize uint32 = 0x20000000 // FIXME: move to a board package
 
-//go:linkname stackOffset runtime.stackOffset
-var stackOffset uint32 = 0x100000
+//go:linkname ramStackOffset runtime.ramStackOffset
+var ramStackOffset uint32 = 0x100000
