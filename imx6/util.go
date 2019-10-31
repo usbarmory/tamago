@@ -9,7 +9,7 @@
 package imx6
 
 import (
-	"errors"
+	"fmt"
 	"unsafe"
 )
 
@@ -39,24 +39,22 @@ func wait(reg *uint32, pos int, mask int, val uint32) {
 }
 
 func alignedBuffer(size uintptr, align uintptr) (buf []byte, addr uintptr, err error) {
-	off := uintptr(0)
 	buf = make([]byte, size+align)
-	addr = uintptr(unsafe.Pointer(&buf[off]))
+	addr = uintptr(unsafe.Pointer(&buf[0]))
 
-	if r := addr & (4 - 1); r != 0 {
-		off += r
-		addr += off
+	if r := addr & (align - 1); r != 0 {
+		addr += (align - r)
 	}
 
 	if !isAligned(addr, align) {
-		err = errors.New("buffer alignment failed")
+		err = fmt.Errorf("buffer alignment failed, addr:%x, align:%x", addr, align)
 	}
 
 	return
 }
 
-func isAligned(p uintptr, n uintptr) bool {
-	if p&(n-1) == 0 {
+func isAligned(addr uintptr, align uintptr) bool {
+	if addr&(align-1) == 0 {
 		return true
 	}
 
