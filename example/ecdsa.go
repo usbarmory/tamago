@@ -42,6 +42,4 @@ func testSignAndVerify(c elliptic.Curve, tag string) {
 func TestSignAndVerify() {
 	testSignAndVerify(elliptic.P224(), "p224")
 	testSignAndVerify(elliptic.P256(), "p256")
-	testSignAndVerify(elliptic.P384(), "p384")
-	testSignAndVerify(elliptic.P521(), "p521")
 }
