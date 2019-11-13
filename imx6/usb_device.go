@@ -77,6 +77,16 @@ type EndpointDescriptor struct {
 	bInterval        uint8
 }
 
+func (s *SetupData) ParseQH(dqh dQH) *SetupData {
+	s.bRequestType = uint8(dqh[10] & 0xff)
+	s.bRequest = uint8((dqh[10] >> 8) & 0xff)
+	s.wValue = uint16((dqh[10] >> 16) & 0xffff)
+	s.wIndex = uint16(dqh[11] & 0xffff)
+	s.wLength = uint16((dqh[11] >> 16) & 0xffff)
+
+	return s
+}
+
 // Set device mode.
 func (hw *usb) DeviceMode() {
 	hw.Lock()

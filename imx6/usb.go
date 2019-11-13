@@ -48,8 +48,8 @@ const (
 	USBCMD_RS              = 0
 
 	USB_UOG1_USBSTS uint32 = 0x02184144
-	USBSTS_URI = 6
-	USBSTS_UI = 0
+	USBSTS_URI             = 6
+	USBSTS_UI              = 0
 
 	USB_UOG1_ENDPTLISTADDR uint32 = 0x02184158
 	ENDPTLISTADDR_EPBASE          = 11
@@ -58,8 +58,8 @@ const (
 	PORTSC_PTS_1            = 30
 	PORTSC_PR               = 8
 
-	USB_UOG1_OTGSC  uint32 = 0x021841a4
-	OTGSC_OT = 3
+	USB_UOG1_OTGSC uint32 = 0x021841a4
+	OTGSC_OT              = 3
 
 	USB_UOG1_USBMODE  uint32 = 0x021841a8
 	USBMODE_SDIS             = 4
@@ -79,43 +79,43 @@ const (
 	ENDPTFLUSH_FERB            = 0
 
 	USB_UOG1_ENDPTCOMPLETE uint32 = 0x021841bc
-	ENDPTFLUSH_ETCE            = 16
-	ENDPTFLUSH_ERCE            = 0
+	ENDPTFLUSH_ETCE               = 16
+	ENDPTFLUSH_ERCE               = 0
 )
 
 type usb struct {
 	sync.Mutex
 
-	ccgr  *uint32
-	pll   *uint32
-	ctrl  *uint32
-	pwd   *uint32
-	chrg  *uint32
-	cmd   *uint32
-	ep    *uint32
-	sts   *uint32
-	sc    *uint32
-	setup *uint32
-	flush *uint32
-	prime *uint32
+	ccgr     *uint32
+	pll      *uint32
+	ctrl     *uint32
+	pwd      *uint32
+	chrg     *uint32
+	cmd      *uint32
+	ep       *uint32
+	sts      *uint32
+	sc       *uint32
+	setup    *uint32
+	flush    *uint32
+	prime    *uint32
 	complete *uint32
 
 	EP EndPointList
 }
 
 var USB1 = &usb{
-	ccgr:  (*uint32)(unsafe.Pointer(uintptr(CCM_CCGR6))),
-	pll:   (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_USB1))),
-	ctrl:  (*uint32)(unsafe.Pointer(uintptr(USBPHY1_CTRL))),
-	pwd:   (*uint32)(unsafe.Pointer(uintptr(USBPHY1_PWD))),
-	chrg:  (*uint32)(unsafe.Pointer(uintptr(USB_ANALOG_USB1_CHRG_DETECT))),
-	cmd:   (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBCMD))),
-	ep:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTLISTADDR))),
-	sts:   (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBSTS))),
-	sc:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_PORTSC1))),
-	setup: (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTSETUPSTAT))),
-	flush: (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTFLUSH))),
-	prime: (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTPRIME))),
+	ccgr:     (*uint32)(unsafe.Pointer(uintptr(CCM_CCGR6))),
+	pll:      (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_USB1))),
+	ctrl:     (*uint32)(unsafe.Pointer(uintptr(USBPHY1_CTRL))),
+	pwd:      (*uint32)(unsafe.Pointer(uintptr(USBPHY1_PWD))),
+	chrg:     (*uint32)(unsafe.Pointer(uintptr(USB_ANALOG_USB1_CHRG_DETECT))),
+	cmd:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBCMD))),
+	ep:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTLISTADDR))),
+	sts:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBSTS))),
+	sc:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_PORTSC1))),
+	setup:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTSETUPSTAT))),
+	flush:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTFLUSH))),
+	prime:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTPRIME))),
 	complete: (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTCOMPLETE))),
 }
 
@@ -162,10 +162,12 @@ func (hw *usb) Init() {
 	clear(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_EN_B)
 }
 
-func (hw *usb) controlTransaction() (setup dQH) {
+func (hw *usb) controlTransaction() {
 	print("imx6_usb: waiting for bus reset...")
 	wait(hw.sts, USBSTS_URI, 0b1, 1)
 	print("done\n")
+
+	// p3792, 56.4.6.2.1 Bus Reset, IMX6ULLRM
 
 	// read and write back to clear setup token semaphores
 	*(hw.setup) |= *(hw.setup)
@@ -179,25 +181,36 @@ func (hw *usb) controlTransaction() (setup dQH) {
 	print("done\n")
 
 	// clear reset
-	*(hw.sts) |= (1 << USBSTS_URI | 1 << USBSTS_UI)
+	*(hw.sts) |= (1<<USBSTS_URI | 1<<USBSTS_UI)
+	// FIXME
+	v7_flush_dcache_all()
 
 	print("imx6_usb: waiting for setup packet...")
 	wait(hw.setup, 0, 0b1, 1)
 	print("done\n")
 
+	// p3801, 56.4.6.4.2.1 Setup Phase, IMX6ULLRM
+
+	// clear setup status
+	set(hw.setup, 0)
+	// set tripwire
+	set(hw.cmd, USBCMD_SUTW)
+	// retrieve setup packet
+	setup := (&SetupData{}).ParseQH(hw.EP.Get(0, OUT))
+
+	// repeat if necessary
 	for get(hw.cmd, USBCMD_SUTW, 0b1) == 0 {
+		fmt.Printf("imx6_usb: retrying setup\n")
 		set(hw.cmd, USBCMD_SUTW)
-		// TODO: clean specific cache lines instead
-		v7_flush_dcache_all()
-		// FIXME
-		fmt.Printf("imx6_usb: setup buffer %+v %+v\n", hw.EP.Get(0,IN)[10], hw.EP.Get(0,IN)[11])
+		setup = (&SetupData{}).ParseQH(hw.EP.Get(0, OUT))
 	}
 
-	clear(hw.setup, 0)
+	// clear tripwire
 	clear(hw.cmd, USBCMD_SUTW)
-
 	// flush endpoint buffers
 	*(hw.flush) = 0xffffffff
+
+	fmt.Printf("imx6_usb: OUT setup buffer %+v\n", setup)
 
 	return
 }

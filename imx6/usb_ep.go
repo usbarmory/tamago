@@ -16,10 +16,13 @@ import (
 )
 
 const (
-	// the USB OTG device controller hardware supports up to 8 endpoint numbers
+	// The USB OTG device controller hardware supports up to 8 endpoint
+	// numbers.
 	MAX_ENDPOINTS = 8
+	// Host -> Device
 	OUT = 0
-	IN  = 1
+	// Device -> Host
+	IN = 1
 )
 
 type dQH [16]uint32
@@ -47,6 +50,8 @@ func (ep *EndPointList) init() {
 
 // Get endpoint queue head.
 func (ep *EndPointList) Get(n int, dir int) dQH {
+	// TODO: clean specific cache lines instead
+	v7_flush_dcache_all()
 	return ep.List[n*2+dir]
 }
 
@@ -62,7 +67,7 @@ func (ep *EndPointList) Set(n int, dir int, max int, zlt int, mult int) {
 
 	// p3784, 56.4.5.1 Endpoint Queue Head, IMX6ULLRM
 
-	off := n*2+dir
+	off := n*2 + dir
 
 	// Mult
 	setN(&ep.List[off][0], 30, 0b11, uint32(mult))
