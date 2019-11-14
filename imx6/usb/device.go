@@ -9,13 +9,15 @@
 //
 // +build tamago,arm
 
-package imx6
+package usb
 
 import (
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"unsafe"
+
+	"github.com/inversepath/tamago/imx6/internal/reg"
 )
 
 // p279, Table 9-4. Standard Request Codes, USB Specification Revision 2.0
@@ -137,9 +139,9 @@ func (hw *usb) DeviceMode() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	print("imx6_usb: resetting USB1...")
-	set(hw.cmd, USBCMD_RST)
-	wait(hw.cmd, USBCMD_RST, 0b1, 0)
+	print("imx6_usb: resetting...")
+	reg.Set(hw.cmd, USBCMD_RST)
+	reg.Wait(hw.cmd, USBCMD_RST, 0b1, 0)
 	print("done\n")
 
 	// p3872, 56.6.33 USB Device Mode (USB_nUSBMODE), IMX6ULLRM)
@@ -147,14 +149,14 @@ func (hw *usb) DeviceMode() {
 	m := *mode
 
 	// set device only controller
-	setN(&m, USBMODE_CM, 0b11, USBMODE_CM_DEVICE)
+	reg.SetN(&m, USBMODE_CM, 0b11, USBMODE_CM_DEVICE)
 	// disable setup lockout
-	set(&m, USBMODE_SLOM)
+	reg.Set(&m, USBMODE_SLOM)
 	// disable stream mode
-	clear(&m, USBMODE_SDIS)
+	reg.Clear(&m, USBMODE_SDIS)
 
 	*mode = m
-	wait(mode, USBMODE_CM, 0b11, USBMODE_CM_DEVICE)
+	reg.Wait(mode, USBMODE_CM, 0b11, USBMODE_CM_DEVICE)
 
 	// set endpoint queue head
 	hw.EP.init()
@@ -170,13 +172,13 @@ func (hw *usb) DeviceMode() {
 
 	// set OTG termination
 	otg := (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_OTGSC)))
-	set(otg, OTGSC_OT)
+	reg.Set(otg, OTGSC_OT)
 
 	// clear all pending interrupts
 	*(hw.sts) = 0xffffffff
 
 	// run
-	set(hw.cmd, USBCMD_RS)
+	reg.Set(hw.cmd, USBCMD_RS)
 
 	return
 }

@@ -18,6 +18,9 @@ import (
 	"fmt"
 	"sync"
 	"unsafe"
+
+	"github.com/inversepath/tamago/imx6/internal/cache"
+	"github.com/inversepath/tamago/imx6/internal/reg"
 )
 
 const (
@@ -109,11 +112,11 @@ func (hw *dcp) Init() {
 	// note: cannot defer during initialization
 
 	// soft reset DCP
-	set(hw.ctrl, HW_DCP_CTRL_SFTRST)
-	clear(hw.ctrl, HW_DCP_CTRL_SFTRST)
+	reg.Set(hw.ctrl, HW_DCP_CTRL_SFTRST)
+	reg.Clear(hw.ctrl, HW_DCP_CTRL_SFTRST)
 
 	// enable clocks
-	clear(hw.ctrl, HW_DCP_CTRL_CLKGATE)
+	reg.Clear(hw.ctrl, HW_DCP_CTRL_CLKGATE)
 
 	// enable all channels with merged IRQs
 	*(hw.chctrl) = 0x000100ff
@@ -132,7 +135,7 @@ func (hw *dcp) Init() {
 // is used. The secure operation of the DCP and SNVS, in production
 // deployments, should always be paired with Secure Boot activation.
 func (hw *dcp) SNVS() bool {
-	ssm := get(hw.snvs, SNVS_HPSR_SSM_STATE, 0b1111)
+	ssm := reg.Get(hw.snvs, SNVS_HPSR_SSM_STATE, 0b1111)
 
 	switch ssm {
 	case SNVS_HPSR_SSM_STATE_TRUSTED, SNVS_HPSR_SSM_STATE_SECURE:
@@ -169,14 +172,14 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	//
 	// Therefore for now we try without alignedBuffer().
 	workPacket := &WorkPacket{}
-	set(&workPacket.Control0, DCP_CTRL0_INTERRUPT_ENABL)
-	set(&workPacket.Control0, DCP_CTRL0_DECR_SEMAPHORE)
-	set(&workPacket.Control0, DCP_CTRL0_ENABLE_CIPHER)
-	set(&workPacket.Control0, DCP_CTRL0_CIPHER_ENCRYPT)
-	set(&workPacket.Control0, DCP_CTRL0_CIPHER_INIT)
+	reg.Set(&workPacket.Control0, DCP_CTRL0_INTERRUPT_ENABL)
+	reg.Set(&workPacket.Control0, DCP_CTRL0_DECR_SEMAPHORE)
+	reg.Set(&workPacket.Control0, DCP_CTRL0_ENABLE_CIPHER)
+	reg.Set(&workPacket.Control0, DCP_CTRL0_CIPHER_ENCRYPT)
+	reg.Set(&workPacket.Control0, DCP_CTRL0_CIPHER_INIT)
 
 	// Use device-specific hardware key, payload does not contain the key.
-	set(&workPacket.Control0, DCP_CTRL0_OTP_KEY)
+	reg.Set(&workPacket.Control0, DCP_CTRL0_OTP_KEY)
 
 	workPacket.Control1 |= (AES128 << DCP_CTRL1_CIPHER_SELECT)
 	workPacket.Control1 |= (CBC << DCP_CTRL1_CIPHER_MODE)
@@ -195,14 +198,14 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	*(hw.pkt) = workPacket
 	// Flush D cache just before starting the DCP via write to semaphore
 	// TODO: clean specific cache lines instead
-	v7_flush_dcache_all()
-	set(hw.sem, 1)
+	cache.FlushData()
+	reg.Set(hw.sem, 1)
 
 	print("imx6_dcp: waiting for key derivation...")
-	wait(hw.status, HW_DCP_STAT_IRQ, 0b1, 1)
+	reg.Wait(hw.status, HW_DCP_STAT_IRQ, 0b1, 1)
 	print("done\n")
 
-	if chstatus := get(hw.chstatus, 1, 0b111111); chstatus != 0 {
+	if chstatus := reg.Get(hw.chstatus, 1, 0b111111); chstatus != 0 {
 		if chstatus == 0x2 {
 			// FIXME: even if the operation is correctly done a NO_CHAIN error is
 			// returned, we ignore it for now pending investigation.

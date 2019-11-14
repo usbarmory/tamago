@@ -9,12 +9,14 @@
 //
 // +build tamago,arm
 
-package imx6
+package usb
 
 import (
 	"fmt"
 	"sync"
 	"unsafe"
+
+	"github.com/inversepath/tamago/imx6/internal/reg"
 )
 
 const (
@@ -125,47 +127,47 @@ func (hw *usb) Init() {
 	defer hw.Unlock()
 
 	// enable clock
-	setN(hw.ccgr, CCM_CCGR6_CG0, 0b11, 0b11)
+	reg.SetN(hw.ccgr, CCM_CCGR6_CG0, 0b11, 0b11)
 
 	// power up PLL
-	set(hw.pll, CCM_ANALOG_PLL_USB1_POWER)
-	set(hw.pll, CCM_ANALOG_PLL_USB1_EN_USB_CLKS)
+	reg.Set(hw.pll, CCM_ANALOG_PLL_USB1_POWER)
+	reg.Set(hw.pll, CCM_ANALOG_PLL_USB1_EN_USB_CLKS)
 
 	// wait for lock
 	print("imx6_usb: waiting for PLL lock...")
-	wait(hw.pll, CCM_ANALOG_PLL_USB1_LOCK, 0b1, 1)
+	reg.Wait(hw.pll, CCM_ANALOG_PLL_USB1_LOCK, 0b1, 1)
 	print("done\n")
 
 	// remove bypass
-	clear(hw.pll, CCM_ANALOG_PLL_USB1_BYPASS)
+	reg.Clear(hw.pll, CCM_ANALOG_PLL_USB1_BYPASS)
 
 	// enable PLL
-	set(hw.pll, CCM_ANALOG_PLL_USB1_ENABLE)
+	reg.Set(hw.pll, CCM_ANALOG_PLL_USB1_ENABLE)
 
 	// soft reset USB1 PHY
-	set(hw.ctrl, USBPHY1_CTRL_SFTRST)
-	clear(hw.ctrl, USBPHY1_CTRL_SFTRST)
+	reg.Set(hw.ctrl, USBPHY1_CTRL_SFTRST)
+	reg.Clear(hw.ctrl, USBPHY1_CTRL_SFTRST)
 
 	// enable clocks
-	clear(hw.ctrl, USBPHY1_CTRL_CLKGATE)
+	reg.Clear(hw.ctrl, USBPHY1_CTRL_CLKGATE)
 
 	// clear power down
 	*(hw.pwd) = 0x00000000
 
 	// enable UTMI+
-	set(hw.ctrl, USBPHY1_CTRL_ENUTMILEVEL3)
-	set(hw.ctrl, USBPHY1_CTRL_ENUTMILEVEL2)
+	reg.Set(hw.ctrl, USBPHY1_CTRL_ENUTMILEVEL3)
+	reg.Set(hw.ctrl, USBPHY1_CTRL_ENUTMILEVEL2)
 	// enable disconnection detect
-	set(hw.ctrl, USBPHY1_CTRL_ENHOSTDISCONDETECT)
+	reg.Set(hw.ctrl, USBPHY1_CTRL_ENHOSTDISCONDETECT)
 
 	// disable charger detector
-	clear(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_EN_B)
+	reg.Clear(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_EN_B)
 }
 
 // Handle bus reset.
 func (hw *usb) Reset() {
 	print("imx6_usb: waiting for bus reset...")
-	wait(hw.sts, USBSTS_URI, 0b1, 1)
+	reg.Wait(hw.sts, USBSTS_URI, 0b1, 1)
 	print("done\n")
 
 	// p3792, 56.4.6.2.1 Bus Reset, IMX6ULLRM
@@ -178,7 +180,7 @@ func (hw *usb) Reset() {
 	*(hw.flush) = 0xffffffff
 
 	print("imx6_usb: waiting for port reset...")
-	wait(hw.sc, PORTSC_PR, 0b1, 0)
+	reg.Wait(hw.sc, PORTSC_PR, 0b1, 0)
 	print("done\n")
 
 	// clear reset
@@ -188,24 +190,24 @@ func (hw *usb) Reset() {
 // Receive SETUP packet.
 func (hw *usb) Setup() (setup SetupData) {
 	print("imx6_usb: waiting for setup packet...")
-	wait(hw.setup, 0, 0b1, 1)
+	reg.Wait(hw.setup, 0, 0b1, 1)
 	print("done\n")
 
 	// p3801, 56.4.6.4.2.1 Setup Phase, IMX6ULLRM
 
 	// clear setup status
-	set(hw.setup, 0)
+	reg.Set(hw.setup, 0)
 	// set tripwire
-	set(hw.cmd, USBCMD_SUTW)
+	reg.Set(hw.cmd, USBCMD_SUTW)
 
 	// repeat if necessary
-	for get(hw.cmd, USBCMD_SUTW, 0b1) == 0 {
+	for reg.Get(hw.cmd, USBCMD_SUTW, 0b1) == 0 {
 		fmt.Printf("imx6_usb: retrying setup\n")
-		set(hw.cmd, USBCMD_SUTW)
+		reg.Set(hw.cmd, USBCMD_SUTW)
 	}
 
 	// clear tripwire
-	clear(hw.cmd, USBCMD_SUTW)
+	reg.Clear(hw.cmd, USBCMD_SUTW)
 	// flush endpoint buffers
 	*(hw.flush) = 0xffffffff
 

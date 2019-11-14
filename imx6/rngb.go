@@ -14,6 +14,8 @@ package imx6
 import (
 	"sync"
 	"unsafe"
+
+	"github.com/inversepath/tamago/imx6/internal/reg"
 )
 
 const (
@@ -88,27 +90,27 @@ func (hw *rngb) Init() {
 	// p3105, 44.5.2 Automatic seeding, IMX6ULLRM
 
 	// clear errors
-	set(hw.cmd, HW_RNG_CMD_CE)
+	reg.Set(hw.cmd, HW_RNG_CMD_CE)
 
 	// soft reset RNGB
-	set(hw.cmd, HW_RNG_CMD_SR)
+	reg.Set(hw.cmd, HW_RNG_CMD_SR)
 
 	// perform self-test
-	set(hw.cmd, HW_RNG_CMD_ST)
+	reg.Set(hw.cmd, HW_RNG_CMD_ST)
 
 	print("imx6_rng: self-test...")
-	wait(hw.status, HW_RNG_SR_STDN, 0b1, 1)
+	reg.Wait(hw.status, HW_RNG_SR_STDN, 0b1, 1)
 	print("done\n")
 
-	if get(hw.status, HW_RNG_SR_ERR, 0b1) != 0 || get(hw.status, HW_RNG_SR_ST_PF, 0b1) != 0 {
+	if reg.Get(hw.status, HW_RNG_SR_ERR, 0b1) != 0 || reg.Get(hw.status, HW_RNG_SR_ST_PF, 0b1) != 0 {
 		panic("imx6_rng: self-test FAIL\n")
 	}
 
 	// enable auto-reseed
-	set(hw.ctrl, HW_RNG_CR_AR)
+	reg.Set(hw.ctrl, HW_RNG_CR_AR)
 
 	print("imx6_rng: seeding...")
-	wait(hw.status, HW_RNG_SR_SDN, 0b1, 1)
+	reg.Wait(hw.status, HW_RNG_SR_SDN, 0b1, 1)
 	print("done\n")
 
 	hw.Unlock()
@@ -119,11 +121,11 @@ func (hw *rngb) getRandomData(b []byte) {
 	need := len(b)
 
 	for read < need {
-		if get(hw.status, HW_RNG_SR_ERR, 0b1) != 0 {
+		if reg.Get(hw.status, HW_RNG_SR_ERR, 0b1) != 0 {
 			panic("imx6_rng: error during getRandomData\n")
 		}
 
-		if get(hw.status, HW_RNG_SR_FIFO_LVL, 0b1111) > 0 {
+		if reg.Get(hw.status, HW_RNG_SR_FIFO_LVL, 0b1111) > 0 {
 			val := *hw.fifo
 			read = fill(b, read, val)
 		}

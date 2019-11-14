@@ -9,10 +9,14 @@
 //
 // +build tamago,arm
 
-package imx6
+package usb
 
 import (
 	"unsafe"
+
+	"github.com/inversepath/tamago/imx6/internal/cache"
+	"github.com/inversepath/tamago/imx6/internal/mem"
+	"github.com/inversepath/tamago/imx6/internal/reg"
 )
 
 const (
@@ -60,7 +64,7 @@ type EndPointList struct {
 func (ep *EndPointList) init() {
 	var err error
 
-	ep.buf, ep.addr, err = alignedBuffer(unsafe.Sizeof(ep.List), 2048)
+	ep.buf, ep.addr, err = mem.AlignedBuffer(unsafe.Sizeof(ep.List), 2048)
 
 	if err != nil {
 		panic("imx6_usb: queue head alignment error\n")
@@ -72,7 +76,7 @@ func (ep *EndPointList) init() {
 // Get endpoint queue head.
 func (ep *EndPointList) Get(n int, dir int) dQH {
 	// TODO: clean specific cache lines instead
-	v7_flush_dcache_all()
+	cache.FlushData()
 	return ep.List[n*2+dir]
 }
 
@@ -90,19 +94,19 @@ func (ep *EndPointList) Set(n int, dir int, max int, zlt int, mult int) {
 	off := n*2 + dir
 
 	// Mult
-	setN(&ep.List[off].info, 30, 0b11, uint32(mult))
+	reg.SetN(&ep.List[off].info, 30, 0b11, uint32(mult))
 	// zlt
-	setN(&ep.List[off].info, 29, 0b1, uint32(zlt))
+	reg.SetN(&ep.List[off].info, 29, 0b1, uint32(zlt))
 	// Maximum Packet Length
-	setN(&ep.List[off].info, 16, 0x7ff, uint32(max))
+	reg.SetN(&ep.List[off].info, 16, 0x7ff, uint32(max))
 
 	if dir == IN {
 		// interrupt on setup (ios)
-		setN(&ep.List[off].info, 15, 0b1, 1)
+		reg.SetN(&ep.List[off].info, 15, 0b1, 1)
 	}
 
 	// Total bytes
-	setN(&ep.List[off].token, 16, 0xffff, 8)
+	reg.SetN(&ep.List[off].token, 16, 0xffff, 8)
 	// interrupt on completion (ioc)
-	setN(&ep.List[off].token, 15, 0b1, 1)
+	reg.SetN(&ep.List[off].token, 15, 0b1, 1)
 }

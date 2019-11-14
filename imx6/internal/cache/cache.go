@@ -8,15 +8,15 @@
 //
 // +build tamago,arm
 
-package imx6
+package cache
 
 import (
 	"unsafe"
 )
 
 // defined in cache.s
-func cache_clean(addr unsafe.Pointer)
-func cache_enable()
-func cache_disable()
-func v7_flush_dcache_all()
-func v7_flush_icache_all()
+func Clean(addr unsafe.Pointer)
+func Enable()
+func Disable()
+func FlushData()
+func FlushInstruction()

@@ -6,8 +6,8 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// func cache_clean()
-TEXT ·cache_clean(SB),$0
+// func Clean()
+TEXT ·Clean(SB),$0
 	MOVW addr+0(FP), R0
 
 	MCR	15, 0, R0, C7, C10, 1 // DCCMVAC
@@ -16,16 +16,16 @@ TEXT ·cache_clean(SB),$0
 	WORD	$0xf57ff04f // dsb sy
 	RET
 
-// func cache_disable()
-TEXT ·cache_disable(SB),$0
+// func Disable()
+TEXT ·Disable(SB),$0
 	MRC	15, 0, R1, C1, C0, 0
 	BIC	$0x1000, R1	// Disable I-cache
 	BIC	$0x4, R1	// Disable D-cache
 	MCR	15, 0, R1, C1, C0, 0
 	RET
 
-// func cache_enable()
-TEXT ·cache_enable(SB),$0
+// func Enable()
+TEXT ·Enable(SB),$0
 	MRC	15, 0, R1, C1, C0, 0
 	AND	$1<<12, R1	// Enable I-cache
 	AND	$1<<2, R1	// Enable D-cache
@@ -35,8 +35,8 @@ TEXT ·cache_enable(SB),$0
 // Taken from Linux /arch/arm/mm/cache-v7.S
 // Using R8 instead of R10 as the latter is g in go runtime.
 //
-// func v7_flush_dcache_all
-TEXT ·v7_flush_dcache_all(SB),$0
+// func FlushData()
+TEXT ·FlushData(SB),$0
 	WORD	$0xf57ff05f			// DMB SY
 	MRC	15, 1, R0, C0, C0, 1		// read CLIDR
 	MOVW	R0>>23, R3			// move LoC into position
@@ -85,8 +85,8 @@ finished:
 // Taken from Linux /arch/arm/mm/cache-v7.S
 // Using R8 instead of R10 as the latter is g in go runtime.
 //
-// func v7_flush_icache_all
-TEXT ·v7_flush_icache_all(SB),$0
+// func FlushInstruction()
+TEXT ·FlushInstruction(SB),$0
 	MOVW	$0, R0
 	MCR	15, 0, R0, C7, C5, 0
 	RET

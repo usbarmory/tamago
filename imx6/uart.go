@@ -13,6 +13,8 @@ package imx6
 
 import (
 	"unsafe"
+
+	"github.com/inversepath/tamago/imx6/internal/reg"
 )
 
 const UART1_URXD uint32 = 0x02020000
@@ -52,15 +54,15 @@ var UART2 = &uart{
 }
 
 func (u *uart) txEmpty() bool {
-	return get(u.uts, UART_UTS_TXEMPTY, 0b1) == 0
+	return reg.Get(u.uts, UART_UTS_TXEMPTY, 0b1) == 0
 }
 
 func (u *uart) rxReady() bool {
-	return get(u.usr2, UART_USR2_RDR, 0b1) == 1
+	return reg.Get(u.usr2, UART_USR2_RDR, 0b1) == 1
 }
 
 func (u *uart) rxError() bool {
-	return get(u.urxd, UART_URXD_PRERR, 0b11111) != 0
+	return reg.Get(u.urxd, UART_URXD_PRERR, 0b11111) != 0
 }
 
 // Write a single character to the selected serial port.
@@ -83,5 +85,5 @@ func (u *uart) Read() (c byte, valid bool) {
 		return c, false
 	}
 
-	return byte(get(u.urxd, UART_URXD_RX_DATA, 0xff)), true
+	return byte(reg.Get(u.urxd, UART_URXD_RX_DATA, 0xff)), true
 }
