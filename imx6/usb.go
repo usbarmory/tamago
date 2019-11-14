@@ -162,7 +162,8 @@ func (hw *usb) Init() {
 	clear(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_EN_B)
 }
 
-func (hw *usb) controlTransaction() {
+// Handle bus reset.
+func (hw *usb) Reset() {
 	print("imx6_usb: waiting for bus reset...")
 	wait(hw.sts, USBSTS_URI, 0b1, 1)
 	print("done\n")
@@ -182,9 +183,10 @@ func (hw *usb) controlTransaction() {
 
 	// clear reset
 	*(hw.sts) |= (1<<USBSTS_URI | 1<<USBSTS_UI)
-	// FIXME
-	v7_flush_dcache_all()
+}
 
+// Receive SETUP packet.
+func (hw *usb) Setup() (setup SetupData) {
 	print("imx6_usb: waiting for setup packet...")
 	wait(hw.setup, 0, 0b1, 1)
 	print("done\n")
@@ -195,14 +197,11 @@ func (hw *usb) controlTransaction() {
 	set(hw.setup, 0)
 	// set tripwire
 	set(hw.cmd, USBCMD_SUTW)
-	// retrieve setup packet
-	setup := (&SetupData{}).ParseQH(hw.EP.Get(0, OUT))
 
 	// repeat if necessary
 	for get(hw.cmd, USBCMD_SUTW, 0b1) == 0 {
 		fmt.Printf("imx6_usb: retrying setup\n")
 		set(hw.cmd, USBCMD_SUTW)
-		setup = (&SetupData{}).ParseQH(hw.EP.Get(0, OUT))
 	}
 
 	// clear tripwire
@@ -210,7 +209,8 @@ func (hw *usb) controlTransaction() {
 	// flush endpoint buffers
 	*(hw.flush) = 0xffffffff
 
-	fmt.Printf("imx6_usb: OUT setup buffer %+v\n", setup)
+	setup = hw.EP.Get(0, OUT).setup
+	setup.swap()
 
 	return
 }

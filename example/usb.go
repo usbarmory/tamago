@@ -11,11 +11,19 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/inversepath/tamago/imx6"
 )
 
 func TestUSB() {
-	// TODO: work in progress
 	imx6.USB1.Init()
 	imx6.USB1.DeviceMode()
+
+	device := &imx6.DeviceDescriptor{}
+	err := imx6.USB1.DeviceEnumeration(device)
+
+	if err != nil {
+		fmt.Printf("imx6_usb: enumeration error, %v\n", err)
+	}
 }

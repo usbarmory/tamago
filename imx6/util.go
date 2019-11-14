@@ -34,6 +34,8 @@ func clearN(reg *uint32, pos int, mask int) {
 }
 
 func wait(reg *uint32, pos int, mask int, val uint32) {
+	// TODO: disable cache for peripheral space
+	v7_flush_dcache_all()
 	for get(reg, pos, mask) != val {
 	}
 }

@@ -12,7 +12,34 @@
 package imx6
 
 import (
+	"encoding/binary"
+	"errors"
+	"fmt"
 	"unsafe"
+)
+
+// p279, Table 9-4. Standard Request Codes, USB Specification Revision 2.0
+const (
+	GET_STATUS        = 0
+	CLEAR_FEATURE     = 1
+	SET_FEATURE       = 3
+	SET_ADDRESS       = 5
+	GET_DESCRIPTOR    = 6
+	SET_DESCRIPTOR    = 7
+	GET_CONFIGURATION = 8
+	SET_CONFIGURATION = 9
+)
+
+// p279, Table 9-5. Descriptor Types, USB Specification Revision 2.0
+const (
+	DEVICE                    = 1
+	CONFIGURATION             = 2
+	STRING                    = 3
+	INTERFACE                 = 4
+	ENDPOINT                  = 5
+	DEVICE_QUALIFIER          = 6
+	OTHER_SPEED_CONFIGURATION = 7
+	INTERFACE_POWER           = 8
 )
 
 // p276, Table 9-2. Format of Setup Data, USB Specification Revision 2.0
@@ -22,6 +49,21 @@ type SetupData struct {
 	wValue       uint16
 	wIndex       uint16
 	wLength      uint16
+}
+
+// The endianness values written in memory by the hardware does not match the
+// expected one by Go, so we have to swap multi byte values.
+func (s *SetupData) swap() {
+	b := make([]byte, 2)
+
+	binary.BigEndian.PutUint16(b, s.wValue)
+	s.wValue = binary.LittleEndian.Uint16(b)
+
+	binary.BigEndian.PutUint16(b, s.wIndex)
+	s.wIndex = binary.LittleEndian.Uint16(b)
+
+	binary.BigEndian.PutUint16(b, s.wLength)
+	s.wLength = binary.LittleEndian.Uint16(b)
 }
 
 // p290, Table 9-8. Standard Device Descriptor, USB Specification Revision 2.0
@@ -40,6 +82,19 @@ type DeviceDescriptor struct {
 	iProduct           uint8
 	iSerialNumber      uint8
 	bNumConfigurations uint8
+}
+
+func (d *DeviceDescriptor) Init() {
+	d.bLength = uint8(unsafe.Sizeof(DeviceDescriptor{}))
+	d.bDescriptorType = DEVICE
+	// USB 2.0
+	d.bcdUSB = 0x0200
+	// maximum packet size for EP0
+	d.bMaxPacketSize = 64
+	// http://pid.codes/1209/2702/
+	d.idVendor = 0x1209
+	d.idProduct = 0x2702
+	d.bNumConfigurations = 1
 }
 
 // p293, Table 9-10. Standard Configuration Descriptor, USB Specification Revision 2.0
@@ -75,16 +130,6 @@ type EndpointDescriptor struct {
 	bmAttributes     uint8
 	wMaxPacketSize   uint16
 	bInterval        uint8
-}
-
-func (s *SetupData) ParseQH(dqh dQH) *SetupData {
-	s.bRequestType = uint8(dqh[10] & 0xff)
-	s.bRequest = uint8((dqh[10] >> 8) & 0xff)
-	s.wValue = uint16((dqh[10] >> 16) & 0xffff)
-	s.wIndex = uint16(dqh[11] & 0xffff)
-	s.wLength = uint16((dqh[11] >> 16) & 0xffff)
-
-	return s
 }
 
 // Set device mode.
@@ -133,8 +178,29 @@ func (hw *usb) DeviceMode() {
 	// run
 	set(hw.cmd, USBCMD_RS)
 
-	// start control transaction
-	hw.controlTransaction()
-
 	return
+}
+
+// Perform device enumeration.
+func (hw *usb) DeviceEnumeration(d *DeviceDescriptor) (err error) {
+	hw.Reset()
+
+	for {
+		setup := hw.Setup()
+		fmt.Printf("imx6_usb: got setup packet %+v\n", setup)
+
+		switch setup.bRequest {
+		case GET_DESCRIPTOR:
+			switch setup.wValue {
+			case DEVICE:
+				fmt.Printf("imx6_usb: SETUP OUT -> GET_DESCRIPTOR, DEVICE\n")
+				// TODO
+				return
+			default:
+				return errors.New("unsupported descriptor type")
+			}
+		default:
+			return errors.New("unsupported request code")
+		}
+	}
 }

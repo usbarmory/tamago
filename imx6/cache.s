@@ -63,7 +63,7 @@ flush_levels:
 loop1:
 	MOVW	R7, R9				// create working copy of max index
 loop2:
-	ORR	R4<<R5, R8, R11		// factor way and cache number into r11
+	ORR	R4<<R5, R8, R11			// factor way and cache number into r11
 	ORR	R9<<R2, R11, R11		// factor way and cache number into r11
 	MCR	15, 0, R11, C7, C14, 2		// clean & invalidate by set/way
 	SUB.S	$1, R9, R9			// decrement the index

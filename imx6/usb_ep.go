@@ -25,7 +25,28 @@ const (
 	IN = 1
 )
 
-type dQH [16]uint32
+type dTD struct {
+	// TODO
+}
+
+type dQH struct {
+	info    uint32
+	current *dTD
+	next    *dTD
+	token   uint32
+
+	buffer0 *[]byte
+	buffer1 *[]byte
+	buffer2 *[]byte
+	buffer3 *[]byte
+	buffer4 *[]byte
+
+	_res uint32
+
+	// The Set-up Buffer will be filled by hardware, note that after this
+	// happens endianess needs to be adjusted with SetupData.swap().
+	setup SetupData
+}
 
 // p3783, 56.4.5 Device Data Structures, IMX6ULLRM
 type EndPointList struct {
@@ -57,35 +78,31 @@ func (ep *EndPointList) Get(n int, dir int) dQH {
 
 // Initialize endpoint queue head.
 func (ep *EndPointList) Set(n int, dir int, max int, zlt int, mult int) {
-	if n != 0 {
-		panic("imx_usb: endpoints > 0 are unsupported for now (TODO)\n")
-
-		//fmt.Printf("imx6_usb: waiting for endpoint %d priming...", n)
-		//wait(hw.prime, n, 0b1, 0)
-		//fmt.Printf("done\n")
-	}
+	// TODO: implement and move somewhere else
+	//if dir == IN {
+	//	set(hw.prime, ENDPTFLUSH_PETB + n, (1 << n))
+	//} else {
+	//	set(hw.prime, ENDPTFLUSH_PERB + n, (1 << n))
+	//}
 
 	// p3784, 56.4.5.1 Endpoint Queue Head, IMX6ULLRM
 
 	off := n*2 + dir
 
 	// Mult
-	setN(&ep.List[off][0], 30, 0b11, uint32(mult))
+	setN(&ep.List[off].info, 30, 0b11, uint32(mult))
 	// zlt
-	setN(&ep.List[off][0], 29, 0b1, uint32(zlt))
+	setN(&ep.List[off].info, 29, 0b1, uint32(zlt))
 	// Maximum Packet Length
-	setN(&ep.List[off][0], 16, 0x7ff, uint32(max))
+	setN(&ep.List[off].info, 16, 0x7ff, uint32(max))
 
 	if dir == IN {
 		// interrupt on setup (ios)
-		setN(&ep.List[off][0], 15, 0b1, 1)
+		setN(&ep.List[off].info, 15, 0b1, 1)
 	}
 
-	// Next dTD Pointer (not terminate)
-	setN(&ep.List[off][2], 0, 0b1, 0)
-
 	// Total bytes
-	setN(&ep.List[off][3], 16, 0xffff, 8)
+	setN(&ep.List[off].token, 16, 0xffff, 8)
 	// interrupt on completion (ioc)
-	setN(&ep.List[off][3], 15, 0b1, 1)
+	setN(&ep.List[off].token, 15, 0b1, 1)
 }
