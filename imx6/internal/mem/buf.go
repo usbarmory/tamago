@@ -9,26 +9,33 @@
 package mem
 
 import (
-	"fmt"
 	"unsafe"
 )
 
-func AlignedBuffer(size uintptr, align uintptr) (buf []byte, addr uintptr, err error) {
-	buf = make([]byte, size+align)
-	addr = uintptr(unsafe.Pointer(&buf[0]))
+// Return a buffer and offset that allow to achieve the desired alignment, such
+// as for allocating aligned structures by casting them over the buffer offset.
+// It is important to keep the []byte buffer around until the cast object is
+// required, to avoid GC swiping it away (as we go through uintptr).
+func AlignedBuffer(size uintptr, align uintptr) (*[]byte, uintptr) {
+	buf := make([]byte, size+align)
+	addr := uintptr(unsafe.Pointer(&buf[0]))
+
+	if IsAligned(addr, align) {
+		return &buf, addr
+	}
 
 	if r := addr & (align - 1); r != 0 {
 		addr += (align - r)
 	}
 
-	if !isAligned(addr, align) {
-		err = fmt.Errorf("buffer alignment failed, addr:%x, align:%x", addr, align)
+	if !IsAligned(addr, align) {
+		panic("alignment error\n")
 	}
 
-	return
+	return &buf, addr
 }
 
-func isAligned(addr uintptr, align uintptr) bool {
+func IsAligned(addr uintptr, align uintptr) bool {
 	if addr&(align-1) == 0 {
 		return true
 	}

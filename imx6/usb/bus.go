@@ -53,6 +53,10 @@ const (
 	USBSTS_URI             = 6
 	USBSTS_UI              = 0
 
+	USB_UOG1_DEVICEADDR uint32 = 0x02184154
+	DEVICEADDR_USBADR          = 25
+	DEVICEADDR_USBADRA         = 24
+
 	USB_UOG1_ENDPTLISTADDR uint32 = 0x02184158
 	ENDPTLISTADDR_EPBASE          = 11
 
@@ -73,16 +77,16 @@ const (
 	USB_UOG1_ENDPTSETUPSTAT uint32 = 0x021841ac
 
 	USB_UOG1_ENDPTPRIME uint32 = 0x021841b0
-	ENDPTFLUSH_PETB            = 16
-	ENDPTFLUSH_PERB            = 0
+	ENDPTPRIME_PETB            = 16
+	ENDPTPRIME_PERB            = 0
 
 	USB_UOG1_ENDPTFLUSH uint32 = 0x021841b4
 	ENDPTFLUSH_FETB            = 16
 	ENDPTFLUSH_FERB            = 0
 
 	USB_UOG1_ENDPTCOMPLETE uint32 = 0x021841bc
-	ENDPTFLUSH_ETCE               = 16
-	ENDPTFLUSH_ERCE               = 0
+	ENDPTCOMPLETE_ETCE            = 16
+	ENDPTCOMPLETE_ERCE            = 0
 )
 
 type usb struct {
@@ -94,6 +98,7 @@ type usb struct {
 	pwd      *uint32
 	chrg     *uint32
 	cmd      *uint32
+	addr     *uint32
 	ep       *uint32
 	sts      *uint32
 	sc       *uint32
@@ -112,6 +117,7 @@ var USB1 = &usb{
 	pwd:      (*uint32)(unsafe.Pointer(uintptr(USBPHY1_PWD))),
 	chrg:     (*uint32)(unsafe.Pointer(uintptr(USB_ANALOG_USB1_CHRG_DETECT))),
 	cmd:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBCMD))),
+	addr:     (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_DEVICEADDR))),
 	ep:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTLISTADDR))),
 	sts:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBSTS))),
 	sc:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_PORTSC1))),
@@ -165,7 +171,7 @@ func (hw *usb) Init() {
 }
 
 // Handle bus reset.
-func (hw *usb) Reset() {
+func (hw *usb) reset() {
 	print("imx6_usb: waiting for bus reset...")
 	reg.Wait(hw.sts, USBSTS_URI, 0b1, 1)
 	print("done\n")
@@ -188,7 +194,7 @@ func (hw *usb) Reset() {
 }
 
 // Receive SETUP packet.
-func (hw *usb) Setup() (setup SetupData) {
+func (hw *usb) getSetup() (setup SetupData) {
 	print("imx6_usb: waiting for setup packet...")
 	reg.Wait(hw.setup, 0, 0b1, 1)
 	print("done\n")
@@ -211,7 +217,7 @@ func (hw *usb) Setup() (setup SetupData) {
 	// flush endpoint buffers
 	*(hw.flush) = 0xffffffff
 
-	setup = hw.EP.Get(0, OUT).setup
+	setup = hw.EP.get(0, OUT).setup
 	setup.swap()
 
 	return

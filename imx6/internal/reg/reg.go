@@ -9,10 +9,14 @@
 package reg
 
 import (
+	"time"
+
 	"github.com/inversepath/tamago/imx6/internal/cache"
 )
 
 func Get(reg *uint32, pos int, mask int) uint32 {
+	// TODO: disable cache for peripheral space
+	cache.FlushData()
 	return uint32((int(*reg) >> pos) & mask)
 }
 
@@ -33,8 +37,18 @@ func ClearN(reg *uint32, pos int, mask int) {
 }
 
 func Wait(reg *uint32, pos int, mask int, val uint32) {
-	// TODO: disable cache for peripheral space
-	cache.FlushData()
 	for Get(reg, pos, mask) != val {
 	}
+}
+
+func WaitFor(timeout time.Duration, reg *uint32, pos int, mask int, val uint32) bool {
+	start := time.Now()
+
+	for Get(reg, pos, mask) != val {
+		if time.Since(start) >= timeout {
+			return false
+		}
+	}
+
+	return true
 }

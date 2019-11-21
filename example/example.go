@@ -77,7 +77,6 @@ func main() {
 	go func() {
 		fmt.Println("-- sleep -------------------------------------------------------------")
 
-
 		fmt.Printf("sleeping %s\n", sleep)
 		start := time.Now()
 		time.Sleep(sleep)
@@ -152,7 +151,7 @@ func main() {
 
 	fmt.Printf("-- memory allocation (%d runs) ---------------------------------------\n", runs)
 	testAlloc(runs, chunks, chunkSize)
-	fmt.Printf("total %d MB allocated\n", runs * chunks * chunkSize)
+	fmt.Printf("total %d MB allocated\n", runs*chunks*chunkSize)
 
 	fmt.Printf("Goodbye from tamago/arm (%s)\n", time.Since(start))
 }

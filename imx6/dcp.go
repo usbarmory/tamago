@@ -170,7 +170,7 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	// * any byte alignment is supported but 4 bytes one leads to better
 	//   performance
 	//
-	// Therefore for now we try without alignedBuffer().
+	// Therefore for now we try without mem.AlignedBuffer.
 	workPacket := &WorkPacket{}
 	reg.Set(&workPacket.Control0, DCP_CTRL0_INTERRUPT_ENABL)
 	reg.Set(&workPacket.Control0, DCP_CTRL0_DECR_SEMAPHORE)

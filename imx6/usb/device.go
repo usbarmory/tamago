@@ -13,10 +13,11 @@ package usb
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
+	"time"
 	"unsafe"
 
+	"github.com/inversepath/tamago/imx6/internal/cache"
 	"github.com/inversepath/tamago/imx6/internal/reg"
 )
 
@@ -70,68 +71,94 @@ func (s *SetupData) swap() {
 
 // p290, Table 9-8. Standard Device Descriptor, USB Specification Revision 2.0
 type DeviceDescriptor struct {
-	bLength            uint8
-	bDescriptorType    uint8
-	bcdUSB             uint16
-	bDeviceClass       uint8
-	bDeviceSubClass    uint8
-	bDeviceProtocol    uint8
-	bMaxPacketSize     uint8
-	idVendor           uint16
-	idProduct          uint16
-	bcdDevice          uint16
-	iManufacturer      uint8
-	iProduct           uint8
-	iSerialNumber      uint8
-	bNumConfigurations uint8
+	Length            uint8
+	DescriptorType    uint8
+	bcdUSB            uint16
+	DeviceClass       uint8
+	DeviceSubClass    uint8
+	DeviceProtocol    uint8
+	MaxPacketSize     uint8
+	VendorId          uint16
+	ProductId         uint16
+	Device            uint16
+	Manufacturer      uint8
+	Product           uint8
+	SerialNumber      uint8
+	NumConfigurations uint8
 }
 
-func (d *DeviceDescriptor) Init() {
-	d.bLength = uint8(unsafe.Sizeof(DeviceDescriptor{}))
-	d.bDescriptorType = DEVICE
+// Set default values for USB device descriptor.
+func (d *DeviceDescriptor) SetDefaults() {
+	d.Length = uint8(unsafe.Sizeof(DeviceDescriptor{}))
+	d.DescriptorType = DEVICE
 	// USB 2.0
 	d.bcdUSB = 0x0200
 	// maximum packet size for EP0
-	d.bMaxPacketSize = 64
+	d.MaxPacketSize = 64
 	// http://pid.codes/1209/2702/
-	d.idVendor = 0x1209
-	d.idProduct = 0x2702
-	d.bNumConfigurations = 1
+	d.VendorId = 0x1209
+	d.ProductId = 0x2702
+	d.NumConfigurations = 1
 }
 
 // p293, Table 9-10. Standard Configuration Descriptor, USB Specification Revision 2.0
 type ConfigurationDescriptor struct {
-	bLength             uint8
-	bDescriptorType     uint8
-	wTotalLength        uint16
-	bNumInterfaces      uint8
-	bConfigurationValue uint8
-	iConfiguration      uint8
-	bmAttributes        uint8
-	maxPower            uint8
+	Length             uint8
+	DescriptorType     uint8
+	TotalLength        uint16
+	NumInterfaces      uint8
+	ConfigurationValue uint8
+	Configuration      uint8
+	Attributes         uint8
+	MaxPower           uint8
+}
+
+// Set default values for USB configuration descriptor.
+func (d *ConfigurationDescriptor) SetDefaults() {
+	d.Length = uint8(unsafe.Sizeof(ConfigurationDescriptor{}))
+	d.DescriptorType = CONFIGURATION
+	d.NumInterfaces = 1
+	d.ConfigurationValue = 1
+	d.Attributes = 0xc0
+	d.MaxPower = 250
 }
 
 // p296, Table 9-12. Standard Interface Descriptor, USB Specification Revision 2.0
 type InterfaceDescriptor struct {
-	bLength            uint8
-	bDescriptorType    uint8
-	bInterfaceNumber   uint8
-	bAlternateSetting  uint8
-	bNumEndpoints      uint8
-	bInterfaceClass    uint8
-	bInterfaceSubClass uint8
-	bInterfaceProtocol uint8
-	iInterface         uint8
+	Length            uint8
+	DescriptorType    uint8
+	InterfaceNumber   uint8
+	AlternateSetting  uint8
+	NumEndpoints      uint8
+	InterfaceClass    uint8
+	InterfaceSubClass uint8
+	InterfaceProtocol uint8
+	Interface         uint8
+}
+
+// Set default values for USB interface descriptor.
+func (d *InterfaceDescriptor) SetDefaults() {
+	d.Length = uint8(unsafe.Sizeof(InterfaceDescriptor{}))
+	d.DescriptorType = INTERFACE
+	d.NumEndpoints = 1
 }
 
 // p297, Table 9-13. Standard Endpoint Descriptor, USB Specification Revision 2.0
 type EndpointDescriptor struct {
-	bLength          uint8
-	bDescriptorType  uint8
-	bEndpointAddress uint8
-	bmAttributes     uint8
-	wMaxPacketSize   uint16
-	bInterval        uint8
+	Length          uint8
+	DescriptorType  uint8
+	EndpointAddress uint8
+	Attributes      uint8
+	MaxPacketSize   uint16
+	Interval        uint8
+}
+
+// Set default values for USB endpoint descriptor.
+func (d *EndpointDescriptor) SetDefaults() {
+	d.Length = uint8(unsafe.Sizeof(EndpointDescriptor{}))
+	d.DescriptorType = ENDPOINT
+	// EP1 IN
+	d.EndpointAddress = 0x81
 }
 
 // Set device mode.
@@ -163,8 +190,8 @@ func (hw *usb) DeviceMode() {
 	*(hw.ep) = uint32(hw.EP.addr)
 
 	// set control endpoint
-	hw.EP.Set(0, IN, 64, 0, 0)
-	hw.EP.Set(0, OUT, 64, 0, 0)
+	hw.EP.set(0, IN, 64, 0, 0)
+	hw.EP.set(0, OUT, 64, 0, 0)
 
 	// Endpoint 0 is designed as a control endpoint only and does
 	// not need to be configured using ENDPTCTRL0 register.
@@ -184,25 +211,117 @@ func (hw *usb) DeviceMode() {
 }
 
 // Perform device enumeration.
-func (hw *usb) DeviceEnumeration(d *DeviceDescriptor) (err error) {
-	hw.Reset()
+func (hw *usb) DeviceEnumeration(desc *DeviceDescriptor) (err error) {
+	hw.Lock()
+	defer hw.Unlock()
+
+	hw.reset()
 
 	for {
-		setup := hw.Setup()
+		if err != nil {
+			return
+		}
+
+		setup := hw.getSetup()
 		fmt.Printf("imx6_usb: got setup packet %+v\n", setup)
 
 		switch setup.bRequest {
 		case GET_DESCRIPTOR:
 			switch setup.wValue {
 			case DEVICE:
-				fmt.Printf("imx6_usb: SETUP OUT -> GET_DESCRIPTOR, DEVICE\n")
-				// TODO
-				return
+				err = hw.transfer(0, desc, nil)
 			default:
-				return errors.New("unsupported descriptor type")
+				return fmt.Errorf("unsupported descriptor type %#x", setup.wValue)
 			}
+		case SET_ADDRESS:
+			addr := uint32((setup.wValue<<8)&0xff00 | (setup.wValue >> 8))
+			fmt.Printf("imx6_usb: set address %d\n", addr)
+
+			reg.Set(hw.addr, DEVICEADDR_USBADRA)
+			reg.SetN(hw.addr, DEVICEADDR_USBADR, 0x7f, addr)
+
+			err = hw.ack(0)
 		default:
-			return errors.New("unsupported request code")
+			return fmt.Errorf("unsupported request code: %#x", setup.bRequest)
 		}
 	}
+}
+
+// p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors, IMX6ULLRM
+func (hw *usb) transferDTD(n int, dir int, ioc bool, buf interface{}) (err error) {
+	err = hw.EP.setDTD(n, dir, ioc, buf)
+
+	if err != nil {
+		return
+	}
+
+	// TODO: clean specific cache lines instead
+	cache.FlushData()
+
+	// IN:ENDPTPRIME_PETB+n OUT:ENDPTPRIME_PERB+n
+	pos := (dir * 16) + n
+
+	fmt.Printf("imx6_usb: priming endpoint %d.%d transfer...", n, dir)
+	reg.Set(hw.prime, pos)
+
+	print("waiting completion...")
+	reg.Wait(hw.prime, pos, 0b1, 0)
+	print("waiting status...")
+	reg.WaitFor(500*time.Millisecond, &hw.EP.get(n, dir).current.token, 7, 0b1, 0)
+	print("...")
+
+	if status := reg.Get(&hw.EP.get(n, dir).current.token, 0, 0xff); status != 0x00 {
+		print("error\n")
+		return fmt.Errorf("transfer error %x", status)
+	}
+	print("done\n")
+
+	return
+}
+
+func (hw *usb) transferWait(n int, dir int) {
+	print("imx6_usb: waiting for transfer interrupt...")
+	reg.Wait(hw.sts, USBSTS_UI, 0b1, 1)
+	print("done\n")
+	// clear interrupt
+	*(hw.sts) |= 1 << USBSTS_UI
+
+	// IN:ENDPTCOMPLETE_ETCE+n OUT:ENDPTCOMPLETE_ERCE+n
+	pos := (dir * 16) + n
+
+	print("imx6_usb: waiting for endpoint transfer completion...")
+	reg.Wait(hw.complete, pos, 0b1, 1)
+	print("done\n")
+	// clear transfer completion
+	*(hw.complete) |= 1 << pos
+}
+
+func (hw *usb) ack(n int) (err error) {
+	err = hw.transferDTD(n, IN, true, nil)
+
+	if err != nil {
+		return
+	}
+
+	hw.transferWait(n, IN)
+
+	return
+}
+
+func (hw *usb) transfer(n int, in interface{}, out interface{}) (err error) {
+	err = hw.transferDTD(n, IN, false, in)
+
+	if err != nil {
+		return
+	}
+
+	err = hw.transferDTD(n, OUT, true, out)
+
+	if err != nil {
+		return
+	}
+
+	hw.transferWait(n, IN)
+
+	return
 }
