@@ -28,7 +28,7 @@ Documentation
 =============
 
 For TamaGo see its [repository](https://github.com/inversepath/tamago) and
-[project wiki](https://github.com/inversepath/usbarmory/wiki) for information.
+[project wiki](https://github.com/inversepath/tamago/wiki) for information.
 
 Supported hardware
 ==================
