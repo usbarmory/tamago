@@ -14,6 +14,7 @@ package usb
 import (
 	"fmt"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/inversepath/tamago/imx6/internal/reg"
@@ -194,10 +195,12 @@ func (hw *usb) reset() {
 }
 
 // Receive SETUP packet.
-func (hw *usb) getSetup() (setup SetupData) {
-	print("imx6_usb: waiting for setup packet...")
-	reg.Wait(hw.setup, 0, 0b1, 1)
-	print("done\n")
+func (hw *usb) getSetup(timeout time.Duration) (setup *SetupData) {
+	if !reg.WaitFor(timeout, hw.setup, 0, 0b1, 1) {
+		return
+	}
+
+	setup = &SetupData{}
 
 	// p3801, 56.4.6.4.2.1 Setup Phase, IMX6ULLRM
 
@@ -217,7 +220,7 @@ func (hw *usb) getSetup() (setup SetupData) {
 	// flush endpoint buffers
 	*(hw.flush) = 0xffffffff
 
-	setup = hw.EP.get(0, OUT).setup
+	*setup = hw.EP.get(0, OUT).setup
 	setup.swap()
 
 	return

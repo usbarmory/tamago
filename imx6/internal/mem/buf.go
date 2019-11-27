@@ -36,9 +36,5 @@ func AlignedBuffer(size uintptr, align uintptr) (*[]byte, uintptr) {
 }
 
 func IsAligned(addr uintptr, align uintptr) bool {
-	if addr&(align-1) == 0 {
-		return true
-	}
-
-	return false
+	return addr&(align-1) == 0
 }

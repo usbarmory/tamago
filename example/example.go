@@ -116,24 +116,13 @@ func main() {
 		exit <- true
 	}()
 
-	if imx6.Native {
-		if imx6.Family == imx6.IMX6UL || imx6.Family == imx6.IMX6ULL {
-			n += 1
-			go func() {
-				fmt.Println("-- i.mx6 usb ---------------------------------------------------------")
-				TestUSB()
-				exit <- true
-			}()
-		}
-
-		if imx6.Family == imx6.IMX6ULL {
-			n += 1
-			go func() {
-				fmt.Println("-- i.mx6 dcp ---------------------------------------------------------")
-				TestDCP()
-				exit <- true
-			}()
-		}
+	if imx6.Native && imx6.Family == imx6.IMX6ULL {
+		n += 1
+		go func() {
+			fmt.Println("-- i.mx6 dcp ---------------------------------------------------------")
+			TestDCP()
+			exit <- true
+		}()
 	}
 
 	fmt.Printf("launched %d test goroutines\n", n)
@@ -143,7 +132,7 @@ func main() {
 	}
 
 	fmt.Printf("----------------------------------------------------------------------\n")
-	fmt.Printf("completed %d goroutines\n", n)
+	fmt.Printf("completed %d goroutines (%s)\n", n, time.Since(start))
 
 	runs := 8
 	chunks := 40
@@ -152,6 +141,11 @@ func main() {
 	fmt.Printf("-- memory allocation (%d runs) ---------------------------------------\n", runs)
 	testAlloc(runs, chunks, chunkSize)
 	fmt.Printf("total %d MB allocated\n", runs*chunks*chunkSize)
+
+	if imx6.Native && (imx6.Family == imx6.IMX6UL || imx6.Family == imx6.IMX6ULL) {
+		fmt.Println("-- i.mx6 usb ---------------------------------------------------------")
+		TestUSB()
+	}
 
 	fmt.Printf("Goodbye from tamago/arm (%s)\n", time.Since(start))
 }

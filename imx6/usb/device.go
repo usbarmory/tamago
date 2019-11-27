@@ -12,7 +12,6 @@
 package usb
 
 import (
-	"encoding/binary"
 	"fmt"
 	"time"
 	"unsafe"
@@ -20,146 +19,6 @@ import (
 	"github.com/inversepath/tamago/imx6/internal/cache"
 	"github.com/inversepath/tamago/imx6/internal/reg"
 )
-
-// p279, Table 9-4. Standard Request Codes, USB Specification Revision 2.0
-const (
-	GET_STATUS        = 0
-	CLEAR_FEATURE     = 1
-	SET_FEATURE       = 3
-	SET_ADDRESS       = 5
-	GET_DESCRIPTOR    = 6
-	SET_DESCRIPTOR    = 7
-	GET_CONFIGURATION = 8
-	SET_CONFIGURATION = 9
-)
-
-// p279, Table 9-5. Descriptor Types, USB Specification Revision 2.0
-const (
-	DEVICE                    = 1
-	CONFIGURATION             = 2
-	STRING                    = 3
-	INTERFACE                 = 4
-	ENDPOINT                  = 5
-	DEVICE_QUALIFIER          = 6
-	OTHER_SPEED_CONFIGURATION = 7
-	INTERFACE_POWER           = 8
-)
-
-// p276, Table 9-2. Format of Setup Data, USB Specification Revision 2.0
-type SetupData struct {
-	bRequestType uint8
-	bRequest     uint8
-	wValue       uint16
-	wIndex       uint16
-	wLength      uint16
-}
-
-// The endianness values written in memory by the hardware does not match the
-// expected one by Go, so we have to swap multi byte values.
-func (s *SetupData) swap() {
-	b := make([]byte, 2)
-
-	binary.BigEndian.PutUint16(b, s.wValue)
-	s.wValue = binary.LittleEndian.Uint16(b)
-
-	binary.BigEndian.PutUint16(b, s.wIndex)
-	s.wIndex = binary.LittleEndian.Uint16(b)
-
-	binary.BigEndian.PutUint16(b, s.wLength)
-	s.wLength = binary.LittleEndian.Uint16(b)
-}
-
-// p290, Table 9-8. Standard Device Descriptor, USB Specification Revision 2.0
-type DeviceDescriptor struct {
-	Length            uint8
-	DescriptorType    uint8
-	bcdUSB            uint16
-	DeviceClass       uint8
-	DeviceSubClass    uint8
-	DeviceProtocol    uint8
-	MaxPacketSize     uint8
-	VendorId          uint16
-	ProductId         uint16
-	Device            uint16
-	Manufacturer      uint8
-	Product           uint8
-	SerialNumber      uint8
-	NumConfigurations uint8
-}
-
-// Set default values for USB device descriptor.
-func (d *DeviceDescriptor) SetDefaults() {
-	d.Length = uint8(unsafe.Sizeof(DeviceDescriptor{}))
-	d.DescriptorType = DEVICE
-	// USB 2.0
-	d.bcdUSB = 0x0200
-	// maximum packet size for EP0
-	d.MaxPacketSize = 64
-	// http://pid.codes/1209/2702/
-	d.VendorId = 0x1209
-	d.ProductId = 0x2702
-	d.NumConfigurations = 1
-}
-
-// p293, Table 9-10. Standard Configuration Descriptor, USB Specification Revision 2.0
-type ConfigurationDescriptor struct {
-	Length             uint8
-	DescriptorType     uint8
-	TotalLength        uint16
-	NumInterfaces      uint8
-	ConfigurationValue uint8
-	Configuration      uint8
-	Attributes         uint8
-	MaxPower           uint8
-}
-
-// Set default values for USB configuration descriptor.
-func (d *ConfigurationDescriptor) SetDefaults() {
-	d.Length = uint8(unsafe.Sizeof(ConfigurationDescriptor{}))
-	d.DescriptorType = CONFIGURATION
-	d.NumInterfaces = 1
-	d.ConfigurationValue = 1
-	d.Attributes = 0xc0
-	d.MaxPower = 250
-}
-
-// p296, Table 9-12. Standard Interface Descriptor, USB Specification Revision 2.0
-type InterfaceDescriptor struct {
-	Length            uint8
-	DescriptorType    uint8
-	InterfaceNumber   uint8
-	AlternateSetting  uint8
-	NumEndpoints      uint8
-	InterfaceClass    uint8
-	InterfaceSubClass uint8
-	InterfaceProtocol uint8
-	Interface         uint8
-}
-
-// Set default values for USB interface descriptor.
-func (d *InterfaceDescriptor) SetDefaults() {
-	d.Length = uint8(unsafe.Sizeof(InterfaceDescriptor{}))
-	d.DescriptorType = INTERFACE
-	d.NumEndpoints = 1
-}
-
-// p297, Table 9-13. Standard Endpoint Descriptor, USB Specification Revision 2.0
-type EndpointDescriptor struct {
-	Length          uint8
-	DescriptorType  uint8
-	EndpointAddress uint8
-	Attributes      uint8
-	MaxPacketSize   uint16
-	Interval        uint8
-}
-
-// Set default values for USB endpoint descriptor.
-func (d *EndpointDescriptor) SetDefaults() {
-	d.Length = uint8(unsafe.Sizeof(EndpointDescriptor{}))
-	d.DescriptorType = ENDPOINT
-	// EP1 IN
-	d.EndpointAddress = 0x81
-}
 
 // Set device mode.
 func (hw *usb) DeviceMode() {
@@ -210,46 +69,88 @@ func (hw *usb) DeviceMode() {
 	return
 }
 
-// Perform device enumeration.
-func (hw *usb) DeviceEnumeration(desc *DeviceDescriptor) (err error) {
+// Wait and handle setup packets for device enumeration and configuration.
+func (hw *usb) SetupHandler(dev *Device, timeout time.Duration, loop bool) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
 	hw.reset()
 
 	for {
-		if err != nil {
-			return
-		}
+		setup := hw.getSetup(timeout)
 
-		setup := hw.getSetup()
-		fmt.Printf("imx6_usb: got setup packet %+v\n", setup)
+		if setup == nil {
+			continue
+		}
 
 		switch setup.bRequest {
 		case GET_DESCRIPTOR:
-			switch setup.wValue {
+			bDescriptorType := setup.wValue & 0xff
+			index := setup.wValue >> 8
+
+			switch bDescriptorType {
 			case DEVICE:
-				err = hw.transfer(0, desc, nil)
+				err = hw.transfer(0, dev.Descriptor.Bytes(), nil)
+			case CONFIGURATION:
+				var conf []byte
+				if conf, err = dev.Configuration(index, setup.wLength); err == nil {
+					fmt.Printf("imx6_usb: sending configuration descriptor %d (%d bytes)\n", index, setup.wLength)
+					err = hw.transfer(0, conf, nil)
+				}
+			case STRING:
+				if int(index+1) > len(dev.Strings) {
+					hw.ack(0)
+					err = fmt.Errorf("invalid string descriptor index %d", index)
+				} else {
+					if index == 0 {
+						fmt.Printf("imx6_usb: sending string descriptor zero\n")
+					} else {
+						fmt.Printf("imx6_usb: sending string descriptor %d: \"%s\"\n", index, dev.Strings[index][2:])
+					}
+
+					err = hw.transfer(0, dev.Strings[index], nil)
+				}
+			case DEVICE_QUALIFIER:
+				err = hw.transfer(0, dev.Qualifier.Bytes(), nil)
 			default:
-				return fmt.Errorf("unsupported descriptor type %#x", setup.wValue)
+				hw.ack(0)
+				err = fmt.Errorf("unsupported descriptor type %#x", bDescriptorType)
 			}
 		case SET_ADDRESS:
 			addr := uint32((setup.wValue<<8)&0xff00 | (setup.wValue >> 8))
-			fmt.Printf("imx6_usb: set address %d\n", addr)
+			fmt.Printf("imx6_usb: setting address %d\n", addr)
 
 			reg.Set(hw.addr, DEVICEADDR_USBADRA)
 			reg.SetN(hw.addr, DEVICEADDR_USBADR, 0x7f, addr)
 
 			err = hw.ack(0)
+		case SET_CONFIGURATION:
+			conf := uint8(setup.wValue >> 8)
+			fmt.Printf("imx6_usb: setting configuration value %d\n", conf)
+
+			dev.ConfigurationValue = conf
+			err = hw.ack(0)
+		case GET_STATUS:
+			// no meaningful status to report for now
+			err = hw.transfer(0, []byte{0x00, 0x00}, nil)
 		default:
-			return fmt.Errorf("unsupported request code: %#x", setup.bRequest)
+			hw.ack(0)
+			err = fmt.Errorf("unsupported request code: %#x", setup.bRequest)
+		}
+
+		if !loop {
+			return
+		}
+
+		if err != nil {
+			fmt.Printf("imx6_usb: %v\n", err)
 		}
 	}
 }
 
 // p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors, IMX6ULLRM
-func (hw *usb) transferDTD(n int, dir int, ioc bool, buf interface{}) (err error) {
-	err = hw.EP.setDTD(n, dir, ioc, buf)
+func (hw *usb) transferDTD(n int, dir int, ioc bool, data []byte) (err error) {
+	err = hw.EP.setDTD(n, dir, ioc, data)
 
 	if err != nil {
 		return
@@ -260,38 +161,32 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, buf interface{}) (err error
 
 	// IN:ENDPTPRIME_PETB+n OUT:ENDPTPRIME_PERB+n
 	pos := (dir * 16) + n
-
-	fmt.Printf("imx6_usb: priming endpoint %d.%d transfer...", n, dir)
+	// prime endpoint
 	reg.Set(hw.prime, pos)
 
-	print("waiting completion...")
+	// wait for priming completion
 	reg.Wait(hw.prime, pos, 0b1, 0)
-	print("waiting status...")
+	// wait for status
 	reg.WaitFor(500*time.Millisecond, &hw.EP.get(n, dir).current.token, 7, 0b1, 0)
-	print("...")
 
 	if status := reg.Get(&hw.EP.get(n, dir).current.token, 0, 0xff); status != 0x00 {
-		print("error\n")
-		return fmt.Errorf("transfer error %x", status)
+		err = fmt.Errorf("transfer error %x", status)
 	}
-	print("done\n")
 
 	return
 }
 
 func (hw *usb) transferWait(n int, dir int) {
-	print("imx6_usb: waiting for transfer interrupt...")
+	// wait for transfer interrupt
 	reg.Wait(hw.sts, USBSTS_UI, 0b1, 1)
-	print("done\n")
 	// clear interrupt
 	*(hw.sts) |= 1 << USBSTS_UI
 
 	// IN:ENDPTCOMPLETE_ETCE+n OUT:ENDPTCOMPLETE_ERCE+n
 	pos := (dir * 16) + n
-
-	print("imx6_usb: waiting for endpoint transfer completion...")
+	// wait for completion
 	reg.Wait(hw.complete, pos, 0b1, 1)
-	print("done\n")
+
 	// clear transfer completion
 	*(hw.complete) |= 1 << pos
 }
@@ -308,7 +203,7 @@ func (hw *usb) ack(n int) (err error) {
 	return
 }
 
-func (hw *usb) transfer(n int, in interface{}, out interface{}) (err error) {
+func (hw *usb) transfer(n int, in []byte, out []byte) (err error) {
 	err = hw.transferDTD(n, IN, false, in)
 
 	if err != nil {

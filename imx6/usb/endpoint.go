@@ -13,7 +13,6 @@ package usb
 
 import (
 	"errors"
-	"fmt"
 	"unsafe"
 
 	"github.com/inversepath/tamago/imx6/internal/cache"
@@ -111,8 +110,12 @@ func (ep *EndPointList) set(n int, dir int, max int, zlt int, mult int) {
 }
 
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM
-func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data interface{}) (err error) {
-	var size uintptr
+func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data []byte) (err error) {
+	size := uintptr(len(data))
+
+	if size > DTD_PAGES*DTD_PAGE_SIZE {
+		return errors.New("unsupported transfer size")
+	}
 
 	// p3809, 56.4.6.6.2 Building a Transfer Descriptor, IMX6ULLRM
 	buf, addr := mem.AlignedBuffer(unsafe.Sizeof(dTD{}), 32)
@@ -136,24 +139,11 @@ func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data interface{}) (err 
 
 	dtd.pages, addr = mem.AlignedBuffer(DTD_PAGE_SIZE*DTD_PAGES, DTD_PAGE_SIZE)
 
-	switch data.(type) {
-	case nil:
-		b := (*[0]byte)(unsafe.Pointer(addr))
-		*b = [0]byte{}
-		size = uintptr(0)
-	case *DeviceDescriptor:
-		deviceDescriptor := (*DeviceDescriptor)(unsafe.Pointer(addr))
-		*deviceDescriptor = *data.(*DeviceDescriptor)
-		size = unsafe.Sizeof(*deviceDescriptor)
-	default:
-		return fmt.Errorf("unsupported data type (%T)", data)
+	for i := uintptr(0); i < size && size <= DTD_PAGES*DTD_PAGE_SIZE; i++ {
+		*(*byte)(unsafe.Pointer(addr + uintptr(i))) = data[i]
 	}
 
-	if size > DTD_PAGES*DTD_PAGE_SIZE {
-		return errors.New("unsupported transfer size")
-	}
-
-	// Total bytes
+	// total bytes
 	reg.SetN(&dtd.token, 16, 0xffff, uint32(size))
 
 	for n := 0; n < DTD_PAGES; n++ {
@@ -161,8 +151,6 @@ func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data interface{}) (err 
 	}
 
 	ep.List[n*2+dir].next = dtd
-
-	fmt.Printf("imx6_usb: next dTD for %d bytes %T\n", size, data)
 
 	return
 }
