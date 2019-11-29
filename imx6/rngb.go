@@ -98,7 +98,7 @@ func (hw *rngb) Init() {
 	// perform self-test
 	reg.Set(hw.cmd, HW_RNG_CMD_ST)
 
-	print("imx6_rng: self-test...")
+	print("imx6_rng: self-test")
 	reg.Wait(hw.status, HW_RNG_SR_STDN, 0b1, 1)
 	print("done\n")
 
@@ -109,7 +109,7 @@ func (hw *rngb) Init() {
 	// enable auto-reseed
 	reg.Set(hw.ctrl, HW_RNG_CR_AR)
 
-	print("imx6_rng: seeding...")
+	print("imx6_rng: seeding")
 	reg.Wait(hw.status, HW_RNG_SR_SDN, 0b1, 1)
 	print("done\n")
 

@@ -53,10 +53,9 @@ func (hw *usb) DeviceMode() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	log.Printf("imx6_usb: resetting...")
+	log.Printf("imx6_usb: resetting\n")
 	reg.Set(hw.cmd, USBCMD_RST)
 	reg.Wait(hw.cmd, USBCMD_RST, 0b1, 0)
-	log.Printf("done\n")
 
 	// p3872, 56.6.33 USB Device Mode (USB_nUSBMODE), IMX6ULLRM)
 	mode := (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBMODE)))

@@ -202,7 +202,7 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	cache.FlushData()
 	reg.Set(hw.sem, 1)
 
-	log.Printf("imx6_dcp: waiting for key derivation...")
+	log.Printf("imx6_dcp: waiting for key derivation")
 	reg.Wait(hw.status, HW_DCP_STAT_IRQ, 0b1, 1)
 	log.Printf("done\n")
 
