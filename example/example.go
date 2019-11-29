@@ -15,6 +15,9 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"log"
+	"os"
+	"io/ioutil"
 	"time"
 
 	"github.com/inversepath/tamago/imx6"
@@ -22,10 +25,20 @@ import (
 )
 
 const banner = "Hello from tamago/arm!"
+const debug = true
 
 var exit chan bool
 
 func init() {
+	log.SetFlags(0)
+
+	// imx6 package debugging
+	if debug {
+		log.SetOutput(os.Stdout)
+	} else {
+		log.SetOutput(ioutil.Discard)
+	}
+
 	model := imx6.Model()
 	_, family, revMajor, revMinor := imx6.SiliconVersion()
 
@@ -89,11 +102,23 @@ func main() {
 	go func() {
 		fmt.Println("-- rng ---------------------------------------------------------------")
 
+		size := 32
+
 		for i := 0; i < 10; i++ {
-			rng := make([]byte, 32)
+			rng := make([]byte, size)
 			rand.Read(rng)
 			fmt.Printf("   %x\n", rng)
 		}
+
+		count := 1000
+		start := time.Now()
+
+		for i := 0; i < count; i++ {
+			rng := make([]byte, size)
+			rand.Read(rng)
+		}
+
+		fmt.Printf("retrieved %d random bytes in %s\n", size * count, time.Since(start))
 
 		exit <- true
 	}()

@@ -12,7 +12,7 @@
 package usb
 
 import (
-	"fmt"
+	"log"
 	"sync"
 	"time"
 	"unsafe"
@@ -88,6 +88,9 @@ const (
 	USB_UOG1_ENDPTCOMPLETE uint32 = 0x021841bc
 	ENDPTCOMPLETE_ETCE            = 16
 	ENDPTCOMPLETE_ERCE            = 0
+
+	USB_UOG1_ENDPTCTRL uint32 = 0x021841c0
+	ENDPTCTRL_TXS             = 16
 )
 
 type usb struct {
@@ -141,9 +144,9 @@ func (hw *usb) Init() {
 	reg.Set(hw.pll, CCM_ANALOG_PLL_USB1_EN_USB_CLKS)
 
 	// wait for lock
-	print("imx6_usb: waiting for PLL lock...")
+	log.Printf("imx6_usb: waiting for PLL lock...")
 	reg.Wait(hw.pll, CCM_ANALOG_PLL_USB1_LOCK, 0b1, 1)
-	print("done\n")
+	log.Printf("done\n")
 
 	// remove bypass
 	reg.Clear(hw.pll, CCM_ANALOG_PLL_USB1_BYPASS)
@@ -173,9 +176,9 @@ func (hw *usb) Init() {
 
 // Handle bus reset.
 func (hw *usb) reset() {
-	print("imx6_usb: waiting for bus reset...")
+	log.Printf("imx6_usb: waiting for bus reset...")
 	reg.Wait(hw.sts, USBSTS_URI, 0b1, 1)
-	print("done\n")
+	log.Printf("done\n")
 
 	// p3792, 56.4.6.2.1 Bus Reset, IMX6ULLRM
 
@@ -186,9 +189,9 @@ func (hw *usb) reset() {
 	// flush endpoint buffers
 	*(hw.flush) = 0xffffffff
 
-	print("imx6_usb: waiting for port reset...")
+	log.Printf("imx6_usb: waiting for port reset...")
 	reg.Wait(hw.sc, PORTSC_PR, 0b1, 0)
-	print("done\n")
+	log.Printf("done\n")
 
 	// clear reset
 	*(hw.sts) |= (1<<USBSTS_URI | 1<<USBSTS_UI)
@@ -211,7 +214,7 @@ func (hw *usb) getSetup(timeout time.Duration) (setup *SetupData) {
 
 	// repeat if necessary
 	for reg.Get(hw.cmd, USBCMD_SUTW, 0b1) == 0 {
-		fmt.Printf("imx6_usb: retrying setup\n")
+		log.Printf("imx6_usb: retrying setup\n")
 		reg.Set(hw.cmd, USBCMD_SUTW)
 	}
 

@@ -13,7 +13,7 @@ package imx6
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"unsafe"
 
 	"github.com/inversepath/tamago/imx6/internal/reg"
@@ -83,7 +83,7 @@ func setOperatingPointIMX6ULL(uV uint32) {
 		reg2Targ = reg0Targ
 	}
 
-	fmt.Printf("imx6_clk: changing ARM core operating point to %d uV\n", reg0Targ*25000)
+	log.Printf("imx6_clk: changing ARM core operating point to %d uV\n", reg0Targ*25000)
 
 	r := *pmu
 
@@ -99,7 +99,7 @@ func setOperatingPointIMX6ULL(uV uint32) {
 	*pmu = r
 	busyloop(10000)
 
-	fmt.Printf("imx6_clk: %d uV -> %d uV\n", curTarg*25000, reg0Targ*25000)
+	log.Printf("imx6_clk: %d uV -> %d uV\n", curTarg*25000, reg0Targ*25000)
 }
 
 func setARMFreqIMX6ULL(hz uint32) (err error) {
@@ -115,7 +115,7 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 		return
 	}
 
-	fmt.Printf("imx6_clk: changing ARM core frequency to %d MHz\n", hz/1000000)
+	log.Printf("imx6_clk: changing ARM core frequency to %d MHz\n", hz/1000000)
 
 	// p24, Table 10. Operating Ranges, IMX6ULLCEC
 	switch hz {
@@ -157,9 +157,9 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 	reg.SetN(pll, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111, div_select)
 
 	// wait for lock
-	print("imx6_clk: waiting for PLL lock...")
+	log.Printf("imx6_clk: waiting for PLL lock...")
 	reg.Wait(pll, CCM_ANALOG_PLL_ARM_LOCK, 0b1, 1)
-	print("done\n")
+	log.Printf("done\n")
 
 	// remove bypass
 	reg.Clear(pll, CCM_ANALOG_PLL_ARM_BYPASS)
@@ -171,7 +171,7 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 		setOperatingPointIMX6ULL(uV)
 	}
 
-	fmt.Printf("imx6_clk: %d MHz -> %d MHz\n", curHz/1000000, hz/1000000)
+	log.Printf("imx6_clk: %d MHz -> %d MHz\n", curHz/1000000, hz/1000000)
 
 	return
 }

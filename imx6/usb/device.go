@@ -13,6 +13,7 @@ package usb
 
 import (
 	"fmt"
+	"log"
 	"time"
 	"unsafe"
 
@@ -20,15 +21,42 @@ import (
 	"github.com/inversepath/tamago/imx6/internal/reg"
 )
 
+// p279, Table 9-4. Standard Request Codes, USB Specification Revision 2.0
+const (
+	GET_STATUS        = 0
+	CLEAR_FEATURE     = 1
+	SET_FEATURE       = 3
+	SET_ADDRESS       = 5
+	GET_DESCRIPTOR    = 6
+	SET_DESCRIPTOR    = 7
+	GET_CONFIGURATION = 8
+	SET_CONFIGURATION = 9
+	GET_INTERFACE     = 10
+	SET_INTERFACE     = 11
+	SYNCH_FRAME       = 12
+)
+
+// p279, Table 9-5. Descriptor Types, USB Specification Revision 2.0
+const (
+	DEVICE                    = 1
+	CONFIGURATION             = 2
+	STRING                    = 3
+	INTERFACE                 = 4
+	ENDPOINT                  = 5
+	DEVICE_QUALIFIER          = 6
+	OTHER_SPEED_CONFIGURATION = 7
+	INTERFACE_POWER           = 8
+)
+
 // Set device mode.
 func (hw *usb) DeviceMode() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	print("imx6_usb: resetting...")
+	log.Printf("imx6_usb: resetting...")
 	reg.Set(hw.cmd, USBCMD_RST)
 	reg.Wait(hw.cmd, USBCMD_RST, 0b1, 0)
-	print("done\n")
+	log.Printf("done\n")
 
 	// p3872, 56.6.33 USB Device Mode (USB_nUSBMODE), IMX6ULLRM)
 	mode := (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBMODE)))
@@ -84,57 +112,69 @@ func (hw *usb) SetupHandler(dev *Device, timeout time.Duration, loop bool) (err 
 		}
 
 		switch setup.bRequest {
+		case GET_STATUS:
+			// no meaningful status to report for now
+			log.Printf("imx6_usb: sending device status\n")
+			err = hw.transfer(0, []byte{0x00, 0x00}, nil)
+		case SET_ADDRESS:
+			addr := uint32((setup.wValue<<8)&0xff00 | (setup.wValue >> 8))
+			log.Printf("imx6_usb: setting address %d\n", addr)
+
+			reg.Set(hw.addr, DEVICEADDR_USBADRA)
+			reg.SetN(hw.addr, DEVICEADDR_USBADR, 0x7f, addr)
+
+			err = hw.ack(0)
 		case GET_DESCRIPTOR:
 			bDescriptorType := setup.wValue & 0xff
 			index := setup.wValue >> 8
 
 			switch bDescriptorType {
 			case DEVICE:
+				log.Printf("imx6_usb: sending device descriptor\n")
 				err = hw.transfer(0, dev.Descriptor.Bytes(), nil)
 			case CONFIGURATION:
 				var conf []byte
 				if conf, err = dev.Configuration(index, setup.wLength); err == nil {
-					fmt.Printf("imx6_usb: sending configuration descriptor %d (%d bytes)\n", index, setup.wLength)
+					log.Printf("imx6_usb: sending configuration descriptor %d (%d bytes)\n", index, setup.wLength)
 					err = hw.transfer(0, conf, nil)
 				}
 			case STRING:
 				if int(index+1) > len(dev.Strings) {
-					hw.ack(0)
+					hw.stall(0)
 					err = fmt.Errorf("invalid string descriptor index %d", index)
 				} else {
 					if index == 0 {
-						fmt.Printf("imx6_usb: sending string descriptor zero\n")
+						log.Printf("imx6_usb: sending string descriptor zero\n")
 					} else {
-						fmt.Printf("imx6_usb: sending string descriptor %d: \"%s\"\n", index, dev.Strings[index][2:])
+						log.Printf("imx6_usb: sending string descriptor %d: \"%s\"\n", index, dev.Strings[index][2:])
 					}
 
 					err = hw.transfer(0, dev.Strings[index], nil)
 				}
 			case DEVICE_QUALIFIER:
+				log.Printf("imx6_usb: sending device qualifier\n")
 				err = hw.transfer(0, dev.Qualifier.Bytes(), nil)
 			default:
-				hw.ack(0)
+				hw.stall(0)
 				err = fmt.Errorf("unsupported descriptor type %#x", bDescriptorType)
 			}
-		case SET_ADDRESS:
-			addr := uint32((setup.wValue<<8)&0xff00 | (setup.wValue >> 8))
-			fmt.Printf("imx6_usb: setting address %d\n", addr)
-
-			reg.Set(hw.addr, DEVICEADDR_USBADRA)
-			reg.SetN(hw.addr, DEVICEADDR_USBADR, 0x7f, addr)
-
-			err = hw.ack(0)
 		case SET_CONFIGURATION:
-			conf := uint8(setup.wValue >> 8)
-			fmt.Printf("imx6_usb: setting configuration value %d\n", conf)
+			value := uint8(setup.wValue >> 8)
+			log.Printf("imx6_usb: setting configuration value %d\n", value)
 
-			dev.ConfigurationValue = conf
+			dev.ConfigurationValue = value
 			err = hw.ack(0)
-		case GET_STATUS:
-			// no meaningful status to report for now
-			err = hw.transfer(0, []byte{0x00, 0x00}, nil)
+		case GET_INTERFACE:
+			log.Printf("imx6_usb: sending interface alternate setting value %d\n", dev.AlternateSetting)
+			err = hw.transfer(0, []byte{dev.AlternateSetting}, nil)
+		case SET_INTERFACE:
+			value := uint8(setup.wValue >> 8)
+			log.Printf("imx6_usb: setting interface alternate setting value %d\n", value)
+
+			dev.AlternateSetting = value
+			err = hw.ack(0)
 		default:
-			hw.ack(0)
+			hw.stall(0)
 			err = fmt.Errorf("unsupported request code: %#x", setup.bRequest)
 		}
 
@@ -143,7 +183,7 @@ func (hw *usb) SetupHandler(dev *Device, timeout time.Duration, loop bool) (err 
 		}
 
 		if err != nil {
-			fmt.Printf("imx6_usb: %v\n", err)
+			log.Printf("imx6_usb: %v (%+v)\n", err, setup)
 		}
 	}
 }
@@ -201,6 +241,11 @@ func (hw *usb) ack(n int) (err error) {
 	hw.transferWait(n, IN)
 
 	return
+}
+
+func (hw *usb) stall(n int) {
+	ctrl := (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTCTRL + uint32(4*n))))
+	reg.Set(ctrl, ENDPTCTRL_TXS)
 }
 
 func (hw *usb) transfer(n int, in []byte, out []byte) (err error) {

@@ -19,30 +19,6 @@ import (
 	"unsafe"
 )
 
-// p279, Table 9-4. Standard Request Codes, USB Specification Revision 2.0
-const (
-	GET_STATUS        = 0
-	CLEAR_FEATURE     = 1
-	SET_FEATURE       = 3
-	SET_ADDRESS       = 5
-	GET_DESCRIPTOR    = 6
-	SET_DESCRIPTOR    = 7
-	GET_CONFIGURATION = 8
-	SET_CONFIGURATION = 9
-)
-
-// p279, Table 9-5. Descriptor Types, USB Specification Revision 2.0
-const (
-	DEVICE                    = 1
-	CONFIGURATION             = 2
-	STRING                    = 3
-	INTERFACE                 = 4
-	ENDPOINT                  = 5
-	DEVICE_QUALIFIER          = 6
-	OTHER_SPEED_CONFIGURATION = 7
-	INTERFACE_POWER           = 8
-)
-
 // p276, Table 9-2. Format of Setup Data, USB Specification Revision 2.0
 type SetupData struct {
 	bRequestType uint8
@@ -272,8 +248,9 @@ type Device struct {
 	Configurations []*ConfigurationDescriptor
 	Strings        [][]byte
 
-	// Host requested configuration
+	// Host requested settings
 	ConfigurationValue uint8
+	AlternateSetting   uint8
 }
 
 // Add a string descriptor, the argument can be an array of integers to create
@@ -375,8 +352,8 @@ func (d *Device) Configuration(wIndex uint16, wLength uint16) (buf []byte, err e
 	}
 
 	if int(wLength) > len(buf) {
-		err = fmt.Errorf("setup wLength (%d) exceeds configuration size (%d)\n", wLength, len(buf))
-		return
+		// device may return less than what is requested
+		return buf, err
 	}
 
 	return buf[0:wLength], err
