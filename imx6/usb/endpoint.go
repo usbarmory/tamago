@@ -39,10 +39,8 @@ type dTD struct {
 	token  uint32
 	buffer [5]uintptr
 
-	// dTD alignment buffer
-	buf *[]byte
-	// page alignment buffer
-	pages *[]byte
+	buf   mem.AlignmentBuffer
+	pages mem.AlignmentBuffer
 }
 
 // p3784, 56.4.5.1 Endpoint Queue Head (dQH), IMX6ULLRM
@@ -68,14 +66,14 @@ type dQH struct {
 type EndPointList struct {
 	List *[MAX_ENDPOINTS * 2]dQH
 
-	// alignment buffer
-	addr uintptr
-	buf  *[]byte
+	buf mem.AlignmentBuffer
 }
 
 func (ep *EndPointList) init() {
-	ep.buf, ep.addr = mem.AlignedBuffer(unsafe.Sizeof(ep.List), 2048)
-	ep.List = (*[MAX_ENDPOINTS * 2]dQH)(unsafe.Pointer(ep.addr))
+	ep.buf = mem.AlignmentBuffer{}
+	ep.buf.Init(unsafe.Sizeof(ep.List), 2048)
+
+	ep.List = (*[MAX_ENDPOINTS * 2]dQH)(unsafe.Pointer(ep.buf.Addr))
 }
 
 func (ep *EndPointList) get(n int, dir int) dQH {
@@ -86,7 +84,6 @@ func (ep *EndPointList) get(n int, dir int) dQH {
 
 // p3784, 56.4.5.1 Endpoint Queue Head, IMX6ULLRM
 func (ep *EndPointList) set(n int, dir int, max int, zlt int, mult int) {
-
 	off := n*2 + dir
 
 	// Mult
@@ -111,16 +108,27 @@ func (ep *EndPointList) set(n int, dir int, max int, zlt int, mult int) {
 
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM
 func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data []byte) (err error) {
+	var dtd *dTD
 	size := uintptr(len(data))
 
 	if size > DTD_PAGES*DTD_PAGE_SIZE {
 		return errors.New("unsupported transfer size")
 	}
 
+	// re-use existing buffer if present
+	if dtd = ep.List[n*2+dir].current; dtd == nil {
+		dtd = ep.List[n*2+dir].next
+	}
+
+	if dtd == nil {
+		dtdBuf := mem.AlignmentBuffer{}
+		dtdBuf.Init(unsafe.Sizeof(dTD{}), 32)
+
+		dtd = (*dTD)(unsafe.Pointer(dtdBuf.Addr))
+		dtd.buf = dtdBuf
+	}
+
 	// p3809, 56.4.6.6.2 Building a Transfer Descriptor, IMX6ULLRM
-	buf, addr := mem.AlignedBuffer(unsafe.Sizeof(dTD{}), 32)
-	dtd := (*dTD)(unsafe.Pointer(addr))
-	dtd.buf = buf
 
 	// invalidate next pointer
 	dtd.next = (*dTD)(unsafe.Pointer(uintptr(1)))
@@ -137,17 +145,19 @@ func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data []byte) (err error
 	// active status
 	reg.Set(&dtd.token, 7)
 
-	dtd.pages, addr = mem.AlignedBuffer(DTD_PAGE_SIZE*DTD_PAGES, DTD_PAGE_SIZE)
-
-	for i := uintptr(0); i < size && size <= DTD_PAGES*DTD_PAGE_SIZE; i++ {
-		*(*byte)(unsafe.Pointer(addr + uintptr(i))) = data[i]
+	// re-use existing buffer if present
+	if dtd.pages.Addr == 0 {
+		dtd.pages = mem.AlignmentBuffer{}
+		dtd.pages.Init(DTD_PAGE_SIZE*DTD_PAGES, DTD_PAGE_SIZE)
 	}
+
+	mem.Copy(dtd.pages, data)
 
 	// total bytes
 	reg.SetN(&dtd.token, 16, 0xffff, uint32(size))
 
 	for n := 0; n < DTD_PAGES; n++ {
-		dtd.buffer[n] = addr + uintptr(DTD_PAGE_SIZE*n)
+		dtd.buffer[n] = dtd.pages.Addr + uintptr(DTD_PAGE_SIZE*n)
 	}
 
 	ep.List[n*2+dir].next = dtd

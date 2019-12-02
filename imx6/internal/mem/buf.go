@@ -12,29 +12,41 @@ import (
 	"unsafe"
 )
 
+type AlignmentBuffer struct {
+	Addr uintptr
+	Offset uintptr
+	Buf  []byte
+}
+
 // Return a buffer and offset that allow to achieve the desired alignment, such
 // as for allocating aligned structures by casting them over the buffer offset.
 // It is important to keep the []byte buffer around until the cast object is
 // required, to avoid GC swiping it away (as we go through uintptr).
-func AlignedBuffer(size uintptr, align uintptr) (*[]byte, uintptr) {
+func (ab *AlignmentBuffer) Init(size uintptr, align uintptr) {
 	buf := make([]byte, size+align)
-	addr := uintptr(unsafe.Pointer(&buf[0]))
 
-	if IsAligned(addr, align) {
-		return &buf, addr
+	ab.Buf = buf
+	ab.Addr = uintptr(unsafe.Pointer(&buf[0]))
+
+	if ab.check(align) {
+		return
 	}
 
-	if r := addr & (align - 1); r != 0 {
-		addr += (align - r)
+	if r := ab.Addr & (align - 1); r != 0 {
+		ab.Offset = (align - r)
+		ab.Addr += ab.Offset
 	}
 
-	if !IsAligned(addr, align) {
+	if !ab.check(align) {
 		panic("alignment error\n")
 	}
-
-	return &buf, addr
 }
 
-func IsAligned(addr uintptr, align uintptr) bool {
-	return addr&(align-1) == 0
+func (ab *AlignmentBuffer) check(align uintptr) bool {
+	return ab.Addr&(align-1) == 0
+}
+
+// Copy copies a byte array to an aligned buffer.
+func Copy(ab AlignmentBuffer, data []byte) {
+	copy(ab.Buf[ab.Offset:], data)
 }

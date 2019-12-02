@@ -73,7 +73,7 @@ func (hw *usb) DeviceMode() {
 
 	// set endpoint queue head
 	hw.EP.init()
-	*(hw.ep) = uint32(hw.EP.addr)
+	*(hw.ep) = uint32(hw.EP.buf.Addr)
 
 	// set control endpoint
 	hw.EP.set(0, IN, 64, 0, 0)

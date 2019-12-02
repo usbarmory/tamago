@@ -27,7 +27,7 @@ func TestUSB() {
 	// https://github.com/torvalds/linux/blob/master/drivers/usb/gadget/legacy/zero.c
 
 	// Supported Language Code Zero: English
-	device.AddString([]uint16{0x0409})
+	device.SetLanguageCodes([]uint16{0x0409})
 
 	// device descriptor
 	device.Descriptor = &usb.DeviceDescriptor{}
