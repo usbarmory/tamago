@@ -27,13 +27,19 @@ func testAlloc(runs int, chunks int, chunkSize int) {
 			mem[i] = make([]byte, chunkSize*1024*1024)
 		}
 
+		// FIXME
+		//
+		// Forced GC runs hangs forever as runtime.bgscavenge is
+		// affected by the FIXME we currently have in lock_tamago.go.
+		//
+		// So garbage collection here is only happening as a side
+		// effect of runtime.ReadMemStats
+
+		// runtime.GC()
 		runtime.ReadMemStats(&memstats)
+
 		fmt.Printf("done %d/%d (%d MB) - Mallocs: %d Frees: %d HeapSys: %d\n",
 			run, runs, chunks*chunkSize,
 			memstats.Mallocs, memstats.Frees, memstats.HeapSys)
-
-		// Forced GC runs hangs forever as runtime.bgscavenge is
-		// affected by the FIXME we currently have in lock_tamago.go.
-		// runtime.GC()
 	}
 }
