@@ -48,7 +48,7 @@ const (
 	INTERFACE_POWER           = 8
 )
 
-// Set device mode.
+// DeviceMode sets the USB controller in device mode.
 func (hw *usb) DeviceMode() {
 	hw.Lock()
 	defer hw.Unlock()
@@ -96,7 +96,8 @@ func (hw *usb) DeviceMode() {
 	return
 }
 
-// Wait and handle setup packets for device enumeration and configuration.
+// SetupHandler waits and handles setup packets for device enumeration and
+// configuration.
 func (hw *usb) SetupHandler(dev *Device, timeout time.Duration, loop bool) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
@@ -187,7 +188,8 @@ func (hw *usb) SetupHandler(dev *Device, timeout time.Duration, loop bool) (err 
 	}
 }
 
-// p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors, IMX6ULLRM
+// transferDTD manages a transfer using transfer descriptors
+// (p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors, IMX6ULLRM).
 func (hw *usb) transferDTD(n int, dir int, ioc bool, data []byte) (err error) {
 	err = hw.EP.setDTD(n, dir, ioc, data)
 

@@ -33,7 +33,8 @@ const (
 	DTD_PAGE_SIZE = 4096
 )
 
-// p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM
+// dTD implements
+// p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
 type dTD struct {
 	next   *dTD
 	token  uint32
@@ -43,7 +44,8 @@ type dTD struct {
 	pages mem.AlignmentBuffer
 }
 
-// p3784, 56.4.5.1 Endpoint Queue Head (dQH), IMX6ULLRM
+// dQH implements
+// p3784, 56.4.5.1 Endpoint Queue Head (dQH), IMX6ULLRM.
 type dQH struct {
 	info    uint32
 	current *dTD
@@ -62,7 +64,8 @@ type dQH struct {
 	_align [4]uint32
 }
 
-// p3783, 56.4.5 Device Data Structures, IMX6ULLRM
+// EndPointList implements
+// p3783, 56.4.5 Device Data Structures, IMX6ULLRM.
 type EndPointList struct {
 	List *[MAX_ENDPOINTS * 2]dQH
 
@@ -82,7 +85,8 @@ func (ep *EndPointList) get(n int, dir int) dQH {
 	return ep.List[n*2+dir]
 }
 
-// p3784, 56.4.5.1 Endpoint Queue Head, IMX6ULLRM
+// set configures a queue head as described in
+// p3784, 56.4.5.1 Endpoint Queue Head, IMX6ULLRM.
 func (ep *EndPointList) set(n int, dir int, max int, zlt int, mult int) {
 	off := n*2 + dir
 
@@ -106,7 +110,8 @@ func (ep *EndPointList) set(n int, dir int, max int, zlt int, mult int) {
 	reg.SetN(&ep.List[off].token, 10, 0b11, 0)
 }
 
-// p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM
+// setDTD configures an endpoint transfer descriptor as described in
+// p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
 func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data []byte) (err error) {
 	var dtd *dTD
 	size := uintptr(len(data))

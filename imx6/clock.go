@@ -36,21 +36,21 @@ const (
 	PMU_REG_CORE_REG0_TARG        = 0
 )
 
-// Get the ARM core divider value
+// ARMCoreDiv returns the ARM core divider value
 // (p665, 18.6.5 CCM Arm Clock Root Register, IMX6ULLRM).
 func ARMCoreDiv() (div float32) {
 	cacrr := (*uint32)(unsafe.Pointer(uintptr(CCM_CACRR)))
 	return float32(reg.Get(cacrr, CCM_CACRR_ARM_PODF, 0b111) + 1)
 }
 
-// Get the ARM PLL divider value
+// ARMPLLDiv returns the ARM PLL divider value
 // (p714, 18.7.1 Analog ARM PLL control Register, IMX6ULLRM).
 func ARMPLLDiv() (div float32) {
 	pll := (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_ARM)))
 	return float32(reg.Get(pll, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111)) / 2
 }
 
-// Get the ARM core frequency.
+// ARMFreq returns the ARM core frequency.
 func ARMFreq() (hz uint32) {
 	// (OSC_FREQ * (DIV_SELECT / 2)) / (ARM_PODF + 1)
 	return uint32((OSC_FREQ * ARMPLLDiv()) / ARMCoreDiv())
@@ -175,7 +175,7 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 	return
 }
 
-// Set the ARM core frequency.
+// SetARMFreq changes the ARM core frequency to the desired setting (in hertz).
 func SetARMFreq(hz uint32) (err error) {
 	switch Family {
 	case IMX6ULL:

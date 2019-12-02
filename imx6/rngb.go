@@ -67,7 +67,8 @@ func getRandomData(b []byte) {
 	getRandomDataFn(b)
 }
 
-// https://en.wikipedia.org/wiki/Linear_congruential_generator
+// getLCGData implements a Linear Congruential Generator
+// (https://en.wikipedia.org/wiki/Linear_congruential_generator).
 func getLCGData(b []byte) {
 	if lcg == 0 {
 		lcg = uint32(timerFn())
@@ -82,7 +83,7 @@ func getLCGData(b []byte) {
 	}
 }
 
-// Initialize the RNGB module.
+// Init initializes the RNGB module.
 func (hw *rngb) Init() {
 	hw.Lock()
 	// note: cannot defer during initialization

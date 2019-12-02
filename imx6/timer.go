@@ -26,13 +26,13 @@ func read_gtc() int64
 func read_cntpct() int64
 func busyloop(int32)
 
-// ARM Cortex-A9 timers
+// initGlobalTimers initializes ARM Cortex-A9 timers
 func initGlobalTimers() {
 	timerFn = read_gtc
 	timerMultiplier = 10
 }
 
-// ARM Cortex-A7 timers
+// initGenericTimers initializes ARM Cortex-A7 timers
 func initGenericTimers() {
 	var timerFreq int64
 

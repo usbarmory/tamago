@@ -27,7 +27,8 @@ const (
 	DEVICE_QUALIFIER_LENGTH = 10
 )
 
-// p276, Table 9-2. Format of Setup Data, USB Specification Revision 2.0
+// SetupData implements
+// p276, Table 9-2. Format of Setup Data, USB Specification Revision 2.0.
 type SetupData struct {
 	bRequestType uint8
 	bRequest     uint8
@@ -36,8 +37,8 @@ type SetupData struct {
 	wLength      uint16
 }
 
-// The endianness values written in memory by the hardware does not match the
-// expected one by Go, so we have to swap multi byte values.
+// swap adjusts the endianness of values written in memory by the hardware, as
+// they do not match the expected one by Go.
 func (s *SetupData) swap() {
 	b := make([]byte, 2)
 
@@ -48,7 +49,8 @@ func (s *SetupData) swap() {
 	s.wIndex = binary.LittleEndian.Uint16(b)
 }
 
-// p290, Table 9-8. Standard Device Descriptor, USB Specification Revision 2.0
+// DeviceDescriptor implements
+// p290, Table 9-8. Standard Device Descriptor, USB Specification Revision 2.0.
 type DeviceDescriptor struct {
 	Length            uint8
 	DescriptorType    uint8
@@ -66,7 +68,7 @@ type DeviceDescriptor struct {
 	NumConfigurations uint8
 }
 
-// Set default values for USB device descriptor.
+// SetDefaults initializes default values for the USB device descriptor.
 func (d *DeviceDescriptor) SetDefaults() {
 	d.Length = DEVICE_LENGTH
 	d.DescriptorType = DEVICE
@@ -80,7 +82,7 @@ func (d *DeviceDescriptor) SetDefaults() {
 	d.NumConfigurations = 1
 }
 
-// Convert descriptor structure to byte array format.
+// Bytes converts the descriptor structure to byte array format.
 func (d *DeviceDescriptor) Bytes() (buf []byte) {
 	size := unsafe.Sizeof(*d)
 	buf = make([]byte, size, size)
@@ -92,7 +94,8 @@ func (d *DeviceDescriptor) Bytes() (buf []byte) {
 	return buf[0:DEVICE_LENGTH]
 }
 
-// p293, Table 9-10. Standard Configuration Descriptor, USB Specification Revision 2.0
+// ConfigurationDescriptor implements
+// p293, Table 9-10. Standard Configuration Descriptor, USB Specification Revision 2.0.
 type ConfigurationDescriptor struct {
 	Length             uint8
 	DescriptorType     uint8
@@ -106,7 +109,7 @@ type ConfigurationDescriptor struct {
 	Interfaces []*InterfaceDescriptor
 }
 
-// Set default values for USB configuration descriptor.
+// SetDefaults initializes default values for the USB configuration descriptor.
 func (d *ConfigurationDescriptor) SetDefaults() {
 	d.Length = CONFIGURATION_LENGTH
 	d.DescriptorType = CONFIGURATION
@@ -116,7 +119,7 @@ func (d *ConfigurationDescriptor) SetDefaults() {
 	d.MaxPower = 250
 }
 
-// Convert descriptor structure to byte array format.
+// Bytes converts the descriptor structure to byte array format.
 func (d *ConfigurationDescriptor) Bytes() (buf []byte) {
 	size := unsafe.Sizeof(*d)
 	buf = make([]byte, size, size)
@@ -129,7 +132,8 @@ func (d *ConfigurationDescriptor) Bytes() (buf []byte) {
 	return buf[0:CONFIGURATION_LENGTH]
 }
 
-// p296, Table 9-12. Standard Interface Descriptor, USB Specification Revision 2.0
+// InterfaceDescriptor implements
+// p296, Table 9-12. Standard Interface Descriptor, USB Specification Revision 2.0.
 type InterfaceDescriptor struct {
 	Length            uint8
 	DescriptorType    uint8
@@ -144,14 +148,14 @@ type InterfaceDescriptor struct {
 	Endpoints []*EndpointDescriptor
 }
 
-// Set default values for USB interface descriptor.
+// SetDefaults initializes default values for the USB interface descriptor.
 func (d *InterfaceDescriptor) SetDefaults() {
 	d.Length = INTERFACE_LENGTH
 	d.DescriptorType = INTERFACE
 	d.NumEndpoints = 1
 }
 
-// Convert descriptor structure to byte array format.
+// Bytes converts the descriptor structure to byte array format.
 func (d *InterfaceDescriptor) Bytes() (buf []byte) {
 	size := unsafe.Sizeof(*d)
 	buf = make([]byte, size, size)
@@ -164,7 +168,8 @@ func (d *InterfaceDescriptor) Bytes() (buf []byte) {
 	return buf[0:INTERFACE_LENGTH]
 }
 
-// p297, Table 9-13. Standard Endpoint Descriptor, USB Specification Revision 2.0
+// EndpointDescriptor implements
+// p297, Table 9-13. Standard Endpoint Descriptor, USB Specification Revision 2.0.
 type EndpointDescriptor struct {
 	Length          uint8
 	DescriptorType  uint8
@@ -174,7 +179,7 @@ type EndpointDescriptor struct {
 	Interval        uint8
 }
 
-// Set default values for USB endpoint descriptor.
+// SetDefaults initializes default values for the USB endpoint descriptor.
 func (d *EndpointDescriptor) SetDefaults() {
 	d.Length = ENDPOINT_LENGTH
 	d.DescriptorType = ENDPOINT
@@ -182,7 +187,7 @@ func (d *EndpointDescriptor) SetDefaults() {
 	d.EndpointAddress = 0x81
 }
 
-// Convert descriptor structure to byte array format.
+// Bytes converts the descriptor structure to byte array format.
 func (d *EndpointDescriptor) Bytes() (buf []byte) {
 	size := unsafe.Sizeof(*d)
 	buf = make([]byte, size, size)
@@ -194,19 +199,20 @@ func (d *EndpointDescriptor) Bytes() (buf []byte) {
 	return buf[0:ENDPOINT_LENGTH]
 }
 
-// p273, 9.6.7 String, USB Specification Revision 2.0
+// StringDescriptor implements
+// p273, 9.6.7 String, USB Specification Revision 2.0.
 type StringDescriptor struct {
 	Length         uint8
 	DescriptorType uint8
 }
 
-// Set default values for USB endpoint descriptor.
+// SetDefaults initializes default values for the USB string descriptor.
 func (d *StringDescriptor) SetDefaults() {
 	d.Length = uint8(unsafe.Sizeof(*d))
 	d.DescriptorType = STRING
 }
 
-// Convert descriptor structure to byte array format.
+// Bytes converts the descriptor structure to byte array format.
 func (d *StringDescriptor) Bytes() (buf []byte) {
 	size := unsafe.Sizeof(*d)
 	buf = make([]byte, size, size)
@@ -218,7 +224,8 @@ func (d *StringDescriptor) Bytes() (buf []byte) {
 	return buf
 }
 
-// p292, 9.6.2 Device_Qualifier, USB Specification Revision 2.0
+// DeviceQualifierDescriptor implements
+// p292, 9.6.2 Device_Qualifier, USB Specification Revision 2.0.
 type DeviceQualifierDescriptor struct {
 	Length            uint8
 	DescriptorType    uint8
@@ -231,7 +238,8 @@ type DeviceQualifierDescriptor struct {
 	Reserved          uint8
 }
 
-// Set default values for USB device qualifier descriptor.
+// SetDefaults initializes default values for the USB device qualifier
+// descriptor.
 func (d *DeviceQualifierDescriptor) SetDefaults() {
 	d.Length = DEVICE_QUALIFIER_LENGTH
 	d.DescriptorType = DEVICE_QUALIFIER
@@ -242,7 +250,7 @@ func (d *DeviceQualifierDescriptor) SetDefaults() {
 	d.NumConfigurations = 1
 }
 
-// Convert descriptor structure to byte array format.
+// Bytes converts the descriptor structure to byte array format.
 func (d *DeviceQualifierDescriptor) Bytes() (buf []byte) {
 	size := unsafe.Sizeof(*d)
 	buf = make([]byte, size, size)
@@ -254,7 +262,8 @@ func (d *DeviceQualifierDescriptor) Bytes() (buf []byte) {
 	return buf[0:DEVICE_QUALIFIER_LENGTH]
 }
 
-// USB device descriptors
+// Device is a collection of USB device descriptors and host driven settings
+// to represent a USB device.
 type Device struct {
 	Descriptor     *DeviceDescriptor
 	Qualifier      *DeviceQualifierDescriptor
@@ -289,7 +298,7 @@ func (d *Device) setStringDescriptor(s []byte, zero bool) (uint8, error) {
 	return uint8(len(d.Strings) - 1), nil
 }
 
-// Set String Descriptor Zero language codes
+// SetLanguageCodes configures String Descriptor Zero language codes
 // (p273, Table 9-15. String Descriptor Zero, Specifying Languages Supported by the Device, USB Specification Revision 2.0).
 func (d *Device) SetLanguageCodes(codes []uint16) (err error) {
 	var buf []byte
@@ -310,8 +319,8 @@ func (d *Device) SetLanguageCodes(codes []uint16) (err error) {
 	return
 }
 
-// Add a string descriptor. The returned index can be used to fill string
-// descriptor index value in configuration descriptors
+// AddStrings adds a string descriptor to a USB device. The returned index can
+// be used to fill string descriptor index value in configuration descriptors
 // (p274, Table 9-16. UNICODE String Descriptor, USB Specification Revision 2.0).
 func (d *Device) AddString(s string) (uint8, error) {
 	var buf []byte
@@ -330,10 +339,9 @@ func (d *Device) AddString(s string) (uint8, error) {
 	return d.setStringDescriptor(buf, false)
 }
 
-// Convert entire configuration hierarchy to a buffer, as expected by Get
-// Descriptor for configuration descriptor type.
-//
-// p281, 9.4.3 Get Descriptor, USB Specification Revision 2.0
+// Configuration converts the device configuration hierarchy to a buffer, as expected by Get
+// Descriptor for configuration descriptor type
+// (p281, 9.4.3 Get Descriptor, USB Specification Revision 2.0).
 func (d *Device) Configuration(wIndex uint16, wLength uint16) (buf []byte, err error) {
 	if int(wIndex+1) > len(d.Configurations) {
 		err = errors.New("invalid configuration index")

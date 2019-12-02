@@ -12,14 +12,18 @@ import (
 	"unsafe"
 )
 
+// AlignmentBuffer provides a byte array buffer for data structure alignment
+// purposes.
 type AlignmentBuffer struct {
 	Addr uintptr
 	Offset uintptr
 	Buf  []byte
 }
 
-// Return a buffer and offset that allow to achieve the desired alignment, such
-// as for allocating aligned structures by casting them over the buffer offset.
+// Init initializes the offset of an aligned buffer to achieve the requested
+// alignment, such as for allocating aligned structures by casting them over
+// the buffer offset.
+//
 // It is important to keep the []byte buffer around until the cast object is
 // required, to avoid GC swiping it away (as we go through uintptr).
 func (ab *AlignmentBuffer) Init(size uintptr, align uintptr) {

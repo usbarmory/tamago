@@ -24,9 +24,9 @@ const IMX6ULL = 0x65
 var Family uint32
 var Native bool
 
-// The lower level SoC initialization is triggered early in runtime setup,
-// therefore care must be taken to ensure that no heap allocation is performed.
-// (e.g. defer is not possible).
+// hwinit takes care of the lower level SoC initialization triggered early in
+// runtime setup, care must be taken to ensure that no heap allocation is
+// performed (e.g. defer is not possible).
 //go:linkname hwinit runtime.hwinit
 func hwinit() {
 	_, fam, revMajor, revMinor := SiliconVersion()
@@ -60,7 +60,7 @@ func initRNG() {
 	}
 }
 
-// Get SoC silicon version information
+// SiliconVersion returns the SoC silicon version information
 // (p3945, 57.4.11 Chip Silicon Version (USB_ANALOG_DIGPROG), IMX6ULLRM).
 func SiliconVersion() (sv, family, revMajor, revMinor uint32) {
 	sv = (*(*uint32)(unsafe.Pointer(uintptr(USB_ANALOG_DIGPROG))))
@@ -72,7 +72,7 @@ func SiliconVersion() (sv, family, revMajor, revMinor uint32) {
 	return
 }
 
-// Get SoC model name.
+// Model returns the SoC model name.
 func Model() (model string) {
 	switch Family {
 	case IMX6Q:

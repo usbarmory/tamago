@@ -96,7 +96,6 @@ type dcp struct {
 	snvs     *uint32
 }
 
-// Data Co-Processor (DCP) registers
 var DCP = &dcp{
 	ctrl:     (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CTRL))),
 	status:   (*uint32)(unsafe.Pointer(uintptr(HW_DCP_STAT))),
@@ -107,7 +106,7 @@ var DCP = &dcp{
 	snvs:     (*uint32)(unsafe.Pointer(uintptr(SNVS_HPSR_REG))),
 }
 
-// Initialize the DCP module.
+// Init initializes the DCP module.
 func (hw *dcp) Init() {
 	hw.Lock()
 	// note: cannot defer during initialization
@@ -128,7 +127,7 @@ func (hw *dcp) Init() {
 	hw.Unlock()
 }
 
-// Verify whether the Secure Non Volatile Storage (SNVS) is available in
+// SNVS verifies whether the Secure Non Volatile Storage (SNVS) is available in
 // Trusted or Secure state (indicating that Secure Boot is enabled).
 //
 // The unique OTPMK internal key is available only when Secure Boot (HAB) is
@@ -146,8 +145,8 @@ func (hw *dcp) SNVS() bool {
 	}
 }
 
-// Derive a hardware unique key in a manner equivalent to PKCS#11 C_DeriveKey
-// with CKM_AES_CBC_ENCRYPT_DATA.
+// DeriveKey derives a hardware unique key in a manner equivalent to PKCS#11
+// C_DeriveKey with CKM_AES_CBC_ENCRYPT_DATA.
 //
 // The diversifier is AES-CBC encrypted using the internal OTPMK key (when SNVS
 // is enabled).

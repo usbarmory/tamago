@@ -131,7 +131,7 @@ var USB1 = &usb{
 	complete: (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTCOMPLETE))),
 }
 
-// Initialize the USB controller.
+// Init initializes the USB controller.
 func (hw *usb) Init() {
 	hw.Lock()
 	defer hw.Unlock()
@@ -173,7 +173,7 @@ func (hw *usb) Init() {
 	reg.Clear(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_EN_B)
 }
 
-// Handle bus reset.
+// Reset the USB bus.
 func (hw *usb) reset() {
 	log.Printf("imx6_usb: waiting for bus reset\n")
 	reg.Wait(hw.sts, USBSTS_URI, 0b1, 1)
@@ -194,7 +194,7 @@ func (hw *usb) reset() {
 	*(hw.sts) |= (1<<USBSTS_URI | 1<<USBSTS_UI)
 }
 
-// Receive SETUP packet.
+// getSetup waits for and receives a SETUP packet.
 func (hw *usb) getSetup(timeout time.Duration) (setup *SetupData) {
 	if !reg.WaitFor(timeout, hw.setup, 0, 0b1, 1) {
 		return
