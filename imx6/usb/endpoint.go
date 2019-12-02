@@ -59,7 +59,7 @@ type dQH struct {
 	// happens endianess needs to be adjusted with SetupData.swap().
 	setup SetupData
 
-	// We align only the first queue entry, so we need this gap go maintain
+	// We align only the first queue entry, so we need this gap to maintain
 	// 64-byte boundaries.
 	_align [4]uint32
 }
@@ -114,7 +114,7 @@ func (ep *EndPointList) set(n int, dir int, max int, zlt int, mult int) {
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
 func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data []byte) (err error) {
 	var dtd *dTD
-	size := uintptr(len(data))
+	size := len(data)
 
 	if size > DTD_PAGES*DTD_PAGE_SIZE {
 		return errors.New("unsupported transfer size")
