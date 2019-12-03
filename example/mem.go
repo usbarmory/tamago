@@ -19,12 +19,12 @@ func testAlloc(runs int, chunks int, chunkSize int) {
 	var memstats runtime.MemStats
 
 	for run := 1; run <= runs; run++ {
-		fmt.Printf("allocating %d MB chunks...", chunkSize)
+		fmt.Printf("allocating %d MB chunks...", chunkSize / (1024*1024))
 
 		mem := make([][]byte, chunks)
 
 		for i := 0; i <= chunks-1; i++ {
-			mem[i] = make([]byte, chunkSize*1024*1024)
+			mem[i] = make([]byte, chunkSize)
 		}
 
 		// FIXME

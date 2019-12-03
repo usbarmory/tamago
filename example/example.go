@@ -15,9 +15,12 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
-	"log"
-	"os"
 	"io/ioutil"
+	"log"
+	"math"
+	"math/big"
+	mathrand "math/rand"
+	"os"
 	"time"
 
 	"github.com/inversepath/tamago/imx6"
@@ -50,7 +53,8 @@ func init() {
 		fmt.Printf("WARNING: error setting ARM frequency: %v\n", err)
 	}
 
-	fmt.Printf("imx6_soc: %#s (%#x, %d.%d) @ freq:%d MHz - native:%v\n", model, family, revMajor, revMinor, imx6.ARMFreq()/1000000, imx6.Native)
+	fmt.Printf("imx6_soc: %#s (%#x, %d.%d) @ freq:%d MHz - native:%v\n",
+		model, family, revMajor, revMinor, imx6.ARMFreq()/1000000, imx6.Native)
 }
 
 func main() {
@@ -118,7 +122,10 @@ func main() {
 			rand.Read(rng)
 		}
 
-		fmt.Printf("retrieved %d random bytes in %s\n", size * count, time.Since(start))
+		fmt.Printf("retrieved %d random bytes in %s\n", size*count, time.Since(start))
+
+		seed, _ := rand.Int(rand.Reader, big.NewInt(int64(math.MaxInt64)))
+		mathrand.Seed(seed.Int64())
 
 		exit <- true
 	}()
@@ -159,13 +166,18 @@ func main() {
 	fmt.Printf("----------------------------------------------------------------------\n")
 	fmt.Printf("completed %d goroutines (%s)\n", n, time.Since(start))
 
-	runs := 8
-	chunks := 40
-	chunkSize := 4
+	runs := 9
+	chunksMax := 50
+	fillSize := 160 * 1024 * 1024
+	chunks := mathrand.Intn(chunksMax)
+	chunkSize := fillSize / chunks
+
+	fmt.Printf("chunks: %d, chunkSize: %d\n", chunks, chunkSize)
+	fmt.Printf("total %d MB allocated\n", (runs*chunks*chunkSize)/(1024*1024))
 
 	fmt.Printf("-- memory allocation (%d runs) ---------------------------------------\n", runs)
 	testAlloc(runs, chunks, chunkSize)
-	fmt.Printf("total %d MB allocated\n", runs*chunks*chunkSize)
+	fmt.Printf("total %d MB allocated\n", (runs*chunks*chunkSize)/(1024*1024))
 
 	if imx6.Native && (imx6.Family == imx6.IMX6UL || imx6.Family == imx6.IMX6ULL) {
 		fmt.Println("-- i.mx6 usb ---------------------------------------------------------")
