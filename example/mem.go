@@ -19,27 +19,23 @@ func testAlloc(runs int, chunks int, chunkSize int) {
 	var memstats runtime.MemStats
 
 	for run := 1; run <= runs; run++ {
-		fmt.Printf("allocating %d MB chunks...", chunkSize / (1024*1024))
+		fmt.Printf("allocating %d * %d MB chunks (%d/%d) ", chunks, chunkSize / (1024*1024), run, runs)
 
 		mem := make([][]byte, chunks)
 
 		for i := 0; i <= chunks-1; i++ {
+			fmt.Printf(".")
 			mem[i] = make([]byte, chunkSize)
 		}
 
-		// FIXME
-		//
-		// Forced GC runs hangs forever as runtime.bgscavenge is
-		// affected by the FIXME we currently have in lock_tamago.go.
-		//
-		// So garbage collection here is only happening as a side
-		// effect of runtime.ReadMemStats
+		fmt.Printf("\n")
 
-		// runtime.GC()
-		runtime.ReadMemStats(&memstats)
-
-		fmt.Printf("done %d/%d (%d MB) - Mallocs: %d Frees: %d HeapSys: %d\n",
-			run, runs, chunks*chunkSize,
-			memstats.Mallocs, memstats.Frees, memstats.HeapSys)
+		// FIXME: ideally we shouldn't need to force a GC, this might
+		// be a side effect of being single-threaded or some issues in
+		// credit allocation, pending investigation.
+		runtime.GC()
 	}
+
+	runtime.ReadMemStats(&memstats)
+	fmt.Printf("Mallocs: %d Frees: %d HeapSys: %d NumGC:%d\n", memstats.Mallocs, memstats.Frees, memstats.HeapSys, memstats.NumGC)
 }
