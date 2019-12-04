@@ -85,6 +85,12 @@ type Result struct {
 }
 
 func main() {
+	tamagoGo := os.Getenv("TAMAGO")
+
+	if tamagoGo == "" {
+		panic("You need to set the TAMAGO variable to a compiled version of https://github.com/inversepath/tamago-go")
+	}
+
 	content, err := ioutil.ReadFile("imports")
 
 	if err != nil {
@@ -135,7 +141,7 @@ func main() {
 				panic(err)
 			}
 
-			cmd := exec.Command("../../bin/go", "build", fmt.Sprintf("tests/%v/main.go", noslash))
+			cmd := exec.Command(tamagoGo, "build", fmt.Sprintf("tests/%v/main.go", noslash))
 			stdoutStderr, err := cmd.CombinedOutput()
 
 			results <- Result{
