@@ -169,7 +169,7 @@ func main() {
 	runs := 9
 	chunksMax := 50
 	fillSize := 160 * 1024 * 1024
-	chunks := mathrand.Intn(chunksMax)
+	chunks := mathrand.Intn(chunksMax) + 1
 	chunkSize := fillSize / chunks
 
 	fmt.Printf("-- memory allocation (%d runs) ---------------------------------------\n", runs)
