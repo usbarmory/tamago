@@ -172,12 +172,8 @@ func main() {
 	chunks := mathrand.Intn(chunksMax)
 	chunkSize := fillSize / chunks
 
-	fmt.Printf("chunks: %d, chunkSize: %d\n", chunks, chunkSize)
-	fmt.Printf("total %d MB allocated\n", (runs*chunks*chunkSize)/(1024*1024))
-
 	fmt.Printf("-- memory allocation (%d runs) ---------------------------------------\n", runs)
 	testAlloc(runs, chunks, chunkSize)
-	fmt.Printf("total %d MB allocated\n", (runs*chunks*chunkSize)/(1024*1024))
 
 	if imx6.Native && (imx6.Family == imx6.IMX6UL || imx6.Family == imx6.IMX6ULL) {
 		fmt.Println("-- i.mx6 usb ---------------------------------------------------------")

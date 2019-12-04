@@ -19,7 +19,7 @@ func testAlloc(runs int, chunks int, chunkSize int) {
 	var memstats runtime.MemStats
 
 	for run := 1; run <= runs; run++ {
-		fmt.Printf("allocating %d * %d MB chunks (%d/%d) ", chunks, chunkSize / (1024*1024), run, runs)
+		fmt.Printf("allocating %d * %d MB chunks (%d/%d) ", chunks, chunkSize/(1024*1024), run, runs)
 
 		mem := make([][]byte, chunks)
 
@@ -37,5 +37,6 @@ func testAlloc(runs int, chunks int, chunkSize int) {
 	}
 
 	runtime.ReadMemStats(&memstats)
-	fmt.Printf("Mallocs: %d Frees: %d HeapSys: %d NumGC:%d\n", memstats.Mallocs, memstats.Frees, memstats.HeapSys, memstats.NumGC)
+	fmt.Printf("%d MB allocated (Mallocs: %d Frees: %d HeapSys: %d NumGC:%d)\n",
+		(runs*chunks*chunkSize)/(1024*1024), memstats.Mallocs, memstats.Frees, memstats.HeapSys, memstats.NumGC)
 }
