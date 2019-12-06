@@ -15,6 +15,7 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"runtime/debug"
 	"io/ioutil"
 	"log"
 	"math"
@@ -28,7 +29,7 @@ import (
 )
 
 const banner = "Hello from tamago/arm!"
-const debug = true
+const verbose = true
 
 var exit chan bool
 
@@ -36,7 +37,7 @@ func init() {
 	log.SetFlags(0)
 
 	// imx6 package debugging
-	if debug {
+	if verbose {
 		log.SetOutput(os.Stdout)
 	} else {
 		log.SetOutput(ioutil.Discard)
@@ -166,10 +167,19 @@ func main() {
 	fmt.Printf("----------------------------------------------------------------------\n")
 	fmt.Printf("completed %d goroutines (%s)\n", n, time.Since(start))
 
+	// Tuning GC rate
+	// Default gcpercent is 100. Check runtime/mgc.go.
+	// Set gcpercent to a sufficient low value to prevent the next GC target be set
+	// beyond the end of RAM. Lower is gcpercent more frequently the GC will be performed
+	// impacting the performance.
+	gcpercent := 80
+	fmt.Printf("Setting GCPercent to: %d\n", gcpercent)
+	debug.SetGCPercent(gcpercent)
+
 	runs := 9
 	chunksMax := 50
 	fillSize := 160 * 1024 * 1024
-	chunks := mathrand.Intn(chunksMax)
+	chunks := mathrand.Intn(chunksMax) + 1
 	chunkSize := fillSize / chunks
 
 	fmt.Printf("-- memory allocation (%d runs) ---------------------------------------\n", runs)
