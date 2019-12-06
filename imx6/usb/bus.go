@@ -14,7 +14,6 @@ package usb
 import (
 	"log"
 	"sync"
-	"time"
 	"unsafe"
 
 	"github.com/inversepath/tamago/imx6/internal/reg"
@@ -90,7 +89,12 @@ const (
 	ENDPTCOMPLETE_ERCE            = 0
 
 	USB_UOG1_ENDPTCTRL uint32 = 0x021841c0
+	ENDPTCTRL_TXE             = 23
+	ENDPTCTRL_TXT             = 18
 	ENDPTCTRL_TXS             = 16
+	ENDPTCTRL_RXE             = 7
+	ENDPTCTRL_RXT             = 2
+	ENDPTCTRL_RXS             = 0
 )
 
 type usb struct {
@@ -114,6 +118,7 @@ type usb struct {
 	EP EndPointList
 }
 
+// FIXME: all *usb methods assume USB1
 var USB1 = &usb{
 	ccgr:     (*uint32)(unsafe.Pointer(uintptr(CCM_CCGR6))),
 	pll:      (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_USB1))),
@@ -173,8 +178,11 @@ func (hw *usb) Init() {
 	reg.Clear(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_EN_B)
 }
 
-// Reset the USB bus.
-func (hw *usb) reset() {
+// Reset waits for and handles a USB bus reset.
+func (hw *usb) Reset() {
+	hw.Lock()
+	defer hw.Unlock()
+
 	log.Printf("imx6_usb: waiting for bus reset\n")
 	reg.Wait(hw.sts, USBSTS_URI, 0b1, 1)
 
@@ -192,36 +200,4 @@ func (hw *usb) reset() {
 
 	// clear reset
 	*(hw.sts) |= (1<<USBSTS_URI | 1<<USBSTS_UI)
-}
-
-// getSetup waits for and receives a SETUP packet.
-func (hw *usb) getSetup(timeout time.Duration) (setup *SetupData) {
-	if !reg.WaitFor(timeout, hw.setup, 0, 0b1, 1) {
-		return
-	}
-
-	setup = &SetupData{}
-
-	// p3801, 56.4.6.4.2.1 Setup Phase, IMX6ULLRM
-
-	// clear setup status
-	reg.Set(hw.setup, 0)
-	// set tripwire
-	reg.Set(hw.cmd, USBCMD_SUTW)
-
-	// repeat if necessary
-	for reg.Get(hw.cmd, USBCMD_SUTW, 0b1) == 0 {
-		log.Printf("imx6_usb: retrying setup\n")
-		reg.Set(hw.cmd, USBCMD_SUTW)
-	}
-
-	// clear tripwire
-	reg.Clear(hw.cmd, USBCMD_SUTW)
-	// flush endpoint buffers
-	*(hw.flush) = 0xffffffff
-
-	*setup = hw.EP.get(0, OUT).setup
-	setup.swap()
-
-	return
 }

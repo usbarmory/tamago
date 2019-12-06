@@ -13,6 +13,8 @@ package usb
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"unsafe"
 
 	"github.com/inversepath/tamago/imx6/internal/cache"
@@ -24,10 +26,18 @@ const (
 	// The USB OTG device controller hardware supports up to 8 endpoint
 	// numbers.
 	MAX_ENDPOINTS = 8
+
 	// Host -> Device
 	OUT = 0
 	// Device -> Host
 	IN = 1
+
+	// Transfer Type
+	CONTROL     = 0
+	ISOCHRONOUS = 1
+	BULK        = 2
+	INTERRUPT   = 3
+
 	// p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM
 	DTD_PAGES     = 5
 	DTD_PAGE_SIZE = 4096
@@ -168,4 +178,109 @@ func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data []byte) (err error
 	ep.List[n*2+dir].next = dtd
 
 	return
+}
+
+// transferDTD manages a transfer using transfer descriptors
+// (p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors, IMX6ULLRM).
+func (hw *usb) transferDTD(n int, dir int, ioc bool, data []byte) (err error) {
+	err = hw.EP.setDTD(n, dir, ioc, data)
+
+	if err != nil {
+		return
+	}
+
+	// TODO: clean specific cache lines instead
+	cache.FlushData()
+
+	// IN:ENDPTPRIME_PETB+n OUT:ENDPTPRIME_PERB+n
+	pos := (dir * 16) + n
+	// prime endpoint (TODO: we can do it once when the descriptor is added to dQH)
+	reg.Set(hw.prime, pos)
+	// wait for priming completion
+	reg.Wait(hw.prime, pos, 0b1, 0)
+
+	// wait for status
+	reg.Wait(&hw.EP.get(n, dir).current.token, 7, 0b1, 0)
+
+	if status := reg.Get(&hw.EP.get(n, dir).current.token, 0, 0xff); status != 0x00 {
+		err = fmt.Errorf("transfer error %x", status)
+	}
+
+	return
+}
+
+func (hw *usb) transferWait(n int, dir int) (err error) {
+	// TODO: interrupt check should be probably moved elsewhere and use to
+	// drive all handlers
+
+	// wait for transfer interrupt
+	reg.Wait(hw.sts, USBSTS_UI, 0b1, 1)
+	// clear interrupt
+	*(hw.sts) |= 1 << USBSTS_UI
+
+	// IN:ENDPTCOMPLETE_ETCE+n OUT:ENDPTCOMPLETE_ERCE+n
+	pos := (dir * 16) + n
+	// wait for completion
+	reg.Wait(hw.complete, pos, 0b1, 1)
+
+	// clear transfer completion
+	*(hw.complete) |= 1 << pos
+
+	return
+}
+
+func (hw *usb) transfer(n int, dir int, ioc bool, data []byte) (err error) {
+	err = hw.transferDTD(n, dir, ioc, data)
+
+	if err != nil {
+		return
+	}
+
+	// acknowledge completion
+	if dir == IN {
+		err = hw.transferDTD(n, OUT, true, []byte{})
+
+		if err != nil {
+			return
+		}
+	}
+
+	return hw.transferWait(n, dir)
+}
+
+func (hw *usb) ack(n int) (err error) {
+	err = hw.transferDTD(n, IN, true, nil)
+
+	if err != nil {
+		return
+	}
+
+	return hw.transferWait(n, IN)
+}
+
+func (hw *usb) stall(n int, dir int) {
+	ctrl := (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTCTRL + uint32(4*n))))
+
+	if dir == IN {
+		reg.Set(ctrl, ENDPTCTRL_TXS)
+	} else {
+		reg.Set(ctrl, ENDPTCTRL_RXS)
+	}
+}
+
+func (hw *usb) enable(n int, dir int, transferType int) {
+	log.Printf("imx6_usb: enabling EP%d.%d\n", n, dir)
+
+	ctrl := (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTCTRL + uint32(4*n))))
+	c := *ctrl
+
+	if dir == IN {
+		reg.Set(&c, ENDPTCTRL_TXE)
+		reg.SetN(&c, ENDPTCTRL_TXT, 0b11, uint32(transferType))
+	} else {
+		reg.Set(&c, ENDPTCTRL_RXE)
+		reg.SetN(&c, ENDPTCTRL_RXT, 0b11, uint32(transferType))
+	}
+
+	*ctrl = c
 }

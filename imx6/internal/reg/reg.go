@@ -11,6 +11,7 @@
 package reg
 
 import (
+	"runtime"
 	"time"
 
 	"github.com/inversepath/tamago/imx6/internal/cache"
@@ -38,15 +39,28 @@ func ClearN(reg *uint32, pos int, mask int) {
 	*reg &= ^(uint32(mask) << pos)
 }
 
+// Wait waits for a specific register bit to match a value. This function
+// cannot be used before runtime initialization with `GOOS=tamago`.
 func Wait(reg *uint32, pos int, mask int, val uint32) {
 	for Get(reg, pos, mask) != val {
+		// tamago is single-threaded so we must force giving
+		// other goroutines a chance
+		runtime.Gosched()
 	}
 }
 
+// WaitFor waits, until a timeout expires, for a specific register bit to match
+// a value. The return boolean indicates whether the wait condition was checked
+// (true) or if it timed out (false). This function cannot be used before
+// runtime initialization with `GOOS=tamago`.
 func WaitFor(timeout time.Duration, reg *uint32, pos int, mask int, val uint32) bool {
 	start := time.Now()
 
 	for Get(reg, pos, mask) != val {
+		// tamago is single-threaded so we must force giving
+		// other goroutines a chance
+		runtime.Gosched()
+
 		if time.Since(start) >= timeout {
 			return false
 		}

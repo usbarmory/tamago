@@ -11,21 +11,12 @@
 package main
 
 import (
-	"time"
+	"log"
 
 	"github.com/inversepath/tamago/imx6/usb"
 )
 
-// Test function which emulates Linux Gadget Zero descriptors (no actual
-// function implemented yet).
-func TestUSB() {
-	usb.USB1.Init()
-	usb.USB1.DeviceMode()
-
-	device := &usb.Device{}
-
-	// https://github.com/torvalds/linux/blob/master/drivers/usb/gadget/legacy/zero.c
-
+func configureDevice(device *usb.Device) {
 	// Supported Language Code Zero: English
 	device.SetLanguageCodes([]uint16{0x0409})
 
@@ -52,7 +43,9 @@ func TestUSB() {
 	device.Qualifier.SetDefaults()
 	device.Qualifier.DeviceClass = 0xff
 	device.Qualifier.NumConfigurations = 2
+}
 
+func configureSourceSink(device *usb.Device) {
 	// source and sink configuration
 	conf := &usb.ConfigurationDescriptor{}
 	conf.SetDefaults()
@@ -90,6 +83,12 @@ func TestUSB() {
 	ep1OUT.Attributes = 2
 	ep1OUT.MaxPacketSize = 512
 
+	ep1OUT.Function = func(max uint16) (data []byte, err error) {
+		log.Printf("imx6_usb: EP%d.%d bulk sink (%d bytes)", 1, 0, max)
+		data = make([]byte, max)
+		return
+	}
+
 	iface.Endpoints = append(iface.Endpoints, ep1OUT)
 
 	// source and sink alternate interface
@@ -102,22 +101,8 @@ func TestUSB() {
 
 	conf.Interfaces = append(conf.Interfaces, iface)
 
-	// source and sink EP1 IN endpoint (bulk)
-	ep1IN = &usb.EndpointDescriptor{}
-	ep1IN.SetDefaults()
-	ep1IN.EndpointAddress = 0x81
-	ep1IN.Attributes = 2
-	ep1IN.MaxPacketSize = 512
-
+	// re-use previous descriptors
 	iface.Endpoints = append(iface.Endpoints, ep1IN)
-
-	// source and sink EP1 OUT endpoint (bulk)
-	ep1OUT = &usb.EndpointDescriptor{}
-	ep1OUT.SetDefaults()
-	ep1OUT.EndpointAddress = 0x01
-	ep1OUT.Attributes = 2
-	ep1OUT.MaxPacketSize = 512
-
 	iface.Endpoints = append(iface.Endpoints, ep1OUT)
 
 	// source and sink EP7 IN endpoint (isochronous)
@@ -139,21 +124,23 @@ func TestUSB() {
 	ep2OUT.Interval = 4
 
 	iface.Endpoints = append(iface.Endpoints, ep2OUT)
+}
 
+func configureLoopback(device *usb.Device) {
 	// loopback configuration
-	conf = &usb.ConfigurationDescriptor{}
+	conf := &usb.ConfigurationDescriptor{}
 	conf.SetDefaults()
 	conf.TotalLength = 0x0020
 	conf.NumInterfaces = 1
 	conf.ConfigurationValue = 2
 
-	iConfiguration, _ = device.AddString(`loop input to output`)
+	iConfiguration, _ := device.AddString(`loop input to output`)
 	conf.Configuration = iConfiguration
 
 	device.Configurations = append(device.Configurations, conf)
 
 	// source and sink interface
-	iface = &usb.InterfaceDescriptor{}
+	iface := &usb.InterfaceDescriptor{}
 	iface.SetDefaults()
 	iface.NumEndpoints = 2
 	iface.InterfaceClass = 0xff
@@ -164,7 +151,7 @@ func TestUSB() {
 	conf.Interfaces = append(conf.Interfaces, iface)
 
 	// source and sink EP1 IN endpoint (bulk)
-	ep1IN = &usb.EndpointDescriptor{}
+	ep1IN := &usb.EndpointDescriptor{}
 	ep1IN.SetDefaults()
 	ep1IN.EndpointAddress = 0x81
 	ep1IN.Attributes = 2
@@ -173,16 +160,41 @@ func TestUSB() {
 	iface.Endpoints = append(iface.Endpoints, ep1IN)
 
 	// source and sink EP1 OUT endpoint (bulk)
-	ep1OUT = &usb.EndpointDescriptor{}
+	ep1OUT := &usb.EndpointDescriptor{}
 	ep1OUT.SetDefaults()
 	ep1OUT.EndpointAddress = 0x01
 	ep1OUT.Attributes = 2
 	ep1OUT.MaxPacketSize = 512
 
 	iface.Endpoints = append(iface.Endpoints, ep1OUT)
+}
 
-	// never returns
-	loop := true
-	timeout := 5 * time.Second
-	usb.USB1.SetupHandler(device, timeout, loop)
+// Test function which emulates Linux Gadget Zero descriptors (no actual
+// function implemented yet).
+func TestUSB() {
+	device := &usb.Device{}
+
+	// https://github.com/torvalds/linux/blob/master/drivers/usb/gadget/legacy/zero.c
+	configureDevice(device)
+	configureSourceSink(device)
+	configureLoopback(device)
+
+	usb.USB1.Init()
+	usb.USB1.DeviceMode()
+	usb.USB1.Reset()
+
+	go func() {
+		// should never return
+		usb.USB1.SetupHandler(device)
+		exit <- true
+	}()
+
+	go func() {
+		// should never return
+		usb.USB1.EndpointHandler(device.Configurations[0].Interfaces[0].Endpoints[1])
+		exit <- true
+	}()
+
+	<-exit
+	log.Fatal("unexpected handler return")
 }

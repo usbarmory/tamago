@@ -15,6 +15,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync"
 	"unicode/utf16"
 	"unsafe"
 )
@@ -168,6 +169,8 @@ func (d *InterfaceDescriptor) Bytes() (buf []byte) {
 	return buf[0:INTERFACE_LENGTH]
 }
 
+type EndpointFunction func(max uint16) (data []byte, err error)
+
 // EndpointDescriptor implements
 // p297, Table 9-13. Standard Endpoint Descriptor, USB Specification Revision 2.0.
 type EndpointDescriptor struct {
@@ -177,6 +180,11 @@ type EndpointDescriptor struct {
 	Attributes      uint8
 	MaxPacketSize   uint16
 	Interval        uint8
+
+	Function EndpointFunction
+
+	enabled bool
+	sync.Mutex
 }
 
 // SetDefaults initializes default values for the USB endpoint descriptor.
@@ -185,6 +193,21 @@ func (d *EndpointDescriptor) SetDefaults() {
 	d.DescriptorType = ENDPOINT
 	// EP1 IN
 	d.EndpointAddress = 0x81
+}
+
+// Number returns the endpoint number.
+func (d *EndpointDescriptor) Number() int {
+	return int(d.EndpointAddress & 0b1111)
+}
+
+// Direction returns the endpoint direction.
+func (d *EndpointDescriptor) Direction() int {
+	return int(d.EndpointAddress&0b10000000) / 0b10000000
+}
+
+// TransferType returns the endpoint transfer type.
+func (d *EndpointDescriptor) TransferType() int {
+	return int(d.Attributes & 0b11)
 }
 
 // Bytes converts the descriptor structure to byte array format.
