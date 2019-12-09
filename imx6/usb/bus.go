@@ -84,15 +84,19 @@ const (
 	ENDPTFLUSH_FETB            = 16
 	ENDPTFLUSH_FERB            = 0
 
+	USB_UOG1_ENDPTSTAT uint32 = 0x021841b8
+
 	USB_UOG1_ENDPTCOMPLETE uint32 = 0x021841bc
-	ENDPTCOMPLETE_ETCE            = 16
-	ENDPTCOMPLETE_ERCE            = 0
+	ENDPTCOMPLETE_ETBR            = 16
+	ENDPTCOMPLETE_ERBR            = 0
 
 	USB_UOG1_ENDPTCTRL uint32 = 0x021841c0
 	ENDPTCTRL_TXE             = 23
+	ENDPTCTRL_TXI             = 21
 	ENDPTCTRL_TXT             = 18
 	ENDPTCTRL_TXS             = 16
 	ENDPTCTRL_RXE             = 7
+	ENDPTCTRL_RXI             = 5
 	ENDPTCTRL_RXT             = 2
 	ENDPTCTRL_RXS             = 0
 )
@@ -113,6 +117,7 @@ type usb struct {
 	setup    *uint32
 	flush    *uint32
 	prime    *uint32
+	stat     *uint32
 	complete *uint32
 
 	EP EndPointList
@@ -133,6 +138,7 @@ var USB1 = &usb{
 	setup:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTSETUPSTAT))),
 	flush:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTFLUSH))),
 	prime:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTPRIME))),
+	stat:     (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTSTAT))),
 	complete: (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTCOMPLETE))),
 }
 
