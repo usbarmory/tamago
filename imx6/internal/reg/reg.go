@@ -12,6 +12,7 @@ package reg
 
 import (
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/inversepath/tamago/imx6/internal/cache"
@@ -20,29 +21,62 @@ import (
 // TODO: disable cache for peripheral space instead of cache.FlushData() every
 // time
 
-func Get(reg *uint32, pos int, mask int) uint32 {
+var mutex sync.Mutex
+
+func Get(reg *uint32, pos int, mask int) (val uint32) {
+	mutex.Lock()
+
 	cache.FlushData()
-	return uint32((int(*reg) >> pos) & mask)
+	val = uint32((int(*reg) >> pos) & mask)
+
+	mutex.Unlock()
+
+	return
 }
 
 func Set(reg *uint32, pos int) {
+	mutex.Lock()
+
 	cache.FlushData()
 	*reg |= (1 << pos)
+
+	mutex.Unlock()
+}
+
+func Write(reg *uint32, val uint32) {
+	mutex.Lock()
+
+	cache.FlushData()
+	*reg = val
+
+	mutex.Unlock()
 }
 
 func Clear(reg *uint32, pos int) {
+	mutex.Lock()
+
 	cache.FlushData()
 	*reg &= ^(1 << pos)
+
+	mutex.Unlock()
 }
 
 func SetN(reg *uint32, pos int, mask int, val uint32) {
+	mutex.Lock()
+
 	cache.FlushData()
 	*reg = (*reg & (^(uint32(mask) << pos))) | (val << pos)
+
+	mutex.Unlock()
 }
 
 func ClearN(reg *uint32, pos int, mask int) {
+	mutex.Lock()
+
 	cache.FlushData()
 	*reg &= ^(uint32(mask) << pos)
+
+	mutex.Unlock()
 }
 
 // Wait waits for a specific register bit to match a value. This function

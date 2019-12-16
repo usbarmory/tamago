@@ -46,7 +46,6 @@ const (
 	INTERFACE_POWER           = 8
 )
 
-// getSetup handles an incoming SETUP packet.
 func (hw *usb) getSetup() (setup *SetupData) {
 	setup = &SetupData{}
 
@@ -65,8 +64,10 @@ func (hw *usb) getSetup() (setup *SetupData) {
 
 	// clear tripwire
 	reg.Clear(hw.cmd, USBCMD_SUTW)
-	// flush endpoint buffers
-	*(hw.flush) = 0xffffffff
+	// flush EP0 IN
+	//reg.Set(hw.flush, ENDPTFLUSH_FETB+0)
+	// flush EP0 OUT
+	//reg.Set(hw.flush, ENDPTFLUSH_FERB+0)
 
 	*setup = hw.EP.get(0, OUT).setup
 	setup.swap()
@@ -75,6 +76,10 @@ func (hw *usb) getSetup() (setup *SetupData) {
 }
 
 func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
+	if setup == nil {
+		return
+	}
+
 	switch setup.bRequest {
 	case GET_STATUS:
 		// no meaningful status to report for now

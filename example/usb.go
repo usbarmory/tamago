@@ -67,25 +67,30 @@ func configureSourceSink(device *usb.Device) {
 
 	conf.Interfaces = append(conf.Interfaces, iface)
 
-	// source and sink EP1 IN endpoint (bulk)
+	// source EP1 IN endpoint (bulk)
 	ep1IN := &usb.EndpointDescriptor{}
 	ep1IN.SetDefaults()
 	ep1IN.EndpointAddress = 0x81
 	ep1IN.Attributes = 2
 	ep1IN.MaxPacketSize = 512
 
+	ep1IN.Function = func(out []byte, lastErr error) (in []byte, err error) {
+		// source IN data
+		in = make([]byte, 512*10)
+		return
+	}
+
 	iface.Endpoints = append(iface.Endpoints, ep1IN)
 
-	// source and sink EP1 OUT endpoint (bulk)
+	// sink EP1 OUT endpoint (bulk)
 	ep1OUT := &usb.EndpointDescriptor{}
 	ep1OUT.SetDefaults()
 	ep1OUT.EndpointAddress = 0x01
 	ep1OUT.Attributes = 2
 	ep1OUT.MaxPacketSize = 512
 
-	ep1OUT.Function = func(max uint16) (data []byte, err error) {
-		log.Printf("imx6_usb: EP%d.%d bulk sink (%d bytes)", 1, 0, max)
-		data = make([]byte, max)
+	ep1OUT.Function = func(out []byte, lastErr error) (in []byte, err error) {
+		// sink OUT data
 		return
 	}
 
@@ -105,7 +110,7 @@ func configureSourceSink(device *usb.Device) {
 	iface.Endpoints = append(iface.Endpoints, ep1IN)
 	iface.Endpoints = append(iface.Endpoints, ep1OUT)
 
-	// source and sink EP7 IN endpoint (isochronous)
+	// source EP7 IN endpoint (isochronous)
 	ep7IN := &usb.EndpointDescriptor{}
 	ep7IN.SetDefaults()
 	ep7IN.EndpointAddress = 0x87
@@ -115,7 +120,7 @@ func configureSourceSink(device *usb.Device) {
 
 	iface.Endpoints = append(iface.Endpoints, ep7IN)
 
-	// source and sink EP2 OUT endpoint (isochronous)
+	// sink EP2 OUT endpoint (isochronous)
 	ep2OUT := &usb.EndpointDescriptor{}
 	ep2OUT.SetDefaults()
 	ep2OUT.EndpointAddress = 0x02
@@ -139,7 +144,7 @@ func configureLoopback(device *usb.Device) {
 
 	device.Configurations = append(device.Configurations, conf)
 
-	// source and sink interface
+	// loopback interface
 	iface := &usb.InterfaceDescriptor{}
 	iface.SetDefaults()
 	iface.NumEndpoints = 2
@@ -150,7 +155,7 @@ func configureLoopback(device *usb.Device) {
 
 	conf.Interfaces = append(conf.Interfaces, iface)
 
-	// source and sink EP1 IN endpoint (bulk)
+	// loopback EP1 IN endpoint (bulk)
 	ep1IN := &usb.EndpointDescriptor{}
 	ep1IN.SetDefaults()
 	ep1IN.EndpointAddress = 0x81
@@ -159,7 +164,7 @@ func configureLoopback(device *usb.Device) {
 
 	iface.Endpoints = append(iface.Endpoints, ep1IN)
 
-	// source and sink EP1 OUT endpoint (bulk)
+	// loopback EP1 OUT endpoint (bulk)
 	ep1OUT := &usb.EndpointDescriptor{}
 	ep1OUT.SetDefaults()
 	ep1OUT.EndpointAddress = 0x01
@@ -183,18 +188,6 @@ func TestUSB() {
 	usb.USB1.DeviceMode()
 	usb.USB1.Reset()
 
-	go func() {
-		// should never return
-		usb.USB1.SetupHandler(device)
-		exit <- true
-	}()
-
-	go func() {
-		// should never return
-		usb.USB1.EndpointHandler(device.Configurations[0].Interfaces[0].Endpoints[1])
-		exit <- true
-	}()
-
-	<-exit
-	log.Fatal("unexpected handler return")
+	// never returns
+	usb.USB1.Start(device)
 }

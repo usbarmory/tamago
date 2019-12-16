@@ -69,8 +69,9 @@ type dQH struct {
 	// happens endianess needs to be adjusted with SetupData.swap().
 	setup SetupData
 
-	// We align only the first queue entry, so we need this gap to maintain
-	// 64-byte boundaries.
+	// We align only the first queue entry, so we need a 4*uint32 gap to
+	// maintain 64-byte boundaries, we re-use this space for queue
+	// pointers.
 	_align [4]uint32
 }
 
@@ -89,10 +90,16 @@ func (ep *EndPointList) init() {
 	ep.List = (*[MAX_ENDPOINTS * 2]dQH)(unsafe.Pointer(ep.buf.Addr))
 }
 
+// get returns the Endpoint Queue Head (dQH)
 func (ep *EndPointList) get(n int, dir int) dQH {
 	// TODO: clean specific cache lines instead
 	cache.FlushData()
 	return ep.List[n*2+dir]
+}
+
+// max returns the endpoint Maximum Packet Length
+func (ep *EndPointList) max(n int, dir int) int {
+	return int(ep.List[n*2+dir].info>>16) & 0x7ff
 }
 
 // set configures a queue head as described in
@@ -107,46 +114,35 @@ func (ep *EndPointList) set(n int, dir int, max int, zlt int, mult int) {
 	// Maximum Packet Length
 	reg.SetN(&ep.List[off].info, 16, 0x7ff, uint32(max))
 
-	if dir == IN {
+	if n == 0 && dir == IN {
 		// interrupt on setup (ios)
 		reg.Set(&ep.List[off].info, 15)
 	}
 
 	// Total bytes
-	reg.SetN(&ep.List[off].token, 16, 0xffff, 8)
+	reg.SetN(&ep.List[off].token, 16, 0xffff, 0)
 	// interrupt on completion (ioc)
 	reg.Set(&ep.List[off].token, 15)
 	// multiplier override (MultO)
 	reg.SetN(&ep.List[off].token, 10, 0b11, 0)
 }
 
-// setDTD configures an endpoint transfer descriptor as described in
+// addDTD configures an endpoint transfer descriptor as described in
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
-func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data []byte) (err error) {
-	var dtd *dTD
+func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD, err error) {
 	size := len(data)
 
 	if size > DTD_PAGES*DTD_PAGE_SIZE {
-		return errors.New("unsupported transfer size")
+		return nil, errors.New("unsupported transfer size")
 	}
 
-	// re-use existing buffer if present
-	if dtd = ep.List[n*2+dir].current; dtd == nil {
-		dtd = ep.List[n*2+dir].next
-	}
+	dtdBuf := mem.AlignmentBuffer{}
+	dtdBuf.Init(unsafe.Sizeof(dTD{}), 32)
 
-	if dtd == nil {
-		dtdBuf := mem.AlignmentBuffer{}
-		dtdBuf.Init(unsafe.Sizeof(dTD{}), 32)
-
-		dtd = (*dTD)(unsafe.Pointer(dtdBuf.Addr))
-		dtd.buf = dtdBuf
-	}
+	dtd = (*dTD)(unsafe.Pointer(dtdBuf.Addr))
+	dtd.buf = dtdBuf
 
 	// p3809, 56.4.6.6.2 Building a Transfer Descriptor, IMX6ULLRM
-
-	// invalidate next pointer
-	dtd.next = (*dTD)(unsafe.Pointer(uintptr(1)))
 
 	// interrupt on completion (ioc)
 	if ioc {
@@ -160,12 +156,8 @@ func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data []byte) (err error
 	// active status
 	reg.Set(&dtd.token, 7)
 
-	// re-use existing buffer if present
-	if dtd.pages.Addr == 0 {
-		dtd.pages = mem.AlignmentBuffer{}
-		dtd.pages.Init(DTD_PAGE_SIZE*DTD_PAGES, DTD_PAGE_SIZE)
-	}
-
+	dtd.pages = mem.AlignmentBuffer{}
+	dtd.pages.Init(DTD_PAGE_SIZE*DTD_PAGES, DTD_PAGE_SIZE)
 	mem.Copy(dtd.pages, data)
 
 	// total bytes
@@ -175,56 +167,91 @@ func (ep *EndPointList) setDTD(n int, dir int, ioc bool, data []byte) (err error
 		dtd.buffer[n] = dtd.pages.Addr + uintptr(DTD_PAGE_SIZE*n)
 	}
 
-	ep.List[n*2+dir].next = dtd
+	// invalidate next pointer
+	dtd.next = (*dTD)(unsafe.Pointer(uintptr(1)))
 
 	return
 }
 
-// transferDTD manages a transfer using transfer descriptors
-// (p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors, IMX6ULLRM).
+// transferDTD manages a transfer using transfer descriptors (dTDs) as
+// described in p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors,
+// IMX6ULLRM.
 func (hw *usb) transferDTD(n int, dir int, ioc bool, data []byte) (err error) {
-	err = hw.EP.setDTD(n, dir, ioc, data)
+	var dtds []*dTD
+	dtdLength := len(data)
+
+	if n != 0 {
+		// On non-control endpoints, For simplicity, each dTD is
+		// configured to transfer one packet
+		// (dTD.TotalBytes == dQH.MaxPacketLength).
+		max := hw.EP.max(n, dir)
+
+		if len(data) > max {
+			dtdLength = max
+		}
+	}
+
+	dtd, err := buildDTD(n, dir, ioc, data[0:dtdLength])
 
 	if err != nil {
 		return
 	}
 
-	// TODO: clean specific cache lines instead
-	cache.FlushData()
+	off := n*2 + dir
+	// set dQH head pointer
+	hw.EP.List[off].next = dtd
+	// reset dQH status
+	reg.SetN(&hw.EP.List[off].token, 0, 0xff, 0)
 
-	// IN:ENDPTPRIME_PETB+n OUT:ENDPTPRIME_PERB+n
+	dtds = append(dtds, dtd)
+
+	for i := dtdLength; i < len(data); i += dtdLength {
+		size := i + dtdLength
+
+		if size > len(data) {
+			size = len(data)
+		}
+
+		next, err := buildDTD(n, dir, ioc, data[i:size])
+
+		if err != nil {
+			return err
+		}
+
+		dtd.next = next
+		dtd = next
+		dtds = append(dtds, next)
+	}
+
+	// hw.prime IN:ENDPTPRIME_PETB+n    OUT:ENDPTPRIME_PERB+n
+	// hw.pos   IN:ENDPTCOMPLETE_ETCE+n OUT:ENDPTCOMPLETE_ERCE+n
 	pos := (dir * 16) + n
-	// prime endpoint (TODO: we can do it once when the descriptor is added to dQH)
-	reg.Set(hw.prime, pos)
+
+	// prime endpoint
+	reg.Write(hw.prime, 1<<pos)
 	// wait for priming completion
 	reg.Wait(hw.prime, pos, 0b1, 0)
 
-	// wait for status
-	reg.Wait(&hw.EP.get(n, dir).current.token, 7, 0b1, 0)
-
-	if status := reg.Get(&hw.EP.get(n, dir).current.token, 0, 0xff); status != 0x00 {
-		err = fmt.Errorf("transfer error %x", status)
-	}
-
-	return
-}
-
-func (hw *usb) transferWait(n int, dir int) (err error) {
-	// TODO: interrupt check should be probably moved elsewhere and use to
-	// drive all handlers
-
-	// wait for transfer interrupt
-	reg.Wait(hw.sts, USBSTS_UI, 0b1, 1)
-	// clear interrupt
-	*(hw.sts) |= 1 << USBSTS_UI
-
-	// IN:ENDPTCOMPLETE_ETCE+n OUT:ENDPTCOMPLETE_ERCE+n
-	pos := (dir * 16) + n
 	// wait for completion
 	reg.Wait(hw.complete, pos, 0b1, 1)
+	// clear completion
+	reg.Write(hw.complete, 1<<pos)
 
-	// clear transfer completion
-	*(hw.complete) |= 1 << pos
+	// OPTIMIZE: waiting for each dTD status before re-priming and
+	// re-creating the DMA transfer is not optimal, but for simplicity we
+	// keep things like this for now as performance remains good.
+	//
+	// In the future return as soon as completion is detected and worry
+	// about checking status only on the next iteration, which can be used
+	// to fill the buffer so that at least one transfer is always queued.
+
+	for i, dtd := range dtds {
+		reg.Wait(&dtd.token, 7, 0b1, 0)
+
+		if status := (dtd.token & 0xff); status != 0x00 {
+			return fmt.Errorf("error status for dTD #%d, %x", i, status)
+		}
+	}
 
 	return
 }
@@ -236,8 +263,8 @@ func (hw *usb) transfer(n int, dir int, ioc bool, data []byte) (err error) {
 		return
 	}
 
-	// acknowledge completion
-	if dir == IN {
+	// p3803, 56.4.6.4.2.3 Status Phase, IMX6ULLRM
+	if n == 0 && dir == IN {
 		err = hw.transferDTD(n, OUT, true, []byte{})
 
 		if err != nil {
@@ -245,21 +272,15 @@ func (hw *usb) transfer(n int, dir int, ioc bool, data []byte) (err error) {
 		}
 	}
 
-	return hw.transferWait(n, dir)
+	return
 }
 
 func (hw *usb) ack(n int) (err error) {
-	err = hw.transferDTD(n, IN, true, nil)
-
-	if err != nil {
-		return
-	}
-
-	return hw.transferWait(n, IN)
+	return hw.transferDTD(n, IN, true, nil)
 }
 
 func (hw *usb) stall(n int, dir int) {
-	ctrl := (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTCTRL + uint32(4*n))))
+	ctrl := (*uint32)(unsafe.Pointer(uintptr(hw.epctrl + uint32(4*n))))
 
 	if dir == IN {
 		reg.Set(ctrl, ENDPTCTRL_TXS)
@@ -269,17 +290,39 @@ func (hw *usb) stall(n int, dir int) {
 }
 
 func (hw *usb) enable(n int, dir int, transferType int) {
+	if n == 0 {
+		// EP0 does not need enabling (p3790, IMX6ULLRM)
+		return
+	}
+
 	log.Printf("imx6_usb: enabling EP%d.%d\n", n, dir)
 
-	ctrl := (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTCTRL + uint32(4*n))))
+	// TODO: clean specific cache lines instead
+	cache.FlushData()
+
+	ctrl := (*uint32)(unsafe.Pointer(uintptr(hw.epctrl + uint32(4*n))))
 	c := *ctrl
 
 	if dir == IN {
 		reg.Set(&c, ENDPTCTRL_TXE)
+		reg.Set(&c, ENDPTCTRL_TXR)
 		reg.SetN(&c, ENDPTCTRL_TXT, 0b11, uint32(transferType))
+		reg.Clear(&c, ENDPTCTRL_TXS)
+
+		if reg.Get(ctrl, ENDPTCTRL_RXE, 0b1) == 0 {
+			// see note at p3879 of IMX6ULLRM
+			reg.SetN(&c, ENDPTCTRL_RXT, 0b11, BULK)
+		}
 	} else {
 		reg.Set(&c, ENDPTCTRL_RXE)
+		reg.Set(&c, ENDPTCTRL_RXR)
 		reg.SetN(&c, ENDPTCTRL_RXT, 0b11, uint32(transferType))
+		reg.Clear(&c, ENDPTCTRL_RXS)
+
+		if reg.Get(ctrl, ENDPTCTRL_TXE, 0b1) == 0 {
+			// see note at p3879 of IMX6ULLRM
+			reg.SetN(&c, ENDPTCTRL_TXT, 0b11, BULK)
+		}
 	}
 
 	*ctrl = c

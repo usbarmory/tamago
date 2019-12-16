@@ -14,8 +14,8 @@ package usb
 
 import (
 	"log"
+	"runtime"
 	"time"
-	"unsafe"
 
 	"github.com/inversepath/tamago/imx6/internal/reg"
 )
@@ -30,8 +30,7 @@ func (hw *usb) DeviceMode() {
 	reg.Wait(hw.cmd, USBCMD_RST, 0b1, 0)
 
 	// p3872, 56.6.33 USB Device Mode (USB_nUSBMODE), IMX6ULLRM)
-	mode := (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBMODE)))
-	m := *mode
+	m := *hw.mode
 
 	// set device only controller
 	reg.SetN(&m, USBMODE_CM, 0b11, USBMODE_CM_DEVICE)
@@ -40,8 +39,8 @@ func (hw *usb) DeviceMode() {
 	// disable stream mode
 	reg.Clear(&m, USBMODE_SDIS)
 
-	*mode = m
-	reg.Wait(mode, USBMODE_CM, 0b11, USBMODE_CM_DEVICE)
+	*hw.mode = m
+	reg.Wait(hw.mode, USBMODE_CM, 0b11, USBMODE_CM_DEVICE)
 
 	// set endpoint queue head
 	hw.EP.init()
@@ -52,8 +51,7 @@ func (hw *usb) DeviceMode() {
 	hw.EP.set(0, OUT, 64, 0, 0)
 
 	// set OTG termination
-	otg := (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_OTGSC)))
-	reg.Set(otg, OTGSC_OT)
+	reg.Set(hw.otg, OTGSC_OT)
 
 	// clear all pending interrupts
 	*(hw.sts) = 0xffffffff
@@ -64,19 +62,27 @@ func (hw *usb) DeviceMode() {
 	return
 }
 
-// SetupHandler waits and handles USB SETUP packets on endpoint 0 for device
-// enumeration and configuration.
-func (hw *usb) SetupHandler(dev *Device) {
+// Start waits and handles configured USB endpoints, it should never return.
+func (hw *usb) Start(dev *Device) {
+	// FIXME: support multiple configurations dynamically
+	for _, iface := range dev.Configurations[0].Interfaces {
+		for _, ep := range iface.Endpoints {
+			go func(ep *EndpointDescriptor) {
+				hw.endpointHandler(dev, ep)
+			}(ep)
+		}
+	}
+
+	hw.setupHandler(dev)
+}
+
+func (hw *usb) setupHandler(dev *Device) {
 	for {
-		if !reg.WaitFor(5*time.Second, hw.setup, 0, 0b1, 1) {
+		if !reg.WaitFor(10*time.Millisecond, hw.setup, 0, 0b1, 1) {
 			continue
 		}
 
 		setup := hw.getSetup()
-
-		if setup == nil {
-			continue
-		}
 
 		if err := hw.doSetup(dev, setup); err != nil {
 			log.Printf("imx6_usb: setup error, %v\n", err)
@@ -84,40 +90,52 @@ func (hw *usb) SetupHandler(dev *Device) {
 	}
 }
 
-// EndpointHandler waits and handles data transfers on a non-control endpoint.
-func (hw *usb) EndpointHandler(ep *EndpointDescriptor) {
+func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor) {
+	var err error
+	var out []byte
+	var in []byte
+
+	if ep.Function == nil {
+		return
+	}
+
 	ep.Lock()
 	defer ep.Unlock()
 
 	n := ep.Number()
 	dir := ep.Direction()
 
-	if !ep.enabled {
-		hw.EP.set(n, dir, int(ep.MaxPacketSize), 0, 0)
-		hw.enable(n, dir, ep.TransferType())
-		ep.enabled = true
-	}
-
 	for {
-		var data []byte
-		var err error
-
-		if ep.Function != nil {
-			data, err = ep.Function(ep.MaxPacketSize)
-
-			if err != nil {
-				return
-			}
-		}
-
-		err = hw.EP.setDTD(n, dir, true, data)
-
-		if err != nil {
-			log.Printf("imx6_usb: EP%d.%d dTD error, %v\n", n, dir, err)
+		// Do not process non-control endpoints if we haven't completed
+		// setup yet.
+		//
+		// FIXME: reset at reset
+		if dev.ConfigurationValue == 0 {
+			time.Sleep(100 * time.Millisecond)
+			runtime.Gosched()
 			continue
 		}
 
-		err = hw.transfer(n, dir, true, data)
+		if !ep.enabled {
+			hw.EP.set(n, dir, int(ep.MaxPacketSize), 1, 0)
+			hw.enable(n, dir, ep.TransferType())
+			ep.enabled = true
+		}
+
+		if dir == OUT {
+			out = make([]byte, (ep.MaxPacketSize))
+			err = hw.transfer(n, dir, true, out)
+
+			if err == nil {
+				_, err = ep.Function(out, err)
+			}
+		} else {
+			in, err = ep.Function(out, err)
+
+			if err == nil {
+				err = hw.transfer(n, dir, true, in)
+			}
+		}
 
 		if err != nil {
 			log.Printf("imx6_usb: EP%d.%d transfer error, %v\n", n, dir, err)

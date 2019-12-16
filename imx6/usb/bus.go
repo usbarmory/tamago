@@ -46,6 +46,7 @@ const (
 
 	USB_UOG1_USBCMD uint32 = 0x02184140
 	USBCMD_SUTW            = 13
+	USBCMD_ATDTW           = 12
 	USBCMD_RST             = 1
 	USBCMD_RS              = 0
 
@@ -92,10 +93,12 @@ const (
 
 	USB_UOG1_ENDPTCTRL uint32 = 0x021841c0
 	ENDPTCTRL_TXE             = 23
+	ENDPTCTRL_TXR             = 22
 	ENDPTCTRL_TXI             = 21
 	ENDPTCTRL_TXT             = 18
 	ENDPTCTRL_TXS             = 16
 	ENDPTCTRL_RXE             = 7
+	ENDPTCTRL_RXR             = 6
 	ENDPTCTRL_RXI             = 5
 	ENDPTCTRL_RXT             = 2
 	ENDPTCTRL_RXS             = 0
@@ -109,37 +112,42 @@ type usb struct {
 	ctrl     *uint32
 	pwd      *uint32
 	chrg     *uint32
+	mode     *uint32
+	otg      *uint32
 	cmd      *uint32
 	addr     *uint32
-	ep       *uint32
 	sts      *uint32
 	sc       *uint32
+	ep       *uint32
 	setup    *uint32
 	flush    *uint32
 	prime    *uint32
 	stat     *uint32
 	complete *uint32
+	epctrl   uint32
 
 	EP EndPointList
 }
 
-// FIXME: all *usb methods assume USB1
 var USB1 = &usb{
 	ccgr:     (*uint32)(unsafe.Pointer(uintptr(CCM_CCGR6))),
 	pll:      (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_USB1))),
 	ctrl:     (*uint32)(unsafe.Pointer(uintptr(USBPHY1_CTRL))),
 	pwd:      (*uint32)(unsafe.Pointer(uintptr(USBPHY1_PWD))),
 	chrg:     (*uint32)(unsafe.Pointer(uintptr(USB_ANALOG_USB1_CHRG_DETECT))),
+	mode:     (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBMODE))),
+	otg:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_OTGSC))),
 	cmd:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBCMD))),
 	addr:     (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_DEVICEADDR))),
-	ep:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTLISTADDR))),
 	sts:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBSTS))),
 	sc:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_PORTSC1))),
+	ep:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTLISTADDR))),
 	setup:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTSETUPSTAT))),
 	flush:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTFLUSH))),
 	prime:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTPRIME))),
 	stat:     (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTSTAT))),
 	complete: (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTCOMPLETE))),
+	epctrl:   USB_UOG1_ENDPTCTRL,
 }
 
 // Init initializes the USB controller.
