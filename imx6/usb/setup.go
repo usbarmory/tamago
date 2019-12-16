@@ -127,6 +127,9 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 			hw.stall(0, IN)
 			err = fmt.Errorf("unsupported descriptor type %#x", bDescriptorType)
 		}
+	case GET_CONFIGURATION:
+		log.Printf("imx6_usb: sending configuration value %d\n", dev.ConfigurationValue)
+		err = hw.transfer(0, IN, false, []byte{dev.ConfigurationValue})
 	case SET_CONFIGURATION:
 		value := uint8(setup.wValue >> 8)
 		log.Printf("imx6_usb: setting configuration value %d\n", value)

@@ -11,8 +11,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/inversepath/tamago/imx6/usb"
 )
 
