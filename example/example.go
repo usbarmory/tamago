@@ -15,7 +15,6 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
-	"runtime/debug"
 	"io/ioutil"
 	"log"
 	"math"
@@ -167,15 +166,6 @@ func main() {
 	fmt.Printf("----------------------------------------------------------------------\n")
 	fmt.Printf("completed %d goroutines (%s)\n", n, time.Since(start))
 
-	// Tuning GC rate
-	// Default gcpercent is 100. Check runtime/mgc.go.
-	// Set gcpercent to a sufficient low value to prevent the next GC target be set
-	// beyond the end of RAM. Lower is gcpercent more frequently the GC will be performed
-	// impacting the performance.
-	gcpercent := 80
-	fmt.Printf("Setting GCPercent to: %d\n", gcpercent)
-	debug.SetGCPercent(gcpercent)
-
 	runs := 9
 	chunksMax := 50
 	fillSize := 160 * 1024 * 1024
@@ -187,7 +177,7 @@ func main() {
 
 	if imx6.Native && (imx6.Family == imx6.IMX6UL || imx6.Family == imx6.IMX6ULL) {
 		fmt.Println("-- i.mx6 usb ---------------------------------------------------------")
-		TestUSB()
+		StartUSBGadgetZero()
 	}
 
 	fmt.Printf("Goodbye from tamago/arm (%s)\n", time.Since(start))

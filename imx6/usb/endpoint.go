@@ -49,9 +49,6 @@ type dTD struct {
 	next   *dTD
 	token  uint32
 	buffer [5]uintptr
-
-	buf   mem.AlignmentBuffer
-	pages mem.AlignmentBuffer
 }
 
 // dQH implements
@@ -70,8 +67,7 @@ type dQH struct {
 	setup SetupData
 
 	// We align only the first queue entry, so we need a 4*uint32 gap to
-	// maintain 64-byte boundaries, we re-use this space for queue
-	// pointers.
+	// maintain 64-byte boundaries.
 	_align [4]uint32
 }
 
@@ -80,13 +76,11 @@ type dQH struct {
 type EndPointList struct {
 	List *[MAX_ENDPOINTS * 2]dQH
 
-	buf mem.AlignmentBuffer
+	buf *mem.AlignmentBuffer
 }
 
 func (ep *EndPointList) init() {
-	ep.buf = mem.AlignmentBuffer{}
-	ep.buf.Init(unsafe.Sizeof(ep.List), 2048)
-
+	ep.buf = mem.NewAlignmentBuffer(unsafe.Sizeof(ep.List), 2048)
 	ep.List = (*[MAX_ENDPOINTS * 2]dQH)(unsafe.Pointer(ep.buf.Addr))
 }
 
@@ -97,9 +91,19 @@ func (ep *EndPointList) get(n int, dir int) dQH {
 	return ep.List[n*2+dir]
 }
 
+// next sets the next endpoint transfer pointer
+func (ep *EndPointList) next(n int, dir int, next *dTD) {
+	ep.List[n*2+dir].next = next
+}
+
 // max returns the endpoint Maximum Packet Length
 func (ep *EndPointList) max(n int, dir int) int {
 	return int(ep.List[n*2+dir].info>>16) & 0x7ff
+}
+
+// reset clears the endpoint status
+func (ep *EndPointList) reset(n int, dir int) {
+	reg.SetN(&ep.List[n*2+dir].token, 0, 0xff, 0)
 }
 
 // set configures a queue head as described in
@@ -129,18 +133,15 @@ func (ep *EndPointList) set(n int, dir int, max int, zlt int, mult int) {
 
 // addDTD configures an endpoint transfer descriptor as described in
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
-func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD, err error) {
+func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD, dtdBuf *mem.AlignmentBuffer, pages *mem.AlignmentBuffer, err error) {
 	size := len(data)
 
 	if size > DTD_PAGES*DTD_PAGE_SIZE {
-		return nil, errors.New("unsupported transfer size")
+		return nil, nil, nil, errors.New("unsupported transfer size")
 	}
 
-	dtdBuf := mem.AlignmentBuffer{}
-	dtdBuf.Init(unsafe.Sizeof(dTD{}), 32)
-
+	dtdBuf = mem.NewAlignmentBuffer(unsafe.Sizeof(dTD{}), 32)
 	dtd = (*dTD)(unsafe.Pointer(dtdBuf.Addr))
-	dtd.buf = dtdBuf
 
 	// p3809, 56.4.6.6.2 Building a Transfer Descriptor, IMX6ULLRM
 
@@ -156,15 +157,14 @@ func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD, err error) {
 	// active status
 	reg.Set(&dtd.token, 7)
 
-	dtd.pages = mem.AlignmentBuffer{}
-	dtd.pages.Init(DTD_PAGE_SIZE*DTD_PAGES, DTD_PAGE_SIZE)
-	mem.Copy(dtd.pages, data)
+	pages = mem.NewAlignmentBuffer(DTD_PAGE_SIZE*DTD_PAGES, DTD_PAGE_SIZE)
+	mem.Copy(pages, data)
 
 	// total bytes
 	reg.SetN(&dtd.token, 16, 0xffff, uint32(size))
 
 	for n := 0; n < DTD_PAGES; n++ {
-		dtd.buffer[n] = dtd.pages.Addr + uintptr(DTD_PAGE_SIZE*n)
+		dtd.buffer[n] = pages.Addr + uintptr(DTD_PAGE_SIZE*n)
 	}
 
 	// invalidate next pointer
@@ -176,34 +176,49 @@ func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD, err error) {
 // transferDTD manages a transfer using transfer descriptors (dTDs) as
 // described in p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors,
 // IMX6ULLRM.
-func (hw *usb) transferDTD(n int, dir int, ioc bool, data []byte) (err error) {
+func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err error) {
+	var data []byte
 	var dtds []*dTD
+
+	// All aligned buffers must be kept around to avoid GC wiping them out,
+	// it doesn't work simply including them in the dTD structure as
+	// pointers.
+	var dtdBufs []*mem.AlignmentBuffer
+	var pktBufs []*mem.AlignmentBuffer
+
+	max := hw.EP.max(n, dir)
+
+	if dir == IN {
+		data = in
+	} else {
+		data = make([]byte, max)
+	}
+
 	dtdLength := len(data)
 
 	if n != 0 {
-		// On non-control endpoints, For simplicity, each dTD is
-		// configured to transfer one packet
-		// (dTD.TotalBytes == dQH.MaxPacketLength).
-		max := hw.EP.max(n, dir)
+		// On non-control IN endpoints, for simplicity, we configure
+		// each dTD exactly one packet (dTD.TotalBytes == dQH.MaxPacketLength).
 
-		if len(data) > max {
+		if dtdLength > max {
 			dtdLength = max
 		}
 	}
 
-	dtd, err := buildDTD(n, dir, ioc, data[0:dtdLength])
+	dtd, buf, pages, err := buildDTD(n, dir, ioc, data[0:dtdLength])
 
 	if err != nil {
 		return
 	}
 
-	off := n*2 + dir
 	// set dQH head pointer
-	hw.EP.List[off].next = dtd
+	hw.EP.next(n, dir, dtd)
 	// reset dQH status
-	reg.SetN(&hw.EP.List[off].token, 0, 0xff, 0)
+	hw.EP.reset(n, dir)
 
 	dtds = append(dtds, dtd)
+	dtdBufs = append(dtdBufs, buf)
+	pktBufs = append(pktBufs, pages)
 
 	for i := dtdLength; i < len(data); i += dtdLength {
 		size := i + dtdLength
@@ -212,15 +227,18 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, data []byte) (err error) {
 			size = len(data)
 		}
 
-		next, err := buildDTD(n, dir, ioc, data[i:size])
+		next, buf, pages, err := buildDTD(n, dir, ioc, data[i:size])
 
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		dtd.next = next
 		dtd = next
+
 		dtds = append(dtds, next)
+		dtdBufs = append(dtdBufs, buf)
+		pktBufs = append(pktBufs, pages)
 	}
 
 	// hw.prime IN:ENDPTPRIME_PETB+n    OUT:ENDPTPRIME_PERB+n
@@ -237,46 +255,51 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, data []byte) (err error) {
 	// clear completion
 	reg.Write(hw.complete, 1<<pos)
 
-	// OPTIMIZE: waiting for each dTD status before re-priming and
-	// re-creating the DMA transfer is not optimal, but for simplicity we
-	// keep things like this for now as performance remains good.
-	//
-	// In the future return as soon as completion is detected and worry
-	// about checking status only on the next iteration, which can be used
-	// to fill the buffer so that at least one transfer is always queued.
-
 	for i, dtd := range dtds {
 		reg.Wait(&dtd.token, 7, 0b1, 0)
 
 		if status := (dtd.token & 0xff); status != 0x00 {
-			return fmt.Errorf("error status for dTD #%d, %x", i, status)
+			return nil, fmt.Errorf("error status for dTD #%d, %x", i, status)
+		}
+
+		// p3787 "This field is decremented by the number of bytes
+		// actually moved during the transaction", IMX6ULLRM.
+		size := dtdLength - int(reg.Get(&dtd.token, 16, 0xffff))
+
+		if n != 0 && dir == OUT && size != 0 {
+			out = append(out, pktBufs[i].Data()[0:size]...)
+		}
+
+		if dir == IN && size != dtdLength {
+			return nil, fmt.Errorf("error status for dTD #%d, partial transfer (%d/%d bytes)", i, size, dtdLength)
 		}
 	}
 
 	return
 }
 
-func (hw *usb) transfer(n int, dir int, ioc bool, data []byte) (err error) {
-	err = hw.transferDTD(n, dir, ioc, data)
+func (hw *usb) tx(n int, ioc bool, in []byte) (err error) {
+	_, err = hw.transferDTD(n, IN, ioc, in)
 
 	if err != nil {
 		return
 	}
 
 	// p3803, 56.4.6.4.2.3 Status Phase, IMX6ULLRM
-	if n == 0 && dir == IN {
-		err = hw.transferDTD(n, OUT, true, []byte{})
-
-		if err != nil {
-			return
-		}
+	if n == 0 {
+		_, err = hw.transferDTD(n, OUT, true, nil)
 	}
 
 	return
 }
 
+func (hw *usb) rx(n int, ioc bool) (out []byte, err error) {
+	return hw.transferDTD(n, OUT, ioc, nil)
+}
+
 func (hw *usb) ack(n int) (err error) {
-	return hw.transferDTD(n, IN, true, nil)
+	_, err = hw.transferDTD(n, IN, true, nil)
+	return
 }
 
 func (hw *usb) stall(n int, dir int) {

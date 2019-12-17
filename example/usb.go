@@ -11,6 +11,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/inversepath/tamago/imx6/usb"
 )
 
@@ -72,9 +74,14 @@ func configureSourceSink(device *usb.Device) {
 	ep1IN.Attributes = 2
 	ep1IN.MaxPacketSize = 512
 
+	// IN data source, to be used `modprobe usbtest pattern=1 mod_pattern=1`
 	ep1IN.Function = func(out []byte, lastErr error) (in []byte, err error) {
-		// source IN data
 		in = make([]byte, 512*10)
+
+		for i := 0; i < len(in); i++ {
+			in[i] = byte((i % 512) % 63)
+		}
+
 		return
 	}
 
@@ -87,12 +94,25 @@ func configureSourceSink(device *usb.Device) {
 	ep1OUT.Attributes = 2
 	ep1OUT.MaxPacketSize = 512
 
+	// OUT data sink, to be used `modprobe usbtest pattern=1 mod_pattern=1`
 	ep1OUT.Function = func(out []byte, lastErr error) (in []byte, err error) {
-		// sink OUT data
+		// skip zero length packets
+		if len(out) == 0 {
+			return
+		}
+
+		for i := 0; i < len(out); i++ {
+			if out[i] != byte((i%512)%63) {
+				return nil, fmt.Errorf("imx6_usb: EP1.0 function error, buffer mismatch (out[%d] == %x)", i, out[i])
+			}
+		}
+
 		return
 	}
 
 	iface.Endpoints = append(iface.Endpoints, ep1OUT)
+
+	// FIXME: test and implement functions for ep7IN and ep2OUT
 
 	// source and sink alternate interface
 	iface = &usb.InterfaceDescriptor{}
@@ -116,6 +136,9 @@ func configureSourceSink(device *usb.Device) {
 	ep7IN.MaxPacketSize = 1024
 	ep7IN.Interval = 4
 
+	// re-use previous function
+	//ep7IN.Function = ep1IN.Function
+
 	iface.Endpoints = append(iface.Endpoints, ep7IN)
 
 	// sink EP2 OUT endpoint (isochronous)
@@ -125,6 +148,9 @@ func configureSourceSink(device *usb.Device) {
 	ep2OUT.Attributes = 1
 	ep2OUT.MaxPacketSize = 1024
 	ep2OUT.Interval = 4
+
+	// re-use previous function
+	//ep2OUT.Function = ep2OUT.Function
 
 	iface.Endpoints = append(iface.Endpoints, ep2OUT)
 }
@@ -172,9 +198,9 @@ func configureLoopback(device *usb.Device) {
 	iface.Endpoints = append(iface.Endpoints, ep1OUT)
 }
 
-// Test function which emulates Linux Gadget Zero descriptors (no actual
-// function implemented yet).
-func TestUSB() {
+// Test function which emulates Linux Gadget Zero descriptors. To be tested on
+// host side with `modprobe usbtest pattern=1 mod_pattern=1`.
+func StartUSBGadgetZero() {
 	device := &usb.Device{}
 
 	// https://github.com/torvalds/linux/blob/master/drivers/usb/gadget/legacy/zero.c

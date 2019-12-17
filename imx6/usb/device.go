@@ -111,7 +111,6 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor) {
 		//
 		// FIXME: reset at reset
 		if dev.ConfigurationValue == 0 {
-			time.Sleep(100 * time.Millisecond)
 			runtime.Gosched()
 			continue
 		}
@@ -123,8 +122,7 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor) {
 		}
 
 		if dir == OUT {
-			out = make([]byte, (ep.MaxPacketSize))
-			err = hw.transfer(n, dir, true, out)
+			out, err = hw.rx(n, true)
 
 			if err == nil {
 				_, err = ep.Function(out, err)
@@ -133,7 +131,7 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor) {
 			in, err = ep.Function(out, err)
 
 			if err == nil {
-				err = hw.transfer(n, dir, true, in)
+				err = hw.tx(n, true, in)
 			}
 		}
 

@@ -28,28 +28,6 @@ const (
 	DEVICE_QUALIFIER_LENGTH = 10
 )
 
-// SetupData implements
-// p276, Table 9-2. Format of Setup Data, USB Specification Revision 2.0.
-type SetupData struct {
-	bRequestType uint8
-	bRequest     uint8
-	wValue       uint16
-	wIndex       uint16
-	wLength      uint16
-}
-
-// swap adjusts the endianness of values written in memory by the hardware, as
-// they do not match the expected one by Go.
-func (s *SetupData) swap() {
-	b := make([]byte, 2)
-
-	binary.BigEndian.PutUint16(b, s.wValue)
-	s.wValue = binary.LittleEndian.Uint16(b)
-
-	binary.BigEndian.PutUint16(b, s.wIndex)
-	s.wIndex = binary.LittleEndian.Uint16(b)
-}
-
 // DeviceDescriptor implements
 // p290, Table 9-8. Standard Device Descriptor, USB Specification Revision 2.0.
 type DeviceDescriptor struct {
