@@ -62,14 +62,16 @@ func (hw *usb) DeviceMode() {
 	return
 }
 
-// Start waits and handles configured USB endpoints, it should never return.
+// Start waits and handles configured USB endpoints, it should never return
+// (NOTE: currently bus resets after initial setup are not handled).
 func (hw *usb) Start(dev *Device) {
-	// FIXME: support multiple configurations dynamically
-	for _, iface := range dev.Configurations[0].Interfaces {
-		for _, ep := range iface.Endpoints {
-			go func(ep *EndpointDescriptor) {
-				hw.endpointHandler(dev, ep)
-			}(ep)
+	for _, conf := range dev.Configurations {
+		for _, iface := range conf.Interfaces {
+			for _, ep := range iface.Endpoints {
+				go func(ep *EndpointDescriptor, conf uint8) {
+					hw.endpointHandler(dev, ep, conf)
+				}(ep, conf.ConfigurationValue)
+			}
 		}
 	}
 
@@ -90,7 +92,7 @@ func (hw *usb) setupHandler(dev *Device) {
 	}
 }
 
-func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor) {
+func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) {
 	var err error
 	var out []byte
 	var in []byte
@@ -106,11 +108,8 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor) {
 	dir := ep.Direction()
 
 	for {
-		// Do not process non-control endpoints if we haven't completed
-		// setup yet.
-		//
-		// FIXME: reset at reset
-		if dev.ConfigurationValue == 0 {
+		if dev.ConfigurationValue != conf {
+			// TODO: flush if ep.enabled
 			runtime.Gosched()
 			continue
 		}
