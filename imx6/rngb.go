@@ -100,7 +100,9 @@ func (hw *rngb) Init() {
 	reg.Set(hw.cmd, HW_RNG_CMD_ST)
 
 	print("imx6_rng: self-test\n")
-	reg.Wait(hw.status, HW_RNG_SR_STDN, 0b1, 1)
+	for reg.Get(hw.status, HW_RNG_SR_STDN, 0b1) != 1 {
+		// reg.Wait cannot be used before runtime initialization
+	}
 
 	if reg.Get(hw.status, HW_RNG_SR_ERR, 0b1) != 0 || reg.Get(hw.status, HW_RNG_SR_ST_PF, 0b1) != 0 {
 		panic("imx6_rng: self-test FAIL\n")
@@ -110,7 +112,9 @@ func (hw *rngb) Init() {
 	reg.Set(hw.ctrl, HW_RNG_CR_AR)
 
 	print("imx6_rng: seeding\n")
-	reg.Wait(hw.status, HW_RNG_SR_SDN, 0b1, 1)
+	for reg.Get(hw.status, HW_RNG_SR_SDN, 0b1) != 1 {
+		// reg.Wait cannot be used before runtime initialization
+	}
 
 	hw.Unlock()
 }

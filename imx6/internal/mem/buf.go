@@ -21,13 +21,11 @@ type AlignmentBuffer struct {
 	Buf  []byte
 }
 
-// Init initializes the offset of an aligned buffer to achieve the requested
+// NewAlignmentBuffer initializes a buffer and offset to achieve the requested
 // alignment, such as for allocating aligned structures by casting them over
 // the buffer offset.
-//
-// It is important to keep the []byte buffer around until the cast object is
-// required, to avoid GC swiping it away (as we go through uintptr).
-func (ab *AlignmentBuffer) Init(size uintptr, align uintptr) {
+func NewAlignmentBuffer(size uintptr, align uintptr) (ab *AlignmentBuffer) {
+	ab = &AlignmentBuffer{}
 	buf := make([]byte, size+align)
 
 	ab.Buf = buf
@@ -45,13 +43,20 @@ func (ab *AlignmentBuffer) Init(size uintptr, align uintptr) {
 	if !ab.check(align) {
 		panic("alignment error\n")
 	}
+
+	return
 }
 
 func (ab *AlignmentBuffer) check(align uintptr) bool {
 	return ab.Addr&(align-1) == 0
 }
 
-// Copy copies a byte array to an aligned buffer.
-func Copy(ab AlignmentBuffer, data []byte) {
+// Data returns the aligned data stored in the buffer.
+func (ab *AlignmentBuffer) Data() []byte {
+	return ab.Buf[ab.Offset:]
+}
+
+// Fill copies a byte array to an aligned buffer.
+func Copy(ab *AlignmentBuffer, data []byte) {
 	copy(ab.Buf[ab.Offset:], data)
 }

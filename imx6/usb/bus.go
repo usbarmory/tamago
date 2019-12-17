@@ -14,7 +14,6 @@ package usb
 import (
 	"log"
 	"sync"
-	"time"
 	"unsafe"
 
 	"github.com/inversepath/tamago/imx6/internal/reg"
@@ -47,6 +46,7 @@ const (
 
 	USB_UOG1_USBCMD uint32 = 0x02184140
 	USBCMD_SUTW            = 13
+	USBCMD_ATDTW           = 12
 	USBCMD_RST             = 1
 	USBCMD_RS              = 0
 
@@ -85,12 +85,23 @@ const (
 	ENDPTFLUSH_FETB            = 16
 	ENDPTFLUSH_FERB            = 0
 
+	USB_UOG1_ENDPTSTAT uint32 = 0x021841b8
+
 	USB_UOG1_ENDPTCOMPLETE uint32 = 0x021841bc
-	ENDPTCOMPLETE_ETCE            = 16
-	ENDPTCOMPLETE_ERCE            = 0
+	ENDPTCOMPLETE_ETBR            = 16
+	ENDPTCOMPLETE_ERBR            = 0
 
 	USB_UOG1_ENDPTCTRL uint32 = 0x021841c0
+	ENDPTCTRL_TXE             = 23
+	ENDPTCTRL_TXR             = 22
+	ENDPTCTRL_TXI             = 21
+	ENDPTCTRL_TXT             = 18
 	ENDPTCTRL_TXS             = 16
+	ENDPTCTRL_RXE             = 7
+	ENDPTCTRL_RXR             = 6
+	ENDPTCTRL_RXI             = 5
+	ENDPTCTRL_RXT             = 2
+	ENDPTCTRL_RXS             = 0
 )
 
 type usb struct {
@@ -101,15 +112,19 @@ type usb struct {
 	ctrl     *uint32
 	pwd      *uint32
 	chrg     *uint32
+	mode     *uint32
+	otg      *uint32
 	cmd      *uint32
 	addr     *uint32
-	ep       *uint32
 	sts      *uint32
 	sc       *uint32
+	ep       *uint32
 	setup    *uint32
 	flush    *uint32
 	prime    *uint32
+	stat     *uint32
 	complete *uint32
+	epctrl   uint32
 
 	EP EndPointList
 }
@@ -120,15 +135,19 @@ var USB1 = &usb{
 	ctrl:     (*uint32)(unsafe.Pointer(uintptr(USBPHY1_CTRL))),
 	pwd:      (*uint32)(unsafe.Pointer(uintptr(USBPHY1_PWD))),
 	chrg:     (*uint32)(unsafe.Pointer(uintptr(USB_ANALOG_USB1_CHRG_DETECT))),
+	mode:     (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBMODE))),
+	otg:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_OTGSC))),
 	cmd:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBCMD))),
 	addr:     (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_DEVICEADDR))),
-	ep:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTLISTADDR))),
 	sts:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBSTS))),
 	sc:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_PORTSC1))),
+	ep:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTLISTADDR))),
 	setup:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTSETUPSTAT))),
 	flush:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTFLUSH))),
 	prime:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTPRIME))),
+	stat:     (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTSTAT))),
 	complete: (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTCOMPLETE))),
+	epctrl:   USB_UOG1_ENDPTCTRL,
 }
 
 // Init initializes the USB controller.
@@ -173,8 +192,11 @@ func (hw *usb) Init() {
 	reg.Clear(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_EN_B)
 }
 
-// Reset the USB bus.
-func (hw *usb) reset() {
+// Reset waits for and handles a USB bus reset.
+func (hw *usb) Reset() {
+	hw.Lock()
+	defer hw.Unlock()
+
 	log.Printf("imx6_usb: waiting for bus reset\n")
 	reg.Wait(hw.sts, USBSTS_URI, 0b1, 1)
 
@@ -192,36 +214,4 @@ func (hw *usb) reset() {
 
 	// clear reset
 	*(hw.sts) |= (1<<USBSTS_URI | 1<<USBSTS_UI)
-}
-
-// getSetup waits for and receives a SETUP packet.
-func (hw *usb) getSetup(timeout time.Duration) (setup *SetupData) {
-	if !reg.WaitFor(timeout, hw.setup, 0, 0b1, 1) {
-		return
-	}
-
-	setup = &SetupData{}
-
-	// p3801, 56.4.6.4.2.1 Setup Phase, IMX6ULLRM
-
-	// clear setup status
-	reg.Set(hw.setup, 0)
-	// set tripwire
-	reg.Set(hw.cmd, USBCMD_SUTW)
-
-	// repeat if necessary
-	for reg.Get(hw.cmd, USBCMD_SUTW, 0b1) == 0 {
-		log.Printf("imx6_usb: retrying setup\n")
-		reg.Set(hw.cmd, USBCMD_SUTW)
-	}
-
-	// clear tripwire
-	reg.Clear(hw.cmd, USBCMD_SUTW)
-	// flush endpoint buffers
-	*(hw.flush) = 0xffffffff
-
-	*setup = hw.EP.get(0, OUT).setup
-	setup.swap()
-
-	return
 }

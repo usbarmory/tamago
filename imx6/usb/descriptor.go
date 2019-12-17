@@ -15,6 +15,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync"
 	"unicode/utf16"
 	"unsafe"
 )
@@ -26,28 +27,6 @@ const (
 	ENDPOINT_LENGTH         = 7
 	DEVICE_QUALIFIER_LENGTH = 10
 )
-
-// SetupData implements
-// p276, Table 9-2. Format of Setup Data, USB Specification Revision 2.0.
-type SetupData struct {
-	bRequestType uint8
-	bRequest     uint8
-	wValue       uint16
-	wIndex       uint16
-	wLength      uint16
-}
-
-// swap adjusts the endianness of values written in memory by the hardware, as
-// they do not match the expected one by Go.
-func (s *SetupData) swap() {
-	b := make([]byte, 2)
-
-	binary.BigEndian.PutUint16(b, s.wValue)
-	s.wValue = binary.LittleEndian.Uint16(b)
-
-	binary.BigEndian.PutUint16(b, s.wIndex)
-	s.wIndex = binary.LittleEndian.Uint16(b)
-}
 
 // DeviceDescriptor implements
 // p290, Table 9-8. Standard Device Descriptor, USB Specification Revision 2.0.
@@ -168,6 +147,18 @@ func (d *InterfaceDescriptor) Bytes() (buf []byte) {
 	return buf[0:INTERFACE_LENGTH]
 }
 
+// EndpointFunction represents the function to process either IN or OUT
+// transfer, depending on the endpoint configuration.
+//
+// On OUT transfers the function is expected to receive the `out` byte array
+// containing one packet, the `in` return value is ignored.
+//
+// On IN transfers the function is expected to return a slice which will be
+// split and transferred according to the maximum packet size. This slice is
+// used to fill the DMA buffer in advance, to respond to IN requests. The
+// function is invoked by the EndpointHandler to fill the buffer as needed.
+type EndpointFunction func(out []byte, lastErr error) (in []byte, err error)
+
 // EndpointDescriptor implements
 // p297, Table 9-13. Standard Endpoint Descriptor, USB Specification Revision 2.0.
 type EndpointDescriptor struct {
@@ -177,6 +168,11 @@ type EndpointDescriptor struct {
 	Attributes      uint8
 	MaxPacketSize   uint16
 	Interval        uint8
+
+	Function EndpointFunction
+
+	enabled bool
+	sync.Mutex
 }
 
 // SetDefaults initializes default values for the USB endpoint descriptor.
@@ -185,6 +181,21 @@ func (d *EndpointDescriptor) SetDefaults() {
 	d.DescriptorType = ENDPOINT
 	// EP1 IN
 	d.EndpointAddress = 0x81
+}
+
+// Number returns the endpoint number.
+func (d *EndpointDescriptor) Number() int {
+	return int(d.EndpointAddress & 0b1111)
+}
+
+// Direction returns the endpoint direction.
+func (d *EndpointDescriptor) Direction() int {
+	return int(d.EndpointAddress&0b10000000) / 0b10000000
+}
+
+// TransferType returns the endpoint transfer type.
+func (d *EndpointDescriptor) TransferType() int {
+	return int(d.Attributes & 0b11)
 }
 
 // Bytes converts the descriptor structure to byte array format.
