@@ -203,7 +203,6 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 
 	log.Printf("imx6_dcp: waiting for key derivation")
 	reg.Wait(hw.status, HW_DCP_STAT_IRQ, 0b1, 1)
-	log.Printf("done\n")
 
 	if chstatus := reg.Get(hw.chstatus, 1, 0b111111); chstatus != 0 {
 		if chstatus == 0x2 {
