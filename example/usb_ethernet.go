@@ -148,7 +148,7 @@ func configureECM(device *usb.Device) {
 	iface.Endpoints = append(iface.Endpoints, ep1OUT)
 }
 
-func configureNetworkStack() {
+func configureNetworkStack(sniff bool) {
 	var err error
 
 	hostMACBytes, err = net.ParseMAC(hostMAC)
@@ -180,9 +180,12 @@ func configureNetworkStack() {
 	addr := tcpip.Address(net.ParseIP(IP)).To4()
 	link = channel.New(256, usb.MTU, linkAddr)
 	linkEP := stack.LinkEndpoint(link)
-	sniffer := sniffer.New(linkEP)
 
-	if err := s.CreateNIC(1, sniffer); err != nil {
+	if sniff {
+		linkEP = sniffer.New(linkEP)
+	}
+
+	if err := s.CreateNIC(1, linkEP); err != nil {
 		log.Fatal(err)
 	}
 
@@ -260,8 +263,9 @@ func ECMRx(out []byte, lastErr error) (in []byte, err error) {
 	return
 }
 
+// StartUSBEthernet starts an emulated Ethernet over USB device (ECM protocol).
 func StartUSBEthernet() {
-	configureNetworkStack()
+	configureNetworkStack(true)
 
 	device := &usb.Device{}
 

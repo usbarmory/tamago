@@ -111,9 +111,10 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) 
 	dir := ep.Direction()
 
 	for {
+		runtime.Gosched()
+
 		if dev.ConfigurationValue != conf {
 			// TODO: flush if ep.enabled
-			runtime.Gosched()
 			continue
 		}
 

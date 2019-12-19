@@ -162,8 +162,8 @@ func sink(out []byte, lastErr error) (in []byte, err error) {
 	return
 }
 
-// Test function which emulates Linux Gadget Zero descriptors (bulk/interrupt
-// endpoints only).
+// StartUSBGadgetZero starts an emulated Linux Gadget Zero device
+// (bulk/interrupt endpoints only).
 //
 // https://github.com/torvalds/linux/blob/master/drivers/usb/gadget/legacy/zero.c
 //
