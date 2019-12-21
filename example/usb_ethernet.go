@@ -324,6 +324,10 @@ func ECMTx(out []byte, lastErr error) (in []byte, err error) {
 // ECMRx implements the endpoint 1 OUT function, used to receive ethernet
 // packet from host to device.
 func ECMRx(out []byte, lastErr error) (in []byte, err error) {
+	if len(out) < 14 {
+		return
+	}
+
 	hdr := buffer.NewViewFromBytes(out[0:14])
 	proto := tcpip.NetworkProtocolNumber(binary.BigEndian.Uint16(out[12:14]))
 	payload := buffer.NewViewFromBytes(out[14:])
