@@ -14,19 +14,22 @@ import (
 	"encoding/binary"
 	"log"
 	"net"
+	"runtime"
 	"strings"
 
 	"github.com/inversepath/tamago/imx6/usb"
 
-	"github.com/google/netstack/tcpip"
-	"github.com/google/netstack/tcpip/buffer"
-	"github.com/google/netstack/tcpip/link/channel"
-	"github.com/google/netstack/tcpip/link/sniffer"
-	"github.com/google/netstack/tcpip/network/arp"
-	"github.com/google/netstack/tcpip/network/ipv4"
-	"github.com/google/netstack/tcpip/stack"
-	"github.com/google/netstack/tcpip/transport/icmp"
-	"github.com/google/netstack/waiter"
+	"gvisor.dev/gvisor/pkg/tcpip"
+	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
+	"gvisor.dev/gvisor/pkg/tcpip/buffer"
+	"gvisor.dev/gvisor/pkg/tcpip/link/channel"
+	"gvisor.dev/gvisor/pkg/tcpip/link/sniffer"
+	"gvisor.dev/gvisor/pkg/tcpip/network/arp"
+	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
+	"gvisor.dev/gvisor/pkg/tcpip/stack"
+	"gvisor.dev/gvisor/pkg/tcpip/transport/icmp"
+	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
+	"gvisor.dev/gvisor/pkg/waiter"
 )
 
 const hostMAC = "1a:55:89:a2:69:42"
@@ -148,7 +151,7 @@ func configureECM(device *usb.Device) {
 	iface.Endpoints = append(iface.Endpoints, ep1OUT)
 }
 
-func configureNetworkStack(sniff bool) {
+func configureNetworkStack(addr tcpip.Address, nic tcpip.NICID, sniff bool) (s *stack.Stack) {
 	var err error
 
 	hostMACBytes, err = net.ParseMAC(hostMAC)
@@ -163,11 +166,12 @@ func configureNetworkStack(sniff bool) {
 		log.Fatal(err)
 	}
 
-	s := stack.New(stack.Options{
+	s = stack.New(stack.Options{
 		NetworkProtocols: []stack.NetworkProtocol{
 			ipv4.NewProtocol(),
 			arp.NewProtocol()},
 		TransportProtocols: []stack.TransportProtocol{
+			udp.NewProtocol(),
 			icmp.NewProtocol4()},
 	})
 
@@ -177,7 +181,6 @@ func configureNetworkStack(sniff bool) {
 		log.Fatal(err)
 	}
 
-	addr := tcpip.Address(net.ParseIP(IP)).To4()
 	link = channel.New(256, usb.MTU, linkAddr)
 	linkEP := stack.LinkEndpoint(link)
 
@@ -185,19 +188,19 @@ func configureNetworkStack(sniff bool) {
 		linkEP = sniffer.New(linkEP)
 	}
 
-	if err := s.CreateNIC(1, linkEP); err != nil {
+	if err := s.CreateNIC(nic, linkEP); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := s.AddAddress(1, arp.ProtocolNumber, arp.ProtocolAddress); err != nil {
+	if err := s.AddAddress(nic, arp.ProtocolNumber, arp.ProtocolAddress); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := s.AddAddress(1, ipv4.ProtocolNumber, addr); err != nil {
+	if err := s.AddAddress(nic, ipv4.ProtocolNumber, addr); err != nil {
 		log.Fatal(err)
 	}
 
-	subnet, err := tcpip.NewSubnet("\xff\xff\xff\xff", "\xff\xff\xff\xff")
+	subnet, err := tcpip.NewSubnet("\x00\x00\x00\x00", "\x00\x00\x00\x00")
 
 	if err != nil {
 		log.Fatal(err)
@@ -205,18 +208,85 @@ func configureNetworkStack(sniff bool) {
 
 	s.SetRouteTable([]tcpip.Route{{
 		Destination: subnet,
-		NIC:         1,
+		NIC:         nic,
 	}})
 
-	var wq waiter.Queue
-	epICMP, e := s.NewEndpoint(icmp.ProtocolNumber4, ipv4.ProtocolNumber, &wq)
+	return
+}
 
-	if e != nil {
-		log.Fatalf("endpoint error (icmp): %v\n", e)
+func startICMPEndpoint(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NICID) {
+	var wq waiter.Queue
+
+	fullAddr := tcpip.FullAddress{Addr: addr, Port: port, NIC: nic}
+	ep, err := s.NewEndpoint(icmp.ProtocolNumber4, ipv4.ProtocolNumber, &wq)
+
+	if err != nil {
+		log.Fatalf("endpoint error (icmp): %v\n", err)
 	}
 
-	if err := epICMP.Bind(tcpip.FullAddress{Addr: addr, Port: 0, NIC: 1}); err != nil {
+	if err := ep.Bind(fullAddr); err != nil {
 		log.Fatal("bind error (icmp endpoint): ", err)
+	}
+}
+
+// TODO: not working at the moment due to lack of timer support, see
+// https://github.com/inversepath/tamago/wiki/Internals#go-application-limitations
+//
+//func startTCPListener(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NICID) (l *gonet.Listener) {
+//	var err error
+//
+//	fullAddr := tcpip.FullAddress{Addr: addr, Port: port, NIC: nic}
+//	l, err = gonet.NewListener(s, fullAddr, ipv4.ProtocolNumber)
+//
+//	if err != nil {
+//		log.Fatal("listener error: ", err)
+//	}
+//
+//
+//	go func() {
+//		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+//			w.Write([]byte("Hello from TamaGo!\n"))
+//		})
+//
+//		l := startTCPListener(s, addr, 80, 1)
+//		http.Serve(l, nil)
+//	}()
+//
+//	return
+//}
+
+func startUDPListener(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NICID) (conn *gonet.PacketConn) {
+	var err error
+
+	fullAddr := tcpip.FullAddress{Addr: addr, Port: port, NIC: nic}
+	conn, err = gonet.DialUDP(s, &fullAddr, nil, ipv4.ProtocolNumber)
+
+	if err != nil {
+		log.Fatal("listener error: ", err)
+	}
+
+	return
+}
+
+func startUDPEcho(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NICID) {
+	c := startUDPListener(s, addr, port, nic)
+
+	for {
+		runtime.Gosched()
+
+		buf := make([]byte, 1024)
+		n, addr, err := c.ReadFrom(buf)
+
+		if err != nil {
+			log.Printf("udp recv error, %v\n", err)
+			continue
+		}
+
+		_, err = c.WriteTo(buf[0:n], addr)
+
+		if err != nil {
+			log.Printf("udp send error, %v\n", err)
+		}
 	}
 }
 
@@ -254,18 +324,34 @@ func ECMTx(out []byte, lastErr error) (in []byte, err error) {
 // ECMRx implements the endpoint 1 OUT function, used to receive ethernet
 // packet from host to device.
 func ECMRx(out []byte, lastErr error) (in []byte, err error) {
-	ethType := out[12:14]
+	hdr := buffer.NewViewFromBytes(out[0:14])
+	proto := tcpip.NetworkProtocolNumber(binary.BigEndian.Uint16(out[12:14]))
 	payload := buffer.NewViewFromBytes(out[14:])
 
-	proto := tcpip.NetworkProtocolNumber(binary.BigEndian.Uint16(ethType))
-	link.InjectInbound(proto, tcpip.PacketBuffer{Data: payload.ToVectorisedView()})
+	pkt := tcpip.PacketBuffer{
+		LinkHeader: hdr,
+		Data:       payload.ToVectorisedView(),
+	}
+
+	link.InjectInbound(proto, pkt)
 
 	return
 }
 
-// StartUSBEthernet starts an emulated Ethernet over USB device (ECM protocol).
+// StartUSBEthernet starts an emulated Ethernet over USB device (ECM protocol)
+// with a test UDP echo service on port 1234.
 func StartUSBEthernet() {
-	configureNetworkStack(true)
+	addr := tcpip.Address(net.ParseIP(IP)).To4()
+
+	s := configureNetworkStack(addr, 1, true)
+
+	// handle pings
+	startICMPEndpoint(s, addr, 0, 1)
+
+	// start example UDP echo server
+	go func() {
+		startUDPEcho(s, addr, 1234, 1)
+	}()
 
 	device := &usb.Device{}
 
