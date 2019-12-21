@@ -342,8 +342,8 @@ func ECMRx(out []byte, lastErr error) (in []byte, err error) {
 	return
 }
 
-// StartUSBEthernet starts an emulated Ethernet over USB device (ECM protocol)
-// with a test UDP echo service on port 1234.
+// StartUSBEthernet starts an emulated Ethernet over USB device (ECM protocol,
+// only supported on Linux hosts) with a test UDP echo service on port 1234.
 func StartUSBEthernet() {
 	addr := tcpip.Address(net.ParseIP(IP)).To4()
 
