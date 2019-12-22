@@ -32,6 +32,7 @@ const (
 
 	USB_ANALOG_USB1_CHRG_DETECT      uint32 = 0x020c81b0
 	USB_ANALOG_USB1_CHRG_DETECT_EN_B        = 20
+	USB_ANALOG_USB1_CHRG_DETECT_CHK_CHRG_B  = 19
 
 	USBPHY1_PWD uint32 = 0x020c9000
 
@@ -189,7 +190,8 @@ func (hw *usb) Init() {
 	reg.Set(hw.ctrl, USBPHY1_CTRL_ENHOSTDISCONDETECT)
 
 	// disable charger detector
-	reg.Clear(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_EN_B)
+	reg.Set(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_EN_B)
+	reg.Set(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_CHK_CHRG_B)
 }
 
 // Reset waits for and handles a USB bus reset.
