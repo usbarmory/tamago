@@ -124,7 +124,8 @@ type InterfaceDescriptor struct {
 	InterfaceProtocol uint8
 	Interface         uint8
 
-	Endpoints []*EndpointDescriptor
+	Endpoints        []*EndpointDescriptor
+	ClassDescriptors [][]byte
 }
 
 // SetDefaults initializes default values for the USB interface descriptor.
@@ -143,8 +144,15 @@ func (d *InterfaceDescriptor) Bytes() (buf []byte) {
 	desc := (*InterfaceDescriptor)(unsafe.Pointer(p))
 	*desc = *d
 
-	// skip d.Endpoints when returning the buffer
-	return buf[0:INTERFACE_LENGTH]
+	// skip d.Endpoints and d.ClassDescriptors
+	buf = buf[0:INTERFACE_LENGTH]
+
+	// add class descriptors
+	for _, classDesc := range d.ClassDescriptors {
+		buf = append(buf, classDesc...)
+	}
+
+	return
 }
 
 // EndpointFunction represents the function to process either IN or OUT

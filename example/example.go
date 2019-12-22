@@ -111,7 +111,7 @@ func main() {
 		for i := 0; i < 10; i++ {
 			rng := make([]byte, size)
 			rand.Read(rng)
-			fmt.Printf("   %x\n", rng)
+			fmt.Printf("%x\n", rng)
 		}
 
 		count := 1000
@@ -177,7 +177,7 @@ func main() {
 
 	if imx6.Native && (imx6.Family == imx6.IMX6UL || imx6.Family == imx6.IMX6ULL) {
 		fmt.Println("-- i.mx6 usb ---------------------------------------------------------")
-		StartUSBGadgetZero()
+		StartUSBEthernet()
 	}
 
 	fmt.Printf("Goodbye from tamago/arm (%s)\n", time.Since(start))

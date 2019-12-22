@@ -35,16 +35,22 @@ const (
 	SYNCH_FRAME       = 12
 )
 
-// p279, Table 9-5. Descriptor Types, USB Specification Revision 2.0
+// p64, Table 46: Class-Specific Request Codes,
+// USB Class Definitions for Communication Devices 1.1
 const (
-	DEVICE                    = 1
-	CONFIGURATION             = 2
-	STRING                    = 3
-	INTERFACE                 = 4
-	ENDPOINT                  = 5
-	DEVICE_QUALIFIER          = 6
-	OTHER_SPEED_CONFIGURATION = 7
-	INTERFACE_POWER           = 8
+	SET_ETHERNET_PACKET_FILTER = 0x43
+)
+
+const (
+	// p279, Table 9-5. Descriptor Types, USB Specification Revision 2.0
+	DEVICE                    = 0x1
+	CONFIGURATION             = 0x2
+	STRING                    = 0x3
+	INTERFACE                 = 0x4
+	ENDPOINT                  = 0x5
+	DEVICE_QUALIFIER          = 0x6
+	OTHER_SPEED_CONFIGURATION = 0x7
+	INTERFACE_POWER           = 0x8
 )
 
 // SetupData implements
@@ -167,6 +173,9 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 		log.Printf("imx6_usb: setting interface alternate setting value %d\n", value)
 
 		dev.AlternateSetting = value
+		err = hw.ack(0)
+	case SET_ETHERNET_PACKET_FILTER:
+		// no meaningful action for now
 		err = hw.ack(0)
 	default:
 		hw.stall(0, IN)

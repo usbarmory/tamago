@@ -38,6 +38,7 @@ const (
 	HW_DCP_CH0CMDPTR   = HW_DCP_BASE + 0x0100
 	HW_DCP_CH0SEMA     = HW_DCP_BASE + 0x0110
 	HW_DCP_CH0STAT     = HW_DCP_BASE + 0x0120
+	HW_DCP_CH0STAT_CLR = HW_DCP_BASE + 0x0128
 
 	SNVS_HPSR_REG               uint32 = 0x020cc014
 	SNVS_HPSR_SSM_STATE                = 8
@@ -90,9 +91,10 @@ type dcp struct {
 	ctrl     *uint32
 	status   *uint32
 	chctrl   *uint32
+	chstatus *uint32
+	chstaclr *uint32
 	pkt      **WorkPacket
 	sem      *uint32
-	chstatus *uint32
 	snvs     *uint32
 }
 
@@ -100,9 +102,10 @@ var DCP = &dcp{
 	ctrl:     (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CTRL))),
 	status:   (*uint32)(unsafe.Pointer(uintptr(HW_DCP_STAT))),
 	chctrl:   (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CHANNELCTRL))),
+	chstatus: (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CH0STAT))),
+	chstaclr: (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CH0STAT_CLR))),
 	pkt:      (**WorkPacket)(unsafe.Pointer(uintptr(HW_DCP_CH0CMDPTR))),
 	sem:      (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CH0SEMA))),
-	chstatus: (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CH0STAT))),
 	snvs:     (*uint32)(unsafe.Pointer(uintptr(SNVS_HPSR_REG))),
 }
 
@@ -195,6 +198,9 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	hw.Lock()
 	defer hw.Unlock()
 
+	// clear channel status
+	*(hw.chstaclr) = 0xffffffff
+
 	*(hw.pkt) = workPacket
 	// Flush D cache just before starting the DCP via write to semaphore
 	// TODO: clean specific cache lines instead
@@ -203,7 +209,6 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 
 	log.Printf("imx6_dcp: waiting for key derivation")
 	reg.Wait(hw.status, HW_DCP_STAT_IRQ, 0b1, 1)
-	log.Printf("done\n")
 
 	if chstatus := reg.Get(hw.chstatus, 1, 0b111111); chstatus != 0 {
 		if chstatus == 0x2 {
