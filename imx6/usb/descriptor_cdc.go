@@ -30,7 +30,7 @@ const (
 	ETHERNET_NETWORKING = 15
 
 	// Maximum Segment Size
-	MTU = 1514
+	MSS = 1500 + 14
 )
 
 // HeaderFunctionalDescriptor implements
@@ -116,7 +116,7 @@ func (d *CDCEthernetDescriptor) SetDefaults() {
 	d.Length = ETHERNET_NETWORKING_LENGTH
 	d.DescriptorType = CS_INTERFACE
 	d.DescriptorSubType = ETHERNET_NETWORKING
-	d.MaxSegmentSize = MTU
+	d.MaxSegmentSize = MSS
 }
 
 // Bytes converts the descriptor structure to byte array format.

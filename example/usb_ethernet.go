@@ -35,6 +35,7 @@ import (
 const hostMAC = "1a:55:89:a2:69:42"
 const deviceMAC = "1a:55:89:a2:69:41"
 const IP = "10.0.0.1"
+const MTU = 1500
 
 // populated by setupStack()
 var hostMACBytes []byte
@@ -181,7 +182,7 @@ func configureNetworkStack(addr tcpip.Address, nic tcpip.NICID, sniff bool) (s *
 		log.Fatal(err)
 	}
 
-	link = channel.New(256, usb.MTU, linkAddr)
+	link = channel.New(256, MTU, linkAddr)
 	linkEP := stack.LinkEndpoint(link)
 
 	if sniff {
