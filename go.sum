@@ -27,6 +27,18 @@ github.com/google/netstack v0.0.0-20191123085552-55fcc16cd0eb/go.mod h1:r/rILWg3
 github.com/google/subcommands v0.0.0-20190508160503-636abe8753b8/go.mod h1:ZjhPrFU+Olkh9WazFPsl27BQ4UPiG37m3yTrtFlrHVk=
 github.com/google/uuid v0.0.0-20171129191014-dec09d789f3d/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
+github.com/inversepath/gvisor v0.0.0-20191220014331-99cfc711c699 h1:zyTWG6+W9b/ZuNPub21yKB4b043i5F04eO4U7lWs9ew=
+github.com/inversepath/gvisor v0.0.0-20191220014331-99cfc711c699/go.mod h1:rPM8OvTBwX0eD8lW4bytttlKgsWOsHwWu0U9fj3y/BU=
+github.com/inversepath/gvisor v0.0.0-20191223165525-5bc4ae9d5746 h1:JUBm9LOaK2UtK92BrN4RSJYgf21+wHEgKHk/HSOfpIE=
+github.com/inversepath/gvisor v0.0.0-20191223165525-5bc4ae9d5746/go.mod h1:rPM8OvTBwX0eD8lW4bytttlKgsWOsHwWu0U9fj3y/BU=
+github.com/inversepath/gvisor v0.0.0-20191223170800-5128f604cb9f h1:1cZannCvlpw+aaKZ7FfVj6/UNonDu41F+1NyyB2WSQk=
+github.com/inversepath/gvisor v0.0.0-20191223170800-5128f604cb9f/go.mod h1:rPM8OvTBwX0eD8lW4bytttlKgsWOsHwWu0U9fj3y/BU=
+github.com/inversepath/gvisor v0.0.0-20191223175221-522126ae4a07 h1:6C+9Z4afPRHkgKKexkEZr8Lz3E+vGYtOiCXFpZ0MgS8=
+github.com/inversepath/gvisor v0.0.0-20191223175221-522126ae4a07/go.mod h1:1Jchu83W5YtFKTzZWHbw7MWK1v17MjiXXWArV4VrgXM=
+github.com/inversepath/gvisor v0.0.0-20191224100214-85af973ecefc h1:swugQwdpUd5WJkYWKf3Na3qGqeqGdOAJsf4w3zLbufw=
+github.com/inversepath/gvisor v0.0.0-20191224100214-85af973ecefc/go.mod h1:rPM8OvTBwX0eD8lW4bytttlKgsWOsHwWu0U9fj3y/BU=
+github.com/inversepath/gvisor v0.0.0-20191224100818-98827aa91607 h1:0Fa2SIt9lwu3zwF5PwcCUcn9Lpc+GcSL9I/mSjxbw/Q=
+github.com/inversepath/gvisor v0.0.0-20191224100818-98827aa91607/go.mod h1:rPM8OvTBwX0eD8lW4bytttlKgsWOsHwWu0U9fj3y/BU=
 github.com/jessevdk/go-flags v0.0.0-20141203071132-1679536dcc89/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jrick/logrotate v1.0.0/go.mod h1:LNinyqDIJnpAur+b8yyulnQw/wDuN1+BYKlTRt3OuAQ=
 github.com/kkdai/bstream v0.0.0-20161212061736-f391b8402d23/go.mod h1:J+Gs4SYgM6CZQHDETBtE9HaSEkGmuNXF86RwHhHUvq4=
@@ -61,3 +73,7 @@ gvisor.dev/gvisor v0.0.0-20191220012644-29955a4797e8 h1:pRtW/PpR/GbusyUlKZF+r25Q
 gvisor.dev/gvisor v0.0.0-20191220012644-29955a4797e8/go.mod h1:rPM8OvTBwX0eD8lW4bytttlKgsWOsHwWu0U9fj3y/BU=
 gvisor.dev/gvisor v0.0.0-20191220014331-99cfc711c699 h1:suh7+8EthdCe6rvO948EM6XHBEbN9iLgseDqdxB71pU=
 gvisor.dev/gvisor v0.0.0-20191220014331-99cfc711c699/go.mod h1:rPM8OvTBwX0eD8lW4bytttlKgsWOsHwWu0U9fj3y/BU=
+gvisor.dev/gvisor v0.0.0-20191223165525-5bc4ae9d5746 h1:DxCC8z5nyg/dL03CBc8WUjKahSlMPqpSBSofdAQL3Xw=
+gvisor.dev/gvisor v0.0.0-20191223165525-5bc4ae9d5746/go.mod h1:rPM8OvTBwX0eD8lW4bytttlKgsWOsHwWu0U9fj3y/BU=
+gvisor.dev/gvisor v0.0.0-20191224014503-95108940a01c h1:aRMVWiuJx3FLKksULYFb8Hxmuhp3TLTIX11dWscjN74=
+gvisor.dev/gvisor v0.0.0-20191224014503-95108940a01c/go.mod h1:rPM8OvTBwX0eD8lW4bytttlKgsWOsHwWu0U9fj3y/BU=
