@@ -249,7 +249,6 @@ func startICMPEndpoint(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpi
 //			w.Write([]byte("Hello from TamaGo!\n"))
 //		})
 //
-//		l := startTCPListener(s, addr, 80, 1)
 //		http.Serve(l, nil)
 //	}()
 //
