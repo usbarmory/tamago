@@ -14,6 +14,7 @@ import (
 	"encoding/binary"
 	"log"
 	"net"
+	"net/http"
 	"runtime"
 	"strings"
 
@@ -29,6 +30,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/icmp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
+	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/waiter"
 )
 
@@ -172,6 +174,7 @@ func configureNetworkStack(addr tcpip.Address, nic tcpip.NICID, sniff bool) (s *
 			ipv4.NewProtocol(),
 			arp.NewProtocol()},
 		TransportProtocols: []stack.TransportProtocol{
+			tcp.NewProtocol(),
 			udp.NewProtocol(),
 			icmp.NewProtocol4()},
 	})
@@ -230,31 +233,6 @@ func startICMPEndpoint(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpi
 	}
 }
 
-// TODO: not working at the moment due to lack of timer support, see
-// https://github.com/inversepath/tamago/wiki/Internals#go-application-limitations
-//
-//func startTCPListener(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NICID) (l *gonet.Listener) {
-//	var err error
-//
-//	fullAddr := tcpip.FullAddress{Addr: addr, Port: port, NIC: nic}
-//	l, err = gonet.NewListener(s, fullAddr, ipv4.ProtocolNumber)
-//
-//	if err != nil {
-//		log.Fatal("listener error: ", err)
-//	}
-//
-//
-//	go func() {
-//		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-//			w.Write([]byte("Hello from TamaGo!\n"))
-//		})
-//
-//		http.Serve(l, nil)
-//	}()
-//
-//	return
-//}
-
 func startUDPListener(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NICID) (conn *gonet.PacketConn) {
 	var err error
 
@@ -268,7 +246,7 @@ func startUDPListener(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip
 	return
 }
 
-func startUDPEcho(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NICID) {
+func startEchoServer(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NICID) {
 	c := startUDPListener(s, addr, port, nic)
 
 	for {
@@ -288,6 +266,25 @@ func startUDPEcho(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NIC
 			log.Printf("udp send error, %v\n", err)
 		}
 	}
+}
+
+// TODO: gvisor tcpip package TCP support does not play well with single
+// threaded code, WiP to fix this in our fork.
+func startWebServer(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NICID) {
+	var err error
+
+	fullAddr := tcpip.FullAddress{Addr: addr, Port: port, NIC: nic}
+	l, err := gonet.NewListener(s, fullAddr, ipv4.ProtocolNumber)
+
+	if err != nil {
+		log.Fatal("listener error: ", err)
+	}
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Hello from TamaGo!\n"))
+	})
+
+	http.Serve(l, nil)
 }
 
 // ECMControl implements the endpoint 2 IN function.
@@ -352,10 +349,17 @@ func StartUSBEthernet() {
 	// handle pings
 	startICMPEndpoint(s, addr, 0, 1)
 
-	// start example UDP echo server
 	go func() {
-		startUDPEcho(s, addr, 1234, 1)
+		// UDP echo server
+		startEchoServer(s, addr, 1234, 1)
 	}()
+
+	// TODO: gvisor tcpip package TCP support does not play well with single
+	// threaded code, WiP to fix this in our fork.
+	//go func() {
+	//	// TCP web server
+	//	startWebServer(s, addr, 80, 1)
+	//}()
 
 	device := &usb.Device{}
 
