@@ -288,14 +288,14 @@ func startWebServer(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.N
 }
 
 // ECMControl implements the endpoint 2 IN function.
-func ECMControl(out []byte, lastErr error) (in []byte, err error) {
+func ECMControl(_ []byte, lastErr error) (in []byte, err error) {
 	// ignore for now
 	return
 }
 
 // ECMTx implements the endpoint 1 IN function, used to transmit Ethernet
 // packet from device to host.
-func ECMTx(out []byte, lastErr error) (in []byte, err error) {
+func ECMTx(_ []byte, lastErr error) (in []byte, err error) {
 	select {
 	case info := <-link.C:
 		hdr := info.Pkt.Header.View()
@@ -320,7 +320,7 @@ func ECMTx(out []byte, lastErr error) (in []byte, err error) {
 
 // ECMRx implements the endpoint 1 OUT function, used to receive ethernet
 // packet from host to device.
-func ECMRx(out []byte, lastErr error) (in []byte, err error) {
+func ECMRx(out []byte, lastErr error) (_ []byte, err error) {
 	if len(out) < 14 {
 		return
 	}

@@ -135,7 +135,7 @@ func configureLoopback(device *usb.Device) {
 
 // source implements the IN endpoint data source, to be used `modprobe usbtest
 // pattern=1 mod_pattern=1`.
-func source(out []byte, lastErr error) (in []byte, err error) {
+func source(_ []byte, lastErr error) (in []byte, err error) {
 	in = make([]byte, 512*10)
 
 	for i := 0; i < len(in); i++ {
@@ -147,7 +147,7 @@ func source(out []byte, lastErr error) (in []byte, err error) {
 
 // sink implemente the OUT endpoint data sink, to be used `modprobe usbtest
 // pattern=1 mod_pattern=1`.
-func sink(out []byte, lastErr error) (in []byte, err error) {
+func sink(out []byte, lastErr error) (_ []byte, err error) {
 	// skip zero length packets
 	if len(out) == 0 {
 		return
