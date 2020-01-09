@@ -91,7 +91,7 @@ Build the [TamaGo compiler](https://github.com/inversepath/tamago-go):
 
 ```
 git clone https://github.com/inversepath/tamago-go -b tamago1.13.5
-cd tamago-go/src && ./make.bash
+cd tamago-go/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
 
