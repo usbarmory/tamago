@@ -53,9 +53,9 @@ Current release level
 =====================
 
 The current release is
-[tamago1.13.5](https://github.com/inversepath/tamago-go/tree/tamago1.13.5),
-which [adds](https://github.com/golang/go/compare/go1.13.5...inversepath:tamago1.13.5)
-`GOOS=tamago` support to go-1.13.5 release.
+[tamago1.13.6](https://github.com/inversepath/tamago-go/tree/tamago1.13.6),
+which [adds](https://github.com/golang/go/compare/go1.13.6...inversepath:tamago1.13.6)
+`GOOS=tamago` support to go-1.13.6 release.
 
 TamaGo is in early stages of development, all code should be considered at
 alpha stage and yet ready for production use.
@@ -90,7 +90,7 @@ import (
 Build the [TamaGo compiler](https://github.com/inversepath/tamago-go):
 
 ```
-git clone https://github.com/inversepath/tamago-go -b tamago1.13.5
+git clone https://github.com/inversepath/tamago-go -b tamago1.13.6
 cd tamago-go/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```

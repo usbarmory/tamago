@@ -57,7 +57,7 @@ import (
 Build the [TamaGo compiler](https://github.com/inversepath/tamago-go):
 
 ```
-git clone https://github.com/inversepath/tamago-go -b tamago1.13.5
+git clone https://github.com/inversepath/tamago-go -b tamago1.13.6
 cd tamago-go/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
