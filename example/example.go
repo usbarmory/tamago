@@ -62,12 +62,14 @@ func main() {
 	exit = make(chan bool)
 	n := 0
 
+	fmt.Println("-- main --------------------------------------------------------------")
 	fmt.Printf("%s (epoch %d)\n", banner, start.UnixNano())
 
 	n += 1
 	go func() {
-		fmt.Println("-- file --------------------------------------------------------------")
+		fmt.Println("-- fs ----------------------------------------------------------------")
 		TestFile()
+		TestDir()
 		exit <- true
 	}()
 
@@ -97,7 +99,7 @@ func main() {
 		fmt.Printf("sleeping %s\n", sleep)
 		start := time.Now()
 		time.Sleep(sleep)
-		fmt.Printf("   slept %s (%v)\n", sleep, time.Now().Sub(start))
+		fmt.Printf("slept %s (%v)\n", sleep, time.Now().Sub(start))
 
 		exit <- true
 	}()
@@ -172,7 +174,7 @@ func main() {
 	chunks := mathrand.Intn(chunksMax) + 1
 	chunkSize := fillSize / chunks
 
-	fmt.Printf("-- memory allocation (%d runs) ---------------------------------------\n", runs)
+	fmt.Printf("-- memory allocation (%d runs) ----------------------------------------\n", runs)
 	testAlloc(runs, chunks, chunkSize)
 
 	if imx6.Native && (imx6.Family == imx6.IMX6UL || imx6.Family == imx6.IMX6ULL) {

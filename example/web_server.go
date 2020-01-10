@@ -39,7 +39,7 @@ func generateTLSCerts(address net.IP) ([]byte, []byte, error) {
 
 	serial, _ := rand.Int(rand.Reader, big.NewInt(1<<63-1))
 
-	log.Printf("imx6_tls: generating TLS keypair IP: %s, Serial: %X", IP, serial)
+	log.Printf("generating TLS keypair IP: %s, Serial: %X", IP, serial)
 
 	validFrom, _ := time.Parse(time.RFC3339, "1981-01-07T00:00:00Z")
 	validUntil, _ := time.Parse(time.RFC3339, "2022-01-07T00:00:00Z")
@@ -84,7 +84,7 @@ func generateTLSCerts(address net.IP) ([]byte, []byte, error) {
 	h := sha256.New()
 	h.Write(cert)
 
-	log.Printf("imx6_tls: SHA-256 fingerprint: % X", h.Sum(nil))
+	log.Printf("SHA-256 fingerprint: % X", h.Sum(nil))
 
 	return TLSCert.Bytes(), TLSKey.Bytes(), nil
 }
@@ -110,8 +110,8 @@ func startWebServer(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.N
 			log.Fatal("TLS cert|key error: ", err)
 		}
 
-		log.Printf("%s", TLSCert)
-		log.Printf("%s", TLSKey)
+		log.Printf("generated TLS certificate:\n%s", TLSCert)
+		log.Printf("generated TLS key:\n%s", TLSKey)
 
 		certificate, err := tls.X509KeyPair(TLSCert, TLSKey)
 
@@ -124,7 +124,7 @@ func startWebServer(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.N
 		}
 	}
 
-	log.Printf("imx6_web: starting web server at %s:%d", addr.String(), port)
+	log.Printf("starting web server at %s:%d", addr.String(), port)
 
 	if https {
 		err = srv.ServeTLS(listener, "", "")

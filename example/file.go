@@ -31,6 +31,8 @@ func TestFile() {
 	fileName := "tamago.txt"
 	path := filepath.Join(dirPath, fileName)
 
+	fmt.Printf("writing %d bytes to %s\n", len(banner), path)
+
 	err = os.MkdirAll(dirPath, 0700)
 
 	if err != nil {
@@ -60,5 +62,37 @@ func TestFile() {
 		fmt.Println("TestFile: comparison fail")
 	} else {
 		fmt.Printf("read %s (%d bytes)\n", path, len(read))
+	}
+}
+
+func TestDir() {
+	dirPath := "/dir"
+
+	fmt.Printf("listing directory %s\n", dirPath)
+
+	f, err := os.Open(dirPath)
+
+	if err != nil {
+		panic(err)
+	}
+
+	d, err := f.Stat()
+
+	if err != nil {
+		panic(err)
+	}
+
+	if !d.IsDir() {
+		panic("expected directory")
+	}
+
+	files, err := f.Readdir(-1)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for _, i := range files {
+		fmt.Printf("%s/%s (%d bytes)\n", dirPath, i.Name(), i.Size())
 	}
 }
