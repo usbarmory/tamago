@@ -27,7 +27,7 @@ func TestFile() {
 		}
 	}()
 
-	dirPath := "/tamago-test"
+	dirPath := "/dir"
 	fileName := "tamago.txt"
 	path := filepath.Join(dirPath, fileName)
 

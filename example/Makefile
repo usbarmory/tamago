@@ -24,7 +24,7 @@ $(APP):
 		exit 1; \
 	fi
 
-	$(GOENV) $(TAMAGO) build $(GOFLAGS)
+	$(GOENV) $(TAMAGO) build $(GOFLAGS) -o ${APP}
 
 qemu: $(APP)
 	$(QEMU) -kernel $(APP)
