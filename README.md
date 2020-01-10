@@ -12,10 +12,10 @@ Authors
 =======
 
 Andrea Barisani  
-andrea.barisani@f-secure.com | andrea@inversepath.com  
+andrea.barisani@f-secure.com
 
 Andrej Rosano  
-andrej.rosano@f-secure.com | andrej@inversepath.com  
+andrej.rosano@f-secure.com
 
 Introduction
 ============
