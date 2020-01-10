@@ -30,8 +30,8 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/icmp"
-	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
+	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 	"gvisor.dev/gvisor/pkg/waiter"
 )
 
@@ -50,8 +50,7 @@ var deviceMACBytes []byte
 var link *channel.Endpoint
 
 // Ethernet frame buffers
-var tx[]byte
-var rx[]byte
+var rx []byte
 
 func configureEthernetDevice(device *usb.Device) {
 	// Supported Language Code Zero: English
