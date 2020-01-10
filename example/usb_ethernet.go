@@ -15,6 +15,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
 	"strings"
 
@@ -34,15 +35,23 @@ import (
 	"gvisor.dev/gvisor/pkg/waiter"
 )
 
+const maxPacketSize = 512
 const hostMAC = "1a:55:89:a2:69:42"
 const deviceMAC = "1a:55:89:a2:69:41"
 const IP = "10.0.0.1"
 const MTU = 1500
 
+// set to true to enable packet sniffing
+const sniff = false
+
 // populated by setupStack()
 var hostMACBytes []byte
 var deviceMACBytes []byte
 var link *channel.Endpoint
+
+// Ethernet frame buffers
+var tx[]byte
+var rx[]byte
 
 func configureEthernetDevice(device *usb.Device) {
 	// Supported Language Code Zero: English
@@ -139,7 +148,7 @@ func configureECM(device *usb.Device) {
 	ep1IN.SetDefaults()
 	ep1IN.EndpointAddress = 0x81
 	ep1IN.Attributes = 2
-	ep1IN.MaxPacketSize = 512
+	ep1IN.MaxPacketSize = maxPacketSize
 	ep1IN.Function = ECMTx
 
 	iface.Endpoints = append(iface.Endpoints, ep1IN)
@@ -148,7 +157,7 @@ func configureECM(device *usb.Device) {
 	ep1OUT.SetDefaults()
 	ep1OUT.EndpointAddress = 0x01
 	ep1OUT.Attributes = 2
-	ep1OUT.MaxPacketSize = 512
+	ep1OUT.MaxPacketSize = maxPacketSize
 	ep1OUT.Function = ECMRx
 
 	iface.Endpoints = append(iface.Endpoints, ep1OUT)
@@ -268,25 +277,6 @@ func startEchoServer(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.
 	}
 }
 
-// TODO: gvisor tcpip package TCP support does not play well with single
-// threaded code, WiP to fix this in our fork.
-func startWebServer(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NICID) {
-	var err error
-
-	fullAddr := tcpip.FullAddress{Addr: addr, Port: port, NIC: nic}
-	l, err := gonet.NewListener(s, fullAddr, ipv4.ProtocolNumber)
-
-	if err != nil {
-		log.Fatal("listener error: ", err)
-	}
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello from TamaGo!\n"))
-	})
-
-	http.Serve(l, nil)
-}
-
 // ECMControl implements the endpoint 2 IN function.
 func ECMControl(_ []byte, lastErr error) (in []byte, err error) {
 	// ignore for now
@@ -321,13 +311,20 @@ func ECMTx(_ []byte, lastErr error) (in []byte, err error) {
 // ECMRx implements the endpoint 1 OUT function, used to receive ethernet
 // packet from host to device.
 func ECMRx(out []byte, lastErr error) (_ []byte, err error) {
-	if len(out) < 14 {
+	if len(rx) == 0 && len(out) < 14 {
 		return
 	}
 
-	hdr := buffer.NewViewFromBytes(out[0:14])
-	proto := tcpip.NetworkProtocolNumber(binary.BigEndian.Uint16(out[12:14]))
-	payload := buffer.NewViewFromBytes(out[14:])
+	rx = append(rx, out...)
+
+	// more data expected or zero length packet
+	if len(out) == 512 {
+		return
+	}
+
+	hdr := buffer.NewViewFromBytes(rx[0:14])
+	proto := tcpip.NetworkProtocolNumber(binary.BigEndian.Uint16(rx[12:14]))
+	payload := buffer.NewViewFromBytes(rx[14:])
 
 	pkt := tcpip.PacketBuffer{
 		LinkHeader: hdr,
@@ -335,6 +332,8 @@ func ECMRx(out []byte, lastErr error) (_ []byte, err error) {
 	}
 
 	link.InjectInbound(proto, pkt)
+
+	rx = []byte{}
 
 	return
 }
@@ -344,7 +343,7 @@ func ECMRx(out []byte, lastErr error) (_ []byte, err error) {
 func StartUSBEthernet() {
 	addr := tcpip.Address(net.ParseIP(IP)).To4()
 
-	s := configureNetworkStack(addr, 1, true)
+	s := configureNetworkStack(addr, 1, sniff)
 
 	// handle pings
 	startICMPEndpoint(s, addr, 0, 1)
@@ -354,12 +353,24 @@ func StartUSBEthernet() {
 		startEchoServer(s, addr, 1234, 1)
 	}()
 
-	// TODO: gvisor tcpip package TCP support does not play well with single
-	// threaded code, WiP to fix this in our fork.
-	//go func() {
-	//	// TCP web server
-	//	startWebServer(s, addr, 80, 1)
-	//}()
+	go func() {
+		// HTTP web server (see web_server.go)
+		startWebServer(s, addr, 80, 1, false)
+	}()
+
+	go func() {
+		file, _ := os.OpenFile("/index.html", os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0600)
+		file.WriteString("<html><body>")
+		file.WriteString(banner)
+		file.WriteString("</body></html>")
+		file.Close()
+
+		staticHandler := http.FileServer(http.Dir("/"))
+		http.Handle("/", http.StripPrefix("/", staticHandler))
+
+		// HTTPS web server (see web_server.go)
+		startWebServer(s, addr, 443, 1, true)
+	}()
 
 	device := &usb.Device{}
 
