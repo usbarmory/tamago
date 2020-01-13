@@ -14,8 +14,6 @@ import (
 	"encoding/binary"
 	"log"
 	"net"
-	"net/http"
-	"os"
 	"runtime"
 	"strings"
 
@@ -352,21 +350,15 @@ func StartUSBEthernet() {
 		startEchoServer(s, addr, 1234, 1)
 	}()
 
+	// create index.html in in-memory filesystem
+	setupStaticWebAssets()
+
 	go func() {
 		// HTTP web server (see web_server.go)
 		startWebServer(s, addr, 80, 1, false)
 	}()
 
 	go func() {
-		file, _ := os.OpenFile("/index.html", os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0600)
-		file.WriteString("<html><body>")
-		file.WriteString(banner)
-		file.WriteString("</body></html>")
-		file.Close()
-
-		staticHandler := http.FileServer(http.Dir("/"))
-		http.Handle("/", http.StripPrefix("/", staticHandler))
-
 		// HTTPS web server (see web_server.go)
 		startWebServer(s, addr, 443, 1, true)
 	}()

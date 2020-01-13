@@ -37,3 +37,4 @@ The HTTP/HTTPS servers expose the following routes:
   * `/`: a welcome message
   * `/dir`: in-memory filesystem
   * `/debug/pprof`: Go runtime profiling data through [pprof](https://golang.org/pkg/net/http/pprof/)
+  * `/debug/charts`: Go runtime profiling data through [debugchargs](https://github.com/mkevac/debugcharts)

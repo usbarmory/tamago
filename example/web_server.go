@@ -20,11 +20,13 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
+	"html"
 	"log"
 	"math/big"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
+	"os"
 	"time"
 
 	"gvisor.dev/gvisor/pkg/tcpip"
@@ -87,6 +89,25 @@ func generateTLSCerts(address net.IP) ([]byte, []byte, error) {
 	log.Printf("SHA-256 fingerprint: % X", h.Sum(nil))
 
 	return TLSCert.Bytes(), TLSKey.Bytes(), nil
+}
+
+func setupStaticWebAssets() {
+	file, err := os.OpenFile("/index.html", os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0600)
+
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	file.WriteString("<html><body>")
+	file.WriteString(fmt.Sprintf("<p>%s</p><ul>", html.EscapeString(banner)))
+	file.WriteString(fmt.Sprintf(`<li><a href="%s">%s</a></li>`, "/dir", "/dir"))
+	file.WriteString(fmt.Sprintf(`<li><a href="%s">%s</a></li>`, "/debug/charts", "/debug/charts"))
+	file.WriteString(fmt.Sprintf(`<li><a href="%s">%s</a></li>`, "/debug/pprof", "/debug/pprof"))
+	file.WriteString("</ul></body></html>")
+
+	staticHandler := http.FileServer(http.Dir("/"))
+	http.Handle("/", http.StripPrefix("/", staticHandler))
 }
 
 func startWebServer(s *stack.Stack, addr tcpip.Address, port uint16, nic tcpip.NICID, https bool) {
