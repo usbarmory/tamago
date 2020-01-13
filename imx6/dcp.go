@@ -1,5 +1,5 @@
 // NXP Data Co-Processor (DCP) driver
-// https://github.com/inversepath/tamago
+// https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -20,8 +20,8 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/inversepath/tamago/imx6/internal/cache"
-	"github.com/inversepath/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/imx6/internal/cache"
+	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
 const (

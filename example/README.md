@@ -2,7 +2,7 @@ TamaGo example application
 ==========================
 
 This example Go application is part of the
-[TamaGo](https://github.com/inversepath/tamago) project and targets the NXP
+[TamaGo](https://github.com/f-secure-foundry/tamago) project and targets the NXP
 i.MX6ULZ SoC of the USB armory Mk II.
 
 The example application performs a variety of simple test procedures each in

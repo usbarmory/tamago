@@ -1,21 +1,21 @@
 TamaGo - bare metal Go for ARM SoCs
 ===================================
 
-tamago | https://github.com/inversepath/tamago  
+tamago | https://github.com/f-secure-foundry/tamago  
 
 Copyright (c) F-Secure Corporation  
 https://foundry.f-secure.com
 
-![TamaGo gopher](https://github.com/inversepath/tamago/wiki/images/tamago.svg?sanitize=true)
+![TamaGo gopher](https://github.com/f-secure-foundry/tamago/wiki/images/tamago.svg?sanitize=true)
 
 Authors
 =======
 
 Andrea Barisani  
-andrea.barisani@f-secure.com
+andrea.barisani@f-secure.com | andrea@inversepath.com  
 
 Andrej Rosano  
-andrej.rosano@f-secure.com
+andrej.rosano@f-secure.com   | andrej@inversepath.com  
 
 Introduction
 ============
@@ -30,7 +30,7 @@ Systems.
 
 The TamaGo framework consists of the following components:
 
- - A modified [Go compiler](https://github.com/inversepath/tamago-go)
+ - A modified [Go compiler](https://github.com/f-secure-foundry/tamago-go)
    which extends `GOOS` support to the `tamago` target, allowing bare metal
    execution for ARMv7 architecture.
 
@@ -44,7 +44,7 @@ separation/architecture from the rest of the Go compiler.
 
 Strong emphasis is placed on code re-use from existing architectures already
 included within the standard Go runtime, see
-[Internals](https://github.com/inversepath/tamago/wiki/Internals).
+[Internals](https://github.com/f-secure-foundry/tamago/wiki/Internals).
 
 Both aspects are motivated by the desire of providing a framework that allows
 secure Go firmware development on embedded systems.
@@ -53,8 +53,8 @@ Current release level
 =====================
 
 The current release is
-[tamago1.13.6](https://github.com/inversepath/tamago-go/tree/tamago1.13.6),
-which [adds](https://github.com/golang/go/compare/go1.13.6...inversepath:tamago1.13.6)
+[tamago1.13.6](https://github.com/f-secure-foundry/tamago-go/tree/tamago1.13.6),
+which [adds](https://github.com/golang/go/compare/go1.13.6...f-secure-foundry:tamago1.13.6)
 `GOOS=tamago` support to go-1.13.6 release.
 
 TamaGo is in early stages of development, all code should be considered at
@@ -64,16 +64,16 @@ Documentation
 =============
 
 The main documentation can be found on the
-[project wiki](https://github.com/inversepath/tamago/wiki).
+[project wiki](https://github.com/f-secure-foundry/tamago/wiki).
 
 Supported hardware
 ==================
 
 The following table summarizes currently supported SoCs and boards.
 
-| SoC           | Board                                                             | SoC package                                                    | Board package                                                                              |
-|---------------|-------------------------------------------------------------------|----------------------------------------------------------------|----------------------------------------------------------------------------------|
-| NXP i.MX6ULL | [USB armory Mk II](https://github.com/inversepath/usbarmory/wiki) | [imx6](https://github.com/inversepath/tamago/tree/master/imx6) | [usbarmory/mark-two](https://github.com/inversepath/tamago/tree/master/usbarmory) |
+| SoC           | Board                                                                  | SoC package                                                         | Board package                                                                          |
+|---------------|------------------------------------------------------------------------|---------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6) | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/usbarmory) |
 
 Compiling
 =========
@@ -87,10 +87,10 @@ import (
 )
 ```
 
-Build the [TamaGo compiler](https://github.com/inversepath/tamago-go):
+Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go):
 
 ```
-git clone https://github.com/inversepath/tamago-go -b tamago1.13.6
+git clone https://github.com/f-secure-foundry/tamago-go -b tamago1.13.6
 cd tamago-go/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
@@ -112,7 +112,7 @@ Executing and debugging
 See the respective board package README file for execution and debugging
 information for each specific target (real or emulated).
 
-An emulated run of the [example application](https://github.com/inversepath/tamago/tree/master/example)
+An emulated run of the [example application](https://github.com/f-secure-foundry/tamago/tree/master/example)
 can be launched as follows:
 
 ```
@@ -122,7 +122,7 @@ make clean && make qemu
 License
 =======
 
-tamago | https://github.com/inversepath/tamago  
+tamago | https://github.com/f-secure-foundry/tamago  
 Copyright (c) F-Secure Corporation
 
 This program is free software: you can redistribute it and/or modify it under

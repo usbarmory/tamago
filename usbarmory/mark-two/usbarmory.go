@@ -1,5 +1,5 @@
 // USB armory Mk II support for tamago/arm
-// https://github.com/inversepath/tamago
+// https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -17,8 +17,8 @@ package usbarmory
 import (
 	_ "unsafe"
 
-	"github.com/inversepath/tamago/imx6"
-	_ "github.com/inversepath/tamago/imx6/imx6ul"
+	"github.com/f-secure-foundry/tamago/imx6"
+	_ "github.com/f-secure-foundry/tamago/imx6/imx6ul"
 )
 
 //go:linkname ramSize runtime.ramSize

@@ -1,6 +1,6 @@
 // USB device mode
 
-// https://github.com/inversepath/tamago
+// https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/inversepath/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
 // p279, Table 9-4. Standard Request Codes, USB Specification Revision 2.0

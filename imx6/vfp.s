@@ -1,4 +1,4 @@
-// https://github.com/inversepath/tamago
+// https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com

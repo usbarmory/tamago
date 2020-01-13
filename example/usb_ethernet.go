@@ -1,4 +1,4 @@
-// https://github.com/inversepath/tamago
+// https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -19,7 +19,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/inversepath/tamago/imx6/usb"
+	"github.com/f-secure-foundry/tamago/imx6/usb"
 
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"

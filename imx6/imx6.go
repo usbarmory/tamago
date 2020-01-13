@@ -1,5 +1,5 @@
 // NXP i.MX6UL/i.MX6ULL/i.MX6Q support
-// https://github.com/inversepath/tamago
+// https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com

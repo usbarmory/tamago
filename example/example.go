@@ -1,4 +1,4 @@
-// https://github.com/inversepath/tamago
+// https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -23,8 +23,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/inversepath/tamago/imx6"
-	_ "github.com/inversepath/tamago/usbarmory/mark-two"
+	"github.com/f-secure-foundry/tamago/imx6"
+	_ "github.com/f-secure-foundry/tamago/usbarmory/mark-two"
 )
 
 const banner = "Hello from tamago/arm!"

@@ -88,7 +88,7 @@ func main() {
 	tamagoGo := os.Getenv("TAMAGO")
 
 	if tamagoGo == "" {
-		panic("You need to set the TAMAGO variable to a compiled version of https://github.com/inversepath/tamago-go")
+		panic("You need to set the TAMAGO variable to a compiled version of https://github.com/f-secure-foundry/tamago-go")
 	}
 
 	content, err := ioutil.ReadFile("imports")

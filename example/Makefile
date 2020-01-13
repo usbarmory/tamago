@@ -1,4 +1,4 @@
-# https://github.com/inversepath/tamago
+# https://github.com/f-secure-foundry/tamago
 #
 # Copyright (c) F-Secure Corporation
 # https://foundry.f-secure.com
@@ -20,7 +20,7 @@ all: $(APP)
 
 $(APP):
 	@if [ "${TAMAGO}" == "" ] || [ ! -f "${TAMAGO}" ]; then \
-		echo 'You need to set the TAMAGO variable to a compiled version of https://github.com/inversepath/tamago-go'; \
+		echo 'You need to set the TAMAGO variable to a compiled version of https://github.com/f-secure-foundry/tamago-go'; \
 		exit 1; \
 	fi
 

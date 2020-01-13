@@ -1,5 +1,5 @@
 // NXP i.MX6UL ARM clock control
-// https://github.com/inversepath/tamago
+// https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -16,7 +16,7 @@ import (
 	"log"
 	"unsafe"
 
-	"github.com/inversepath/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
 const (

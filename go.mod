@@ -1,4 +1,4 @@
-module github.com/inversepath/tamago
+module github.com/f-secure-foundry/tamago
 
 go 1.13
 
@@ -12,4 +12,4 @@ require (
 	gvisor.dev/gvisor v0.0.0-20191224014503-95108940a01c
 )
 
-replace gvisor.dev/gvisor v0.0.0-20191224014503-95108940a01c => github.com/inversepath/gvisor v0.0.0-20191224100818-98827aa91607
+replace gvisor.dev/gvisor v0.0.0-20191224014503-95108940a01c => github.com/f-secure-foundry/gvisor v0.0.0-20191224100818-98827aa91607

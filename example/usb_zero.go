@@ -1,4 +1,4 @@
-// https://github.com/inversepath/tamago
+// https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -13,7 +13,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/inversepath/tamago/imx6/usb"
+	"github.com/f-secure-foundry/tamago/imx6/usb"
 )
 
 func configureZeroDevice(device *usb.Device) {

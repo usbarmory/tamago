@@ -1,21 +1,21 @@
 TamaGo - bare metal Go for ARM SoCs - USB armory support
 ========================================================
 
-tamago | https://github.com/inversepath/tamago  
+tamago | https://github.com/f-secure-foundry/tamago  
 
 Copyright (c) F-Secure Corporation  
 https://foundry.f-secure.com
 
-![TamaGo gopher](https://github.com/inversepath/tamago/wiki/images/tamago.svg?sanitize=true)
+![TamaGo gopher](https://github.com/f-secure-foundry/tamago/wiki/images/tamago.svg?sanitize=true)
 
 Authors
 =======
 
 Andrea Barisani  
-andrea.barisani@f-secure.com
+andrea.barisani@f-secure.com | andrea@inversepath.com  
 
 Andrej Rosano  
-andrej.rosano@f-secure.com
+andrej.rosano@f-secure.com   | andrej@inversepath.com  
 
 Introduction
 ============
@@ -24,26 +24,26 @@ TamaGo is a project that aims to provide compilation and execution of
 unencumbered Go applications for bare metal ARM System-on-Chip (SoC)
 components.
 
-The [usbarmory](https://github.com/inversepath/tamago/tree/master/usbarmory)
-package provide support for the [USB
-armory](https://github.com/inversepath/usbarmory/wiki) Single Board Computer.
+The [usbarmory](https://github.com/f-secure-foundry/tamago/tree/master/usbarmory)
+package provide support for the [USB armory](https://github.com/f-secure-foundry/usbarmory/wiki)
+Single Board Computer.
 
 Documentation
 =============
 
 For more information about TamaGo see its
-[repository](https://github.com/inversepath/tamago) and
-[project wiki](https://github.com/inversepath/tamago/wiki).
+[repository](https://github.com/f-secure-foundry/tamago) and
+[project wiki](https://github.com/f-secure-foundry/tamago/wiki).
 
 For the underlying driver support for this board see package
-[imx6](https://github.com/inversepath/tamago/tree/master/imx6).
+[imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6).
 
 Supported hardware
 ==================
 
-| SoC           | Board                                                             | SoC package                                                    | Board package                                                                              |
-|---------------|-------------------------------------------------------------------|----------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| NXP i.MX6ULL | [USB armory Mk II](https://github.com/inversepath/usbarmory/wiki) | [imx6](https://github.com/inversepath/tamago/tree/master/imx6) | [usbarmory/mark-two](https://github.com/inversepath/tamago/tree/master/usbarmory/mark-two) |
+| SoC           | Board                                                                  | SoC package                                                         | Board package                                                                                   |
+|---------------|------------------------------------------------------------------------|---------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6) | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/usbarmory/mark-two) |
 
 Compiling
 =========
@@ -57,10 +57,10 @@ import (
 )
 ```
 
-Build the [TamaGo compiler](https://github.com/inversepath/tamago-go):
+Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go):
 
 ```
-git clone https://github.com/inversepath/tamago-go -b tamago1.13.6
+git clone https://github.com/f-secure-foundry/tamago-go -b tamago1.13.6
 cd tamago-go/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
@@ -71,7 +71,7 @@ ensuring that the required SoC and board packages are available in `GOPATH`:
 
 ```
 # USB armory Mk II example
-git clone https://github.com/inversepath/tamago && cd tamago
+git clone https://github.com/f-secure-foundry/tamago && cd tamago
 cd example &&
   GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm \
   ${TAMAGO} build -ldflags "-T 0x80010000  -E _rt0_arm_tamago -R 0x1000"
@@ -95,7 +95,7 @@ bootelf -p 0x90000000
 For non-interactive execution modify the U-Boot configuration accordingly.
 
 The standard output can be accessed through the
-[debug accessory](https://github.com/inversepath/usbarmory/tree/master/hardware/mark-two-debug-accessory)
+[debug accessory](https://github.com/f-secure-foundry/usbarmory/tree/master/hardware/mark-two-debug-accessory)
 and the following `picocom` configuration:
 
 ```
@@ -104,7 +104,7 @@ picocom -b 115200 -eb /dev/ttyUSB2 --imap lfcrlf
 
 The application can be debugged with GDB over JTAG using `openocd` and the
 `imx6ull.cfg` and `gdbinit` debugging helpers published
-[here](https://github.com/inversepath/tamago/tree/master/dev).
+[here](https://github.com/f-secure-foundry/tamago/tree/master/dev).
 
 ```
 # start openocd daemon
@@ -154,7 +154,7 @@ continue
 License
 =======
 
-tamago | https://github.com/inversepath/tamago  
+tamago | https://github.com/f-secure-foundry/tamago  
 Copyright (c) F-Secure Corporation
 
 This program is free software: you can redistribute it and/or modify it under
