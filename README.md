@@ -100,9 +100,7 @@ but with the addition of the following flags/variables, also make sure that the
 required SoC and board packages are available in your `GOPATH`:
 
 ```
-# USB armory Mk II example from the root directory of this repository
-cd example &&
-  GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm \
+GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm \
   ${TAMAGO} build -ldflags "-T 0x80010000  -E _rt0_arm_tamago -R 0x1000"
 ```
 
@@ -112,11 +110,12 @@ Executing and debugging
 See the respective board package README file for execution and debugging
 information for each specific target (real or emulated).
 
-An emulated run of the [example application](https://github.com/f-secure-foundry/tamago/tree/master/example)
+An emulated run of the [example application](https://github.com/f-secure-foundry/tamago-example)
 can be launched as follows:
 
 ```
-make clean && make qemu
+git clone https://github.com/f-secure-foundry/tamago-example
+cd tamago-example && make qemu
 ```
 
 License
@@ -134,3 +133,7 @@ WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 See accompanying LICENSE file for full details.
+
+The TamaGo logo is adapted from the Go gopher designed by Renee French and
+licensed under the Creative Commons 3.0 Attributions license. Go Gopher vector
+illustration by Hugo Arganda.
