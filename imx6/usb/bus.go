@@ -63,6 +63,7 @@ const (
 
 	USB_UOG1_PORTSC1 uint32 = 0x02184184
 	PORTSC_PTS_1            = 30
+	PORTSC_PSPD             = 26
 	PORTSC_PR               = 8
 
 	USB_UOG1_OTGSC uint32 = 0x021841a4
@@ -191,6 +192,25 @@ func (hw *usb) Init() {
 	// disable charger detector
 	reg.Set(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_EN_B)
 	reg.Set(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_CHK_CHRG_B)
+}
+
+// Speed returns the port speed.
+func (hw *usb) Speed() (speed string) {
+	hw.Lock()
+	defer hw.Unlock()
+
+	switch reg.Get(hw.sc, PORTSC_PSPD, 0b11) {
+	case 0b00:
+		speed = "full"
+	case 0b01:
+		speed = "low"
+	case 0b10:
+		speed = "high"
+	case 0b11:
+		panic("invalid port speed")
+	}
+
+	return
 }
 
 // Reset waits for and handles a USB bus reset.
