@@ -128,8 +128,15 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 
 		switch bDescriptorType {
 		case DEVICE:
+			desc := dev.Descriptor.Bytes()
+
+			// the host might request a partial descriptor
+			if int(setup.wLength) < len(desc) {
+				desc = desc[0:setup.wLength]
+			}
+
 			log.Printf("imx6_usb: sending device descriptor\n")
-			err = hw.tx(0, false, dev.Descriptor.Bytes())
+			err = hw.tx(0, false, desc)
 		case CONFIGURATION:
 			var conf []byte
 			if conf, err = dev.Configuration(index, setup.wLength); err == nil {
