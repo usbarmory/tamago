@@ -17,6 +17,7 @@ import (
 	"log"
 	"unsafe"
 
+	"github.com/f-secure-foundry/tamago/imx6/internal/bits"
 	"github.com/f-secure-foundry/tamago/imx6/internal/cache"
 	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
@@ -46,19 +47,19 @@ const (
 // dTD implements
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
 type dTD struct {
-	next   *dTD
+	next   *dTD // FIXME
 	token  uint32
-	buffer [5]uintptr
+	buffer [5]uint32
 }
 
 // dQH implements
 // p3784, 56.4.5.1 Endpoint Queue Head (dQH), IMX6ULLRM.
 type dQH struct {
 	info    uint32
-	current *dTD
-	next    *dTD
+	current *dTD // FIXME
+	next    *dTD // FIXME
 	token   uint32
-	buffer  [5]uintptr
+	buffer  [5]uint32
 
 	_res uint32
 
@@ -81,12 +82,11 @@ type EndPointList struct {
 
 func (ep *EndPointList) init() {
 	ep.buf = mem.NewAlignmentBuffer(unsafe.Sizeof(ep.List), 2048)
-	ep.List = (*[MAX_ENDPOINTS * 2]dQH)(unsafe.Pointer(ep.buf.Addr))
+	ep.List = (*[MAX_ENDPOINTS * 2]dQH)(ep.buf.Ptr())
 }
 
 // get returns the Endpoint Queue Head (dQH)
 func (ep *EndPointList) get(n int, dir int) dQH {
-	// TODO: clean specific cache lines instead
 	cache.FlushData()
 	return ep.List[n*2+dir]
 }
@@ -103,7 +103,8 @@ func (ep *EndPointList) max(n int, dir int) int {
 
 // reset clears the endpoint status
 func (ep *EndPointList) reset(n int, dir int) {
-	reg.SetN(&ep.List[n*2+dir].token, 0, 0xff, 0)
+	cache.FlushData()
+	bits.SetN(&ep.List[n*2+dir].token, 0, 0xff, 0)
 }
 
 // set configures a queue head as described in
@@ -112,23 +113,23 @@ func (ep *EndPointList) set(n int, dir int, max int, zlt int, mult int) {
 	off := n*2 + dir
 
 	// Mult
-	reg.SetN(&ep.List[off].info, 30, 0b11, uint32(mult))
+	bits.SetN(&ep.List[off].info, 30, 0b11, uint32(mult))
 	// zlt
-	reg.SetN(&ep.List[off].info, 29, 0b1, uint32(zlt))
+	bits.SetN(&ep.List[off].info, 29, 0b1, uint32(zlt))
 	// Maximum Packet Length
-	reg.SetN(&ep.List[off].info, 16, 0x7ff, uint32(max))
+	bits.SetN(&ep.List[off].info, 16, 0x7ff, uint32(max))
 
 	if n == 0 && dir == IN {
 		// interrupt on setup (ios)
-		reg.Set(&ep.List[off].info, 15)
+		bits.Set(&ep.List[off].info, 15)
 	}
 
 	// Total bytes
-	reg.SetN(&ep.List[off].token, 16, 0xffff, 0)
+	bits.SetN(&ep.List[off].token, 16, 0xffff, 0)
 	// interrupt on completion (ioc)
-	reg.Set(&ep.List[off].token, 15)
+	bits.Set(&ep.List[off].token, 15)
 	// multiplier override (MultO)
-	reg.SetN(&ep.List[off].token, 10, 0b11, 0)
+	bits.SetN(&ep.List[off].token, 10, 0b11, 0)
 }
 
 // addDTD configures an endpoint transfer descriptor as described in
@@ -141,30 +142,30 @@ func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD, dtdBuf *mem.Alig
 	}
 
 	dtdBuf = mem.NewAlignmentBuffer(unsafe.Sizeof(dTD{}), 32)
-	dtd = (*dTD)(unsafe.Pointer(dtdBuf.Addr))
+	dtd = (*dTD)(dtdBuf.Ptr())
 
 	// p3809, 56.4.6.6.2 Building a Transfer Descriptor, IMX6ULLRM
 
 	// interrupt on completion (ioc)
 	if ioc {
-		reg.Set(&dtd.token, 15)
+		bits.Set(&dtd.token, 15)
 	} else {
-		reg.Clear(&dtd.token, 15)
+		bits.Clear(&dtd.token, 15)
 	}
 
 	// multiplier override (MultO)
-	reg.SetN(&dtd.token, 10, 0b11, 0)
+	bits.SetN(&dtd.token, 10, 0b11, 0)
 	// active status
-	reg.Set(&dtd.token, 7)
+	bits.Set(&dtd.token, 7)
 
 	pages = mem.NewAlignmentBuffer(DTD_PAGE_SIZE*DTD_PAGES, DTD_PAGE_SIZE)
 	mem.Copy(pages, data)
 
 	// total bytes
-	reg.SetN(&dtd.token, 16, 0xffff, uint32(size))
+	bits.SetN(&dtd.token, 16, 0xffff, uint32(size))
 
 	for n := 0; n < DTD_PAGES; n++ {
-		dtd.buffer[n] = pages.Addr + uintptr(DTD_PAGE_SIZE*n)
+		dtd.buffer[n] = pages.Addr() + uint32(DTD_PAGE_SIZE*n)
 	}
 
 	// invalidate next pointer
@@ -256,7 +257,7 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	reg.Write(hw.complete, 1<<pos)
 
 	for i, dtd := range dtds {
-		reg.Wait(&dtd.token, 7, 0b1, 0)
+		bits.Wait(&dtd.token, 7, 0b1, 0)
 
 		if status := (dtd.token & 0xff); status != 0x00 {
 			return nil, fmt.Errorf("error status for dTD #%d, %x", i, status)
@@ -264,7 +265,7 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 
 		// p3787 "This field is decremented by the number of bytes
 		// actually moved during the transaction", IMX6ULLRM.
-		size := dtdLength - int(reg.Get(&dtd.token, 16, 0xffff))
+		size := dtdLength - int(bits.Get(&dtd.token, 16, 0xffff))
 
 		if n != 0 && dir == OUT && size != 0 {
 			out = append(out, pktBufs[i].Data()[0:size]...)
@@ -303,7 +304,7 @@ func (hw *usb) ack(n int) (err error) {
 }
 
 func (hw *usb) stall(n int, dir int) {
-	ctrl := (*uint32)(unsafe.Pointer(uintptr(hw.epctrl + uint32(4*n))))
+	ctrl := hw.epctrl + uint32(4*n)
 
 	if dir == IN {
 		reg.Set(ctrl, ENDPTCTRL_TXS)
@@ -320,33 +321,30 @@ func (hw *usb) enable(n int, dir int, transferType int) {
 
 	log.Printf("imx6_usb: enabling EP%d.%d\n", n, dir)
 
-	// TODO: clean specific cache lines instead
-	cache.FlushData()
-
-	ctrl := (*uint32)(unsafe.Pointer(uintptr(hw.epctrl + uint32(4*n))))
-	c := *ctrl
+	ctrl := hw.epctrl + uint32(4*n)
+	c := reg.Read(ctrl)
 
 	if dir == IN {
-		reg.Set(&c, ENDPTCTRL_TXE)
-		reg.Set(&c, ENDPTCTRL_TXR)
-		reg.SetN(&c, ENDPTCTRL_TXT, 0b11, uint32(transferType))
-		reg.Clear(&c, ENDPTCTRL_TXS)
+		c |= (1 << ENDPTCTRL_TXE)
+		c |= (1 << ENDPTCTRL_TXR)
+		c = (c & (^(uint32(0b11) <<ENDPTCTRL_TXT))) | (uint32(transferType) <<ENDPTCTRL_TXT)
+		c &^= (1 << ENDPTCTRL_TXS)
 
 		if reg.Get(ctrl, ENDPTCTRL_RXE, 0b1) == 0 {
 			// see note at p3879 of IMX6ULLRM
-			reg.SetN(&c, ENDPTCTRL_RXT, 0b11, BULK)
+			c = (c & (^(uint32(0b11) <<ENDPTCTRL_RXT))) | (BULK <<ENDPTCTRL_RXT)
 		}
 	} else {
-		reg.Set(&c, ENDPTCTRL_RXE)
-		reg.Set(&c, ENDPTCTRL_RXR)
-		reg.SetN(&c, ENDPTCTRL_RXT, 0b11, uint32(transferType))
-		reg.Clear(&c, ENDPTCTRL_RXS)
+		c |= (1 << ENDPTCTRL_RXE)
+		c |= (1 << ENDPTCTRL_RXR)
+		c = (c & (^(uint32(0b11) <<ENDPTCTRL_RXT))) | (uint32(transferType) <<ENDPTCTRL_RXT)
+		c &^= (1 << ENDPTCTRL_RXS)
 
 		if reg.Get(ctrl, ENDPTCTRL_TXE, 0b1) == 0 {
 			// see note at p3879 of IMX6ULLRM
-			reg.SetN(&c, ENDPTCTRL_TXT, 0b11, BULK)
+			c = (c & (^(uint32(0b11) <<ENDPTCTRL_TXT))) | (BULK <<ENDPTCTRL_TXT)
 		}
 	}
 
-	*ctrl = c
+	reg.Write(ctrl, c)
 }

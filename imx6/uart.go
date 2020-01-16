@@ -12,8 +12,6 @@
 package imx6
 
 import (
-	"unsafe"
-
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
@@ -33,24 +31,24 @@ const UART_UTS_TXEMPTY = 6
 const UART_USR2_RDR = 0
 
 type uart struct {
-	urxd *uint32
-	utxd *byte
-	uts  *uint32
-	usr2 *uint32
+	urxd uint32
+	utxd uint32
+	uts  uint32
+	usr2 uint32
 }
 
 var UART1 = &uart{
-	urxd: (*uint32)(unsafe.Pointer(uintptr(UART1_URXD))),
-	utxd: (*byte)(unsafe.Pointer(uintptr(UART1_UTXD))),
-	uts:  (*uint32)(unsafe.Pointer(uintptr(UART1_UTS))),
-	usr2: (*uint32)(unsafe.Pointer(uintptr(UART1_USR2))),
+	urxd: UART1_URXD,
+	utxd: UART1_UTXD,
+	uts:  UART1_UTS,
+	usr2: UART1_USR2,
 }
 
 var UART2 = &uart{
-	urxd: (*uint32)(unsafe.Pointer(uintptr(UART2_URXD))),
-	utxd: (*byte)(unsafe.Pointer(uintptr(UART2_UTXD))),
-	uts:  (*uint32)(unsafe.Pointer(uintptr(UART2_UTS))),
-	usr2: (*uint32)(unsafe.Pointer(uintptr(UART2_USR2))),
+	urxd: UART2_URXD,
+	utxd: UART2_UTXD,
+	uts:  UART2_UTS,
+	usr2: UART2_USR2,
 }
 
 func (u *uart) txEmpty() bool {
@@ -68,7 +66,7 @@ func (u *uart) rxError() bool {
 // Write a single character to the selected serial port.
 func (u *uart) Write(c byte) {
 	// transmit data
-	*(u.utxd) = c
+	reg.Write(u.utxd, uint32(c))
 
 	for u.txEmpty() {
 		// wait for TX FIFO to be empty

@@ -6,7 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package reg provides primitves for retrieving and modifying hardware
+// Package reg provides primitives for retrieving and modifying hardware
 // registers.
 package reg
 
@@ -14,16 +14,19 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/f-secure-foundry/tamago/imx6/internal/cache"
 )
 
 // TODO: disable cache for peripheral space instead of cache.FlushData() every
-// time
+// time.
 
 var mutex sync.Mutex
 
-func Get(reg *uint32, pos int, mask int) (val uint32) {
+func Get(addr uint32, pos int, mask int) (val uint32) {
+	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
+
 	mutex.Lock()
 
 	cache.FlushData()
@@ -34,7 +37,9 @@ func Get(reg *uint32, pos int, mask int) (val uint32) {
 	return
 }
 
-func Set(reg *uint32, pos int) {
+func Set(addr uint32, pos int) {
+	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
+
 	mutex.Lock()
 
 	cache.FlushData()
@@ -43,16 +48,9 @@ func Set(reg *uint32, pos int) {
 	mutex.Unlock()
 }
 
-func Write(reg *uint32, val uint32) {
-	mutex.Lock()
+func Clear(addr uint32, pos int) {
+	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 
-	cache.FlushData()
-	*reg = val
-
-	mutex.Unlock()
-}
-
-func Clear(reg *uint32, pos int) {
 	mutex.Lock()
 
 	cache.FlushData()
@@ -61,7 +59,9 @@ func Clear(reg *uint32, pos int) {
 	mutex.Unlock()
 }
 
-func SetN(reg *uint32, pos int, mask int, val uint32) {
+func SetN(addr uint32, pos int, mask int, val uint32) {
+	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
+
 	mutex.Lock()
 
 	cache.FlushData()
@@ -70,7 +70,9 @@ func SetN(reg *uint32, pos int, mask int, val uint32) {
 	mutex.Unlock()
 }
 
-func ClearN(reg *uint32, pos int, mask int) {
+func ClearN(addr uint32, pos int, mask int) {
+	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
+
 	mutex.Lock()
 
 	cache.FlushData()
@@ -79,10 +81,56 @@ func ClearN(reg *uint32, pos int, mask int) {
 	mutex.Unlock()
 }
 
+func Read(addr uint32) (val uint32) {
+	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
+
+	mutex.Lock()
+
+	cache.FlushData()
+	val = *reg
+
+	mutex.Unlock()
+
+	return
+}
+
+func Write(addr uint32, val uint32) {
+	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
+
+	mutex.Lock()
+
+	cache.FlushData()
+	*reg = val
+
+	mutex.Unlock()
+}
+
+func WriteBack(addr uint32) {
+	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
+
+	mutex.Lock()
+
+	cache.FlushData()
+	*reg |= *reg
+
+	mutex.Unlock()
+}
+
+func Or(addr uint32, val uint32) {
+	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
+
+	mutex.Lock()
+
+	cache.FlushData()
+	*reg |= val
+
+	mutex.Unlock()
+}
+
 // Wait waits for a specific register bit to match a value. This function
 // cannot be used before runtime initialization with `GOOS=tamago`.
-func Wait(reg *uint32, pos int, mask int, val uint32) {
-	for Get(reg, pos, mask) != val {
+func Wait(addr uint32, pos int, mask int, val uint32) {
+	for Get(addr, pos, mask) != val {
 		// tamago is single-threaded so we must force giving
 		// other goroutines a chance
 		runtime.Gosched()
@@ -93,10 +141,10 @@ func Wait(reg *uint32, pos int, mask int, val uint32) {
 // a value. The return boolean indicates whether the wait condition was checked
 // (true) or if it timed out (false). This function cannot be used before
 // runtime initialization with `GOOS=tamago`.
-func WaitFor(timeout time.Duration, reg *uint32, pos int, mask int, val uint32) bool {
+func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) bool {
 	start := time.Now()
 
-	for Get(reg, pos, mask) != val {
+	for Get(addr, pos, mask) != val {
 		// tamago is single-threaded so we must force giving
 		// other goroutines a chance
 		runtime.Gosched()

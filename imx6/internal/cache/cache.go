@@ -10,12 +10,7 @@
 
 package cache
 
-import (
-	"unsafe"
-)
-
 // defined in cache.s
-func Clean(addr unsafe.Pointer)
 func Enable()
 func Disable()
 func FlushData()

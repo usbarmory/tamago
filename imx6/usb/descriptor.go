@@ -12,12 +12,12 @@
 package usb
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
 	"unicode/utf16"
-	"unsafe"
 )
 
 const (
@@ -62,15 +62,10 @@ func (d *DeviceDescriptor) SetDefaults() {
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (d *DeviceDescriptor) Bytes() (buf []byte) {
-	size := unsafe.Sizeof(*d)
-	buf = make([]byte, size, size)
-	p := uintptr(unsafe.Pointer(&buf[0]))
-
-	desc := (*DeviceDescriptor)(unsafe.Pointer(p))
-	*desc = *d
-
-	return buf[0:DEVICE_LENGTH]
+func (d *DeviceDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, d)
+	return buf.Bytes()
 }
 
 // ConfigurationDescriptor implements
@@ -99,16 +94,19 @@ func (d *ConfigurationDescriptor) SetDefaults() {
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (d *ConfigurationDescriptor) Bytes() (buf []byte) {
-	size := unsafe.Sizeof(*d)
-	buf = make([]byte, size, size)
-	p := uintptr(unsafe.Pointer(&buf[0]))
+func (d *ConfigurationDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
 
-	desc := (*ConfigurationDescriptor)(unsafe.Pointer(p))
-	*desc = *d
+	binary.Write(buf, binary.LittleEndian, d.Length)
+	binary.Write(buf, binary.LittleEndian, d.DescriptorType)
+	binary.Write(buf, binary.LittleEndian, d.TotalLength)
+	binary.Write(buf, binary.LittleEndian, d.NumInterfaces)
+	binary.Write(buf, binary.LittleEndian, d.ConfigurationValue)
+	binary.Write(buf, binary.LittleEndian, d.Configuration)
+	binary.Write(buf, binary.LittleEndian, d.Attributes)
+	binary.Write(buf, binary.LittleEndian, d.MaxPower)
 
-	// skip d.Interfaces when returning the buffer
-	return buf[0:CONFIGURATION_LENGTH]
+	return buf.Bytes()
 }
 
 // InterfaceDescriptor implements
@@ -136,23 +134,25 @@ func (d *InterfaceDescriptor) SetDefaults() {
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (d *InterfaceDescriptor) Bytes() (buf []byte) {
-	size := unsafe.Sizeof(*d)
-	buf = make([]byte, size, size)
-	p := uintptr(unsafe.Pointer(&buf[0]))
+func (d *InterfaceDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
 
-	desc := (*InterfaceDescriptor)(unsafe.Pointer(p))
-	*desc = *d
-
-	// skip d.Endpoints and d.ClassDescriptors
-	buf = buf[0:INTERFACE_LENGTH]
+	binary.Write(buf, binary.LittleEndian, d.Length)
+	binary.Write(buf, binary.LittleEndian, d.DescriptorType)
+	binary.Write(buf, binary.LittleEndian, d.InterfaceNumber)
+	binary.Write(buf, binary.LittleEndian, d.AlternateSetting)
+	binary.Write(buf, binary.LittleEndian, d.NumEndpoints)
+	binary.Write(buf, binary.LittleEndian, d.InterfaceClass)
+	binary.Write(buf, binary.LittleEndian, d.InterfaceSubClass)
+	binary.Write(buf, binary.LittleEndian, d.InterfaceProtocol)
+	binary.Write(buf, binary.LittleEndian, d.Interface)
 
 	// add class descriptors
 	for _, classDesc := range d.ClassDescriptors {
-		buf = append(buf, classDesc...)
+		buf.Write(classDesc)
 	}
 
-	return
+	return buf.Bytes()
 }
 
 // EndpointFunction represents the function to process either IN or OUT
@@ -207,15 +207,17 @@ func (d *EndpointDescriptor) TransferType() int {
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (d *EndpointDescriptor) Bytes() (buf []byte) {
-	size := unsafe.Sizeof(*d)
-	buf = make([]byte, size, size)
-	p := uintptr(unsafe.Pointer(&buf[0]))
+func (d *EndpointDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
 
-	desc := (*EndpointDescriptor)(unsafe.Pointer(p))
-	*desc = *d
+	binary.Write(buf, binary.LittleEndian, d.Length)
+	binary.Write(buf, binary.LittleEndian, d.DescriptorType)
+	binary.Write(buf, binary.LittleEndian, d.EndpointAddress)
+	binary.Write(buf, binary.LittleEndian, d.Attributes)
+	binary.Write(buf, binary.LittleEndian, d.MaxPacketSize)
+	binary.Write(buf, binary.LittleEndian, d.Interval)
 
-	return buf[0:ENDPOINT_LENGTH]
+	return buf.Bytes()
 }
 
 // StringDescriptor implements
@@ -227,20 +229,18 @@ type StringDescriptor struct {
 
 // SetDefaults initializes default values for the USB string descriptor.
 func (d *StringDescriptor) SetDefaults() {
-	d.Length = uint8(unsafe.Sizeof(*d))
+	d.Length = 2
 	d.DescriptorType = STRING
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (d *StringDescriptor) Bytes() (buf []byte) {
-	size := unsafe.Sizeof(*d)
-	buf = make([]byte, size, size)
-	p := uintptr(unsafe.Pointer(&buf[0]))
+func (d *StringDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
 
-	desc := (*StringDescriptor)(unsafe.Pointer(p))
-	*desc = *d
+	binary.Write(buf, binary.LittleEndian, d.Length)
+	binary.Write(buf, binary.LittleEndian, d.DescriptorType)
 
-	return buf
+	return buf.Bytes()
 }
 
 // DeviceQualifierDescriptor implements
@@ -270,15 +270,20 @@ func (d *DeviceQualifierDescriptor) SetDefaults() {
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (d *DeviceQualifierDescriptor) Bytes() (buf []byte) {
-	size := unsafe.Sizeof(*d)
-	buf = make([]byte, size, size)
-	p := uintptr(unsafe.Pointer(&buf[0]))
+func (d *DeviceQualifierDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
 
-	desc := (*DeviceQualifierDescriptor)(unsafe.Pointer(p))
-	*desc = *d
+	binary.Write(buf, binary.LittleEndian, d.Length)
+	binary.Write(buf, binary.LittleEndian, d.DescriptorType)
+	binary.Write(buf, binary.LittleEndian, d.bcdUSB)
+	binary.Write(buf, binary.LittleEndian, d.DeviceClass)
+	binary.Write(buf, binary.LittleEndian, d.DeviceSubClass)
+	binary.Write(buf, binary.LittleEndian, d.DeviceProtocol)
+	binary.Write(buf, binary.LittleEndian, d.MaxPacketSize)
+	binary.Write(buf, binary.LittleEndian, d.NumConfigurations)
+	binary.Write(buf, binary.LittleEndian, d.Reserved)
 
-	return buf[0:DEVICE_QUALIFIER_LENGTH]
+	return buf.Bytes()
 }
 
 // Device is a collection of USB device descriptors and host driven settings

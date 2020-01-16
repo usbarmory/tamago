@@ -12,7 +12,8 @@
 package usb
 
 import (
-	"unsafe"
+	"bytes"
+	"encoding/binary"
 )
 
 const (
@@ -54,15 +55,10 @@ func (d *CDCHeaderDescriptor) SetDefaults() {
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (d *CDCHeaderDescriptor) Bytes() (buf []byte) {
-	size := unsafe.Sizeof(*d)
-	buf = make([]byte, size, size)
-	p := uintptr(unsafe.Pointer(&buf[0]))
-
-	desc := (*CDCHeaderDescriptor)(unsafe.Pointer(p))
-	*desc = *d
-
-	return buf[0:HEADER_LENGTH]
+func (d *CDCHeaderDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, d)
+	return buf.Bytes()
 }
 
 // UnionFunctionalDescriptor implements
@@ -85,15 +81,10 @@ func (d *CDCUnionDescriptor) SetDefaults() {
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (d *CDCUnionDescriptor) Bytes() (buf []byte) {
-	size := unsafe.Sizeof(*d)
-	buf = make([]byte, size, size)
-	p := uintptr(unsafe.Pointer(&buf[0]))
-
-	desc := (*CDCUnionDescriptor)(unsafe.Pointer(p))
-	*desc = *d
-
-	return buf[0:UNION_LENGTH]
+func (d *CDCUnionDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, d)
+	return buf.Bytes()
 }
 
 // EthernetNetworkingFunctionalDescriptor implements
@@ -120,13 +111,8 @@ func (d *CDCEthernetDescriptor) SetDefaults() {
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (d *CDCEthernetDescriptor) Bytes() (buf []byte) {
-	size := unsafe.Sizeof(*d)
-	buf = make([]byte, size, size)
-	p := uintptr(unsafe.Pointer(&buf[0]))
-
-	desc := (*CDCEthernetDescriptor)(unsafe.Pointer(p))
-	*desc = *d
-
-	return buf[0:ETHERNET_NETWORKING_LENGTH]
+func (d *CDCEthernetDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, d)
+	return buf.Bytes()
 }

@@ -14,7 +14,6 @@ package usb
 import (
 	"log"
 	"sync"
-	"unsafe"
 
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
@@ -108,46 +107,46 @@ const (
 type usb struct {
 	sync.Mutex
 
-	ccgr     *uint32
-	pll      *uint32
-	ctrl     *uint32
-	pwd      *uint32
-	chrg     *uint32
-	mode     *uint32
-	otg      *uint32
-	cmd      *uint32
-	addr     *uint32
-	sts      *uint32
-	sc       *uint32
-	ep       *uint32
-	setup    *uint32
-	flush    *uint32
-	prime    *uint32
-	stat     *uint32
-	complete *uint32
+	ccgr     uint32
+	pll      uint32
+	ctrl     uint32
+	pwd      uint32
+	chrg     uint32
+	mode     uint32
+	otg      uint32
+	cmd      uint32
+	addr     uint32
+	sts      uint32
+	sc       uint32
+	ep       uint32
+	setup    uint32
+	flush    uint32
+	prime    uint32
+	stat     uint32
+	complete uint32
 	epctrl   uint32
 
 	EP EndPointList
 }
 
 var USB1 = &usb{
-	ccgr:     (*uint32)(unsafe.Pointer(uintptr(CCM_CCGR6))),
-	pll:      (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_USB1))),
-	ctrl:     (*uint32)(unsafe.Pointer(uintptr(USBPHY1_CTRL))),
-	pwd:      (*uint32)(unsafe.Pointer(uintptr(USBPHY1_PWD))),
-	chrg:     (*uint32)(unsafe.Pointer(uintptr(USB_ANALOG_USB1_CHRG_DETECT))),
-	mode:     (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBMODE))),
-	otg:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_OTGSC))),
-	cmd:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBCMD))),
-	addr:     (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_DEVICEADDR))),
-	sts:      (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_USBSTS))),
-	sc:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_PORTSC1))),
-	ep:       (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTLISTADDR))),
-	setup:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTSETUPSTAT))),
-	flush:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTFLUSH))),
-	prime:    (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTPRIME))),
-	stat:     (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTSTAT))),
-	complete: (*uint32)(unsafe.Pointer(uintptr(USB_UOG1_ENDPTCOMPLETE))),
+	ccgr:     CCM_CCGR6,
+	pll:      CCM_ANALOG_PLL_USB1,
+	ctrl:     USBPHY1_CTRL,
+	pwd:      USBPHY1_PWD,
+	chrg:     USB_ANALOG_USB1_CHRG_DETECT,
+	mode:     USB_UOG1_USBMODE,
+	otg:      USB_UOG1_OTGSC,
+	cmd:      USB_UOG1_USBCMD,
+	addr:     USB_UOG1_DEVICEADDR,
+	sts:      USB_UOG1_USBSTS,
+	sc:       USB_UOG1_PORTSC1,
+	ep:       USB_UOG1_ENDPTLISTADDR,
+	setup:    USB_UOG1_ENDPTSETUPSTAT,
+	flush:    USB_UOG1_ENDPTFLUSH,
+	prime:    USB_UOG1_ENDPTPRIME,
+	stat:     USB_UOG1_ENDPTSTAT,
+	complete: USB_UOG1_ENDPTCOMPLETE,
 	epctrl:   USB_UOG1_ENDPTCTRL,
 }
 
@@ -181,7 +180,7 @@ func (hw *usb) Init() {
 	reg.Clear(hw.ctrl, USBPHY1_CTRL_CLKGATE)
 
 	// clear power down
-	*(hw.pwd) = 0x00000000
+	reg.Write(hw.pwd, 0x00000000)
 
 	// enable UTMI+
 	reg.Set(hw.ctrl, USBPHY1_CTRL_ENUTMILEVEL3)
@@ -205,15 +204,15 @@ func (hw *usb) Reset() {
 	// p3792, 56.4.6.2.1 Bus Reset, IMX6ULLRM
 
 	// read and write back to clear setup token semaphores
-	*(hw.setup) |= *(hw.setup)
+	reg.WriteBack(hw.setup)
 	// read and write back to clear setup status
-	*(hw.complete) |= *(hw.complete)
+	reg.WriteBack(hw.complete)
 	// flush endpoint buffers
-	*(hw.flush) = 0xffffffff
+	reg.Write(hw.flush, 0xffffffff)
 
 	log.Printf("imx6_usb: waiting for port reset\n")
 	reg.Wait(hw.sc, PORTSC_PR, 0b1, 0)
 
 	// clear reset
-	*(hw.sts) |= (1<<USBSTS_URI | 1<<USBSTS_UI)
+	reg.Or(hw.sts, (1<<USBSTS_URI | 1<<USBSTS_UI))
 }
