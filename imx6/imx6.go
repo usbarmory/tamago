@@ -12,7 +12,9 @@
 package imx6
 
 import (
-	"unsafe"
+	_ "unsafe"
+
+	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
 const USB_ANALOG_DIGPROG uint32 = 0x020c8260
@@ -63,7 +65,7 @@ func initRNG() {
 // SiliconVersion returns the SoC silicon version information
 // (p3945, 57.4.11 Chip Silicon Version (USB_ANALOG_DIGPROG), IMX6ULLRM).
 func SiliconVersion() (sv, family, revMajor, revMinor uint32) {
-	sv = (*(*uint32)(unsafe.Pointer(uintptr(USB_ANALOG_DIGPROG))))
+	sv = reg.Read(USB_ANALOG_DIGPROG)
 
 	family = (sv >> 16) & 0xff
 	revMajor = (sv >> 8) & 0xff
