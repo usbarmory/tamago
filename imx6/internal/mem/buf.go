@@ -6,8 +6,6 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package mem provides primitives for data structure memory allocation and
-// alignment.
 package mem
 
 import (
@@ -70,8 +68,4 @@ func (ab *AlignmentBuffer) Data() []byte {
 // Fill copies a byte array to an aligned buffer.
 func Copy(ab *AlignmentBuffer, data []byte) {
 	copy(ab.Buf[ab.Offset:], data)
-}
-
-func check(addr int, align int) bool {
-	return addr&(align-1) == 0
 }

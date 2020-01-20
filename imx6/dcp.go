@@ -19,7 +19,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/iram"
+	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
@@ -158,8 +158,6 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	// p1057, 13.1.1 DCP Limitations for Software, MCIMX28RM
 	// * any byte alignment is supported but 4 bytes one leads to better
 	//   performance
-	//
-	// Therefore for now we operate without mem.AlignedBuffer.
 	workPacket := &WorkPacket{}
 
 	workPacket.Control0 |= (1 << DCP_CTRL0_INTERRUPT_ENABL)
@@ -178,15 +176,15 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	defer hw.Unlock()
 
 	workPacket.BufferSize = uint32(len(diversifier))
-	workPacket.SourceBufferAddress = iram.Write("dcp_diversifier", diversifier)
-	defer iram.Free("dcp_diversifier")
+	workPacket.SourceBufferAddress = mem.Alloc(diversifier, 0)
+	defer mem.Free(workPacket.SourceBufferAddress)
 
-	workPacket.DestinationBufferAddress = iram.Write("dcp_key", key)
-	defer iram.Free("dcp_key")
+	workPacket.DestinationBufferAddress = mem.Alloc(key, 0)
+	defer mem.Free(workPacket.DestinationBufferAddress)
 
 	// p1073, Table 13-12. DCP Payload Field, MCIMX28RM
-	workPacket.PayloadPointer = iram.Write("dcp_iv", iv)
-	defer iram.Free("dcp_iv")
+	workPacket.PayloadPointer = mem.Alloc(iv, 0)
+	defer mem.Free(workPacket.PayloadPointer)
 
 	// clear channel status
 	reg.Write(HW_DCP_CH0STAT_CLR, 0xffffffff)
@@ -194,8 +192,8 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, workPacket)
 
-	pkt := iram.Write("dcp_pkt", buf.Bytes())
-	defer iram.Free("dcp_pkt")
+	pkt := mem.Alloc(buf.Bytes(), 0)
+	defer mem.Free(pkt)
 
 	reg.Write(HW_DCP_CH0CMDPTR, pkt)
 	reg.Set(HW_DCP_CH0SEMA, 1)
@@ -214,7 +212,7 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 		}
 	}
 
-	key = iram.Read("dcp_key")
+	key = mem.Read(workPacket.DestinationBufferAddress)
 
 	return
 }

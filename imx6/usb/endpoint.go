@@ -12,7 +12,8 @@
 package usb
 
 import (
-	"errors"
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"log"
 	"unsafe"
@@ -47,17 +48,21 @@ const (
 // dTD implements
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
 type dTD struct {
-	next   *dTD // FIXME
+	next   uint32
 	token  uint32
 	buffer [5]uint32
+
+	// DMA buffer pointers
+	_dtd   uint32
+	_pages uint32
 }
 
 // dQH implements
 // p3784, 56.4.5.1 Endpoint Queue Head (dQH), IMX6ULLRM.
 type dQH struct {
 	info    uint32
-	current *dTD // FIXME
-	next    *dTD // FIXME
+	current uint32
+	next    uint32
 	token   uint32
 	buffer  [5]uint32
 
@@ -92,13 +97,8 @@ func (ep *EndPointList) get(n int, dir int) dQH {
 }
 
 // next sets the next endpoint transfer pointer
-func (ep *EndPointList) next(n int, dir int, next *dTD) {
+func (ep *EndPointList) next(n int, dir int, next uint32) {
 	ep.List[n*2+dir].next = next
-}
-
-// max returns the endpoint Maximum Packet Length
-func (ep *EndPointList) max(n int, dir int) int {
-	return int(ep.List[n*2+dir].info>>16) & 0x7ff
 }
 
 // reset clears the endpoint status
@@ -134,17 +134,9 @@ func (ep *EndPointList) set(n int, dir int, max int, zlt int, mult int) {
 
 // addDTD configures an endpoint transfer descriptor as described in
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
-func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD, dtdBuf *mem.AlignmentBuffer, pages *mem.AlignmentBuffer, err error) {
-	size := len(data)
-
-	if size > DTD_PAGES*DTD_PAGE_SIZE {
-		return nil, nil, nil, errors.New("unsupported transfer size")
-	}
-
-	dtdBuf = mem.NewAlignmentBuffer(unsafe.Sizeof(dTD{}), 32)
-	dtd = (*dTD)(dtdBuf.Ptr())
-
+func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD) {
 	// p3809, 56.4.6.6.2 Building a Transfer Descriptor, IMX6ULLRM
+	dtd = &dTD{}
 
 	// interrupt on completion (ioc)
 	if ioc {
@@ -153,23 +145,26 @@ func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD, dtdBuf *mem.Alig
 		bits.Clear(&dtd.token, 15)
 	}
 
+	// invalidate next pointer
+	dtd.next = 0x1
 	// multiplier override (MultO)
 	bits.SetN(&dtd.token, 10, 0b11, 0)
 	// active status
 	bits.Set(&dtd.token, 7)
-
-	pages = mem.NewAlignmentBuffer(DTD_PAGE_SIZE*DTD_PAGES, DTD_PAGE_SIZE)
-	mem.Copy(pages, data)
-
 	// total bytes
-	bits.SetN(&dtd.token, 16, 0xffff, uint32(size))
+	bits.SetN(&dtd.token, 16, 0xffff, uint32(len(data)))
+
+	dtd._pages = mem.Alloc(data, DTD_PAGE_SIZE)
 
 	for n := 0; n < DTD_PAGES; n++ {
-		dtd.buffer[n] = pages.Addr() + uint32(DTD_PAGE_SIZE*n)
+		dtd.buffer[n] = dtd._pages + uint32(DTD_PAGE_SIZE*n)
 	}
 
-	// invalidate next pointer
-	dtd.next = (*dTD)(unsafe.Pointer(uintptr(1)))
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, dtd)
+
+	// skip internal DMA buffer pointers
+	dtd._dtd = mem.Alloc(buf.Bytes()[0:28], 32)
 
 	return
 }
@@ -181,13 +176,7 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	var data []byte
 	var dtds []*dTD
 
-	// All aligned buffers must be kept around to avoid GC wiping them out,
-	// it doesn't work simply including them in the dTD structure as
-	// pointers.
-	var dtdBufs []*mem.AlignmentBuffer
-	var pktBufs []*mem.AlignmentBuffer
-
-	max := hw.EP.max(n, dir)
+	max := DTD_PAGES * DTD_PAGE_SIZE
 
 	if dir == IN {
 		data = in
@@ -197,29 +186,12 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 
 	dtdLength := len(data)
 
-	if n != 0 {
-		// On non-control IN endpoints, for simplicity, we configure
-		// each dTD exactly one packet (dTD.TotalBytes == dQH.MaxPacketLength).
-
-		if dtdLength > max {
-			dtdLength = max
-		}
+	if dtdLength > max {
+		dtdLength = max
 	}
 
-	dtd, buf, pages, err := buildDTD(n, dir, ioc, data[0:dtdLength])
-
-	if err != nil {
-		return
-	}
-
-	// set dQH head pointer
-	hw.EP.next(n, dir, dtd)
-	// reset dQH status
-	hw.EP.reset(n, dir)
-
+	dtd := buildDTD(n, dir, ioc, data[0:dtdLength])
 	dtds = append(dtds, dtd)
-	dtdBufs = append(dtdBufs, buf)
-	pktBufs = append(pktBufs, pages)
 
 	for i := dtdLength; i < len(data); i += dtdLength {
 		size := i + dtdLength
@@ -228,19 +200,19 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 			size = len(data)
 		}
 
-		next, buf, pages, err := buildDTD(n, dir, ioc, data[i:size])
+		next := buildDTD(n, dir, ioc, data[i:size])
 
-		if err != nil {
-			return nil, err
-		}
+		// treat dtd.next as a register within the dtd DMA buffer
+		reg.Write(dtd._dtd, next._dtd)
 
-		dtd.next = next
 		dtd = next
-
 		dtds = append(dtds, next)
-		dtdBufs = append(dtdBufs, buf)
-		pktBufs = append(pktBufs, pages)
 	}
+
+	// set dQH head pointer
+	hw.EP.next(n, dir, dtds[0]._dtd)
+	// reset dQH status
+	hw.EP.reset(n, dir)
 
 	// hw.prime IN:ENDPTPRIME_PETB+n    OUT:ENDPTPRIME_PERB+n
 	// hw.pos   IN:ENDPTCOMPLETE_ETCE+n OUT:ENDPTCOMPLETE_ERCE+n
@@ -257,18 +229,24 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	reg.Write(hw.complete, 1<<pos)
 
 	for i, dtd := range dtds {
-		bits.Wait(&dtd.token, 7, 0b1, 0)
+		defer mem.Free(dtd._dtd)
+		defer mem.Free(dtd._pages)
 
-		if status := (dtd.token & 0xff); status != 0x00 {
+		// Treat dtd.token as a register within the dtd DMA buffer
+		token := dtd._dtd + 4
+
+		reg.Wait(token, 7, 0b1, 0)
+
+		if status := reg.Get(token, 0, 0xff); status != 0x00 {
 			return nil, fmt.Errorf("error status for dTD #%d, %x", i, status)
 		}
 
 		// p3787 "This field is decremented by the number of bytes
 		// actually moved during the transaction", IMX6ULLRM.
-		size := dtdLength - int(bits.Get(&dtd.token, 16, 0xffff))
+		size := dtdLength - int(reg.Get(token, 16, 0xffff))
 
 		if n != 0 && dir == OUT && size != 0 {
-			out = append(out, pktBufs[i].Data()[0:size]...)
+			out = append(out, mem.Read(dtd._pages)[0:size]...)
 		}
 
 		if dir == IN && size != dtdLength {
@@ -327,22 +305,22 @@ func (hw *usb) enable(n int, dir int, transferType int) {
 	if dir == IN {
 		c |= (1 << ENDPTCTRL_TXE)
 		c |= (1 << ENDPTCTRL_TXR)
-		c = (c & (^(uint32(0b11) <<ENDPTCTRL_TXT))) | (uint32(transferType) <<ENDPTCTRL_TXT)
+		c = (c & (^(uint32(0b11) << ENDPTCTRL_TXT))) | (uint32(transferType) << ENDPTCTRL_TXT)
 		c &^= (1 << ENDPTCTRL_TXS)
 
 		if reg.Get(ctrl, ENDPTCTRL_RXE, 0b1) == 0 {
 			// see note at p3879 of IMX6ULLRM
-			c = (c & (^(uint32(0b11) <<ENDPTCTRL_RXT))) | (BULK <<ENDPTCTRL_RXT)
+			c = (c & (^(uint32(0b11) << ENDPTCTRL_RXT))) | (BULK << ENDPTCTRL_RXT)
 		}
 	} else {
 		c |= (1 << ENDPTCTRL_RXE)
 		c |= (1 << ENDPTCTRL_RXR)
-		c = (c & (^(uint32(0b11) <<ENDPTCTRL_RXT))) | (uint32(transferType) <<ENDPTCTRL_RXT)
+		c = (c & (^(uint32(0b11) << ENDPTCTRL_RXT))) | (uint32(transferType) << ENDPTCTRL_RXT)
 		c &^= (1 << ENDPTCTRL_RXS)
 
 		if reg.Get(ctrl, ENDPTCTRL_TXE, 0b1) == 0 {
 			// see note at p3879 of IMX6ULLRM
-			c = (c & (^(uint32(0b11) <<ENDPTCTRL_TXT))) | (BULK <<ENDPTCTRL_TXT)
+			c = (c & (^(uint32(0b11) << ENDPTCTRL_TXT))) | (BULK << ENDPTCTRL_TXT)
 		}
 	}
 
