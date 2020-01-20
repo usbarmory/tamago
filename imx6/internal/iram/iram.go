@@ -18,7 +18,8 @@
 // allocations, they cannot be reclaimed or deallocated, but only zeroed.
 //
 // For the current required device drivers this is perfectly adequate, moving
-// to a more complex allocation will be performed only if required.
+// to a more complex allocation, or replacing iRAM with RAM based scratch space
+// if size becomes a constraint for DMA transfers, will be performed as needed.
 package iram
 
 import (
@@ -29,8 +30,9 @@ const iramStart uint32 = 0x00900000
 const iramSize uint32 = 0x20000
 
 type block struct {
-	addr uint32
-	size int
+	start uint32
+	end   uint32
+	size  int
 }
 
 var blocks map[string]*block
@@ -45,7 +47,7 @@ func (b *block) read() []byte {
 	data := make([]byte, b.size)
 
 	for i := 0; i < b.size; i++ {
-		data[i] = *(*byte)(unsafe.Pointer(uintptr(b.addr + uint32(i))))
+		data[i] = *(*byte)(unsafe.Pointer(uintptr(b.start + uint32(i))))
 	}
 
 	return data
@@ -55,13 +57,13 @@ func (b *block) write(data []byte) {
 	b.size = len(data)
 
 	for i := range data {
-		*(*byte)(unsafe.Pointer(uintptr(b.addr + uint32(i)))) = data[i]
+		*(*byte)(unsafe.Pointer(uintptr(b.start + uint32(i)))) = data[i]
 	}
 }
 
 func (b *block) free() {
 	for i := 0; i < b.size; i++ {
-		*(*byte)(unsafe.Pointer(uintptr(b.addr + uint32(i)))) = 0x00
+		*(*byte)(unsafe.Pointer(uintptr(b.start + uint32(i)))) = 0x00
 	}
 }
 
@@ -74,37 +76,52 @@ func Read(tag string) (data []byte) {
 	return
 }
 
-// Copy copies a byte array in internal memory and return its allocation
-// pointer, a string tag allows to re-use the previously allocated memory slot.
-func Write(tag string, data []byte) uint32 {
+// Write copies a byte array in internal memory and return its allocation
+// pointer, with optional alignment, a string tag allows to re-use the
+// previously allocated memory slot as long as data size is less or equal than
+// what previously allocated.
+func Write(tag string, data []byte, align int) uint32 {
 	var b *block
 	var exists bool
 
 	size := len(data)
 
 	if b, exists = blocks[tag]; exists {
-		if size > b.size {
-			panic("attempt to re-use slot but with larger size (" + tag + ")")
+		if size > int(b.end - b.start) {
+			panic("attempt to re-use slot with larger size (" + tag + ")")
+		}
+
+		if align != 0 && !check(int(b.start), align) {
+			panic("attempt to re-use slot with different alignment")
 		}
 
 		b.size = size
 	} else {
-		if lastFree+uint32(size) >= (iramStart + iramSize) {
+		start := int(lastFree)
+
+		if align > 0 && !check(start, align) {
+			if r := start & (align - 1); r != 0 {
+				start += (align - r)
+			}
+		}
+
+		if uint32(start + size) >= (iramStart + iramSize) {
 			panic("out of iram memory")
 		}
 
 		b = &block{
-			addr: lastFree,
+			start: uint32(start),
+			end: uint32(start + size),
 			size: size,
 		}
 
 		blocks[tag] = b
-		lastFree += uint32(size)
+		lastFree = b.start + uint32(size)
 	}
 
 	b.write(data)
 
-	return b.addr
+	return b.start
 }
 
 // Free clears a previously allocated internal memory block by zeroing out its
@@ -114,4 +131,8 @@ func Free(tag string) {
 	if b, ok := blocks[tag]; ok {
 		b.free()
 	}
+}
+
+func check(addr int, align int) bool {
+	return addr&(align-1) == 0
 }
