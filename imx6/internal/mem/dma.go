@@ -185,6 +185,12 @@ func Alloc(data []byte, align int) uint32 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
+	size := len(data)
+
+	if size == 0 {
+		return 0
+	}
+
 	b := alloc(len(data), align)
 	b.write(data)
 
@@ -195,25 +201,40 @@ func Alloc(data []byte, align int) uint32 {
 
 // Read returns the data buffer stored at the corresponding a memory region
 // address, the region must have been previously allocated with `Alloc`.
-func Read(addr uint32) (data []byte) {
+func Read(addr uint32) []byte {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	if b, ok := usedBlocks[addr]; ok {
-		data = b.read()
+	if addr == 0 {
+		return []byte{}
 	}
 
-	return
+	b, ok := usedBlocks[addr]
+
+	if !ok {
+		panic("read of unallocated pointer")
+	}
+
+	return b.read()
 }
 
 // Free frees the memory region stored at the passed address, the region must
-// have been previously allocated with `Alloc`.
+// have been previously allocated with `Alloc`. A region can only be freed
+// once, otherwise a panic occurs.
 func Free(addr uint32) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	if b, ok := usedBlocks[addr]; ok {
-		free(b)
-		delete(usedBlocks, addr)
+	if addr == 0 {
+		return
 	}
+
+	b, ok := usedBlocks[addr]
+
+	if !ok {
+		panic("free of unallocated pointer")
+	}
+
+	free(b)
+	delete(usedBlocks, addr)
 }
