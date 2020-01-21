@@ -162,6 +162,7 @@ func check(addr int, align int) bool {
 // Init initializes a memory region for DMA buffer allocation.
 func Init(start uint32, size int) {
 	mutex.Lock()
+	// note: cannot defer during initialization
 
 	// single block fitting all available memory
 	b := &block{
@@ -206,7 +207,7 @@ func Read(addr uint32) (data []byte) {
 }
 
 // Free frees the memory region stored at the passed address, the region must
-// have been previously allocatd with `Alloc`.
+// have been previously allocated with `Alloc`.
 func Free(addr uint32) {
 	mutex.Lock()
 	defer mutex.Unlock()
