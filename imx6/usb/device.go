@@ -42,13 +42,11 @@ func (hw *usb) DeviceMode() {
 	reg.Write(hw.mode, m)
 	reg.Wait(hw.mode, USBMODE_CM, 0b11, USBMODE_CM_DEVICE)
 
-	// set endpoint queue head
-	hw.EP.init()
-	reg.Write(hw.ep, hw.EP.buf.Addr())
-
+	// initialize endpoint queue head list
+	hw.initEP()
 	// set control endpoint
-	hw.EP.set(0, IN, 64, 0, 0)
-	hw.EP.set(0, OUT, 64, 0, 0)
+	hw.setEP(0, IN, 64, 0, 0)
+	hw.setEP(0, OUT, 64, 0, 0)
 
 	// set OTG termination
 	reg.Set(hw.otg, OTGSC_OT)
@@ -119,7 +117,7 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) 
 		}
 
 		if !ep.enabled {
-			hw.EP.set(n, dir, int(ep.MaxPacketSize), 1, 0)
+			hw.setEP(n, dir, int(ep.MaxPacketSize), 1, 0)
 			hw.enable(n, dir, ep.TransferType())
 			ep.enabled = true
 		}

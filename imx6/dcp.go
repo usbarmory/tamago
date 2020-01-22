@@ -158,7 +158,7 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	// p1057, 13.1.1 DCP Limitations for Software, MCIMX28RM
 	// * any byte alignment is supported but 4 bytes one leads to better
 	//   performance
-	workPacket := &WorkPacket{}
+	workPacket := WorkPacket{}
 
 	workPacket.Control0 |= (1 << DCP_CTRL0_INTERRUPT_ENABL)
 	workPacket.Control0 |= (1 << DCP_CTRL0_DECR_SEMAPHORE)
@@ -166,7 +166,7 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	workPacket.Control0 |= (1 << DCP_CTRL0_CIPHER_ENCRYPT)
 	workPacket.Control0 |= (1 << DCP_CTRL0_CIPHER_INIT)
 	// Use device-specific hardware key, payload does not contain the key.
-	workPacket.Control0 |= (1 <<  DCP_CTRL0_OTP_KEY)
+	workPacket.Control0 |= (1 << DCP_CTRL0_OTP_KEY)
 
 	workPacket.Control1 |= (AES128 << DCP_CTRL1_CIPHER_SELECT)
 	workPacket.Control1 |= (CBC << DCP_CTRL1_CIPHER_MODE)
@@ -190,7 +190,7 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	reg.Write(HW_DCP_CH0STAT_CLR, 0xffffffff)
 
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, workPacket)
+	binary.Write(buf, binary.LittleEndian, &workPacket)
 
 	pkt := mem.Alloc(buf.Bytes(), 0)
 	defer mem.Free(pkt)
@@ -212,7 +212,7 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 		}
 	}
 
-	key = mem.Read(workPacket.DestinationBufferAddress)
+	key = mem.Read(workPacket.DestinationBufferAddress, 0, len(key))
 
 	return
 }

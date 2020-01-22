@@ -16,10 +16,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
-	"unsafe"
 
 	"github.com/f-secure-foundry/tamago/imx6/internal/bits"
-	"github.com/f-secure-foundry/tamago/imx6/internal/cache"
 	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
@@ -40,17 +38,27 @@ const (
 	BULK        = 2
 	INTERRUPT   = 3
 
+	// p3784, 56.4.5.1 Endpoint Queue Head (dQH), IMX6ULLRM
+	DQH_LIST_ALIGN = 2048
+	DQH_ALIGN      = 64
+	DQH_SIZE       = 64
+	DQH_NEXT       = 8
+	DQH_TOKEN      = 12
+
 	// p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM
+	DTD_ALIGN     = 32
+	DTD_SIZE      = 28
 	DTD_PAGES     = 5
 	DTD_PAGE_SIZE = 4096
+	DTD_TOKEN     = 4
 )
 
 // dTD implements
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
 type dTD struct {
-	next   uint32
-	token  uint32
-	buffer [5]uint32
+	Next   uint32
+	Token  uint32
+	Buffer [5]uint32
 
 	// DMA buffer pointers
 	_dtd   uint32
@@ -60,76 +68,96 @@ type dTD struct {
 // dQH implements
 // p3784, 56.4.5.1 Endpoint Queue Head (dQH), IMX6ULLRM.
 type dQH struct {
-	info    uint32
-	current uint32
-	next    uint32
-	token   uint32
-	buffer  [5]uint32
+	Info    uint32
+	Current uint32
+	Next    uint32
+	Token   uint32
+	Buffer  [5]uint32
 
-	_res uint32
+	// reserved
+	_ uint32
 
 	// The Set-up Buffer will be filled by hardware, note that after this
 	// happens endianess needs to be adjusted with SetupData.swap().
-	setup SetupData
+	Setup SetupData
 
 	// We align only the first queue entry, so we need a 4*uint32 gap to
 	// maintain 64-byte boundaries.
-	_align [4]uint32
+	_ [4]uint32
 }
 
-// EndPointList implements
+// EndpointList implements
 // p3783, 56.4.5 Device Data Structures, IMX6ULLRM.
-type EndPointList struct {
-	List *[MAX_ENDPOINTS * 2]dQH
+type EndpointList [MAX_ENDPOINTS * 2]dQH
 
-	buf *mem.AlignmentBuffer
+// initEP initializes the endpoint queue head list
+func (hw *usb) initEP() {
+	var epList EndpointList
+	buf := new(bytes.Buffer)
+
+	binary.Write(buf, binary.LittleEndian, &epList)
+	epListAddr := mem.Alloc(buf.Bytes(), DQH_LIST_ALIGN)
+
+	// set endpoint queue head
+	reg.Write(hw.eplist, epListAddr)
 }
 
-func (ep *EndPointList) init() {
-	ep.buf = mem.NewAlignmentBuffer(unsafe.Sizeof(ep.List), 2048)
-	ep.List = (*[MAX_ENDPOINTS * 2]dQH)(ep.buf.Ptr())
-}
-
-// get returns the Endpoint Queue Head (dQH)
-func (ep *EndPointList) get(n int, dir int) dQH {
-	cache.FlushData()
-	return ep.List[n*2+dir]
-}
-
-// next sets the next endpoint transfer pointer
-func (ep *EndPointList) next(n int, dir int, next uint32) {
-	ep.List[n*2+dir].next = next
-}
-
-// reset clears the endpoint status
-func (ep *EndPointList) reset(n int, dir int) {
-	cache.FlushData()
-	bits.SetN(&ep.List[n*2+dir].token, 0, 0xff, 0)
-}
-
-// set configures a queue head as described in
+// setEP configures a queue head as described in
 // p3784, 56.4.5.1 Endpoint Queue Head, IMX6ULLRM.
-func (ep *EndPointList) set(n int, dir int, max int, zlt int, mult int) {
-	off := n*2 + dir
+func (hw *usb) setEP(n int, dir int, max int, zlt int, mult int) {
+	dqh := dQH{}
 
 	// Mult
-	bits.SetN(&ep.List[off].info, 30, 0b11, uint32(mult))
+	bits.SetN(&dqh.Info, 30, 0b11, uint32(mult))
 	// zlt
-	bits.SetN(&ep.List[off].info, 29, 0b1, uint32(zlt))
+	bits.SetN(&dqh.Info, 29, 0b1, uint32(zlt))
 	// Maximum Packet Length
-	bits.SetN(&ep.List[off].info, 16, 0x7ff, uint32(max))
+	bits.SetN(&dqh.Info, 16, 0x7ff, uint32(max))
 
 	if n == 0 && dir == IN {
 		// interrupt on setup (ios)
-		bits.Set(&ep.List[off].info, 15)
+		bits.Set(&dqh.Info, 15)
 	}
 
 	// Total bytes
-	bits.SetN(&ep.List[off].token, 16, 0xffff, 0)
+	bits.SetN(&dqh.Token, 16, 0xffff, 0)
 	// interrupt on completion (ioc)
-	bits.Set(&ep.List[off].token, 15)
+	bits.Set(&dqh.Token, 15)
 	// multiplier override (MultO)
-	bits.SetN(&ep.List[off].token, 10, 0b11, 0)
+	bits.SetN(&dqh.Token, 10, 0b11, 0)
+
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, &dqh)
+
+	epListAddr := reg.Read(hw.eplist)
+	offset := (n*2 + dir) * DQH_SIZE
+	mem.Write(epListAddr, buf.Bytes(), offset)
+}
+
+// getEP returns an Endpoint Queue Head (dQH)
+func (hw *usb) getEP(n int, dir int) (dqh dQH) {
+	epListAddr := reg.Read(hw.eplist)
+	offset := (n*2 + dir) * DQH_SIZE
+
+	buf := bytes.NewBuffer(mem.Read(epListAddr, offset, DQH_SIZE))
+	err := binary.Read(buf, binary.LittleEndian, &dqh)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return
+}
+
+// next sets the next endpoint transfer pointer
+func (hw *usb) nextDTD(n int, dir int, next uint32) {
+	offset := (n*2 + dir) * DQH_SIZE
+	dqh := reg.Read(hw.eplist) + uint32(offset)
+
+	// set next dTD
+	reg.Write(dqh+uint32(DQH_NEXT), next)
+	// reset endpoint status
+	reg.SetN(dqh+uint32(DQH_TOKEN), 0, 0xff, 0)
 }
 
 // addDTD configures an endpoint transfer descriptor as described in
@@ -140,31 +168,31 @@ func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD) {
 
 	// interrupt on completion (ioc)
 	if ioc {
-		bits.Set(&dtd.token, 15)
+		bits.Set(&dtd.Token, 15)
 	} else {
-		bits.Clear(&dtd.token, 15)
+		bits.Clear(&dtd.Token, 15)
 	}
 
 	// invalidate next pointer
-	dtd.next = 0x1
+	dtd.Next = 0x1
 	// multiplier override (MultO)
-	bits.SetN(&dtd.token, 10, 0b11, 0)
+	bits.SetN(&dtd.Token, 10, 0b11, 0)
 	// active status
-	bits.Set(&dtd.token, 7)
+	bits.Set(&dtd.Token, 7)
 	// total bytes
-	bits.SetN(&dtd.token, 16, 0xffff, uint32(len(data)))
+	bits.SetN(&dtd.Token, 16, 0xffff, uint32(len(data)))
 
 	dtd._pages = mem.Alloc(data, DTD_PAGE_SIZE)
 
 	for n := 0; n < DTD_PAGES; n++ {
-		dtd.buffer[n] = dtd._pages + uint32(DTD_PAGE_SIZE*n)
+		dtd.Buffer[n] = dtd._pages + uint32(DTD_PAGE_SIZE*n)
 	}
 
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, dtd)
 
 	// skip internal DMA buffer pointers
-	dtd._dtd = mem.Alloc(buf.Bytes()[0:28], 32)
+	dtd._dtd = mem.Alloc(buf.Bytes()[0:DTD_SIZE], DTD_ALIGN)
 
 	return
 }
@@ -191,6 +219,9 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	}
 
 	dtd := buildDTD(n, dir, ioc, data[0:dtdLength])
+	defer mem.Free(dtd._dtd)
+	defer mem.Free(dtd._pages)
+
 	dtds = append(dtds, dtd)
 
 	for i := dtdLength; i < len(data); i += dtdLength {
@@ -201,6 +232,8 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 		}
 
 		next := buildDTD(n, dir, ioc, data[i:size])
+		defer mem.Free(next._dtd)
+		defer mem.Free(next._pages)
 
 		// treat dtd.next as a register within the dtd DMA buffer
 		reg.Write(dtd._dtd, next._dtd)
@@ -210,9 +243,7 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	}
 
 	// set dQH head pointer
-	hw.EP.next(n, dir, dtds[0]._dtd)
-	// reset dQH status
-	hw.EP.reset(n, dir)
+	hw.nextDTD(n, dir, dtds[0]._dtd)
 
 	// hw.prime IN:ENDPTPRIME_PETB+n    OUT:ENDPTPRIME_PERB+n
 	// hw.pos   IN:ENDPTCOMPLETE_ETCE+n OUT:ENDPTCOMPLETE_ERCE+n
@@ -229,12 +260,8 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	reg.Write(hw.complete, 1<<pos)
 
 	for i, dtd := range dtds {
-		defer mem.Free(dtd._dtd)
-		defer mem.Free(dtd._pages)
-
 		// Treat dtd.token as a register within the dtd DMA buffer
-		token := dtd._dtd + 4
-
+		token := dtd._dtd + DTD_TOKEN
 		reg.Wait(token, 7, 0b1, 0)
 
 		if status := reg.Get(token, 0, 0xff); status != 0x00 {
@@ -246,7 +273,7 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 		size := dtdLength - int(reg.Get(token, 16, 0xffff))
 
 		if n != 0 && dir == OUT && size != 0 {
-			out = append(out, mem.Read(dtd._pages)[0:size]...)
+			out = append(out, mem.Read(dtd._pages, 0, size)...)
 		}
 
 		if dir == IN && size != dtdLength {

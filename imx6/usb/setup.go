@@ -56,11 +56,11 @@ const (
 // SetupData implements
 // p276, Table 9-2. Format of Setup Data, USB Specification Revision 2.0.
 type SetupData struct {
-	bRequestType uint8
-	bRequest     uint8
-	wValue       uint16
-	wIndex       uint16
-	wLength      uint16
+	RequestType uint8
+	Request     uint8
+	Value       uint16
+	Index       uint16
+	Length      uint16
 }
 
 // swap adjusts the endianness of values written in memory by the hardware, as
@@ -68,11 +68,11 @@ type SetupData struct {
 func (s *SetupData) swap() {
 	b := make([]byte, 2)
 
-	binary.BigEndian.PutUint16(b, s.wValue)
-	s.wValue = binary.LittleEndian.Uint16(b)
+	binary.BigEndian.PutUint16(b, s.Value)
+	s.Value = binary.LittleEndian.Uint16(b)
 
-	binary.BigEndian.PutUint16(b, s.wIndex)
-	s.wIndex = binary.LittleEndian.Uint16(b)
+	binary.BigEndian.PutUint16(b, s.Index)
+	s.Index = binary.LittleEndian.Uint16(b)
 }
 
 func (hw *usb) getSetup() (setup *SetupData) {
@@ -98,7 +98,7 @@ func (hw *usb) getSetup() (setup *SetupData) {
 	// flush EP0 OUT
 	reg.Set(hw.flush, ENDPTFLUSH_FERB+0)
 
-	*setup = hw.EP.get(0, OUT).setup
+	*setup = hw.getEP(0, OUT).Setup
 	setup.swap()
 
 	return
@@ -109,13 +109,13 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 		return
 	}
 
-	switch setup.bRequest {
+	switch setup.Request {
 	case GET_STATUS:
 		// no meaningful status to report for now
 		log.Printf("imx6_usb: sending device status\n")
 		err = hw.tx(0, false, []byte{0x00, 0x00})
 	case SET_ADDRESS:
-		addr := uint32((setup.wValue<<8)&0xff00 | (setup.wValue >> 8))
+		addr := uint32((setup.Value<<8)&0xff00 | (setup.Value >> 8))
 		log.Printf("imx6_usb: setting address %d\n", addr)
 
 		reg.Set(hw.addr, DEVICEADDR_USBADRA)
@@ -123,24 +123,24 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 
 		err = hw.ack(0)
 	case GET_DESCRIPTOR:
-		bDescriptorType := setup.wValue & 0xff
-		index := setup.wValue >> 8
+		bDescriptorType := setup.Value & 0xff
+		index := setup.Value >> 8
 
 		switch bDescriptorType {
 		case DEVICE:
 			desc := dev.Descriptor.Bytes()
 
 			// the host might request a partial descriptor
-			if int(setup.wLength) < len(desc) {
-				desc = desc[0:setup.wLength]
+			if int(setup.Length) < len(desc) {
+				desc = desc[0:setup.Length]
 			}
 
 			log.Printf("imx6_usb: sending device descriptor\n")
 			err = hw.tx(0, false, desc)
 		case CONFIGURATION:
 			var conf []byte
-			if conf, err = dev.Configuration(index, setup.wLength); err == nil {
-				log.Printf("imx6_usb: sending configuration descriptor %d (%d bytes)\n", index, setup.wLength)
+			if conf, err = dev.Configuration(index, setup.Length); err == nil {
+				log.Printf("imx6_usb: sending configuration descriptor %d (%d bytes)\n", index, setup.Length)
 				err = hw.tx(0, false, conf)
 			}
 		case STRING:
@@ -167,7 +167,7 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 		log.Printf("imx6_usb: sending configuration value %d\n", dev.ConfigurationValue)
 		err = hw.tx(0, false, []byte{dev.ConfigurationValue})
 	case SET_CONFIGURATION:
-		value := uint8(setup.wValue >> 8)
+		value := uint8(setup.Value >> 8)
 		log.Printf("imx6_usb: setting configuration value %d\n", value)
 
 		dev.ConfigurationValue = value
@@ -176,7 +176,7 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 		log.Printf("imx6_usb: sending interface alternate setting value %d\n", dev.AlternateSetting)
 		err = hw.tx(0, false, []byte{dev.AlternateSetting})
 	case SET_INTERFACE:
-		value := uint8(setup.wValue >> 8)
+		value := uint8(setup.Value >> 8)
 		log.Printf("imx6_usb: setting interface alternate setting value %d\n", value)
 
 		dev.AlternateSetting = value
@@ -186,7 +186,7 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 		err = hw.ack(0)
 	default:
 		hw.stall(0, IN)
-		err = fmt.Errorf("unsupported request code: %#x", setup.bRequest)
+		err = fmt.Errorf("unsupported request code: %#x", setup.Request)
 	}
 
 	return

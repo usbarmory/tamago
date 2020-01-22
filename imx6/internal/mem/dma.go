@@ -1,3 +1,4 @@
+// First-fit memory allocator for DMA buffer allocation
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
@@ -22,8 +23,6 @@ import (
 const iramStart uint32 = 0x00900000
 const iramSize = 0x20000
 
-// A simple first-fit memory allocator.
-
 type block struct {
 	addr uint32
 	size int
@@ -34,19 +33,19 @@ var usedBlocks map[uint32]*block
 
 var mutex sync.Mutex
 
-func (b *block) read() []byte {
-	data := make([]byte, b.size)
+func (b *block) read(offset int, size int) []byte {
+	data := make([]byte, size)
 
-	for i := 0; i < b.size; i++ {
-		data[i] = *(*byte)(unsafe.Pointer(uintptr(b.addr + uint32(i))))
+	for i := 0; i < size; i++ {
+		data[i] = *(*byte)(unsafe.Pointer(uintptr(b.addr + uint32(offset+i))))
 	}
 
 	return data
 }
 
-func (b *block) write(data []byte) {
+func (b *block) write(data []byte, offset int) {
 	for i := range data {
-		*(*byte)(unsafe.Pointer(uintptr(b.addr + uint32(i)))) = data[i]
+		*(*byte)(unsafe.Pointer(uintptr(b.addr + uint32(offset+i)))) = data[i]
 	}
 }
 
@@ -78,11 +77,12 @@ func alloc(size int, align int) *block {
 	var e *list.Element
 	var freeBlock *block
 
-	// make room for potential alignment buffer
+	// make room for alignment buffer
 	if align > 0 {
 		size += align
 	}
 
+	// find suitable block
 	for e = freeBlocks.Front(); e != nil; e = e.Next() {
 		b := e.Value.(*block)
 
@@ -96,6 +96,7 @@ func alloc(size int, align int) *block {
 		panic("out of memory")
 	}
 
+	// when we are done remove block from free linked list
 	defer freeBlocks.Remove(e)
 
 	// adjust block to desired size, add new block to leave remainder
@@ -113,6 +114,7 @@ func alloc(size int, align int) *block {
 		if r := int(freeBlock.addr) & (align - 1); r != 0 {
 			offset := align - r
 
+			// claim space between block address and alignment offset
 			newBlockBefore := &block{
 				addr: freeBlock.addr,
 				size: offset,
@@ -125,7 +127,7 @@ func alloc(size int, align int) *block {
 			// original requested size
 			size -= align
 
-			// claim back as much as possible from alignment buffer
+			// claim back leftover from alignment buffer
 			if freeBlock.size > size {
 				newBlockAfter := &block{
 					addr: freeBlock.addr + uint32(size),
@@ -164,7 +166,7 @@ func Init(start uint32, size int) {
 	mutex.Lock()
 	// note: cannot defer during initialization
 
-	// single block fitting all available memory
+	// initialize a single block to fit all available memory
 	b := &block{
 		addr: start,
 		size: size,
@@ -192,16 +194,20 @@ func Alloc(data []byte, align int) uint32 {
 	}
 
 	b := alloc(len(data), align)
-	b.write(data)
+	b.write(data, 0)
 
 	usedBlocks[b.addr] = b
 
 	return b.addr
 }
 
-// Read returns the data buffer stored at the corresponding a memory region
+// Read returns the data buffer stored at the corresponding memory region
 // address, the region must have been previously allocated with `Alloc`.
-func Read(addr uint32) []byte {
+//
+// The offset and size are used to retrieve a slice of the buffer, a panic
+// occurs if these parameters are not compatible with the initial allocation
+// for the address.
+func Read(addr uint32, offset int, size int) []byte {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -215,7 +221,39 @@ func Read(addr uint32) []byte {
 		panic("read of unallocated pointer")
 	}
 
-	return b.read()
+	if offset+size > b.size {
+		panic("invalid read parameters")
+	}
+
+	return b.read(offset, size)
+}
+
+// Write writes in the data buffer stored at the corresponding memory region
+// address, the region must have been previously allocated with `Alloc`.
+//
+// An offset can be pased to write a slice of the buffer, a panic occurs if the
+// offset is not compatible with the initial allocation for the address.
+func Write(addr uint32, data []byte, offset int) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	size := len(data)
+
+	if addr == 0 || size == 0 {
+		return
+	}
+
+	b, ok := usedBlocks[addr]
+
+	if !ok {
+		panic("write of unallocated pointer")
+	}
+
+	if offset+size > b.size {
+		panic("invalid write parameters")
+	}
+
+	b.write(data, offset)
 }
 
 // Free frees the memory region stored at the passed address, the region must

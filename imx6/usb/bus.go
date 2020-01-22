@@ -119,15 +119,13 @@ type usb struct {
 	addr     uint32
 	sts      uint32
 	sc       uint32
-	ep       uint32
+	eplist   uint32
 	setup    uint32
 	flush    uint32
 	prime    uint32
 	stat     uint32
 	complete uint32
 	epctrl   uint32
-
-	EP EndPointList
 }
 
 var USB1 = &usb{
@@ -142,7 +140,7 @@ var USB1 = &usb{
 	addr:     USB_UOG1_DEVICEADDR,
 	sts:      USB_UOG1_USBSTS,
 	sc:       USB_UOG1_PORTSC1,
-	ep:       USB_UOG1_ENDPTLISTADDR,
+	eplist:   USB_UOG1_ENDPTLISTADDR,
 	setup:    USB_UOG1_ENDPTSETUPSTAT,
 	flush:    USB_UOG1_ENDPTFLUSH,
 	prime:    USB_UOG1_ENDPTPRIME,

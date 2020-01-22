@@ -23,7 +23,7 @@ const (
 	OSC_FREQ = 24000000
 
 	CCM_CACRR          uint32 = 0x020c4010
-	CCM_CACRR_ARM_PODF       = 0
+	CCM_CACRR_ARM_PODF        = 0
 
 	CCM_ANALOG_PLL_ARM                uint32 = 0x020c8000
 	CCM_ANALOG_PLL_ARM_LOCK                  = 31
