@@ -1,5 +1,4 @@
-// USB device mode
-
+// USB device mode support
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
