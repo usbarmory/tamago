@@ -13,7 +13,7 @@ package imx6
 
 import (
 	"sync"
-	"unsafe"
+	_ "unsafe"
 
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
@@ -43,21 +43,9 @@ const (
 
 type rngb struct {
 	sync.Mutex
-
-	cmd    *uint32
-	ctrl   *uint32
-	status *uint32
-	err    *uint32
-	fifo   *uint32
 }
 
-var RNGB = &rngb{
-	cmd:    (*uint32)(unsafe.Pointer(uintptr(HW_RNG_CMD))),
-	ctrl:   (*uint32)(unsafe.Pointer(uintptr(HW_RNG_CR))),
-	status: (*uint32)(unsafe.Pointer(uintptr(HW_RNG_SR))),
-	err:    (*uint32)(unsafe.Pointer(uintptr(HW_RNG_ESR))),
-	fifo:   (*uint32)(unsafe.Pointer(uintptr(HW_RNG_OUT))),
-}
+var RNGB = &rngb{}
 
 var lcg uint32
 var getRandomDataFn func([]byte)
@@ -91,28 +79,28 @@ func (hw *rngb) Init() {
 	// p3105, 44.5.2 Automatic seeding, IMX6ULLRM
 
 	// clear errors
-	reg.Set(hw.cmd, HW_RNG_CMD_CE)
+	reg.Set(HW_RNG_CMD, HW_RNG_CMD_CE)
 
 	// soft reset RNGB
-	reg.Set(hw.cmd, HW_RNG_CMD_SR)
+	reg.Set(HW_RNG_CMD, HW_RNG_CMD_SR)
 
 	// perform self-test
-	reg.Set(hw.cmd, HW_RNG_CMD_ST)
+	reg.Set(HW_RNG_CMD, HW_RNG_CMD_ST)
 
 	print("imx6_rng: self-test\n")
-	for reg.Get(hw.status, HW_RNG_SR_STDN, 0b1) != 1 {
+	for reg.Get(HW_RNG_SR, HW_RNG_SR_STDN, 0b1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
 
-	if reg.Get(hw.status, HW_RNG_SR_ERR, 0b1) != 0 || reg.Get(hw.status, HW_RNG_SR_ST_PF, 0b1) != 0 {
+	if reg.Get(HW_RNG_SR, HW_RNG_SR_ERR, 0b1) != 0 || reg.Get(HW_RNG_SR, HW_RNG_SR_ST_PF, 0b1) != 0 {
 		panic("imx6_rng: self-test FAIL\n")
 	}
 
 	// enable auto-reseed
-	reg.Set(hw.ctrl, HW_RNG_CR_AR)
+	reg.Set(HW_RNG_CR, HW_RNG_CR_AR)
 
 	print("imx6_rng: seeding\n")
-	for reg.Get(hw.status, HW_RNG_SR_SDN, 0b1) != 1 {
+	for reg.Get(HW_RNG_SR, HW_RNG_SR_SDN, 0b1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
 
@@ -124,13 +112,12 @@ func (hw *rngb) getRandomData(b []byte) {
 	need := len(b)
 
 	for read < need {
-		if reg.Get(hw.status, HW_RNG_SR_ERR, 0b1) != 0 {
+		if reg.Get(HW_RNG_SR, HW_RNG_SR_ERR, 0b1) != 0 {
 			panic("imx6_rng: error during getRandomData\n")
 		}
 
-		if reg.Get(hw.status, HW_RNG_SR_FIFO_LVL, 0b1111) > 0 {
-			val := *hw.fifo
-			read = fill(b, read, val)
+		if reg.Get(HW_RNG_SR, HW_RNG_SR_FIFO_LVL, 0b1111) > 0 {
+			read = fill(b, read, reg.Read(HW_RNG_OUT))
 		}
 	}
 }

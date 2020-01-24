@@ -14,16 +14,16 @@ package imx6
 import (
 	"errors"
 	"log"
-	"unsafe"
 
+	"github.com/f-secure-foundry/tamago/imx6/internal/bits"
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
 const (
 	OSC_FREQ = 24000000
 
-	CCM_CACRR          int32 = 0x020c4010
-	CCM_CACRR_ARM_PODF       = 0
+	CCM_CACRR          uint32 = 0x020c4010
+	CCM_CACRR_ARM_PODF        = 0
 
 	CCM_ANALOG_PLL_ARM                uint32 = 0x020c8000
 	CCM_ANALOG_PLL_ARM_LOCK                  = 31
@@ -39,15 +39,13 @@ const (
 // ARMCoreDiv returns the ARM core divider value
 // (p665, 18.6.5 CCM Arm Clock Root Register, IMX6ULLRM).
 func ARMCoreDiv() (div float32) {
-	cacrr := (*uint32)(unsafe.Pointer(uintptr(CCM_CACRR)))
-	return float32(reg.Get(cacrr, CCM_CACRR_ARM_PODF, 0b111) + 1)
+	return float32(reg.Get(CCM_CACRR, CCM_CACRR_ARM_PODF, 0b111) + 1)
 }
 
 // ARMPLLDiv returns the ARM PLL divider value
 // (p714, 18.7.1 Analog ARM PLL control Register, IMX6ULLRM).
 func ARMPLLDiv() (div float32) {
-	pll := (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_ARM)))
-	return float32(reg.Get(pll, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111)) / 2
+	return float32(reg.Get(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111)) / 2
 }
 
 // ARMFreq returns the ARM core frequency.
@@ -60,8 +58,7 @@ func setOperatingPointIMX6ULL(uV uint32) {
 	var reg0Targ uint32
 	var reg2Targ uint32
 
-	pmu := (*uint32)(unsafe.Pointer(uintptr(PMU_REG_CORE)))
-	curTarg := reg.Get(pmu, PMU_REG_CORE_REG0_TARG, 0b11111)
+	curTarg := reg.Get(PMU_REG_CORE, PMU_REG_CORE_REG0_TARG, 0b11111)
 
 	// p2456, 39.6.4 Digital Regulator Core Register, IMX6ULLRM
 	if uV < 725000 {
@@ -85,18 +82,14 @@ func setOperatingPointIMX6ULL(uV uint32) {
 
 	log.Printf("imx6_clk: changing ARM core operating point to %d uV\n", reg0Targ*25000)
 
-	r := *pmu
-
-	// clear target voltages
-	reg.ClearN(&r, 0, (0b11111<<PMU_REG_CORE_REG2_TARG | 0b11111<<PMU_REG_CORE_REG0_TARG))
+	r := reg.Read(PMU_REG_CORE)
 
 	// set ARM core target voltage
-	reg.SetN(&r, PMU_REG_CORE_REG0_TARG, 0b11111, reg0Targ)
-
+	bits.SetN(&r, PMU_REG_CORE_REG0_TARG, 0b11111, reg0Targ)
 	// set SOC target voltage
-	reg.SetN(&r, PMU_REG_CORE_REG2_TARG, 0b11111, reg2Targ)
+	bits.SetN(&r, PMU_REG_CORE_REG2_TARG, 0b11111, reg2Targ)
 
-	*pmu = r
+	reg.Write(PMU_REG_CORE, r)
 	busyloop(10000)
 
 	log.Printf("imx6_clk: %d uV -> %d uV\n", curTarg*25000, reg0Targ*25000)
@@ -107,8 +100,6 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 	var arm_podf uint32
 	var uV uint32
 
-	cacrr := (*uint32)(unsafe.Pointer(uintptr(CCM_CACRR)))
-	pll := (*uint32)(unsafe.Pointer(uintptr(CCM_ANALOG_PLL_ARM)))
 	curHz := ARMFreq()
 
 	if hz == curHz {
@@ -148,23 +139,23 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 	}
 
 	// set bypass source to main oscillator
-	reg.SetN(pll, CCM_ANALOG_PLL_ARM_BYPASS_CLK_SRC, 0b11, 0)
+	reg.SetN(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_BYPASS_CLK_SRC, 0b11, 0)
 
 	// bypass
-	reg.Set(pll, CCM_ANALOG_PLL_ARM_BYPASS)
+	reg.Set(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_BYPASS)
 
 	// set PLL divisor
-	reg.SetN(pll, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111, div_select)
+	reg.SetN(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111, div_select)
 
 	// wait for lock
 	log.Printf("imx6_clk: waiting for PLL lock\n")
-	reg.Wait(pll, CCM_ANALOG_PLL_ARM_LOCK, 0b1, 1)
+	reg.Wait(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_LOCK, 0b1, 1)
 
 	// remove bypass
-	reg.Clear(pll, CCM_ANALOG_PLL_ARM_BYPASS)
+	reg.Clear(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_BYPASS)
 
 	// set core divisor
-	reg.SetN(cacrr, CCM_CACRR_ARM_PODF, 0b111, arm_podf)
+	reg.SetN(CCM_CACRR, CCM_CACRR_ARM_PODF, 0b111, arm_podf)
 
 	if hz < curHz {
 		setOperatingPointIMX6ULL(uV)

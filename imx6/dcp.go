@@ -14,13 +14,12 @@ package imx6
 import (
 	"bytes"
 	"crypto/aes"
+	"encoding/binary"
 	"errors"
-	"fmt"
 	"log"
 	"sync"
-	"unsafe"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/cache"
+	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
@@ -74,40 +73,22 @@ const (
 
 // p1067, 13.2.6.4 Work Packet Structure, MCIMX28RM
 type WorkPacket struct {
-	NextCmdAddr              *uint32
+	NextCmdAddr              uint32
 	Control0                 uint32
 	Control1                 uint32
-	SourceBufferAddress      *uint8
-	DestinationBufferAddress *uint8
+	SourceBufferAddress      uint32
+	DestinationBufferAddress uint32
 	BufferSize               uint32
-	PayloadPointer           *uint8
+	PayloadPointer           uint32
 	Status                   uint32
 	Pad_cgo_0                [4]byte
 }
 
 type dcp struct {
 	sync.Mutex
-
-	ctrl     *uint32
-	status   *uint32
-	chctrl   *uint32
-	chstatus *uint32
-	chstaclr *uint32
-	pkt      **WorkPacket
-	sem      *uint32
-	snvs     *uint32
 }
 
-var DCP = &dcp{
-	ctrl:     (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CTRL))),
-	status:   (*uint32)(unsafe.Pointer(uintptr(HW_DCP_STAT))),
-	chctrl:   (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CHANNELCTRL))),
-	chstatus: (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CH0STAT))),
-	chstaclr: (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CH0STAT_CLR))),
-	pkt:      (**WorkPacket)(unsafe.Pointer(uintptr(HW_DCP_CH0CMDPTR))),
-	sem:      (*uint32)(unsafe.Pointer(uintptr(HW_DCP_CH0SEMA))),
-	snvs:     (*uint32)(unsafe.Pointer(uintptr(SNVS_HPSR_REG))),
-}
+var DCP = &dcp{}
 
 // Init initializes the DCP module.
 func (hw *dcp) Init() {
@@ -115,17 +96,17 @@ func (hw *dcp) Init() {
 	// note: cannot defer during initialization
 
 	// soft reset DCP
-	reg.Set(hw.ctrl, HW_DCP_CTRL_SFTRST)
-	reg.Clear(hw.ctrl, HW_DCP_CTRL_SFTRST)
+	reg.Set(HW_DCP_CTRL, HW_DCP_CTRL_SFTRST)
+	reg.Clear(HW_DCP_CTRL, HW_DCP_CTRL_SFTRST)
 
 	// enable clocks
-	reg.Clear(hw.ctrl, HW_DCP_CTRL_CLKGATE)
+	reg.Clear(HW_DCP_CTRL, HW_DCP_CTRL_CLKGATE)
 
 	// enable all channels with merged IRQs
-	*(hw.chctrl) = 0x000100ff
+	reg.Write(HW_DCP_CHANNELCTRL, 0x000100ff)
 
 	// enable all channel interrupts
-	*(hw.chctrl) |= 0xff
+	reg.SetN(HW_DCP_CHANNELCTRL, 0, 0xff, 0xff)
 
 	hw.Unlock()
 }
@@ -138,7 +119,7 @@ func (hw *dcp) Init() {
 // is used. The secure operation of the DCP and SNVS, in production
 // deployments, should always be paired with Secure Boot activation.
 func (hw *dcp) SNVS() bool {
-	ssm := reg.Get(hw.snvs, SNVS_HPSR_SSM_STATE, 0b1111)
+	ssm := reg.Get(SNVS_HPSR_REG, SNVS_HPSR_SSM_STATE, 0b1111)
 
 	switch ssm {
 	case SNVS_HPSR_SSM_STATE_TRUSTED, SNVS_HPSR_SSM_STATE_SECURE:
@@ -159,6 +140,11 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 		return
 	}
 
+	if len(diversifier) > aes.BlockSize {
+		err = errors.New("invalid diversifier size")
+		return
+	}
+
 	if !hw.SNVS() {
 		err = errors.New("SNVS unavailable, not in trusted or secure state")
 		return
@@ -172,53 +158,61 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	// p1057, 13.1.1 DCP Limitations for Software, MCIMX28RM
 	// * any byte alignment is supported but 4 bytes one leads to better
 	//   performance
-	//
-	// Therefore for now we try without mem.AlignedBuffer.
-	workPacket := &WorkPacket{}
-	reg.Set(&workPacket.Control0, DCP_CTRL0_INTERRUPT_ENABL)
-	reg.Set(&workPacket.Control0, DCP_CTRL0_DECR_SEMAPHORE)
-	reg.Set(&workPacket.Control0, DCP_CTRL0_ENABLE_CIPHER)
-	reg.Set(&workPacket.Control0, DCP_CTRL0_CIPHER_ENCRYPT)
-	reg.Set(&workPacket.Control0, DCP_CTRL0_CIPHER_INIT)
+	workPacket := WorkPacket{}
 
+	workPacket.Control0 |= (1 << DCP_CTRL0_INTERRUPT_ENABL)
+	workPacket.Control0 |= (1 << DCP_CTRL0_DECR_SEMAPHORE)
+	workPacket.Control0 |= (1 << DCP_CTRL0_ENABLE_CIPHER)
+	workPacket.Control0 |= (1 << DCP_CTRL0_CIPHER_ENCRYPT)
+	workPacket.Control0 |= (1 << DCP_CTRL0_CIPHER_INIT)
 	// Use device-specific hardware key, payload does not contain the key.
-	reg.Set(&workPacket.Control0, DCP_CTRL0_OTP_KEY)
+	workPacket.Control0 |= (1 << DCP_CTRL0_OTP_KEY)
 
 	workPacket.Control1 |= (AES128 << DCP_CTRL1_CIPHER_SELECT)
 	workPacket.Control1 |= (CBC << DCP_CTRL1_CIPHER_MODE)
 	workPacket.Control1 |= (UNIQUE_KEY << DCP_CTRL1_KEY_SELECT)
 
-	workPacket.BufferSize = uint32(len(diversifier))
-	workPacket.SourceBufferAddress = &diversifier[0]
-	workPacket.DestinationBufferAddress = &key[0]
-
-	// p1073, Table 13-12. DCP Payload Field, MCIMX28RM
-	workPacket.PayloadPointer = &iv[0]
-
 	hw.Lock()
 	defer hw.Unlock()
 
-	// clear channel status
-	*(hw.chstaclr) = 0xffffffff
+	workPacket.BufferSize = uint32(len(diversifier))
+	workPacket.SourceBufferAddress = mem.Alloc(diversifier, 0)
+	defer mem.Free(workPacket.SourceBufferAddress)
 
-	*(hw.pkt) = workPacket
-	// Flush D cache just before starting the DCP via write to semaphore
-	// TODO: clean specific cache lines instead
-	cache.FlushData()
-	reg.Set(hw.sem, 1)
+	workPacket.DestinationBufferAddress = mem.Alloc(key, 0)
+	defer mem.Free(workPacket.DestinationBufferAddress)
+
+	// p1073, Table 13-12. DCP Payload Field, MCIMX28RM
+	workPacket.PayloadPointer = mem.Alloc(iv, 0)
+	defer mem.Free(workPacket.PayloadPointer)
+
+	// clear channel status
+	reg.Write(HW_DCP_CH0STAT_CLR, 0xffffffff)
+
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, &workPacket)
+
+	pkt := mem.Alloc(buf.Bytes(), 0)
+	defer mem.Free(pkt)
+
+	reg.Write(HW_DCP_CH0CMDPTR, pkt)
+	reg.Set(HW_DCP_CH0SEMA, 1)
 
 	log.Printf("imx6_dcp: waiting for key derivation")
-	reg.Wait(hw.status, HW_DCP_STAT_IRQ, 0b1, 1)
+	reg.Wait(HW_DCP_STAT, HW_DCP_STAT_IRQ, 0b1, 1)
 
-	if chstatus := reg.Get(hw.chstatus, 1, 0b111111); chstatus != 0 {
-		if chstatus == 0x2 {
-			// FIXME: even if the operation is correctly done a NO_CHAIN error is
-			// returned, we ignore it for now pending investigation.
+	if chstatus := reg.Get(HW_DCP_CH0STAT, 1, 0b111111); chstatus != 0 {
+		code := reg.Get(HW_DCP_CH0STAT, 16, 0xff)
+
+		// FIXME: even if the operation is correctly done a NO_CHAIN (0x2) error is
+		// returned, we ignore it for now pending investigation.
+		if code != 0x02 {
+			log.Printf("DCP channel status: %#x (%#x)", chstatus, code)
 			return
 		}
-
-		err = fmt.Errorf("DCP channel status: %#x", chstatus)
 	}
+
+	key = mem.Read(workPacket.DestinationBufferAddress, 0, len(key))
 
 	return
 }

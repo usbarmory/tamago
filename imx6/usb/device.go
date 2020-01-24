@@ -1,5 +1,4 @@
-// USB device mode
-
+// USB device mode support
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
@@ -30,31 +29,29 @@ func (hw *usb) DeviceMode() {
 	reg.Wait(hw.cmd, USBCMD_RST, 0b1, 0)
 
 	// p3872, 56.6.33 USB Device Mode (USB_nUSBMODE), IMX6ULLRM)
-	m := *hw.mode
+	m := reg.Read(hw.mode)
 
 	// set device only controller
-	reg.SetN(&m, USBMODE_CM, 0b11, USBMODE_CM_DEVICE)
+	m = (m & ^uint32(0b11<<USBMODE_CM)) | (USBMODE_CM_DEVICE << USBMODE_CM)
 	// disable setup lockout
-	reg.Set(&m, USBMODE_SLOM)
+	m |= (1 << USBMODE_SLOM)
 	// disable stream mode
-	reg.Clear(&m, USBMODE_SDIS)
+	m &^= (1 << USBMODE_SDIS)
 
-	*hw.mode = m
+	reg.Write(hw.mode, m)
 	reg.Wait(hw.mode, USBMODE_CM, 0b11, USBMODE_CM_DEVICE)
 
-	// set endpoint queue head
-	hw.EP.init()
-	*(hw.ep) = uint32(hw.EP.buf.Addr)
-
+	// initialize endpoint queue head list
+	hw.initEP()
 	// set control endpoint
-	hw.EP.set(0, IN, 64, 0, 0)
-	hw.EP.set(0, OUT, 64, 0, 0)
+	hw.setEP(0, IN, 64, 0, 0)
+	hw.setEP(0, OUT, 64, 0, 0)
 
 	// set OTG termination
 	reg.Set(hw.otg, OTGSC_OT)
 
 	// clear all pending interrupts
-	*(hw.sts) = 0xffffffff
+	reg.Write(hw.sts, 0xffffffff)
 
 	// run
 	reg.Set(hw.cmd, USBCMD_RS)
@@ -119,7 +116,7 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) 
 		}
 
 		if !ep.enabled {
-			hw.EP.set(n, dir, int(ep.MaxPacketSize), 1, 0)
+			hw.setEP(n, dir, int(ep.MaxPacketSize), 1, 0)
 			hw.enable(n, dir, ep.TransferType())
 			ep.enabled = true
 		}

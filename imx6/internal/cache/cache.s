@@ -6,16 +6,6 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// func Clean()
-TEXT ·Clean(SB),$0
-	MOVW addr+0(FP), R0
-
-	MCR	15, 0, R0, C7, C10, 1 // DCCMVAC
-	//MCR	15, 0, R0, C7, C11, 1 // DCCMVAU
-	WORD	$0xf57ff06f // isb sy
-	WORD	$0xf57ff04f // dsb sy
-	RET
-
 // func Disable()
 TEXT ·Disable(SB),$0
 	MRC	15, 0, R1, C1, C0, 0
