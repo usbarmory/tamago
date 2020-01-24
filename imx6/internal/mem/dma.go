@@ -123,20 +123,20 @@ func alloc(size int, align int) *block {
 			freeBlock.addr += uint32(offset)
 			freeBlock.size -= offset
 			freeBlocks.InsertBefore(newBlockBefore, e)
+		}
 
-			// original requested size
-			size -= align
+		// original requested size
+		size -= align
 
-			// claim back leftover from alignment buffer
-			if freeBlock.size > size {
-				newBlockAfter := &block{
-					addr: freeBlock.addr + uint32(size),
-					size: freeBlock.size - size,
-				}
-
-				freeBlock.size = size
-				freeBlocks.InsertAfter(newBlockAfter, e)
+		// claim back leftover from alignment buffer
+		if freeBlock.size > size {
+			newBlockAfter := &block{
+				addr: freeBlock.addr + uint32(size),
+				size: freeBlock.size - size,
 			}
+
+			freeBlock.size = size
+			freeBlocks.InsertAfter(newBlockAfter, e)
 		}
 	}
 
