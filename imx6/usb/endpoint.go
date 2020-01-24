@@ -260,12 +260,12 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	reg.Write(hw.complete, 1<<pos)
 
 	for i, dtd := range dtds {
-		// Treat dtd.token as a register within the dtd DMA buffer
+		// treat dtd.token as a register within the dtd DMA buffer
 		token := dtd._dtd + DTD_TOKEN
 		reg.Wait(token, 7, 0b1, 0)
 
 		if status := reg.Get(token, 0, 0xff); status != 0x00 {
-			return nil, fmt.Errorf("error status for dTD #%d, %x", i, status)
+			return nil, fmt.Errorf("error status for dTD[%d], %x", i, status)
 		}
 
 		// p3787 "This field is decremented by the number of bytes
@@ -330,24 +330,24 @@ func (hw *usb) enable(n int, dir int, transferType int) {
 	c := reg.Read(ctrl)
 
 	if dir == IN {
-		c |= (1 << ENDPTCTRL_TXE)
-		c |= (1 << ENDPTCTRL_TXR)
-		c = (c & (^(uint32(0b11) << ENDPTCTRL_TXT))) | (uint32(transferType) << ENDPTCTRL_TXT)
-		c &^= (1 << ENDPTCTRL_TXS)
+		bits.Set(&c, ENDPTCTRL_TXE)
+		bits.Set(&c, ENDPTCTRL_TXR)
+		bits.SetN(&c, ENDPTCTRL_TXT, 0b11, uint32(transferType))
+		bits.Clear(&c, ENDPTCTRL_TXS)
 
 		if reg.Get(ctrl, ENDPTCTRL_RXE, 0b1) == 0 {
 			// see note at p3879 of IMX6ULLRM
-			c = (c & (^(uint32(0b11) << ENDPTCTRL_RXT))) | (BULK << ENDPTCTRL_RXT)
+			bits.SetN(&c, ENDPTCTRL_RXT, 0b11, BULK)
 		}
 	} else {
-		c |= (1 << ENDPTCTRL_RXE)
-		c |= (1 << ENDPTCTRL_RXR)
-		c = (c & (^(uint32(0b11) << ENDPTCTRL_RXT))) | (uint32(transferType) << ENDPTCTRL_RXT)
-		c &^= (1 << ENDPTCTRL_RXS)
+		bits.Set(&c, ENDPTCTRL_RXE)
+		bits.Set(&c, ENDPTCTRL_RXR)
+		bits.SetN(&c, ENDPTCTRL_RXT, 0b11, uint32(transferType))
+		bits.Clear(&c, ENDPTCTRL_RXS)
 
 		if reg.Get(ctrl, ENDPTCTRL_TXE, 0b1) == 0 {
 			// see note at p3879 of IMX6ULLRM
-			c = (c & (^(uint32(0b11) << ENDPTCTRL_TXT))) | (BULK << ENDPTCTRL_TXT)
+			bits.SetN(&c, ENDPTCTRL_TXT, 0b11, BULK)
 		}
 	}
 
