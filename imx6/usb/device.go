@@ -116,7 +116,7 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) 
 		}
 
 		if !ep.enabled {
-			hw.setEP(n, dir, int(ep.MaxPacketSize), 1, 0)
+			hw.setEP(n, dir, int(ep.MaxPacketSize), 0, 0)
 			hw.enable(n, dir, ep.TransferType())
 			ep.enabled = true
 		}
