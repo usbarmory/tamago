@@ -130,7 +130,7 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) 
 		} else {
 			in, err = ep.Function(out, err)
 
-			if err == nil {
+			if err == nil && len(in) != 0 {
 				err = hw.tx(n, true, in)
 			}
 		}
