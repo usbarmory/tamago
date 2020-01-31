@@ -5,6 +5,8 @@
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
+//
+// +build tamago,arm
 
 // Package reg provides primitives for retrieving and modifying hardware
 // registers.
@@ -131,8 +133,7 @@ func Or(addr uint32, val uint32) {
 // cannot be used before runtime initialization with `GOOS=tamago`.
 func Wait(addr uint32, pos int, mask int, val uint32) {
 	for Get(addr, pos, mask) != val {
-		// tamago is single-threaded so we must force giving
-		// other goroutines a chance
+		// tamago is single-threaded, give other goroutines a chance
 		runtime.Gosched()
 	}
 }
@@ -145,8 +146,7 @@ func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) 
 	start := time.Now()
 
 	for Get(addr, pos, mask) != val {
-		// tamago is single-threaded so we must force giving
-		// other goroutines a chance
+		// tamago is single-threaded, give other goroutines a chance
 		runtime.Gosched()
 
 		if time.Since(start) >= timeout {
