@@ -16,6 +16,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/f-secure-foundry/tamago/imx6/internal/bits"
 	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
@@ -156,8 +157,8 @@ func (hw *usb) nextDTD(n int, dir int, next uint32) {
 
 	// set next dTD
 	reg.Write(dqh+uint32(DQH_NEXT), next)
-	// reset endpoint status
-	reg.SetN(dqh+uint32(DQH_TOKEN), 0, 0xff, 0)
+	// reset endpoint status (active and halt bits)
+	reg.SetN(dqh+uint32(DQH_TOKEN), 6, 0b11, 0b00)
 }
 
 // addDTD configures an endpoint transfer descriptor as described in
@@ -174,7 +175,7 @@ func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD) {
 	}
 
 	// invalidate next pointer
-	dtd.Next = 0x1
+	dtd.Next = 0b1
 	// multiplier override (MultO)
 	bits.SetN(&dtd.Token, 10, 0b11, 0)
 	// active status
@@ -262,22 +263,30 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	for i, dtd := range dtds {
 		// treat dtd.token as a register within the dtd DMA buffer
 		token := dtd._dtd + DTD_TOKEN
-		reg.Wait(token, 7, 0b1, 0)
 
-		if status := reg.Get(token, 0, 0xff); status != 0x00 {
-			return nil, fmt.Errorf("error status for dTD[%d], %x", i, status)
+		// The hardware might delay status update after completion,
+		// therefore best to wait for the active bit (7) to clear.
+		inactive := reg.WaitFor(100*time.Millisecond, token, 7, 0b1, 0)
+		dtdToken := reg.Read(token)
+
+		if !inactive {
+			return nil, fmt.Errorf("dTD[%d] timeout waiting for completion (token:%x)", i, dtdToken)
+		}
+
+		if (dtdToken & 0xff) != 0x00 {
+			return nil, fmt.Errorf("dTD[%d] error status (token:%x)", i, dtdToken)
 		}
 
 		// p3787 "This field is decremented by the number of bytes
 		// actually moved during the transaction", IMX6ULLRM.
-		size := dtdLength - int(reg.Get(token, 16, 0xffff))
+		size := dtdLength - int(dtdToken>>16)
 
 		if n != 0 && dir == OUT && size != 0 {
 			out = append(out, mem.Read(dtd._pages, 0, size)...)
 		}
 
 		if dir == IN && size != dtdLength {
-			return nil, fmt.Errorf("error status for dTD #%d, partial transfer (%d/%d bytes)", i, size, dtdLength)
+			return nil, fmt.Errorf("dTD[%d] partial transfer (%d/%d bytes)", i, size, dtdLength)
 		}
 	}
 
