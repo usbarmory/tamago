@@ -16,6 +16,7 @@ import (
 	"crypto/aes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"log"
 	"sync"
 
@@ -31,6 +32,7 @@ const (
 	HW_DCP_CTRL_CLKGATE = 30
 
 	HW_DCP_STAT     = HW_DCP_BASE + 0x10
+	HW_DCP_STAT_CLR = HW_DCP_BASE + 0x18
 	HW_DCP_STAT_IRQ = 0
 
 	HW_DCP_CHANNELCTRL = HW_DCP_BASE + 0x0020
@@ -196,20 +198,17 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	defer mem.Free(pkt)
 
 	reg.Write(HW_DCP_CH0CMDPTR, pkt)
-	reg.Set(HW_DCP_CH0SEMA, 1)
+	reg.Set(HW_DCP_CH0SEMA, 0)
 
+	// channel 0 is used
 	log.Printf("imx6_dcp: waiting for key derivation")
 	reg.Wait(HW_DCP_STAT, HW_DCP_STAT_IRQ, 0b1, 1)
+	reg.Set(HW_DCP_STAT_CLR, 1)
 
 	if chstatus := reg.Get(HW_DCP_CH0STAT, 1, 0b111111); chstatus != 0 {
 		code := reg.Get(HW_DCP_CH0STAT, 16, 0xff)
-
-		// FIXME: even if the operation is correctly done a NO_CHAIN (0x2) error is
-		// returned, we ignore it for now pending investigation.
-		if code != 0x02 {
-			log.Printf("DCP channel status: %#x (%#x)", chstatus, code)
-			return
-		}
+		err = fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x", chstatus, code)
+		return
 	}
 
 	key = mem.Read(workPacket.DestinationBufferAddress, 0, len(key))
