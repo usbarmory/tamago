@@ -43,6 +43,7 @@ const (
 	DQH_LIST_ALIGN = 2048
 	DQH_ALIGN      = 64
 	DQH_SIZE       = 64
+	DQH_CURRENT    = 4
 	DQH_NEXT       = 8
 	DQH_TOKEN      = 12
 
@@ -159,6 +160,12 @@ func (hw *usb) nextDTD(n int, dir int, next uint32) {
 	reg.Write(dqh+uint32(DQH_NEXT), next)
 	// reset endpoint status (active and halt bits)
 	reg.SetN(dqh+uint32(DQH_TOKEN), 6, 0b11, 0b00)
+
+	if current := reg.Read(dqh + uint32(DQH_CURRENT)); current != 1 {
+		mem.Free(current)
+	}
+
+	return
 }
 
 // addDTD configures an endpoint transfer descriptor as described in
@@ -220,7 +227,6 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	}
 
 	dtd := buildDTD(n, dir, ioc, data[0:dtdLength])
-	defer mem.Free(dtd._dtd)
 	defer mem.Free(dtd._pages)
 
 	dtds = append(dtds, dtd)
@@ -233,7 +239,6 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 		}
 
 		next := buildDTD(n, dir, ioc, data[i:size])
-		defer mem.Free(next._dtd)
 		defer mem.Free(next._pages)
 
 		// treat dtd.next as a register within the dtd DMA buffer
@@ -251,7 +256,7 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	pos := (dir * 16) + n
 
 	// prime endpoint
-	reg.Write(hw.prime, 1<<pos)
+	reg.Set(hw.prime, pos)
 	// wait for priming completion
 	reg.Wait(hw.prime, pos, 0b1, 0)
 
@@ -266,7 +271,7 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 
 		// The hardware might delay status update after completion,
 		// therefore best to wait for the active bit (7) to clear.
-		inactive := reg.WaitFor(100*time.Millisecond, token, 7, 0b1, 0)
+		inactive := reg.WaitFor(5*time.Second, token, 7, 0b1, 0)
 		dtdToken := reg.Read(token)
 
 		if !inactive {
