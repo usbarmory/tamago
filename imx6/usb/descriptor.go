@@ -21,11 +21,12 @@ import (
 )
 
 const (
-	DEVICE_LENGTH           = 18
-	CONFIGURATION_LENGTH    = 9
-	INTERFACE_LENGTH        = 9
-	ENDPOINT_LENGTH         = 7
-	DEVICE_QUALIFIER_LENGTH = 10
+	DEVICE_LENGTH                = 18
+	CONFIGURATION_LENGTH         = 9
+	INTERFACE_ASSOCIATION_LENGTH = 8
+	INTERFACE_LENGTH             = 9
+	ENDPOINT_LENGTH              = 7
+	DEVICE_QUALIFIER_LENGTH      = 10
 )
 
 // DeviceDescriptor implements
@@ -58,7 +59,6 @@ func (d *DeviceDescriptor) SetDefaults() {
 	// http://pid.codes/1209/2702/
 	d.VendorId = 0x1209
 	d.ProductId = 0x2702
-	d.NumConfigurations = 1
 }
 
 // Bytes converts the descriptor structure to byte array format.
@@ -87,10 +87,22 @@ type ConfigurationDescriptor struct {
 func (d *ConfigurationDescriptor) SetDefaults() {
 	d.Length = CONFIGURATION_LENGTH
 	d.DescriptorType = CONFIGURATION
-	d.NumInterfaces = 1
 	d.ConfigurationValue = 1
 	d.Attributes = 0xc0
 	d.MaxPower = 250
+}
+
+// AddInterface adds an Interface Descriptor to a configuration, updating the
+// interface number and Configuration Descriptor interface count accordingly.
+func (d *ConfigurationDescriptor) AddInterface(iface *InterfaceDescriptor) {
+	if iface.AlternateSetting == 0 {
+		iface.InterfaceNumber = d.NumInterfaces
+		d.NumInterfaces += 1
+	} else if d.NumInterfaces > 0 {
+		iface.InterfaceNumber = d.NumInterfaces - 1
+	}
+
+	d.Interfaces = append(d.Interfaces, iface)
 }
 
 // Bytes converts the descriptor structure to byte array format.
@@ -109,9 +121,37 @@ func (d *ConfigurationDescriptor) Bytes() []byte {
 	return buf.Bytes()
 }
 
+// InterfaceAssociationDescriptor implements
+// p4, Table 9-Z. Interface Association Descriptors, USB Specification Revision 2.0 (ECN).
+type InterfaceAssociationDescriptor struct {
+	Length           uint8
+	DescriptorType   uint8
+	FirstInterface   uint8
+	InterfaceCount   uint8
+	FunctionClass    uint8
+	FunctionSubClass uint8
+	FunctionProtocol uint8
+	Function         uint8
+}
+
+// SetDefaults initializes default values for the USB interface descriptor.
+func (d *InterfaceAssociationDescriptor) SetDefaults() {
+	d.Length = INTERFACE_ASSOCIATION_LENGTH
+	d.DescriptorType = INTERFACE_ASSOCIATION
+}
+
+// Bytes converts the descriptor structure to byte array format.
+func (d *InterfaceAssociationDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, d)
+	return buf.Bytes()
+}
+
 // InterfaceDescriptor implements
 // p296, Table 9-12. Standard Interface Descriptor, USB Specification Revision 2.0.
 type InterfaceDescriptor struct {
+	IAD *InterfaceAssociationDescriptor
+
 	Length            uint8
 	DescriptorType    uint8
 	InterfaceNumber   uint8
@@ -136,6 +176,11 @@ func (d *InterfaceDescriptor) SetDefaults() {
 // Bytes converts the descriptor structure to byte array format.
 func (d *InterfaceDescriptor) Bytes() []byte {
 	buf := new(bytes.Buffer)
+
+	// Interface Association Descriptor for multi-function device support.
+	if d.IAD != nil {
+		buf = bytes.NewBuffer(d.IAD.Bytes())
+	}
 
 	binary.Write(buf, binary.LittleEndian, d.Length)
 	binary.Write(buf, binary.LittleEndian, d.DescriptorType)
@@ -363,6 +408,13 @@ func (d *Device) AddString(s string) (uint8, error) {
 	return d.setStringDescriptor(buf, false)
 }
 
+// AddConfiguration adds a Configuration Descriptor to a device, updating its
+// Device Descriptor configuration count accordingly.
+func (d *Device) AddConfiguration(conf *ConfigurationDescriptor) {
+	d.Configurations = append(d.Configurations, conf)
+	d.Descriptor.NumConfigurations += 1
+}
+
 // Configuration converts the device configuration hierarchy to a buffer, as expected by Get
 // Descriptor for configuration descriptor type
 // (p281, 9.4.3 Get Descriptor, USB Specification Revision 2.0).
@@ -373,7 +425,6 @@ func (d *Device) Configuration(wIndex uint16, wLength uint16) (buf []byte, err e
 	}
 
 	conf := d.Configurations[int(wIndex)]
-	buf = append(buf, conf.Bytes()...)
 
 	if int(wLength) <= len(buf) {
 		return buf, err
@@ -388,6 +439,9 @@ func (d *Device) Configuration(wIndex uint16, wLength uint16) (buf []byte, err e
 			buf = append(buf, ep.Bytes()...)
 		}
 	}
+
+	conf.TotalLength = uint16(int(conf.Length) + len(buf))
+	buf = append(conf.Bytes(), buf...)
 
 	if int(wLength) > len(buf) {
 		// device may return less than what is requested
