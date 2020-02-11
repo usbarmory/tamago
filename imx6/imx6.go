@@ -12,12 +12,13 @@
 package imx6
 
 import (
-	_ "unsafe"
+	"unsafe"
 
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
 const USB_ANALOG_DIGPROG uint32 = 0x020c8260
+const WDOG1 uint32 = 0x020bc000
 
 const IMX6Q = 0x63
 const IMX6UL = 0x64
@@ -88,4 +89,10 @@ func Model() (model string) {
 	}
 
 	return
+}
+
+// Reboot resets the watchdog timer causing the SoC to restart.
+func Reboot() {
+	reg := (*uint16)(unsafe.Pointer(uintptr(WDOG1)))
+	*reg = 0x0000
 }
