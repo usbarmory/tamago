@@ -173,7 +173,7 @@ func (d *InterfaceDescriptor) SetDefaults() {
 	d.NumEndpoints = 1
 }
 
-// Bytes converts the descriptor structure to byte array format.
+// Bytes converts the descriptor structure to byte array format,
 func (d *InterfaceDescriptor) Bytes() []byte {
 	buf := new(bytes.Buffer)
 
@@ -432,6 +432,14 @@ func (d *Device) Configuration(wIndex uint16, wLength uint16) (buf []byte, err e
 
 	for i := 0; i < len(conf.Interfaces); i++ {
 		iface := conf.Interfaces[i]
+
+		// If an IAD is present set the first interface value, unless
+		// already set, depending on where we are in the interface
+		// list.
+		if iface.IAD != nil && iface.IAD.FirstInterface == 0 {
+			iface.IAD.FirstInterface = uint8(i)
+		}
+
 		buf = append(buf, iface.Bytes()...)
 
 		for i := 0; i < len(iface.Endpoints); i++ {

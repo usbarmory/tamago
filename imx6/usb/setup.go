@@ -42,14 +42,18 @@ const (
 
 const (
 	// p279, Table 9-5. Descriptor Types, USB Specification Revision 2.0
-	DEVICE                    = 0x1
-	CONFIGURATION             = 0x2
-	STRING                    = 0x3
-	INTERFACE                 = 0x4
-	ENDPOINT                  = 0x5
-	DEVICE_QUALIFIER          = 0x6
-	OTHER_SPEED_CONFIGURATION = 0x7
-	INTERFACE_POWER           = 0x8
+	DEVICE                    = 1
+	CONFIGURATION             = 2
+	STRING                    = 3
+	INTERFACE                 = 4
+	ENDPOINT                  = 5
+	DEVICE_QUALIFIER          = 6
+	OTHER_SPEED_CONFIGURATION = 7
+	INTERFACE_POWER           = 8
+	// Engineering Change Notices (ECN)
+	OTG                   = 9
+	DEBUG                 = 10
+	INTERFACE_ASSOCIATION = 11
 )
 
 // SetupData implements

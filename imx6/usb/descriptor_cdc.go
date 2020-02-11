@@ -20,7 +20,6 @@ const (
 	// p44, Table 24: Type Values for the bDescriptorType Field,
 	// USB Class Definitions for Communication Devices 1.1
 	CS_INTERFACE = 0x24
-	CS_ENDPOINT  = 0x25
 
 	HEADER_LENGTH              = 5
 	UNION_LENGTH               = 5
@@ -34,7 +33,7 @@ const (
 	MSS = 1500 + 14
 )
 
-// HeaderFunctionalDescriptor implements
+// CDCHeaderDescriptor implements
 // p45, Table 26: Class-Specific Descriptor Header Format, USB Class
 // Definitions for Communication Devices 1.1.
 type CDCHeaderDescriptor struct {
@@ -61,7 +60,7 @@ func (d *CDCHeaderDescriptor) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// UnionFunctionalDescriptor implements
+// CDCUnionDescriptor implements
 // p51, Table 33: Union Interface Functional Descriptor, USB Class Definitions
 // for Communication Devices 1.1.
 type CDCUnionDescriptor struct {
@@ -87,7 +86,7 @@ func (d *CDCUnionDescriptor) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// EthernetNetworkingFunctionalDescriptor implements
+// CDCEthernetDescriptor implements
 // p56, Table 41: Ethernet Networking Functional Descriptor, USB Class
 // Definitions for Communication Devices 1.1.
 type CDCEthernetDescriptor struct {
