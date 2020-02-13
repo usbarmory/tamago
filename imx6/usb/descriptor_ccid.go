@@ -17,14 +17,12 @@ import (
 )
 
 const (
-	// p17, Table 5.1-1 (CCID Rev1.1)
-	// Smart Card CCID Specification for IC(s) Cards Interface Devices
+	// p17, Table 5.1-1, CCID Rev1.1
 	CCID_INTERFACE         = 0x21
 	CCID_DESCRIPTOR_LENGTH = 54
 )
 
-// CCIDDescriptor implements p17, Table 5.1-1 (CCID Rev1.1)
-// Smart Card CCID Specification for IC(s) Cards Interface Devices.
+// CCIDDescriptor implements p17, Table 5.1-1, CCID Rev1.1
 type CCIDDescriptor struct {
 	Length                uint8
 	DescriptorType        uint8
