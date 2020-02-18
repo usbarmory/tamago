@@ -12,6 +12,7 @@
 package imx6
 
 import (
+	"encoding/binary"
 	"unsafe"
 
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
@@ -19,6 +20,8 @@ import (
 
 const USB_ANALOG_DIGPROG uint32 = 0x020c8260
 const WDOG1 uint32 = 0x020bc000
+const OCOTP_CFG0 = 0x021bc410
+const OCOTP_CFG1 = 0x021bc420
 
 const IMX6Q = 0x63
 const IMX6UL = 0x64
@@ -71,6 +74,17 @@ func SiliconVersion() (sv, family, revMajor, revMinor uint32) {
 	family = (sv >> 16) & 0xff
 	revMajor = (sv >> 8) & 0xff
 	revMinor = sv & 0xff
+
+	return
+}
+
+// UniqueID returns the NXP SoC Device Unique 64-bit ID
+func UniqueID() (uid [8]byte) {
+	cfg0 := (*uint32)(unsafe.Pointer(uintptr(OCOTP_CFG0)))
+	cfg1 := (*uint32)(unsafe.Pointer(uintptr(OCOTP_CFG1)))
+
+	binary.LittleEndian.PutUint32(uid[0:4], *cfg0)
+	binary.LittleEndian.PutUint32(uid[4:8], *cfg1)
 
 	return
 }
