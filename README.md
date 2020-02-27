@@ -30,7 +30,7 @@ Systems.
 
 The TamaGo framework consists of the following components:
 
- - A modified [Go compiler](https://github.com/f-secure-foundry/tamago-go)
+ - A modified [Go distribution](https://github.com/f-secure-foundry/tamago-go)
    which extends `GOOS` support to the `tamago` target, allowing bare metal
    execution for ARMv7 architecture.
 
@@ -38,9 +38,9 @@ The TamaGo framework consists of the following components:
 
  - Go packages for board support.
 
-The modifications are meant to be minimal for both the Go compiler (< ~4000 LOC
-changed) and the target application (one import required), with a clean
-separation/architecture from the rest of the Go compiler.
+The modifications are meant to be minimal for both the Go distribution (< ~4000
+LOC changed) and the target application (one import required), with a clean
+separation from other architectures.
 
 Strong emphasis is placed on code re-use from existing architectures already
 included within the standard Go runtime, see
