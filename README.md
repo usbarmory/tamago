@@ -53,9 +53,9 @@ Current release level
 =====================
 
 The current release is
-[tamago1.13.8](https://github.com/f-secure-foundry/tamago-go/tree/tamago1.13.8),
-which [adds](https://github.com/golang/go/compare/go1.13.8...f-secure-foundry:tamago1.13.8)
-`GOOS=tamago` support to go-1.13.8 release.
+[tamago1.14](https://github.com/f-secure-foundry/tamago-go/tree/tamago1.14),
+which [adds](https://github.com/golang/go/compare/go1.14...f-secure-foundry:tamago1.14)
+`GOOS=tamago` support to go-1.14 release.
 
 TamaGo is in early stages of development, all code should be considered at
 alpha stage and yet ready for production use.
@@ -90,7 +90,7 @@ import (
 Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go):
 
 ```
-git clone https://github.com/f-secure-foundry/tamago-go -b tamago1.13.8
+git clone https://github.com/f-secure-foundry/tamago-go -b tamago1.14
 cd tamago-go/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
