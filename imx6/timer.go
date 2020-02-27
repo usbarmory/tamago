@@ -50,7 +50,7 @@ func initGenericTimers() {
 	return
 }
 
-//go:linkname nanotime runtime.nanotime
-func nanotime() int64 {
+//go:linkname nanotime1 runtime.nanotime1
+func nanotime1() int64 {
 	return int64(timerFn() * timerMultiplier)
 }

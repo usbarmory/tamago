@@ -41,8 +41,8 @@ func initRNG() {
 	return
 }
 
-//go:linkname nanotime runtime.nanotime
-func nanotime() (ns int64) {
+//go:linkname nanotime1 runtime.nanotime1
+func nanotime1() (ns int64) {
 	return
 }
 
