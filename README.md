@@ -110,13 +110,9 @@ Executing and debugging
 See the respective board package README file for execution and debugging
 information for each specific target (real or emulated).
 
-An emulated run of the [example application](https://github.com/f-secure-foundry/tamago-example)
-can be launched as follows:
-
-```
-git clone https://github.com/f-secure-foundry/tamago-example
-cd tamago-example && make qemu
-```
+The [example application](https://github.com/f-secure-foundry/tamago-example)
+provides sample driver usage and instructions for native as well as emulated
+execution.
 
 License
 =======

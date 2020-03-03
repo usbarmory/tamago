@@ -80,6 +80,10 @@ is [available](https://github.com/f-secure-foundry/tamago-example).
 Executing and debugging
 =======================
 
+The [example application](https://github.com/f-secure-foundry/tamago-example)
+provides reference usage and a Makefile target for automatic creation of a raw
+image for flashing.
+
 Native hardware
 ---------------
 
@@ -94,6 +98,9 @@ bootelf -p 0x90000000
 
 For non-interactive execution modify the U-Boot configuration accordingly.
 
+Standard output
+---------------
+
 The standard output can be accessed through the
 [debug accessory](https://github.com/f-secure-foundry/usbarmory/tree/master/hardware/mark-two-debug-accessory)
 and the following `picocom` configuration:
@@ -101,6 +108,9 @@ and the following `picocom` configuration:
 ```
 picocom -b 115200 -eb /dev/ttyUSB2 --imap lfcrlf
 ```
+
+Debugging
+---------
 
 The application can be debugged with GDB over JTAG using `openocd` and the
 `imx6ull.cfg` and `gdbinit` debugging helpers published
