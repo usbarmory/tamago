@@ -57,9 +57,6 @@ The current release is
 which [adds](https://github.com/golang/go/compare/go1.14...f-secure-foundry:tamago1.14)
 `GOOS=tamago` support to go-1.14 release.
 
-TamaGo is in early stages of development, all code should be considered at
-alpha stage and yet ready for production use.
-
 Documentation
 =============
 
