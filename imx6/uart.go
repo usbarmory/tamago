@@ -15,20 +15,22 @@ import (
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
-const UART1_URXD uint32 = 0x02020000
-const UART1_UTXD uint32 = 0x02020040
-const UART1_UTS uint32 = 0x020200b4
-const UART1_USR2 uint32 = 0x02020098
+const (
+	UART1_URXD uint32 = 0x02020000
+	UART1_UTXD uint32 = 0x02020040
+	UART1_UTS  uint32 = 0x020200b4
+	UART1_USR2 uint32 = 0x02020098
 
-const UART2_URXD uint32 = 0x021e8000
-const UART2_UTXD uint32 = 0x021e8040
-const UART2_UTS uint32 = 0x021e80b4
-const UART2_USR2 uint32 = 0x021e8098
+	UART2_URXD uint32 = 0x021e8000
+	UART2_UTXD uint32 = 0x021e8040
+	UART2_UTS  uint32 = 0x021e80b4
+	UART2_USR2 uint32 = 0x021e8098
 
-const UART_URXD_PRERR = 10
-const UART_URXD_RX_DATA = 0
-const UART_UTS_TXEMPTY = 6
-const UART_USR2_RDR = 0
+	UART_URXD_PRERR   = 10
+	UART_URXD_RX_DATA = 0
+	UART_UTS_TXEMPTY  = 6
+	UART_USR2_RDR     = 0
+)
 
 type uart struct {
 	urxd uint32
