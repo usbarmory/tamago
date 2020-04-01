@@ -138,13 +138,11 @@ func (hw *dcp) SNVS() bool {
 // is enabled).
 func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) {
 	if len(iv) != aes.BlockSize {
-		err = errors.New("invalid IV size")
-		return
+		return nil, errors.New("invalid IV size")
 	}
 
 	if len(diversifier) > aes.BlockSize {
-		err = errors.New("invalid diversifier size")
-		return
+		return nil, errors.New("invalid diversifier size")
 	}
 
 	if !hw.SNVS() {
@@ -207,8 +205,7 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 
 	if chstatus := reg.Get(HW_DCP_CH0STAT, 1, 0b111111); chstatus != 0 {
 		code := reg.Get(HW_DCP_CH0STAT, 16, 0xff)
-		err = fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x", chstatus, code)
-		return
+		return nil, fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x", chstatus, code)
 	}
 
 	key = mem.Read(workPacket.DestinationBufferAddress, 0, len(key))

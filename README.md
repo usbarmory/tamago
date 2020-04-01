@@ -53,9 +53,9 @@ Current release level
 =====================
 
 The current release is
-[tamago1.14](https://github.com/f-secure-foundry/tamago-go/tree/tamago1.14),
-which [adds](https://github.com/golang/go/compare/go1.14...f-secure-foundry:tamago1.14)
-`GOOS=tamago` support to go-1.14 release.
+[tamago1.14](https://github.com/f-secure-foundry/tamago-go/tree/tamago1.14.1),
+which [adds](https://github.com/golang/go/compare/go1.14.1...f-secure-foundry:tamago1.14.1)
+`GOOS=tamago` support to go-1.14.1 release.
 
 Documentation
 =============
@@ -80,14 +80,15 @@ ensure that hardware initialization and runtime support takes place:
 
 ```golang
 import (
-	_ "usbarmory/mark-two"
+	_ "github.com/f-secure-foundry/tamago/usbarmory/mark-two"
 )
 ```
 
-Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go):
+Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go)
+(or use the [latest binary release](https://github.com/f-secure-foundry/tamago-go/releases/tag/tamago1.14.1)):
 
 ```
-git clone https://github.com/f-secure-foundry/tamago-go -b tamago1.14
+git clone https://github.com/f-secure-foundry/tamago-go -b tamago1.14.1
 cd tamago-go/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
