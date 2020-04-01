@@ -24,7 +24,7 @@ func (hw *usb) DeviceMode() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	log.Printf("imx6_usb: resetting\n")
+	log.Printf("imx6_usb: resetting")
 	reg.Set(hw.cmd, USBCMD_RST)
 	reg.Wait(hw.cmd, USBCMD_RST, 0b1, 0)
 
@@ -87,7 +87,7 @@ func (hw *usb) setupHandler(dev *Device) {
 		setup := hw.getSetup()
 
 		if err := hw.doSetup(dev, setup); err != nil {
-			log.Printf("imx6_usb: setup error, %v\n", err)
+			log.Printf("imx6_usb: setup error, %v", err)
 		}
 	}
 }
@@ -136,7 +136,7 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) 
 		}
 
 		if err != nil {
-			log.Printf("imx6_usb: EP%d.%d transfer error, %v\n", n, dir, err)
+			log.Printf("imx6_usb: EP%d.%d transfer error, %v", n, dir, err)
 		}
 	}
 }

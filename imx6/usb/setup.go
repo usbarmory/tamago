@@ -90,7 +90,7 @@ func (hw *usb) getSetup() (setup *SetupData) {
 
 	// repeat if necessary
 	for reg.Get(hw.cmd, USBCMD_SUTW, 0b1) == 0 {
-		log.Printf("imx6_usb: retrying setup\n")
+		log.Printf("imx6_usb: retrying setup")
 		reg.Set(hw.cmd, USBCMD_SUTW)
 	}
 
@@ -115,11 +115,11 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 	switch setup.Request {
 	case GET_STATUS:
 		// no meaningful status to report for now
-		log.Printf("imx6_usb: sending device status\n")
+		log.Printf("imx6_usb: sending device status")
 		err = hw.tx(0, false, []byte{0x00, 0x00})
 	case SET_ADDRESS:
 		addr := uint32((setup.Value<<8)&0xff00 | (setup.Value >> 8))
-		log.Printf("imx6_usb: setting address %d\n", addr)
+		log.Printf("imx6_usb: setting address %d", addr)
 
 		reg.Set(hw.addr, DEVICEADDR_USBADRA)
 		reg.SetN(hw.addr, DEVICEADDR_USBADR, 0x7f, addr)
@@ -138,12 +138,12 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 				desc = desc[0:setup.Length]
 			}
 
-			log.Printf("imx6_usb: sending device descriptor\n")
+			log.Printf("imx6_usb: sending device descriptor")
 			err = hw.tx(0, false, desc)
 		case CONFIGURATION:
 			var conf []byte
 			if conf, err = dev.Configuration(index, setup.Length); err == nil {
-				log.Printf("imx6_usb: sending configuration descriptor %d (%d bytes)\n", index, setup.Length)
+				log.Printf("imx6_usb: sending configuration descriptor %d (%d bytes)", index, setup.Length)
 				err = hw.tx(0, false, conf)
 			}
 		case STRING:
@@ -152,35 +152,35 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 				err = fmt.Errorf("invalid string descriptor index %d", index)
 			} else {
 				if index == 0 {
-					log.Printf("imx6_usb: sending string descriptor zero\n")
+					log.Printf("imx6_usb: sending string descriptor zero")
 				} else {
-					log.Printf("imx6_usb: sending string descriptor %d: \"%s\"\n", index, dev.Strings[index][2:])
+					log.Printf("imx6_usb: sending string descriptor %d: \"%s\"", index, dev.Strings[index][2:])
 				}
 
 				err = hw.tx(0, false, dev.Strings[index])
 			}
 		case DEVICE_QUALIFIER:
-			log.Printf("imx6_usb: sending device qualifier\n")
+			log.Printf("imx6_usb: sending device qualifier")
 			err = hw.tx(0, false, dev.Qualifier.Bytes())
 		default:
 			hw.stall(0, IN)
 			err = fmt.Errorf("unsupported descriptor type %#x", bDescriptorType)
 		}
 	case GET_CONFIGURATION:
-		log.Printf("imx6_usb: sending configuration value %d\n", dev.ConfigurationValue)
+		log.Printf("imx6_usb: sending configuration value %d", dev.ConfigurationValue)
 		err = hw.tx(0, false, []byte{dev.ConfigurationValue})
 	case SET_CONFIGURATION:
 		value := uint8(setup.Value >> 8)
-		log.Printf("imx6_usb: setting configuration value %d\n", value)
+		log.Printf("imx6_usb: setting configuration value %d", value)
 
 		dev.ConfigurationValue = value
 		err = hw.ack(0)
 	case GET_INTERFACE:
-		log.Printf("imx6_usb: sending interface alternate setting value %d\n", dev.AlternateSetting)
+		log.Printf("imx6_usb: sending interface alternate setting value %d", dev.AlternateSetting)
 		err = hw.tx(0, false, []byte{dev.AlternateSetting})
 	case SET_INTERFACE:
 		value := uint8(setup.Value >> 8)
-		log.Printf("imx6_usb: setting interface alternate setting value %d\n", value)
+		log.Printf("imx6_usb: setting interface alternate setting value %d", value)
 
 		dev.AlternateSetting = value
 		err = hw.ack(0)

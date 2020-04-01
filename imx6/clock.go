@@ -80,7 +80,7 @@ func setOperatingPointIMX6ULL(uV uint32) {
 		reg2Targ = reg0Targ
 	}
 
-	log.Printf("imx6_clk: changing ARM core operating point to %d uV\n", reg0Targ*25000)
+	log.Printf("imx6_clk: changing ARM core operating point to %d uV", reg0Targ*25000)
 
 	r := reg.Read(PMU_REG_CORE)
 
@@ -92,7 +92,7 @@ func setOperatingPointIMX6ULL(uV uint32) {
 	reg.Write(PMU_REG_CORE, r)
 	busyloop(10000)
 
-	log.Printf("imx6_clk: %d uV -> %d uV\n", curTarg*25000, reg0Targ*25000)
+	log.Printf("imx6_clk: %d uV -> %d uV", curTarg*25000, reg0Targ*25000)
 }
 
 func setARMFreqIMX6ULL(hz uint32) (err error) {
@@ -106,7 +106,7 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 		return
 	}
 
-	log.Printf("imx6_clk: changing ARM core frequency to %d MHz\n", hz/1000000)
+	log.Printf("imx6_clk: changing ARM core frequency to %d MHz", hz/1000000)
 
 	// p24, Table 10. Operating Ranges, IMX6ULLCEC
 	switch hz {
@@ -148,7 +148,7 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 	reg.SetN(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111, div_select)
 
 	// wait for lock
-	log.Printf("imx6_clk: waiting for PLL lock\n")
+	log.Printf("imx6_clk: waiting for PLL lock")
 	reg.Wait(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_LOCK, 0b1, 1)
 
 	// remove bypass
@@ -161,7 +161,7 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 		setOperatingPointIMX6ULL(uV)
 	}
 
-	log.Printf("imx6_clk: %d MHz -> %d MHz\n", curHz/1000000, hz/1000000)
+	log.Printf("imx6_clk: %d MHz -> %d MHz", curHz/1000000, hz/1000000)
 
 	return
 }
