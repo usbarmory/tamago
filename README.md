@@ -85,7 +85,7 @@ import (
 ```
 
 Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go)
-(or use the [latest binary release](https://github.com/f-secure-foundry/tamago-go/releases/tag/tamago1.14.1)):
+(or use the [latest binary release](https://github.com/f-secure-foundry/tamago-go/releases/latest)):
 
 ```
 git clone https://github.com/f-secure-foundry/tamago-go -b tamago1.14.1

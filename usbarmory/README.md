@@ -58,17 +58,13 @@ import (
 ```
 
 Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go)
-(or use the [latest binary release](https://github.com/f-secure-foundry/tamago-go/releases/tag/tamago1.14.1)):
+(or use the [latest binary release](https://github.com/f-secure-foundry/tamago-go/releases/latest)):
 
 ```
 git clone https://github.com/f-secure-foundry/tamago-go -b tamago1.14.1
 cd tamago-go/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
-
-Alternativel a pre-compiled binary package for the compiler
-[is available for armv7l targets](https://github.com/f-secure-foundry/tamago-go/releases/edit/tamago1.14.1)
-such as the [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki).
 
 Go applications can be compiled as usual, using the compiler built in the
 previous step, but with the addition of the following flags/variables and
