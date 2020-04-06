@@ -20,9 +20,8 @@ andrej.rosano@f-secure.com   | andrej@inversepath.com
 Introduction
 ============
 
-TamaGo is a project that aims to provide compilation and execution of
-unencumbered Go applications for bare metal ARM System-on-Chip (SoC)
-components.
+TamaGo is a framework that enables compilation and execution of unencumbered Go
+applications on bare metal ARM System-on-Chip (SoC) components.
 
 The [usbarmory](https://github.com/f-secure-foundry/tamago/tree/master/usbarmory)
 package provide support for the [USB armory](https://github.com/f-secure-foundry/usbarmory/wiki)

@@ -20,9 +20,8 @@ andrej.rosano@f-secure.com   | andrej@inversepath.com
 Introduction
 ============
 
-TamaGo is a project that aims to provide compilation and execution of
-unencumbered Go applications for bare metal ARM System-on-Chip (SoC)
-components.
+TamaGo is a framework that enables compilation and execution of unencumbered Go
+applications on bare metal ARM System-on-Chip (SoC) components.
 
 The [imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6) package
 provide support for NXP i.MX 6 series of System-on-Chip (SoCs) parts.
