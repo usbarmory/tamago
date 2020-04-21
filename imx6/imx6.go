@@ -30,6 +30,9 @@ const IMX6ULL = 0x65
 var Family uint32
 var Native bool
 
+var UART1 uart
+var UART2 uart
+
 // hwinit takes care of the lower level SoC initialization triggered early in
 // runtime setup, care must be taken to ensure that no heap allocation is
 // performed (e.g. defer is not possible).
@@ -41,6 +44,11 @@ func hwinit() {
 	if revMajor != 0 || revMinor != 0 {
 		Native = true
 	}
+
+	UART1.Init(UART1_BASE)
+	UART2.Init(UART2_BASE)
+
+	UART2.Setup(115200)
 
 	switch Family {
 	case IMX6Q:
