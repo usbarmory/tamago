@@ -35,8 +35,12 @@ func initGlobalTimers() {
 }
 
 // initGenericTimers initializes ARM Cortex-A7 timers
-func initGenericTimers() {
+func initGenericTimers(freq int32) {
 	var timerFreq int64
+
+	if features.genericTimer && freq != 0 {
+		write_cntfrq(freq)
+	}
 
 	timerFreq = int64(read_cntfrq())
 	print("System counter frequency (CNTFRQ) = ", timerFreq, "\n")

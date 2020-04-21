@@ -32,6 +32,7 @@ var Native bool
 
 var UART1 uart
 var UART2 uart
+var features processorFeatures
 
 // hwinit takes care of the lower level SoC initialization triggered early in
 // runtime setup, care must be taken to ensure that no heap allocation is
@@ -50,11 +51,19 @@ func hwinit() {
 
 	UART2.Setup(115200)
 
+	features.read()
+	features.print()
+
 	switch Family {
 	case IMX6Q:
 		initGlobalTimers()
 	case IMX6UL, IMX6ULL:
-		initGenericTimers()
+		if (Native) {
+			// U-Boot value for i.MX6 family (8.0MHz)
+			initGenericTimers(8000000)
+		} else {
+			initGenericTimers(0)
+		}
 	default:
 		initGlobalTimers()
 	}
