@@ -23,6 +23,8 @@ var timerMultiplier int64
 
 // defined in timer_arm.s
 func read_gtc() int64
+func read_cntfrq() int32
+func write_cntfrq(int32)
 func read_cntpct() int64
 func busyloop(int32)
 
@@ -36,14 +38,8 @@ func initGlobalTimers() {
 func initGenericTimers() {
 	var timerFreq int64
 
-	if !Native {
-		// use QEMU fixed CNTFRQ value (62.5MHz)
-		timerFreq = 62500000
-	} else {
-		// U-Boot value for i.MX6 family (8.0MHz)
-		timerFreq = 8000000
-	}
-
+	timerFreq = int64(read_cntfrq())
+	print("System counter frequency (CNTFRQ) = ", timerFreq, "\n")
 	timerMultiplier = int64(refFreq / timerFreq)
 	timerFn = read_cntpct
 
