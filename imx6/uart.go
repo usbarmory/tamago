@@ -12,136 +12,120 @@
 package imx6
 
 import (
+	"sync"
+
+	"github.com/f-secure-foundry/tamago/imx6/internal/bits"
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
 const (
-	// base addresses
+	UART_DEFAULT_BAUDRATE = 115200
+	ESC                   = 0x1b
+
+	// p2315, 45.15 UART Memory Map/Register Definition, IMX6ULLRM
 
 	// i.MX 6UltraLite (G0, G1, G2, G3, G4)
 	// i.MX 6ULL (Y0, Y1, Y2)
 	// i.MX 6ULZ (Z0)
 	UART1_BASE uint32 = 0x02020000
-	UART2_BASE        = 0x021e8000
-	UART3_BASE        = 0x021ec000
-	UART4_BASE        = 0x021f0000
+	UART2_BASE uint32 = 0x021e8000
+	UART3_BASE uint32 = 0x021ec000
+	UART4_BASE uint32 = 0x021f0000
 
 	// i.MX 6UltraLite (G1, G2, G3, G4)
 	// i.MX 6ULL (Y1, Y2)
-	UART5_BASE        = 0x021f4000
-	UART6_BASE        = 0x021fc000
-	UART7_BASE        = 0x02018000
-	UART8_BASE        = 0x02024000
+	UART5_BASE uint32 = 0x021f4000
+	UART6_BASE uint32 = 0x021fc000
+	UART7_BASE uint32 = 0x02018000
+	UART8_BASE uint32 = 0x02024000
 
-	// Register definitions
+	UARTx_URXD   uint32 = 0x0000
+	URXD_CHARRDY        = 15
+	URXD_ERR            = 14
+	URXD_OVRRUN         = 13
+	URXD_FRMERR         = 12
+	URXD_BRK            = 11
+	URXD_PRERR          = 10
+	URXD_RX_DATA        = 0
 
-	URXD uint32 = 0x0000
-	UTXD        = 0x0040
-	UCR1        = 0x0080
-	UCR2        = 0x0084
-	UCR3        = 0x0088
-	UCR4        = 0x008c
-	UFCR        = 0x0090
-	USR1        = 0x0094
-	USR2        = 0x0098
-	UESC        = 0x009c
-	UTIM        = 0x00a0
-	UBIR        = 0x00a4
-	UBMR        = 0x00a8
-	UBRC        = 0x00ac
-	ONEMS       = 0x00b0
-	UTS         = 0x00b4
-	UMCR        = 0x00b8
+	UARTx_UTXD   uint32 = 0x0040
+	UTXD_TX_DATA        = 0
 
-	// bit positions
+	UARTx_UCR1    uint32 = 0x0080
+	UCR1_ADEN            = 15
+	UCR1_ADBR            = 14
+	UCR1_TRDYEN          = 13
+	UCR1_IDEN            = 12
+	UCR1_ICD             = 10
+	UCR1_RRDYEN          = 9
+	UCR1_RXDMAEN         = 8
+	UCR1_IREN            = 7
+	UCR1_TXMPTYEN        = 6
+	UCR1_RTSDEN          = 5
+	UCR1_SNDBRK          = 4
+	UCR1_TXDMAEN         = 3
+	UCR1_ATDMAEN         = 2
+	UCR1_DOZE            = 1
+	UCR1_UARTEN          = 0
 
-	URXD_RX_DATA = 0
-	URXD_PRERR   = 10
-	URXD_BRK     = 11
-	URXD_FRMERR  = 12
-	URXD_OVRRUN  = 13
-	URXD_ERR     = 14
-	URXD_CHARRDY = 15
+	UARTx_UCR2 uint32 = 0x0084
+	UCR2_ESCI         = 15
+	UCR2_IRTS         = 14
+	UCR2_CTSC         = 13
+	UCR2_CTS          = 12
+	UCR2_ESCEN        = 11
+	UCR2_RTEC         = 9
+	UCR2_PREN         = 8
+	UCR2_PROE         = 7
+	UCR2_STPB         = 6
+	UCR2_WS           = 5
+	UCR2_RTSEN        = 4
+	UCR2_ATEN         = 3
+	UCR2_TXEN         = 2
+	UCR2_RXEN         = 1
+	UCR2_SRST         = 0
 
-	UTXD_TX_DATA = 0
+	UARTx_UCR3     uint32 = 0x0088
+	UCR3_DPEC             = 14
+	UCR3_DTREN            = 13
+	UCR3_PARERREN         = 12
+	UCR3_FRAERREN         = 11
+	UCR3_DSR              = 10
+	UCR3_DCD              = 9
+	UCR3_RI               = 8
+	UCR3_ADNIMP           = 7
+	UCR3_RXDSEN           = 6
+	UCR3_AIRINTEN         = 5
+	UCR3_AWAKEN           = 4
+	UCR3_DTRDEN           = 3
+	UCR3_RXDMUXSEL        = 2
+	UCR3_INVT             = 1
+	UCR3_ACIEN            = 0
 
-	UCR1_UARTEN   = 0
-	UCR1_DOZE     = 1
-	UCR1_ATDMAEN  = 2
-	UCR1_TXDMAEN  = 3
-	UCR1_SNDBRK   = 4
-	UCR1_RTSDEN   = 5
-	UCR1_TXMPTYEN = 6
-	UCR1_IREN     = 7
-	UCR1_RXDMAEN  = 8
-	UCR1_RRDYEN   = 9
-	UCR1_ICD      = 10
-	UCR1_IDEN     = 12
-	UCR1_TRDYEN   = 13
-	UCR1_ADBR     = 14
-	UCR1_ADEN     = 15
+	UARTx_UCR4 uint32 = 0x008c
+	UCR4_CTSTL        = 10
 
-	UCR2_SRST  = 0
-	UCR2_RXEN  = 1
-	UCR2_TXEN  = 2
-	UCR2_ATEN  = 3
-	UCR2_RTSEN = 4
-	UCR2_WS    = 5
-	UCR2_STPB  = 6
-	UCR2_PROE  = 7
-	UCR2_PREN  = 8
-	UCR2_RTEC  = 9
-	UCR2_ESCEN = 11
-	UCR2_CTS   = 12
-	UCR2_CTSC  = 13
-	UCR2_IRTS  = 14
-	UCR2_ESCI  = 15
+	UARTx_UFCR  uint32 = 0x0090
+	UFCR_TXTL          = 10
+	UFCR_RFDIV         = 7
+	UFCR_DCEDTE        = 6
+	UFCR_RXTL          = 0
 
-	UCR3_ACIEN     = 0
-	UCR3_INVT      = 1
-	UCR3_RXDMUXSEL = 2
-	UCR3_DTRDEN    = 3
-	UCR3_AWAKEN    = 4
-	UCR3_AIRINTEN  = 5
-	UCR3_RXDSEN    = 6
-	UCR3_ADNIMP    = 7
-	UCR3_RI        = 8
-	UCR3_DCD       = 9
-	UCR3_DSR       = 10
-	UCR3_FRAERREN  = 11
-	UCR3_PARERREN  = 12
-	UCR3_DTREN     = 13
-	UCR3_DPEC      = 14
+	UARTx_USR2 uint32 = 0x0098
+	USR2_RDR          = 0
 
-	UCR4_DREN    = 0
-	UCR4_OREN    = 1
-	UCR4_BKEN    = 2
-	UCR4_TCEN    = 3
-	UCR4_LPBYP   = 4
-	UCR4_IRSC    = 5
-	UCR4_IDDMAEN = 6
-	UCR4_WKEN    = 7
-	UCR4_ENIRI   = 8
-	UCR4_INVR    = 9
-	UCR4_CTSTL   = 10
+	UARTx_UESC        = 0x009c
+	UARTx_UTIM        = 0x00a0
+	UARTx_UBIR        = 0x00a4
+	UARTx_UBMR uint32 = 0x00a8
 
-	UFCR_RXTL   = 0
-	UFCR_DCEDTE = 6
-	UFCR_RFDIV  = 7
-	UFCR_TXTL   = 10
-
-	UFCR_RXTL_MASK   = 0b111111 << UFCR_RXTL
-	UFCR_DCEDTE_MASK = 1 << UFCR_DCEDTE
-	UFCR_RFDIV_MASK  = 1 << UFCR_RFDIV
-	UFCR_TXTL_MASK   = 1 << UFCR_TXTL
-
-	// misc
-	UTS_TXEMPTY = 6
-	USR2_RDR    = 0
-
+	UARTx_UTS   uint32 = 0x00b4
+	UTS_TXEMPTY        = 6
 )
 
 type uart struct {
+	sync.Mutex
+
 	urxd uint32
 	utxd uint32
 	ucr1 uint32
@@ -149,126 +133,161 @@ type uart struct {
 	ucr3 uint32
 	ucr4 uint32
 	ufcr uint32
-	usr1 uint32
 	usr2 uint32
 	uesc uint32
 	utim uint32
 	ubir uint32
 	ubmr uint32
-	ubrc uint32
-	onems uint32
-	uts uint32
-	umcr uint32
+	uts  uint32
 }
 
-func (u *uart) Init(base uint32) {
-	u.urxd  = base + URXD
-	u.utxd  = base + UTXD
-	u.ucr1  = base + UCR1
-	u.ucr2  = base + UCR2
-	u.ucr3  = base + UCR3
-	u.ucr4  = base + UCR4
-	u.ufcr  = base + UFCR
-	u.usr1  = base + USR1
-	u.usr2  = base + USR2
-	u.uesc  = base + UESC
-	u.utim  = base + UTIM
-	u.ubir  = base + UBIR
-	u.ubmr  = base + UBMR
-	u.ubrc  = base + UBRC
-	u.onems = base + ONEMS
-	u.uts   = base + UTS
-	u.umcr  = base + UMCR
+var UART2 uart
+
+func (hw *uart) init(base uint32, baudrate uint32) {
+	hw.urxd = base + UARTx_URXD
+	hw.utxd = base + UARTx_UTXD
+	hw.ucr1 = base + UARTx_UCR1
+	hw.ucr2 = base + UARTx_UCR2
+	hw.ucr3 = base + UARTx_UCR3
+	hw.ucr4 = base + UARTx_UCR4
+	hw.ufcr = base + UARTx_UFCR
+	hw.usr2 = base + UARTx_USR2
+	hw.uesc = base + UARTx_UESC
+	hw.utim = base + UARTx_UTIM
+	hw.ubir = base + UARTx_UBIR
+	hw.ubmr = base + UARTx_UBMR
+	hw.uts = base + UARTx_UTS
+
+	hw.Init(baudrate)
 }
 
 func uartclk() uint32 {
-	var CCM ccm
-	var podf, freq uint32
+	var podf uint32
+	var freq uint32
 
-	CCM.Init(CCM_BASE)
-
-	if (reg.Get(CCM.cscdr1, CSCDR1_UART_CLK_SEL, 0b1) == 1) {
-		freq = OSC_CLK
+	if reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, 0b1) == 1 {
+		freq = OSC_FREQ
 	} else {
-		freq = 480000000
+		freq = VCO_FREQ
 	}
 
-	podf = reg.Get(CCM.cscdr1, CSCDR1_CLK_PODF, 0b111111)
+	podf = reg.Get(CCM_CSCDR1, CSCDR1_CLK_PODF, 0b111111)
 
 	return freq / (podf + 1)
 }
 
-func (u *uart) txEmpty() bool {
-	return reg.Get(u.uts, UTS_TXEMPTY, 0b1) == 0
+func (hw *uart) txEmpty() bool {
+	return reg.Get(hw.uts, UTS_TXEMPTY, 0b1) == 0
 }
 
-func (u *uart) rxReady() bool {
-	return reg.Get(u.usr2, USR2_RDR, 0b1) == 1
+func (hw *uart) rxReady() bool {
+	return reg.Get(hw.usr2, USR2_RDR, 0b1) == 1
 }
 
-func (u *uart) rxError() bool {
-	return reg.Get(u.urxd, URXD_PRERR, 0b11111) != 0
+func (hw *uart) rxError() bool {
+	return reg.Get(hw.urxd, URXD_PRERR, 0b11111) != 0
 }
 
-//              ref_clk_freq
-// baudrate = -----------------
-//                   UBMR + 1
-//             16 * ----------
-//                   UBIR + 1
+// Setup programs the UART for RS-232 mode with the requested baudrate,
+// p2312, 45.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
+func (hw *uart) Init(baudrate uint32) {
+	hw.Lock()
+	defer hw.Unlock()
 
-// ref_clk_freq = module_clock
+	// disable UART
+	reg.Write(hw.ucr1, 0)
+	reg.Write(hw.ucr2, 0) // 0x4027
 
-func (u *uart) Setup(baudrate uint32) bool {
-	var tmp uint32
-	var clk uint32
+	// wait for software reset deassertion
+	reg.Wait(hw.ucr2, UCR2_SRST, 0b1, 1)
 
-	// Disable UART
-	reg.Write(u.ucr1, 0)
-	reg.Write(u.ucr2, 0) // 0x4027
+	var ucr3 uint32
+	// Data Set Ready
+	bits.Set(&ucr3, UCR3_DSR)
+	// Data Carrier Detect
+	bits.Set(&ucr3, UCR3_DCD)
+	// Ring Indicator
+	bits.Set(&ucr3, UCR3_RI)
+	// Disable autobaud detection
+	bits.Set(&ucr3, UCR3_ADNIMP)
+	// UART is in MUXED mode
+	bits.Set(&ucr3, UCR3_RXDMUXSEL)
+	// set UCR3
+	reg.Write(hw.ucr3, ucr3)
 
-	for (reg.Get(u.ucr2, UCR2_SRST, 0b1) == 0) {
-		// wait for software reset deasserted
-	}
+	// 32 characters in the RxFIFO (maximum)
+	reg.SetN(hw.ucr4, UCR4_CTSTL, 0b111111, 32)
+	// set escape character
+	reg.Write(hw.uesc, ESC)
+	// reset escape timer
+	reg.Write(hw.utim, 0)
 
-	reg.Write(u.ucr3, 0x704 | (1 << UCR3_ADNIMP));
-	reg.Write(u.ucr4, 0x8000)
-	reg.Write(u.uesc, 0x2b)
-	reg.Write(u.utim, 0)
+	var ufcr uint32
+	// Divide input clock by 2
+	bits.SetN(&ufcr, UFCR_RFDIV, 0b111, 0b100)
+	// TxFIFO has 2 or fewer characters
+	bits.SetN(&ufcr, UFCR_TXTL, 0b111111, 2)
+	// RxFIFO has 1 character
+	bits.SetN(&ufcr, UFCR_RXTL, 0b111111, 1)
+	// set UFCR
+	reg.Write(hw.ufcr, ufcr)
 
-	clk = uartclk() / 6
+	// p2299, 45.5 Binary Rate Multiplier (BRM), IMX6ULLRM
+	//
+	//              ref_clk_freq
+	// baudrate = -----------------
+	//                   UBMR + 1
+	//             16 * ----------
+	//                   UBIR + 1
+	//
+	// ref_clk_freq = module_clock
 
-	tmp = 4 << UFCR_RFDIV
-	tmp |= (2 << UFCR_TXTL) | (1 << UFCR_RXTL)
-	reg.Write(u.ufcr, tmp)
-	reg.Write(u.ubir, 0xf)
-	tmp = clk / (2 * baudrate)
-	reg.Write(u.ubmr, tmp)
-	tmp = (1 << UCR2_WS) | (1 << UCR2_IRTS) | (1 << UCR2_RXEN) | (1 << UCR2_TXEN) | (1 << UCR2_SRST)
-	reg.Write(u.ucr2, tmp)
-	reg.Write(u.ucr1, 1 << UCR1_UARTEN)
+	// match /6 static divider (p424, Figure 17-3. Clock Tree - Part 2, IMX6ULLRM)
+	clk := uartclk() / 6
+	// multiply to match UFCR_RFDIV divider value
+	ubmr := clk / (2 * baudrate)
+	// neutralize denominator
+	reg.Write(hw.ubir, 15)
+	// set UBMR
+	reg.Write(hw.ubmr, ubmr)
 
-	return true
+	var ucr2 uint32
+	// Ignore the RTS pin
+	bits.Set(&ucr2, UCR2_IRTS)
+	// 8-bit transmit and receive character length
+	bits.Set(&ucr2, UCR2_WS)
+	// Enable the transmitter
+	bits.Set(&ucr2, UCR2_TXEN)
+	// Enable the receiver
+	bits.Set(&ucr2, UCR2_RXEN)
+	// Software reset
+	bits.Set(&ucr2, UCR2_SRST)
+	// set UCR2
+	reg.Write(hw.ucr2, ucr2)
+
+	// Enable the UART
+	reg.Set(hw.ucr1, UCR1_UARTEN)
 }
 
 // Write a single character to the selected serial port.
-func (u *uart) Write(c byte) {
+func (hw *uart) Write(c byte) {
 	// transmit data
-	reg.Write(u.utxd, uint32(c))
+	reg.Write(hw.utxd, uint32(c))
 
-	for u.txEmpty() {
+	for hw.txEmpty() {
 		// wait for TX FIFO to be empty
 	}
 }
 
 // Read a single character from the selected serial port.
-func (u *uart) Read() (c byte, valid bool) {
-	if !u.rxReady() {
+func (hw *uart) Read() (c byte, valid bool) {
+	if !hw.rxReady() {
 		return c, false
 	}
 
-	if u.rxError() {
+	if hw.rxError() {
 		return c, false
 	}
 
-	return byte(reg.Get(u.urxd, URXD_RX_DATA, 0xff)), true
+	return byte(reg.Get(hw.urxd, URXD_RX_DATA, 0xff)), true
 }

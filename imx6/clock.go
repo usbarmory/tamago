@@ -21,9 +21,16 @@ import (
 
 const (
 	OSC_FREQ = 24000000
+	VCO_FREQ = 480000000
 
 	CCM_CACRR          uint32 = 0x020c4010
 	CCM_CACRR_ARM_PODF        = 0
+
+	CCM_CSCMR1 uint32 = 0x020c401c
+
+	CCM_CSCDR1          uint32 = 0x020c4024
+	CSCDR1_CLK_PODF            = 0
+	CSCDR1_UART_CLK_SEL        = 6
 
 	CCM_ANALOG_PLL_ARM                uint32 = 0x020c8000
 	CCM_ANALOG_PLL_ARM_LOCK                  = 31

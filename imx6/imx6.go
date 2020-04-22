@@ -30,8 +30,6 @@ const IMX6ULL = 0x65
 var Family uint32
 var Native bool
 
-var UART1 uart
-var UART2 uart
 var features processorFeatures
 
 // hwinit takes care of the lower level SoC initialization triggered early in
@@ -46,13 +44,7 @@ func hwinit() {
 		Native = true
 	}
 
-	UART1.Init(UART1_BASE)
-	UART2.Init(UART2_BASE)
-
-	UART2.Setup(115200)
-
-	features.read()
-	features.print()
+	UART2.init(UART2_BASE, UART_DEFAULT_BAUDRATE)
 
 	switch Family {
 	case IMX6Q:
