@@ -15,13 +15,11 @@ import (
 	"log"
 	"sync"
 
+	"github.com/f-secure-foundry/tamago/imx6"
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
 )
 
 const (
-	CCM_CCGR6     uint32 = 0x20c4080
-	CCM_CCGR6_CG0        = 0
-
 	CCM_ANALOG_PLL_USB1             uint32 = 0x020c8010
 	CCM_ANALOG_PLL_USB1_LOCK               = 31
 	CCM_ANALOG_PLL_USB1_BYPASS             = 16
@@ -108,7 +106,6 @@ const (
 type usb struct {
 	sync.Mutex
 
-	ccgr     uint32
 	pll      uint32
 	ctrl     uint32
 	pwd      uint32
@@ -129,7 +126,6 @@ type usb struct {
 }
 
 var USB1 = &usb{
-	ccgr:     CCM_CCGR6,
 	pll:      CCM_ANALOG_PLL_USB1,
 	ctrl:     USBPHY1_CTRL,
 	pwd:      USBPHY1_PWD,
@@ -155,7 +151,7 @@ func (hw *usb) Init() {
 	defer hw.Unlock()
 
 	// enable clock
-	reg.SetN(hw.ccgr, CCM_CCGR6_CG0, 0b11, 0b11)
+	reg.SetN(imx6.CCM_CCGR6, imx6.CCM_CCGR6_CG0, 0b11, 0b11)
 
 	// power up PLL
 	reg.Set(hw.pll, CCM_ANALOG_PLL_USB1_POWER)

@@ -13,7 +13,6 @@ package imx6
 
 import (
 	"errors"
-	"log"
 
 	"github.com/f-secure-foundry/tamago/imx6/internal/bits"
 	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
@@ -34,6 +33,11 @@ const (
 	PMU_REG_CORE           uint32 = 0x020c8140
 	PMU_REG_CORE_REG2_TARG        = 18
 	PMU_REG_CORE_REG0_TARG        = 0
+
+	CCM_CCGR6     uint32 = 0x20c4080
+	CCM_CCGR6_CG2        = 4
+	CCM_CCGR6_CG1        = 2
+	CCM_CCGR6_CG0        = 0
 )
 
 // ARMCoreDiv returns the ARM core divider value
@@ -80,8 +84,6 @@ func setOperatingPointIMX6ULL(uV uint32) {
 		reg2Targ = reg0Targ
 	}
 
-	log.Printf("imx6_clk: changing ARM core operating point to %d uV", reg0Targ*25000)
-
 	r := reg.Read(PMU_REG_CORE)
 
 	// set ARM core target voltage
@@ -91,8 +93,6 @@ func setOperatingPointIMX6ULL(uV uint32) {
 
 	reg.Write(PMU_REG_CORE, r)
 	busyloop(10000)
-
-	log.Printf("imx6_clk: %d uV -> %d uV", curTarg*25000, reg0Targ*25000)
 }
 
 func setARMFreqIMX6ULL(hz uint32) (err error) {
@@ -105,8 +105,6 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 	if hz == curHz {
 		return
 	}
-
-	log.Printf("imx6_clk: changing ARM core frequency to %d MHz", hz/1000000)
 
 	// p24, Table 10. Operating Ranges, IMX6ULLCEC
 	switch hz {
@@ -148,7 +146,6 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 	reg.SetN(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111, div_select)
 
 	// wait for lock
-	log.Printf("imx6_clk: waiting for PLL lock")
 	reg.Wait(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_LOCK, 0b1, 1)
 
 	// remove bypass
@@ -161,16 +158,14 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 		setOperatingPointIMX6ULL(uV)
 	}
 
-	log.Printf("imx6_clk: %d MHz -> %d MHz", curHz/1000000, hz/1000000)
-
 	return
 }
 
-// SetARMFreq changes the ARM core frequency to the desired setting (in hertz).
-func SetARMFreq(hz uint32) (err error) {
+// SetARMFreq changes the ARM core frequency to the desired setting (in MHz).
+func SetARMFreq(mhz uint32) (err error) {
 	switch Family {
 	case IMX6ULL:
-		err = setARMFreqIMX6ULL(hz)
+		err = setARMFreqIMX6ULL(mhz * 1000000)
 	default:
 		err = errors.New("unsupported")
 	}
