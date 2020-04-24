@@ -88,7 +88,9 @@ func (d *ConfigurationDescriptor) SetDefaults() {
 	d.Length = CONFIGURATION_LENGTH
 	d.DescriptorType = CONFIGURATION
 	d.ConfigurationValue = 1
-	d.Attributes = 0xc0
+	// Bus-powered
+	d.Attributes = 0x80
+	// 500 mA
 	d.MaxPower = 250
 }
 
