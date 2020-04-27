@@ -44,6 +44,7 @@ func hwinit() {
 		Native = true
 	}
 
+	features.read()
 	UART2.init(UART2_BASE, UART_DEFAULT_BAUDRATE)
 
 	switch Family {

@@ -53,8 +53,6 @@ func (f *processorFeatures) read() {
 	var idpfr0 uint32
 	var idpfr1 uint32
 
-	print("Read processor features\n")
-
 	idpfr0 = read_idpfr0()
 	idpfr1 = read_idpfr1()
 
