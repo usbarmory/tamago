@@ -16,6 +16,7 @@ import (
 	"unsafe"
 
 	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/f-secure-foundry/tamago/arm"
 )
 
 const USB_ANALOG_DIGPROG uint32 = 0x020c8260
@@ -51,7 +52,7 @@ func hwinit() {
 		initGlobalTimers()
 	}
 
-	enableVFP()
+	arm.EnableVFP()
 
 	return
 }
