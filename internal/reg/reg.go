@@ -18,7 +18,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/cache"
+	"github.com/f-secure-foundry/tamago/internal/cache"
 )
 
 // TODO: disable cache for peripheral space instead of cache.FlushData() every

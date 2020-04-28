@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 // p279, Table 9-4. Standard Request Codes, USB Specification Revision 2.0
