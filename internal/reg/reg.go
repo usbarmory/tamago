@@ -18,7 +18,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/f-secure-foundry/tamago/internal/cache"
+	"github.com/f-secure-foundry/tamago/arm"
 )
 
 // TODO: disable cache for peripheral space instead of cache.FlushData() every
@@ -31,7 +31,7 @@ func Get(addr uint32, pos int, mask int) (val uint32) {
 
 	mutex.Lock()
 
-	cache.FlushData()
+	arm.CacheFlushData()
 	val = uint32((int(*reg) >> pos) & mask)
 
 	mutex.Unlock()
@@ -44,7 +44,7 @@ func Set(addr uint32, pos int) {
 
 	mutex.Lock()
 
-	cache.FlushData()
+	arm.CacheFlushData()
 	*reg |= (1 << pos)
 
 	mutex.Unlock()
@@ -55,7 +55,7 @@ func Clear(addr uint32, pos int) {
 
 	mutex.Lock()
 
-	cache.FlushData()
+	arm.CacheFlushData()
 	*reg &= ^(1 << pos)
 
 	mutex.Unlock()
@@ -66,7 +66,7 @@ func SetN(addr uint32, pos int, mask int, val uint32) {
 
 	mutex.Lock()
 
-	cache.FlushData()
+	arm.CacheFlushData()
 	*reg = (*reg & (^(uint32(mask) << pos))) | (val << pos)
 
 	mutex.Unlock()
@@ -77,7 +77,7 @@ func ClearN(addr uint32, pos int, mask int) {
 
 	mutex.Lock()
 
-	cache.FlushData()
+	arm.CacheFlushData()
 	*reg &= ^(uint32(mask) << pos)
 
 	mutex.Unlock()
@@ -88,7 +88,7 @@ func Read(addr uint32) (val uint32) {
 
 	mutex.Lock()
 
-	cache.FlushData()
+	arm.CacheFlushData()
 	val = *reg
 
 	mutex.Unlock()
@@ -101,7 +101,7 @@ func Write(addr uint32, val uint32) {
 
 	mutex.Lock()
 
-	cache.FlushData()
+	arm.CacheFlushData()
 	*reg = val
 
 	mutex.Unlock()
@@ -112,7 +112,7 @@ func WriteBack(addr uint32) {
 
 	mutex.Lock()
 
-	cache.FlushData()
+	arm.CacheFlushData()
 	*reg |= *reg
 
 	mutex.Unlock()
@@ -123,7 +123,7 @@ func Or(addr uint32, val uint32) {
 
 	mutex.Lock()
 
-	cache.FlushData()
+	arm.CacheFlushData()
 	*reg |= val
 
 	mutex.Unlock()

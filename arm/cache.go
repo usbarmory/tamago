@@ -8,10 +8,10 @@
 //
 // +build tamago,arm
 
-package cache
+package arm
 
 // defined in cache.s
-func Enable()
-func Disable()
-func FlushData()
-func FlushInstruction()
+func CacheEnable()
+func CacheDisable()
+func CacheFlushData()
+func CacheFlushInstruction()
