@@ -14,8 +14,9 @@ package imx6
 import (
 	"errors"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/bits"
-	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/internal/bits"
+	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/f-secure-foundry/tamago/arm"
 )
 
 const (
@@ -92,7 +93,7 @@ func setOperatingPointIMX6ULL(uV uint32) {
 	bits.SetN(&r, PMU_REG_CORE_REG2_TARG, 0b11111, reg2Targ)
 
 	reg.Write(PMU_REG_CORE, r)
-	busyloop(10000)
+	arm.Busyloop(10000)
 }
 
 func setARMFreqIMX6ULL(hz uint32) (err error) {

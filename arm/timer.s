@@ -41,7 +41,7 @@ TEXT ·read_cntpct(SB),$0
 	RET
 
 // func busyloop(int32)
-TEXT ·busyloop(SB),$0
+TEXT ·Busyloop(SB),$0
 	MOVW count+0(FP), R0
 loop:
 	SUB.S	$1, R0, R0

@@ -15,7 +15,8 @@ import (
 	"sync"
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/f-secure-foundry/tamago/arm"
 )
 
 const (
@@ -59,7 +60,7 @@ func getRandomData(b []byte) {
 // (https://en.wikipedia.org/wiki/Linear_congruential_generator).
 func getLCGData(b []byte) {
 	if lcg == 0 {
-		lcg = uint32(timerFn())
+		lcg = uint32(arm.TimerFn())
 	}
 
 	read := 0

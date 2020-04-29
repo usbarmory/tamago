@@ -16,7 +16,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 // DeviceMode sets the USB controller in device mode.

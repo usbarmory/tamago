@@ -16,7 +16,7 @@ import (
 	"sync"
 
 	"github.com/f-secure-foundry/tamago/imx6"
-	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 const (
