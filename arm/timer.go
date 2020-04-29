@@ -14,7 +14,7 @@ package arm
 import (
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 const (
@@ -54,16 +54,16 @@ func read_cntpct() int64
 func Busyloop(int32)
 
 // InitGlobalTimers initializes ARM Cortex-A9 timers
-func InitGlobalTimers() {
+func (a *Arm) InitGlobalTimers() {
 	TimerFn = read_gtc
 	timerMultiplier = 10
 }
 
-// initGenericTimers initializes ARM Cortex-A7 timers
-func initGenericTimers(freq int32) {
+// InitGenericTimers initializes ARM Cortex-A7 timers
+func (a *Arm) InitGenericTimers(freq int32) {
 	var timerFreq int64
 
-	if features.genericTimer && freq != 0 {
+	if freq != 0 {
 		write_cntfrq(freq)
 		// Set base frequency
 		reg.Write(CNTFID0, uint32(freq))

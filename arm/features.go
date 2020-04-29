@@ -9,7 +9,7 @@
 //
 // +build tamago,arm
 
-package imx6
+package arm
 
 import (
 	_ "unsafe"
@@ -28,8 +28,7 @@ const (
 	IDPFR1_GENERIC_TIMER_MASK            = 0xf0000
 )
 
-type processorFeatures struct {
-
+type features struct {
 	// instruction sets
 	arm     bool
 	thumb   bool
@@ -44,12 +43,11 @@ type processorFeatures struct {
 	genericTimer     bool
 }
 
-// defined in features.s
+// defined in arm.s
 func read_idpfr0() uint32
 func read_idpfr1() uint32
 
-// read Processor features
-func (f *processorFeatures) read() {
+func (f *features) init() {
 	var idpfr0 uint32
 	var idpfr1 uint32
 
@@ -68,7 +66,7 @@ func (f *processorFeatures) read() {
 	f.genericTimer     = (idpfr1 & IDPFR1_GENERIC_TIMER_MASK) != 0
 }
 
-func (f *processorFeatures) print() {
+func (f *features) print() {
 	if f.arm {
 		print("ARM instruction set implemented.\n")
 	}
