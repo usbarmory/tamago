@@ -1,6 +1,8 @@
 // NXP Ultra Secured Digital Host Controller (uSDHC) driver
 // https://github.com/f-secure-foundry/tamago
 //
+// IP: https://www.mobiveil.com/esdhc/
+//
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
 //
@@ -52,17 +54,25 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	reg.Write(hw.int_status_en, 0xffffffff)
 
 	// wait for command inhibit to be clear
-	if !reg.WaitFor(10*time.Millisecond, hw.pres_state, PRES_STATE_CIHB, 0b1, 0) {
-		return errors.New("CMD timeout")
+	if !reg.WaitFor(10*time.Millisecond, hw.pres_state, PRES_STATE_CIHB, 1, 0) {
+		return errors.New("command inhibit")
 	}
 
 	// TODO
 	data := false
 
 	// wait for data inhibit to be clear
-	if data && !reg.WaitFor(10*time.Millisecond, hw.pres_state, PRES_STATE_CDIHB, 0b1, 0) {
-		return errors.New("DATA timeout")
+	if data && !reg.WaitFor(10*time.Millisecond, hw.pres_state, PRES_STATE_CDIHB, 1, 0) {
+		return errors.New("data inhibit")
 	}
+
+	defer func() {
+		if err != nil {
+			reg.Clear(hw.pres_state, PRES_STATE_CIHB)
+			reg.Clear(hw.pres_state, PRES_STATE_CDIHB)
+			reg.Set(hw.sys_ctrl, SYS_CTRL_RSTC)
+		}
+	}()
 
 	// disable DMA
 	reg.ClearN(hw.prot_ctrl, PROT_CTRL_DMASEL, 0b11)
@@ -78,15 +88,15 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	// set command index
 	bits.SetN(&xfr, CMD_XFR_TYP_CMDINX, 0b111111, index)
 
+	// command index verification
 	if cic {
-		// enable command index check
 		bits.Set(&xfr, CMD_XFR_TYP_CICEN)
 	} else {
 		bits.Clear(&xfr, CMD_XFR_TYP_CICEN)
 	}
 
+	// CRC verification
 	if ccc {
-		// enable CRC check
 		bits.Set(&xfr, CMD_XFR_TYP_CCCEN)
 	} else {
 		bits.Clear(&xfr, CMD_XFR_TYP_CCCEN)
@@ -95,7 +105,7 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	// set response type
 	bits.SetN(&xfr, CMD_XFR_TYP_RSPTYP, 0b11, res)
 	// set data transfer direction
-	bits.SetN(&mix, MIX_CTRL_DTDSEL, 0b1, dtd)
+	bits.SetN(&mix, MIX_CTRL_DTDSEL, 1, dtd)
 
 	if hw.ddr {
 		bits.Set(&mix, MIX_CTRL_DDR_EN)
@@ -105,20 +115,21 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	reg.Write(hw.cmd_xfr, xfr)
 
 	// wait for completion
-	reg.WaitFor(100*time.Millisecond, hw.int_status, INT_STATUS_CC, 0b1, 1)
+	if !reg.WaitFor(100*time.Millisecond, hw.int_status, INT_STATUS_CC, 1, 1) {
+		err = errors.New("command timeout")
+		return
+	}
 
 	// mask all interrupts
-	reg.Write(hw.int_signal_en, 0x00000000)
+	reg.Write(hw.int_signal_en, 0)
 
 	// read status
 	status := reg.Read(hw.int_status)
 
 	// check for any error value
 	if (status >> 16) > 0 {
-		reg.Clear(hw.pres_state, PRES_STATE_CIHB)
-		reg.Clear(hw.pres_state, PRES_STATE_CDIHB)
-		reg.Set(hw.sys_ctrl, SYS_CTRL_RSTC)
-		return fmt.Errorf("CMD%d error, interrupt status %x", index, status)
+		err = fmt.Errorf("CMD%d error, interrupt status %x", index, status)
+		return
 	}
 
 	return

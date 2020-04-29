@@ -1,6 +1,8 @@
 // NXP Ultra Secured Digital Host Controller (uSDHC) driver
 // https://github.com/f-secure-foundry/tamago
 //
+// IP: https://www.mobiveil.com/esdhc/
+//
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
 //
@@ -12,7 +14,7 @@
 package usdhc
 
 import (
-	"log"
+	"errors"
 	"sync"
 
 	"github.com/f-secure-foundry/tamago/imx6"
@@ -140,45 +142,13 @@ type usdhc struct {
 	hc  bool
 }
 
-var USDHC1 *usdhc
-var USDHC2 *usdhc
-
-func (hw *usdhc) init(base uint32) {
-	hw.cmd_arg = base + HW_USDHCx_CMD_ARG
-	hw.cmd_xfr = base + HW_USDHCx_CMD_XFR_TYP
-	hw.cmd_rsp = base + HW_USDHCx_CMD_RSP0
-	hw.prot_ctrl = base + HW_USDHCx_PROT_CTRL
-	hw.sys_ctrl = base + HW_USDHCx_SYS_CTRL
-	hw.mix_ctrl = base + HW_USDHCx_MIX_CTRL
-	hw.pres_state = base + HW_USDHCx_PRES_STATE
-	hw.int_status = base + HW_USDHCx_INT_STATUS
-	hw.int_status_en = base + HW_USDHCx_INT_STATUS_EN
-	hw.int_signal_en = base + HW_USDHCx_INT_SIGNAL_EN
-}
-
-// declare this in board ?
-func init() {
-	USDHC1 = &usdhc{
-		n:     1,
-		width: 8,
-		ddr:   true,
-		cg:    imx6.CCM_CCGR6_CG1,
-	}
-	USDHC1.init(HW_USDHC1_BASE)
-
-	USDHC2 = &usdhc{
-		n:     2,
-		width: 8,
-		ddr:   false,
-		cg:    imx6.CCM_CCGR6_CG2,
-	}
-	USDHC2.init(HW_USDHC2_BASE)
-}
+var USDHC1 = &usdhc{n: 1}
+var USDHC2 = &usdhc{n: 2}
 
 // p348, 35.4.2 Frequency divider configuration, IMX6FG
 func (hw *usdhc) setClock(dvs int, sdclkfs int) {
 	// wait for stable clock to comply with p4038, IMX6ULLRM DVS note
-	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 0b1, 1)
+	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)
 
 	ctrl := reg.Read(hw.sys_ctrl)
 
@@ -186,9 +156,8 @@ func (hw *usdhc) setClock(dvs int, sdclkfs int) {
 	bits.SetN(&ctrl, SYS_CTRL_SDCLKFS, 0xff, uint32(sdclkfs))
 
 	reg.Write(hw.sys_ctrl, ctrl)
-	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 0b1, 1)
+	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)
 }
-
 
 // Detect performs voltage validation to detect an SD or MMC card.
 func (hw *usdhc) detect() (sd bool, mmc bool, hc bool, err error) {
@@ -203,41 +172,76 @@ func (hw *usdhc) detect() (sd bool, mmc bool, hc bool, err error) {
 	return
 }
 
-// Init initializes the USDHC controller as specified in
-// p347, 35.4 Initializing the uSDHC controller, IMX6FG
-func (hw *usdhc) Init() (err error) {
+// Init initializes the uSDHC controller instance.
+func (hw *usdhc) Init(width int, ddr bool) {
+	var base uint32
+
+	hw.Lock()
+
+	switch hw.n {
+	case 1:
+		base = HW_USDHC1_BASE
+		hw.cg = imx6.CCM_CCGR6_CG1
+	case 2:
+		base = HW_USDHC2_BASE
+		hw.cg = imx6.CCM_CCGR6_CG2
+	}
+
+	hw.width = width
+	hw.ddr = ddr
+	hw.cmd_arg = base + HW_USDHCx_CMD_ARG
+	hw.cmd_xfr = base + HW_USDHCx_CMD_XFR_TYP
+	hw.cmd_rsp = base + HW_USDHCx_CMD_RSP0
+	hw.prot_ctrl = base + HW_USDHCx_PROT_CTRL
+	hw.sys_ctrl = base + HW_USDHCx_SYS_CTRL
+	hw.mix_ctrl = base + HW_USDHCx_MIX_CTRL
+	hw.pres_state = base + HW_USDHCx_PRES_STATE
+	hw.int_status = base + HW_USDHCx_INT_STATUS
+	hw.int_status_en = base + HW_USDHCx_INT_STATUS_EN
+	hw.int_signal_en = base + HW_USDHCx_INT_SIGNAL_EN
+
+	hw.Unlock()
+}
+
+// Detect initializes an SD/MMC card as specified in
+// p347, 35.4.1 Initializing the SD/MMC card, IMX6FG.
+func (hw *usdhc) Detect() (err error) {
 	hw.Lock()
 	defer hw.Unlock()
+
+	if hw.cg == 0 {
+		return errors.New("controller is uninitialized")
+	}
 
 	// enable clock
 	reg.SetN(imx6.CCM_CCGR6, hw.cg, 0b11, 0b11)
 
-	// TODO: configure IOMUX/GPIO
-
 	// soft reset uSDHC
-	log.Printf("imx6_usdhc: resetting uSDHC%d", hw.n)
 	reg.Set(hw.sys_ctrl, SYS_CTRL_RSTA)
-	reg.Wait(hw.sys_ctrl, SYS_CTRL_RSTA, 0b1, 0)
+	reg.Wait(hw.sys_ctrl, SYS_CTRL_RSTA, 1, 0)
 
 	// data transfer width, default to 1-bit mode
 	dtw := 0b00
 
 	switch hw.width {
+	case 1:
+		dtw = 0b00
 	case 4:
 		dtw = 0b01
 	case 8:
 		dtw = 0b10
+	default:
+		return errors.New("unsupported controller data transfer width")
 	}
 
-	// TODO: should the API allow configuration of these?
-	// set data transfer width (4-bit)
+	// set data transfer width
 	reg.SetN(hw.prot_ctrl, PROT_CTRL_DTW, 0b11, uint32(dtw))
-	// set endianness (little)
+	// set endianness (little), (TODO: expose via API?)
 	reg.SetN(hw.prot_ctrl, PROT_CTRL_EMODE, 0b11, 0b10)
 
 	// clear clock
 	hw.setClock(0, 0)
-	// set identification frequency (400 KHz)
+	// set identification frequency
 	hw.setClock(DVS_ID, SDCLKFS_ID)
 
 	// set data timeout counter to SDCLK x 2^28
@@ -247,16 +251,28 @@ func (hw *usdhc) Init() (err error) {
 
 	// initialize
 	reg.Set(hw.sys_ctrl, SYS_CTRL_INITA)
-	reg.Wait(hw.sys_ctrl, SYS_CTRL_INITA, 0b1, 0)
+	reg.Wait(hw.sys_ctrl, SYS_CTRL_INITA, 1, 0)
 
 	// CMD0 - GO_IDLE_STATE - reset card
-	err = hw.cmd(0, READ, GO_IDLE_STATE, RSP_NONE, true, true)
+	err = hw.cmd(0, READ, GO_IDLE_STATE, RSP_NONE, false, false)
 
 	if err != nil {
 		return
 	}
 
 	hw.sd, hw.mmc, hw.hc, err = hw.detect()
+
+	if err != nil {
+		return
+	}
+
+	if hw.sd {
+		err = hw.initSD()
+	} else if hw.mmc {
+		err = hw.initMMC()
+	} else {
+		err = errors.New("no SD/MMC card detected")
+	}
 
 	return
 }

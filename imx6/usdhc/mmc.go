@@ -1,6 +1,8 @@
 // NXP Ultra Secured Digital Host Controller (uSDHC) driver
 // https://github.com/f-secure-foundry/tamago
 //
+// IP: https://www.mobiveil.com/esdhc/
+//
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
 //
@@ -42,7 +44,7 @@ func (hw *usdhc) voltageValidationMMC() (mmc bool, hc bool) {
 	// sector mode supported
 	bits.SetN(&arg, MMC_OCR_ACCESS_MODE, 0b11, ACCESS_MODE_SECTOR)
 	// set HV range
-	bits.SetN(&arg, MMC_OCR_VDD_HV_MIN, 0b111111111, 0b111111111)
+	bits.SetN(&arg, MMC_OCR_VDD_HV_MIN, 0x1ff, 0x1ff)
 
 	start := time.Now()
 
@@ -53,7 +55,7 @@ func (hw *usdhc) voltageValidationMMC() (mmc bool, hc bool) {
 
 		rsp := hw.rsp(0)
 
-		if bits.Get(&rsp, MMC_OCR_BUSY, 0b1) == 0 && time.Since(start) < MMC_DETECT_TIMEOUT {
+		if bits.Get(&rsp, MMC_OCR_BUSY, 1) == 0 && time.Since(start) < MMC_DETECT_TIMEOUT {
 			continue
 		}
 
@@ -67,6 +69,12 @@ func (hw *usdhc) voltageValidationMMC() (mmc bool, hc bool) {
 	}
 
 	return true, hc
+}
+
+// p351, 35.4.7 MMC card initialization flow chart, IMX6FG
+func (hw *usdhc) initMMC() (err error) {
+	// TODO
+	return
 }
 
 // MMC returns whether an MMC card has been detected.

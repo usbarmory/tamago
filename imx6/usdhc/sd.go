@@ -1,6 +1,8 @@
 // NXP Ultra Secured Digital Host Controller (uSDHC) driver
 // https://github.com/f-secure-foundry/tamago
 //
+// IP: https://www.mobiveil.com/esdhc/
+//
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
 //
@@ -12,6 +14,8 @@
 package usdhc
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/f-secure-foundry/tamago/imx6/internal/bits"
@@ -38,6 +42,17 @@ const (
 
 	SD_DETECT_LOOP_CNT = 300
 	SD_DETECT_TIMEOUT  = 1 * time.Second
+
+	// p127, 4.9.5 (Published RCA response), SD-PL-7.10
+	SD_RCA_ADDR   = 16
+	SD_RCA_STATUS = 0
+
+	// p131, Table 4-42 : Card Status, SD-PL-7.10
+	STATUS_CURRENT_STATE = 9
+	STATUS_APP_CMD       = 5
+
+	CURRENT_STATE_IDENT = 2
+	CURRENT_STATE_TRAN  = 4
 )
 
 // p350, 35.4.4 SD voltage validation flow chart, IMX6FG
@@ -84,7 +99,7 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 
 	if hv {
 		// set HV range
-		bits.SetN(&arg, SD_OCR_VDD_HV_MIN, 0b111111111, 0b111111111)
+		bits.SetN(&arg, SD_OCR_VDD_HV_MIN, 0x1ff, 0x1ff)
 	} else {
 		bits.Set(&arg, SD_OCR_VDD_LV)
 	}
@@ -103,11 +118,11 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 
 		rsp := hw.rsp(0)
 
-		if bits.Get(&rsp, SD_OCR_BUSY, 0b1) == 0 && time.Since(start) < SD_DETECT_TIMEOUT {
+		if bits.Get(&rsp, SD_OCR_BUSY, 1) == 0 && time.Since(start) < SD_DETECT_TIMEOUT {
 			continue
 		}
 
-		if bits.Get(&rsp, SD_OCR_HCS, 0b1) == 1 {
+		if bits.Get(&rsp, SD_OCR_HCS, 1) == 1 {
 			hc = true
 		} else {
 			hc = false
@@ -117,6 +132,76 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 	}
 
 	return true, hc
+}
+
+// p351, 35.4.5 SD card initialization flow chart, IMX6FG
+// p57, 4.2.3 Card Initialization and Identification Process, SD-PL-7.10
+func (hw *usdhc) initSD() (err error) {
+	var arg uint32
+
+	// CMD2 - ALL_SEND_CID - get unique card identification
+	err = hw.cmd(2, READ, arg, RSP_136, false, true)
+
+	if err != nil {
+		return
+	}
+
+	// CMD3 - SEND_RELATIVE_ADDR - get relative card address (RCA)
+	err = hw.cmd(3, READ, arg, RSP_48, true, true)
+
+	if err != nil {
+		return
+	}
+
+	if state := (hw.rsp(0) >> STATUS_CURRENT_STATE) & 0b1111; state != CURRENT_STATE_IDENT {
+		return fmt.Errorf("card not in ident state (%d)", state)
+	}
+
+	// clear clock
+	hw.setClock(0, 0)
+	// set operating frequency
+	hw.setClock(DVS_OP, SDCLKFS_OP)
+
+	// CMD7 - SELECT/DESELECT CARD - enter transfer state
+	rca := hw.rsp(0) & (0xffff << SD_RCA_ADDR)
+	err = hw.cmd(7, READ, rca, RSP_48_CHECK_BUSY, true, true)
+
+	if err != nil {
+		return
+	}
+
+	// CMD13 - SEND_STATUS/SEND_TASK_STATUS - poll card status
+	err = hw.cmd(13, READ, rca, RSP_48, true, true)
+
+	if state := (hw.rsp(0) >> STATUS_CURRENT_STATE) & 0b1111; state != CURRENT_STATE_TRAN {
+		return fmt.Errorf("card not in tran state (%d)", state)
+	}
+
+	// CMD55 - APP_CMD - next command is application specific
+	err = hw.cmd(55, READ, rca, RSP_48, true, true)
+
+	if err != nil {
+		return
+	}
+
+	if ((hw.rsp(0) >> STATUS_APP_CMD) & 1) != 1 {
+		return fmt.Errorf("card not expecting application command")
+	}
+
+	// ACMD6 - SET_BUS_WIDTH - define the card data bus width
+	// p118, Table 4-31, SD-PL-7.10
+	var bus_width uint32
+
+	switch hw.width {
+	case 1:
+		bus_width = 0b00
+	case 4:
+		bus_width = 0b10
+	default:
+		return errors.New("unsupported SD bus width")
+	}
+
+	return hw.cmd(6, READ, uint32(bus_width), RSP_48, true, true)
 }
 
 // SD returns whether an SD card has been detected.
