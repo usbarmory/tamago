@@ -20,8 +20,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/f-secure-foundry/tamago/internal/reg"
 	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 const (

@@ -15,8 +15,8 @@ import (
 	"sync"
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/internal/reg"
 	"github.com/f-secure-foundry/tamago/arm"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 const (

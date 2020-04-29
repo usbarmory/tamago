@@ -15,8 +15,8 @@ import (
 	"encoding/binary"
 	"unsafe"
 
-	"github.com/f-secure-foundry/tamago/internal/reg"
 	"github.com/f-secure-foundry/tamago/arm"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 const USB_ANALOG_DIGPROG uint32 = 0x020c8260

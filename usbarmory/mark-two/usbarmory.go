@@ -18,8 +18,8 @@ import (
 	_ "unsafe"
 
 	"github.com/f-secure-foundry/tamago/imx6"
-	"github.com/f-secure-foundry/tamago/imx6/usdhc"
 	_ "github.com/f-secure-foundry/tamago/imx6/imx6ul"
+	"github.com/f-secure-foundry/tamago/imx6/usdhc"
 )
 
 //go:linkname ramSize runtime.ramSize
@@ -27,6 +27,7 @@ var ramSize uint32 = 0x20000000 // 512 MB
 
 // external uSD
 var SD = usdhc.USDHC1
+
 // internal eMMC
 var MMC = usdhc.USDHC2
 
