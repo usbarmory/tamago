@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/bits"
-	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/internal/bits"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 const (
