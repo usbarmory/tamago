@@ -9,7 +9,7 @@
 //
 // +build tamago,arm
 
-package imx6
+package arm
 
 import (
 	_ "unsafe"
@@ -43,7 +43,7 @@ const (
 	refFreq int64 = 1000000000
 )
 
-var timerFn func() int64
+var TimerFn func() int64
 var timerMultiplier int64
 
 // defined in timer_arm.s
@@ -51,11 +51,11 @@ func read_gtc() int64
 func read_cntfrq() int32
 func write_cntfrq(int32)
 func read_cntpct() int64
-func busyloop(int32)
+func Busyloop(int32)
 
-// initGlobalTimers initializes ARM Cortex-A9 timers
-func initGlobalTimers() {
-	timerFn = read_gtc
+// InitGlobalTimers initializes ARM Cortex-A9 timers
+func InitGlobalTimers() {
+	TimerFn = read_gtc
 	timerMultiplier = 10
 }
 
@@ -78,12 +78,12 @@ func initGenericTimers(freq int32) {
 	timerFreq = int64(read_cntfrq())
 	print("System counter frequency (CNTFRQ) = ", timerFreq, "\n")
 	timerMultiplier = int64(refFreq / timerFreq)
-	timerFn = read_cntpct
+	TimerFn = read_cntpct
 
 	return
 }
 
 //go:linkname nanotime1 runtime.nanotime1
 func nanotime1() int64 {
-	return int64(timerFn() * timerMultiplier)
+	return int64(TimerFn() * timerMultiplier)
 }

@@ -14,7 +14,7 @@ package imx6
 import (
 	"fmt"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 const (

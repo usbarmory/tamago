@@ -15,7 +15,8 @@ import (
 	"encoding/binary"
 	"unsafe"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/reg"
+	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/f-secure-foundry/tamago/arm"
 )
 
 const USB_ANALOG_DIGPROG uint32 = 0x020c8260
@@ -49,19 +50,20 @@ func hwinit() {
 
 	switch Family {
 	case IMX6Q:
-		initGlobalTimers()
+		arm.InitGlobalTimers()
 	case IMX6UL, IMX6ULL:
-		if (Native) {
-			// U-Boot value for i.MX6 family (8.0MHz)
-			initGenericTimers(8000000)
+		if !Native {
+			// use QEMU fixed CNTFRQ value (62.5MHz)
+			arm.InitGenericTimers(62500000)
 		} else {
-			initGenericTimers(0)
+			// U-Boot value for i.MX6 family (8.0MHz)
+			arm.InitGenericTimers(8000000)
 		}
 	default:
-		initGlobalTimers()
+		arm.InitGlobalTimers()
 	}
 
-	enableVFP()
+	arm.EnableVFP()
 
 	return
 }

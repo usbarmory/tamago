@@ -8,7 +8,7 @@
 //
 // +build tamago,arm
 
-package imx6
+package arm
 
 import (
 	_ "unsafe"
@@ -18,6 +18,6 @@ import (
 func vfp_enable()
 
 //go:linkname enableVFP runtime.vfp_enable
-func enableVFP() {
+func EnableVFP() {
 	vfp_enable()
 }
