@@ -11,10 +11,10 @@
 
 package arm
 
-type Arm struct {
+type CPU struct {
 	features features
 }
 
-func (a *Arm) Init() {
-	a.features.init()
+func (c *CPU) Init() {
+	c.features.init()
 }

@@ -54,13 +54,13 @@ func read_cntpct() int64
 func Busyloop(int32)
 
 // InitGlobalTimers initializes ARM Cortex-A9 timers
-func (a *Arm) InitGlobalTimers() {
+func (c *CPU) InitGlobalTimers() {
 	TimerFn = read_gtc
 	timerMultiplier = 10
 }
 
 // InitGenericTimers initializes ARM Cortex-A7 timers
-func (a *Arm) InitGenericTimers(freq int32) {
+func (c *CPU) InitGenericTimers(freq int32) {
 	var timerFreq int64
 
 	if freq != 0 {

@@ -31,7 +31,7 @@ const IMX6ULL = 0x65
 var Family uint32
 var Native bool
 
-var ARM arm.Arm
+var CPU arm.CPU
 
 // hwinit takes care of the lower level SoC initialization triggered early in
 // runtime setup, care must be taken to ensure that no heap allocation is
@@ -45,22 +45,22 @@ func hwinit() {
 		Native = true
 	}
 
-	ARM.Init()
+	CPU.Init()
 	UART2.init(UART2_BASE, UART_DEFAULT_BAUDRATE)
 
 	switch Family {
 	case IMX6Q:
-		ARM.InitGlobalTimers()
+		CPU.InitGlobalTimers()
 	case IMX6UL, IMX6ULL:
 		if !Native {
 			// use QEMU fixed CNTFRQ value (62.5MHz)
-			ARM.InitGenericTimers(62500000)
+			CPU.InitGenericTimers(62500000)
 		} else {
 			// U-Boot value for i.MX6 family (8.0MHz)
-			ARM.InitGenericTimers(8000000)
+			CPU.InitGenericTimers(8000000)
 		}
 	default:
-		ARM.InitGlobalTimers()
+		CPU.InitGlobalTimers()
 	}
 
 	arm.EnableVFP()
