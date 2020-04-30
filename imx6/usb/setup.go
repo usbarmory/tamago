@@ -19,7 +19,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
-// p279, Table 9-4. Standard Request Codes, USB Specification Revision 2.0
+// p279, Table 9-4. Standard Request Codes, USB2.0
 const (
 	GET_STATUS        = 0
 	CLEAR_FEATURE     = 1
@@ -41,7 +41,7 @@ const (
 )
 
 const (
-	// p279, Table 9-5. Descriptor Types, USB Specification Revision 2.0
+	// p279, Table 9-5. Descriptor Types, USB2.0
 	DEVICE                    = 1
 	CONFIGURATION             = 2
 	STRING                    = 3
@@ -57,7 +57,7 @@ const (
 )
 
 // SetupData implements
-// p276, Table 9-2. Format of Setup Data, USB Specification Revision 2.0.
+// p276, Table 9-2. Format of Setup Data, USB2.0.
 type SetupData struct {
 	RequestType uint8
 	Request     uint8
