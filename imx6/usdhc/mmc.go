@@ -46,6 +46,9 @@ func (hw *usdhc) voltageValidationMMC() (mmc bool, hc bool) {
 	// set HV range
 	bits.SetN(&arg, MMC_OCR_VDD_HV_MIN, 0x1ff, 0x1ff)
 
+	// p46, 6.3.1 Device reset to Pre-idle state, JESD84-B51
+	time.Sleep(1 * time.Millisecond)
+
 	start := time.Now()
 
 	for i := 0; i < 300; i++ {

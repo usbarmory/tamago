@@ -18,6 +18,5 @@ import (
 //go:linkname ramStart runtime.ramStart
 var ramStart uint32 = 0x80000000
 
-// ramSize defined in board package
 //go:linkname ramStackOffset runtime.ramStackOffset
 var ramStackOffset uint32 = 0x100

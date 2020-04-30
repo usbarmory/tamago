@@ -32,6 +32,8 @@ const (
 	RSP_136           = 0b01
 	RSP_48            = 0b10
 	RSP_48_CHECK_BUSY = 0b11
+
+	CMD_TIMEOUT = 10 * time.Millisecond
 )
 
 func (hw *usdhc) rsp(i uint32) uint32 {
@@ -54,7 +56,7 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	reg.Write(hw.int_status_en, 0xffffffff)
 
 	// wait for command inhibit to be clear
-	if !reg.WaitFor(10*time.Millisecond, hw.pres_state, PRES_STATE_CIHB, 1, 0) {
+	if !reg.WaitFor(CMD_TIMEOUT, hw.pres_state, PRES_STATE_CIHB, 1, 0) {
 		return errors.New("command inhibit")
 	}
 
@@ -62,7 +64,7 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	data := false
 
 	// wait for data inhibit to be clear
-	if data && !reg.WaitFor(10*time.Millisecond, hw.pres_state, PRES_STATE_CDIHB, 1, 0) {
+	if data && !reg.WaitFor(CMD_TIMEOUT, hw.pres_state, PRES_STATE_CDIHB, 1, 0) {
 		return errors.New("data inhibit")
 	}
 
@@ -115,13 +117,12 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	reg.Write(hw.cmd_xfr, xfr)
 
 	// wait for completion
-	if !reg.WaitFor(100*time.Millisecond, hw.int_status, INT_STATUS_CC, 1, 1) {
+	if !reg.WaitFor(CMD_TIMEOUT, hw.int_status, INT_STATUS_CC, 1, 1) {
 		err = errors.New("command timeout")
-		return
+	} else {
+		// mask all interrupts
+		reg.Write(hw.int_signal_en, 0)
 	}
-
-	// mask all interrupts
-	reg.Write(hw.int_signal_en, 0)
 
 	// read status
 	status := reg.Read(hw.int_status)
@@ -129,7 +130,6 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	// check for any error value
 	if (status >> 16) > 0 {
 		err = fmt.Errorf("CMD%d error, interrupt status %x", index, status)
-		return
 	}
 
 	return

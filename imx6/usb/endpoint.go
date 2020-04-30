@@ -18,9 +18,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
 	"github.com/f-secure-foundry/tamago/internal/bits"
 	"github.com/f-secure-foundry/tamago/internal/reg"
-	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
 )
 
 const (
@@ -112,7 +112,7 @@ func (hw *usb) setEP(n int, dir int, max int, zlt int, mult int) {
 	// Mult
 	bits.SetN(&dqh.Info, 30, 0b11, uint32(mult))
 	// zlt
-	bits.SetN(&dqh.Info, 29, 0b1, uint32(zlt))
+	bits.SetN(&dqh.Info, 29, 1, uint32(zlt))
 	// Maximum Packet Length
 	bits.SetN(&dqh.Info, 16, 0x7ff, uint32(max))
 
@@ -258,10 +258,10 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	// prime endpoint
 	reg.Set(hw.prime, pos)
 	// wait for priming completion
-	reg.Wait(hw.prime, pos, 0b1, 0)
+	reg.Wait(hw.prime, pos, 1, 0)
 
 	// wait for completion
-	reg.Wait(hw.complete, pos, 0b1, 1)
+	reg.Wait(hw.complete, pos, 1, 1)
 	// clear completion
 	reg.Write(hw.complete, 1<<pos)
 
@@ -271,14 +271,14 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 
 		// The hardware might delay status update after completion,
 		// therefore best to wait for the active bit (7) to clear.
-		inactive := reg.WaitFor(5*time.Second, token, 7, 0b1, 0)
+		inactive := reg.WaitFor(5*time.Second, token, 7, 1, 0)
 		dtdToken := reg.Read(token)
 
 		if !inactive {
 			return nil, fmt.Errorf("dTD[%d] timeout waiting for completion (token:%x)", i, dtdToken)
 		}
 
-		if (dtdToken & 0xff) != 0x00 {
+		if (dtdToken & 0xff) != 0 {
 			return nil, fmt.Errorf("dTD[%d] error status (token:%x)", i, dtdToken)
 		}
 
@@ -349,7 +349,7 @@ func (hw *usb) enable(n int, dir int, transferType int) {
 		bits.SetN(&c, ENDPTCTRL_TXT, 0b11, uint32(transferType))
 		bits.Clear(&c, ENDPTCTRL_TXS)
 
-		if reg.Get(ctrl, ENDPTCTRL_RXE, 0b1) == 0 {
+		if reg.Get(ctrl, ENDPTCTRL_RXE, 1) == 0 {
 			// see note at p3879 of IMX6ULLRM
 			bits.SetN(&c, ENDPTCTRL_RXT, 0b11, BULK)
 		}
@@ -359,7 +359,7 @@ func (hw *usb) enable(n int, dir int, transferType int) {
 		bits.SetN(&c, ENDPTCTRL_RXT, 0b11, uint32(transferType))
 		bits.Clear(&c, ENDPTCTRL_RXS)
 
-		if reg.Get(ctrl, ENDPTCTRL_TXE, 0b1) == 0 {
+		if reg.Get(ctrl, ENDPTCTRL_TXE, 1) == 0 {
 			// see note at p3879 of IMX6ULLRM
 			bits.SetN(&c, ENDPTCTRL_TXT, 0b11, BULK)
 		}

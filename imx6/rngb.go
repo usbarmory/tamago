@@ -15,8 +15,8 @@ import (
 	"sync"
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/internal/reg"
 	"github.com/f-secure-foundry/tamago/arm"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 const (
@@ -89,11 +89,11 @@ func (hw *rngb) Init() {
 	reg.Set(HW_RNG_CMD, HW_RNG_CMD_ST)
 
 	print("imx6_rng: self-test\n")
-	for reg.Get(HW_RNG_SR, HW_RNG_SR_STDN, 0b1) != 1 {
+	for reg.Get(HW_RNG_SR, HW_RNG_SR_STDN, 1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
 
-	if reg.Get(HW_RNG_SR, HW_RNG_SR_ERR, 0b1) != 0 || reg.Get(HW_RNG_SR, HW_RNG_SR_ST_PF, 0b1) != 0 {
+	if reg.Get(HW_RNG_SR, HW_RNG_SR_ERR, 1) != 0 || reg.Get(HW_RNG_SR, HW_RNG_SR_ST_PF, 1) != 0 {
 		panic("imx6_rng: self-test FAIL\n")
 	}
 
@@ -101,7 +101,7 @@ func (hw *rngb) Init() {
 	reg.Set(HW_RNG_CR, HW_RNG_CR_AR)
 
 	print("imx6_rng: seeding\n")
-	for reg.Get(HW_RNG_SR, HW_RNG_SR_SDN, 0b1) != 1 {
+	for reg.Get(HW_RNG_SR, HW_RNG_SR_SDN, 1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
 
@@ -113,7 +113,7 @@ func (hw *rngb) getRandomData(b []byte) {
 	need := len(b)
 
 	for read < need {
-		if reg.Get(HW_RNG_SR, HW_RNG_SR_ERR, 0b1) != 0 {
+		if reg.Get(HW_RNG_SR, HW_RNG_SR_ERR, 1) != 0 {
 			panic("imx6_rng: error during getRandomData\n")
 		}
 

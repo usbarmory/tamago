@@ -20,14 +20,14 @@ import (
 	"log"
 	"sync"
 
-	"github.com/f-secure-foundry/tamago/internal/reg"
 	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 const (
 	HW_DCP_BASE uint32 = 0x02280000
 
-	HW_DCP_CTRL         = HW_DCP_BASE + 0x00
+	HW_DCP_CTRL         = HW_DCP_BASE
 	HW_DCP_CTRL_SFTRST  = 31
 	HW_DCP_CTRL_CLKGATE = 30
 
@@ -200,7 +200,7 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 
 	// channel 0 is used
 	log.Printf("imx6_dcp: waiting for key derivation")
-	reg.Wait(HW_DCP_STAT, HW_DCP_STAT_IRQ, 0b1, 1)
+	reg.Wait(HW_DCP_STAT, HW_DCP_STAT_IRQ, 1, 1)
 	reg.Set(HW_DCP_STAT_CLR, 1)
 
 	if chstatus := reg.Get(HW_DCP_CH0STAT, 1, 0b111111); chstatus != 0 {

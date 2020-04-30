@@ -14,119 +14,53 @@ package reg
 
 import (
 	"runtime"
-	"sync"
 	"time"
 	"unsafe"
-
-	"github.com/f-secure-foundry/tamago/arm"
 )
-
-// TODO: disable cache for peripheral space instead of cache.FlushData() every
-// time.
-
-var mutex sync.Mutex
 
 func Get(addr uint32, pos int, mask int) (val uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-
-	mutex.Lock()
-
-	arm.CacheFlushData()
-	val = uint32((int(*reg) >> pos) & mask)
-
-	mutex.Unlock()
-
-	return
+	return uint32((int(*reg) >> pos) & mask)
 }
 
 func Set(addr uint32, pos int) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-
-	mutex.Lock()
-
-	arm.CacheFlushData()
 	*reg |= (1 << pos)
-
-	mutex.Unlock()
 }
 
 func Clear(addr uint32, pos int) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-
-	mutex.Lock()
-
-	arm.CacheFlushData()
 	*reg &= ^(1 << pos)
-
-	mutex.Unlock()
 }
 
 func SetN(addr uint32, pos int, mask int, val uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-
-	mutex.Lock()
-
-	arm.CacheFlushData()
 	*reg = (*reg & (^(uint32(mask) << pos))) | (val << pos)
-
-	mutex.Unlock()
 }
 
 func ClearN(addr uint32, pos int, mask int) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-
-	mutex.Lock()
-
-	arm.CacheFlushData()
 	*reg &= ^(uint32(mask) << pos)
-
-	mutex.Unlock()
 }
 
 func Read(addr uint32) (val uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-
-	mutex.Lock()
-
-	arm.CacheFlushData()
-	val = *reg
-
-	mutex.Unlock()
-
-	return
+	return *reg
 }
 
 func Write(addr uint32, val uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-
-	mutex.Lock()
-
-	arm.CacheFlushData()
 	*reg = val
-
-	mutex.Unlock()
 }
 
 func WriteBack(addr uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-
-	mutex.Lock()
-
-	arm.CacheFlushData()
 	*reg |= *reg
-
-	mutex.Unlock()
 }
 
 func Or(addr uint32, val uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-
-	mutex.Lock()
-
-	arm.CacheFlushData()
 	*reg |= val
-
-	mutex.Unlock()
 }
 
 // Wait waits for a specific register bit to match a value. This function
