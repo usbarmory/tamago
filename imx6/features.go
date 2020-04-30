@@ -58,16 +58,16 @@ func (f *processorFeatures) read() {
 	idpfr0 = read_idpfr0()
 	idpfr1 = read_idpfr1()
 
-	f.arm     = (idpfr0 & IDPFR0_ARM_MASK) != 0
-	f.thumb   = (idpfr0 & IDPFR0_THUMB_MASK) != 0
+	f.arm = (idpfr0 & IDPFR0_ARM_MASK) != 0
+	f.thumb = (idpfr0 & IDPFR0_THUMB_MASK) != 0
 	f.thumbee = (idpfr0 & IDPFR0_THUMBEE_MASK) != 0
 	f.jazelle = (idpfr0 & IDPFR0_JAZELLE_MASK) != 0
 
 	f.programmersModel = (idpfr1 & IDPFR1_PROGRAMMERS_MODEL_MASK) != 0
-	f.security         = (idpfr1 & IDPFR1_SECURITY_MASK) != 0
-	f.mProfileModel    = (idpfr1 & IDPFR1_M_PROFILE_MODEL_MASK) != 0
-	f.virtualization   = (idpfr1 & IDPFR1_VIRTUALIZATION_MASK) != 0
-	f.genericTimer     = (idpfr1 & IDPFR1_GENERIC_TIMER_MASK) != 0
+	f.security = (idpfr1 & IDPFR1_SECURITY_MASK) != 0
+	f.mProfileModel = (idpfr1 & IDPFR1_M_PROFILE_MODEL_MASK) != 0
+	f.virtualization = (idpfr1 & IDPFR1_VIRTUALIZATION_MASK) != 0
+	f.genericTimer = (idpfr1 & IDPFR1_GENERIC_TIMER_MASK) != 0
 }
 
 func (f *processorFeatures) print() {

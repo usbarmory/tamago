@@ -50,7 +50,7 @@ func hwinit() {
 	case IMX6Q:
 		initGlobalTimers()
 	case IMX6UL, IMX6ULL:
-		if (Native) {
+		if Native {
 			// U-Boot value for i.MX6 family (8.0MHz)
 			initGenericTimers(8000000)
 		} else {

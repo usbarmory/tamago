@@ -177,11 +177,11 @@ func uartclk() uint32 {
 }
 
 func (hw *uart) txEmpty() bool {
-	return reg.Get(hw.uts, UTS_TXEMPTY, 0b1) == 0
+	return reg.Get(hw.uts, UTS_TXEMPTY, 1) == 0
 }
 
 func (hw *uart) rxReady() bool {
-	return reg.Get(hw.usr2, USR2_RDR, 0b1) == 1
+	return reg.Get(hw.usr2, USR2_RDR, 1) == 1
 }
 
 func (hw *uart) rxError() bool {
@@ -199,7 +199,7 @@ func (hw *uart) Init(baudrate uint32) {
 	reg.Write(hw.ucr2, 0) // 0x4027
 
 	// wait for software reset deassertion
-	reg.Wait(hw.ucr2, UCR2_SRST, 0b1, 1)
+	reg.Wait(hw.ucr2, UCR2_SRST, 1, 1)
 
 	var ucr3 uint32
 	// Data Set Ready
