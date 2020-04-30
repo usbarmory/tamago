@@ -1,3 +1,4 @@
+// ARM processor support
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
@@ -18,6 +19,6 @@ import (
 func vfp_enable()
 
 //go:linkname enableVFP runtime.vfp_enable
-func EnableVFP() {
+func (c *CPU) EnableVFP() {
 	vfp_enable()
 }

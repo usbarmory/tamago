@@ -1,3 +1,4 @@
+// ARM processor support
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
@@ -12,8 +13,8 @@ TEXT ·read_gtc(SB),$0
 	// 4.4.1 Global Timer Counter Registers, 0x00 and 0x04
 	//
 	// p214, Table 2-1, ARM MP Global timer, IMX6DQRM
-	MOVW $0x00a00204, R1
-	MOVW $0x00a00200, R2
+	MOVW	$0x00a00204, R1
+	MOVW	$0x00a00200, R2
 read:
 	MOVW	(R1), R3
 	MOVW	(R2), R4

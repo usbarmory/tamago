@@ -1,4 +1,4 @@
-// ARM Global and Generic timers
+// ARM processor support
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
@@ -76,7 +76,6 @@ func (c *CPU) InitGenericTimers(freq int32) {
 	}
 
 	timerFreq = int64(read_cntfrq())
-	print("System counter frequency (CNTFRQ) = ", timerFreq, "\n")
 	timerMultiplier = int64(refFreq / timerFreq)
 	TimerFn = read_cntpct
 

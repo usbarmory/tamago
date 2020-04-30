@@ -1,4 +1,4 @@
-// ARM processor
+// ARM processor support
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
@@ -12,9 +12,20 @@
 package arm
 
 type CPU struct {
-	features features
+	// instruction sets
+	arm     bool
+	thumb   bool
+	jazelle bool
+	thumbee bool
+
+	// extensions
+	programmersModel bool
+	security         bool
+	mProfileModel    bool
+	virtualization   bool
+	genericTimer     bool
 }
 
 func (c *CPU) Init() {
-	c.features.init()
+	c.initFeatures()
 }

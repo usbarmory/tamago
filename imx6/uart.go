@@ -141,7 +141,7 @@ type uart struct {
 	uts  uint32
 }
 
-var UART2 uart
+var UART2 = &uart{}
 
 func (hw *uart) init(base uint32, baudrate uint32) {
 	hw.urxd = base + UARTx_URXD
@@ -162,7 +162,6 @@ func (hw *uart) init(base uint32, baudrate uint32) {
 }
 
 func uartclk() uint32 {
-	var podf uint32
 	var freq uint32
 
 	if reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, 0b1) == 1 {
@@ -171,7 +170,7 @@ func uartclk() uint32 {
 		freq = VCO_FREQ
 	}
 
-	podf = reg.Get(CCM_CSCDR1, CSCDR1_CLK_PODF, 0b111111)
+	podf := reg.Get(CCM_CSCDR1, CSCDR1_CLK_PODF, 0b111111)
 
 	return freq / (podf + 1)
 }
@@ -192,11 +191,10 @@ func (hw *uart) rxError() bool {
 // p2312, 45.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
 func (hw *uart) Init(baudrate uint32) {
 	hw.Lock()
-	defer hw.Unlock()
 
 	// disable UART
 	reg.Write(hw.ucr1, 0)
-	reg.Write(hw.ucr2, 0) // 0x4027
+	reg.Write(hw.ucr2, 0)
 
 	// wait for software reset deassertion
 	reg.Wait(hw.ucr2, UCR2_SRST, 1, 1)
@@ -267,6 +265,8 @@ func (hw *uart) Init(baudrate uint32) {
 
 	// Enable the UART
 	reg.Set(hw.ucr1, UCR1_UARTEN)
+
+	hw.Unlock()
 }
 
 // Write a single character to the selected serial port.
@@ -282,11 +282,11 @@ func (hw *uart) Write(c byte) {
 // Read a single character from the selected serial port.
 func (hw *uart) Read() (c byte, valid bool) {
 	if !hw.rxReady() {
-		return c, false
+		return
 	}
 
 	if hw.rxError() {
-		return c, false
+		return
 	}
 
 	return byte(reg.Get(hw.urxd, URXD_RX_DATA, 0xff)), true
