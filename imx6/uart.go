@@ -54,11 +54,11 @@ var UART2 = &uart{
 }
 
 func (u *uart) txEmpty() bool {
-	return reg.Get(u.uts, UART_UTS_TXEMPTY, 0b1) == 0
+	return reg.Get(u.uts, UART_UTS_TXEMPTY, 1) == 0
 }
 
 func (u *uart) rxReady() bool {
-	return reg.Get(u.usr2, UART_USR2_RDR, 0b1) == 1
+	return reg.Get(u.usr2, UART_USR2_RDR, 1) == 1
 }
 
 func (u *uart) rxError() bool {

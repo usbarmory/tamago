@@ -159,7 +159,7 @@ func (hw *usb) Init() {
 
 	// wait for lock
 	log.Printf("imx6_usb: waiting for PLL lock")
-	reg.Wait(hw.pll, CCM_ANALOG_PLL_USB1_LOCK, 0b1, 1)
+	reg.Wait(hw.pll, CCM_ANALOG_PLL_USB1_LOCK, 1, 1)
 
 	// remove bypass
 	reg.Clear(hw.pll, CCM_ANALOG_PLL_USB1_BYPASS)
@@ -175,7 +175,7 @@ func (hw *usb) Init() {
 	reg.Clear(hw.ctrl, USBPHY1_CTRL_CLKGATE)
 
 	// clear power down
-	reg.Write(hw.pwd, 0x00000000)
+	reg.Write(hw.pwd, 0)
 
 	// enable UTMI+
 	reg.Set(hw.ctrl, USBPHY1_CTRL_ENUTMILEVEL3)
@@ -213,7 +213,7 @@ func (hw *usb) Reset() {
 	defer hw.Unlock()
 
 	log.Printf("imx6_usb: waiting for bus reset")
-	reg.Wait(hw.sts, USBSTS_URI, 0b1, 1)
+	reg.Wait(hw.sts, USBSTS_URI, 1, 1)
 
 	// p3792, 56.4.6.2.1 Bus Reset, IMX6ULLRM
 
@@ -225,7 +225,7 @@ func (hw *usb) Reset() {
 	reg.Write(hw.flush, 0xffffffff)
 
 	log.Printf("imx6_usb: waiting for port reset")
-	reg.Wait(hw.sc, PORTSC_PR, 0b1, 0)
+	reg.Wait(hw.sc, PORTSC_PR, 1, 0)
 
 	// clear reset
 	reg.Or(hw.sts, (1<<USBSTS_URI | 1<<USBSTS_UI))

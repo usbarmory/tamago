@@ -147,7 +147,7 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 	reg.SetN(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_DIV_SELECT, 0b1111111, div_select)
 
 	// wait for lock
-	reg.Wait(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_LOCK, 0b1, 1)
+	reg.Wait(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_LOCK, 1, 1)
 
 	// remove bypass
 	reg.Clear(CCM_ANALOG_PLL_ARM, CCM_ANALOG_PLL_ARM_BYPASS)

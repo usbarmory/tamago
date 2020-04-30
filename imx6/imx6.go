@@ -20,7 +20,7 @@ import (
 )
 
 const USB_ANALOG_DIGPROG uint32 = 0x020c8260
-const WDOG1 uint32 = 0x020bc000
+const WDOG1_WCR uint32 = 0x020bc000
 const OCOTP_CFG0 = 0x021bc410
 const OCOTP_CFG1 = 0x021bc420
 
@@ -87,11 +87,11 @@ func SiliconVersion() (sv, family, revMajor, revMinor uint32) {
 
 // UniqueID returns the NXP SoC Device Unique 64-bit ID
 func UniqueID() (uid [8]byte) {
-	cfg0 := (*uint32)(unsafe.Pointer(uintptr(OCOTP_CFG0)))
-	cfg1 := (*uint32)(unsafe.Pointer(uintptr(OCOTP_CFG1)))
+	cfg0 := reg.Read(OCOTP_CFG0)
+	cfg1 := reg.Read(OCOTP_CFG1)
 
-	binary.LittleEndian.PutUint32(uid[0:4], *cfg0)
-	binary.LittleEndian.PutUint32(uid[4:8], *cfg1)
+	binary.LittleEndian.PutUint32(uid[0:4], cfg0)
+	binary.LittleEndian.PutUint32(uid[4:8], cfg1)
 
 	return
 }
@@ -114,6 +114,7 @@ func Model() (model string) {
 
 // Reboot resets the watchdog timer causing the SoC to restart.
 func Reboot() {
-	reg := (*uint16)(unsafe.Pointer(uintptr(WDOG1)))
-	*reg = 0x0000
+	// WDOG1_WCR is a 16-bit register, 32-bit access should be avoided
+	reg := (*uint16)(unsafe.Pointer(uintptr(WDOG1_WCR)))
+	*reg = 0
 }

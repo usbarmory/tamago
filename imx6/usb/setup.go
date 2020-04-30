@@ -89,7 +89,7 @@ func (hw *usb) getSetup() (setup *SetupData) {
 	reg.Set(hw.cmd, USBCMD_SUTW)
 
 	// repeat if necessary
-	for reg.Get(hw.cmd, USBCMD_SUTW, 0b1) == 0 {
+	for reg.Get(hw.cmd, USBCMD_SUTW, 1) == 0 {
 		log.Printf("imx6_usb: retrying setup")
 		reg.Set(hw.cmd, USBCMD_SUTW)
 	}

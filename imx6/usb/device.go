@@ -26,7 +26,7 @@ func (hw *usb) DeviceMode() {
 
 	log.Printf("imx6_usb: resetting")
 	reg.Set(hw.cmd, USBCMD_RST)
-	reg.Wait(hw.cmd, USBCMD_RST, 0b1, 0)
+	reg.Wait(hw.cmd, USBCMD_RST, 1, 0)
 
 	// p3872, 56.6.33 USB Device Mode (USB_nUSBMODE), IMX6ULLRM)
 	m := reg.Read(hw.mode)
@@ -80,7 +80,7 @@ func (hw *usb) Start(dev *Device) {
 
 func (hw *usb) setupHandler(dev *Device) {
 	for {
-		if !reg.WaitFor(10*time.Millisecond, hw.setup, 0, 0b1, 1) {
+		if !reg.WaitFor(10*time.Millisecond, hw.setup, 0, 1, 1) {
 			continue
 		}
 
