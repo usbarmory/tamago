@@ -67,9 +67,9 @@ func (a *Arm) InitGenericTimers(freq int32) {
 		write_cntfrq(freq)
 		// Set base frequency
 		reg.Write(CNTFID0, uint32(freq))
-		// System counter set to base frequency
+		// Set system counter to base frequency
 		reg.Set(CNTCR, CNTCR_FCREQ0)
-		// Stop systm counter on debug
+		// Stop system counter on debug
 		reg.Set(CNTCR, CNTCR_HDBG)
 		// Start system counter
 		reg.Set(CNTCR, CNTCR_EN)
