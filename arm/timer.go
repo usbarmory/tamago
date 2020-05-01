@@ -36,8 +36,6 @@ func InitGlobalTimers() {
 func InitGenericTimers(timerFreq int64) {
 	timerMultiplier = int64(refFreq / timerFreq)
 	TimerFn = read_cntpct
-
-	return
 }
 
 //go:linkname nanotime1 runtime.nanotime1

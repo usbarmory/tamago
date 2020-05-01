@@ -157,10 +157,6 @@ func free(usedBlock *block) {
 	freeBlocks.PushBack(usedBlock)
 }
 
-func check(addr int, align int) bool {
-	return addr&(align-1) == 0
-}
-
 // Init initializes a memory region for DMA buffer allocation.
 func Init(start uint32, size int) {
 	mutex.Lock()

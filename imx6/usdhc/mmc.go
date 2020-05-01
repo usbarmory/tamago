@@ -130,6 +130,10 @@ func (hw *usdhc) initMMC() (err error) {
 	// CMD13 - SEND_STATUS - poll card status
 	err = hw.cmd(13, READ, rca, RSP_48, true, true)
 
+	if err != nil {
+		return
+	}
+
 	if state := (hw.rsp(0) >> STATUS_CURRENT_STATE) & 0b1111; state != CURRENT_STATE_TRAN {
 		return fmt.Errorf("card not in tran state (%d)", state)
 	}

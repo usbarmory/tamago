@@ -74,8 +74,6 @@ func hwinit() {
 	}
 
 	arm.EnableVFP()
-
-	return
 }
 
 //go:linkname initRNG runtime.initRNG
