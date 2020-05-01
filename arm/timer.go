@@ -78,8 +78,6 @@ func (c *CPU) InitGenericTimers(freq int32) {
 	timerFreq = int64(read_cntfrq())
 	timerMultiplier = int64(refFreq / timerFreq)
 	TimerFn = read_cntpct
-
-	return
 }
 
 //go:linkname nanotime1 runtime.nanotime1

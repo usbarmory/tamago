@@ -55,8 +55,6 @@ func (hw *usb) DeviceMode() {
 
 	// run
 	reg.Set(hw.cmd, USBCMD_RS)
-
-	return
 }
 
 // Start waits and handles configured USB endpoints, it should never return.

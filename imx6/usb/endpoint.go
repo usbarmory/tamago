@@ -164,8 +164,6 @@ func (hw *usb) nextDTD(n int, dir int, next uint32) {
 	if current := reg.Read(dqh + uint32(DQH_CURRENT)); current != 1 {
 		mem.Free(current)
 	}
-
-	return
 }
 
 // addDTD configures an endpoint transfer descriptor as described in
