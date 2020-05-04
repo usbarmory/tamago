@@ -20,26 +20,26 @@ import (
 )
 
 const (
-	HW_RNG_BASE uint32 = 0x02284000
+	RNG_BASE uint32 = 0x02284000
 
-	HW_RNG_CMD    = HW_RNG_BASE + 0x04
-	HW_RNG_CMD_SR = 6
-	HW_RNG_CMD_CE = 5
-	HW_RNG_CMD_GS = 1
-	HW_RNG_CMD_ST = 0
+	RNG_CMD    = RNG_BASE + 0x04
+	RNG_CMD_SR = 6
+	RNG_CMD_CE = 5
+	RNG_CMD_GS = 1
+	RNG_CMD_ST = 0
 
-	HW_RNG_CR    = HW_RNG_BASE + 0x08
-	HW_RNG_CR_AR = 4
+	RNG_CR    = RNG_BASE + 0x08
+	RNG_CR_AR = 4
 
-	HW_RNG_SR          = HW_RNG_BASE + 0x0c
-	HW_RNG_SR_ST_PF    = 21
-	HW_RNG_SR_ERR      = 16
-	HW_RNG_SR_FIFO_LVL = 8
-	HW_RNG_SR_SDN      = 5
-	HW_RNG_SR_STDN     = 4
+	RNG_SR          = RNG_BASE + 0x0c
+	RNG_SR_ST_PF    = 21
+	RNG_SR_ERR      = 16
+	RNG_SR_FIFO_LVL = 8
+	RNG_SR_SDN      = 5
+	RNG_SR_STDN     = 4
 
-	HW_RNG_ESR = HW_RNG_BASE + 0x10
-	HW_RNG_OUT = HW_RNG_BASE + 0x14
+	RNG_ESR = RNG_BASE + 0x10
+	RNG_OUT = RNG_BASE + 0x14
 )
 
 type rngb struct {
@@ -80,28 +80,28 @@ func (hw *rngb) Init() {
 	// p3105, 44.5.2 Automatic seeding, IMX6ULLRM
 
 	// clear errors
-	reg.Set(HW_RNG_CMD, HW_RNG_CMD_CE)
+	reg.Set(RNG_CMD, RNG_CMD_CE)
 
 	// soft reset RNGB
-	reg.Set(HW_RNG_CMD, HW_RNG_CMD_SR)
+	reg.Set(RNG_CMD, RNG_CMD_SR)
 
 	// perform self-test
-	reg.Set(HW_RNG_CMD, HW_RNG_CMD_ST)
+	reg.Set(RNG_CMD, RNG_CMD_ST)
 
 	print("imx6_rng: self-test\n")
-	for reg.Get(HW_RNG_SR, HW_RNG_SR_STDN, 1) != 1 {
+	for reg.Get(RNG_SR, RNG_SR_STDN, 1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
 
-	if reg.Get(HW_RNG_SR, HW_RNG_SR_ERR, 1) != 0 || reg.Get(HW_RNG_SR, HW_RNG_SR_ST_PF, 1) != 0 {
+	if reg.Get(RNG_SR, RNG_SR_ERR, 1) != 0 || reg.Get(RNG_SR, RNG_SR_ST_PF, 1) != 0 {
 		panic("imx6_rng: self-test FAIL\n")
 	}
 
 	// enable auto-reseed
-	reg.Set(HW_RNG_CR, HW_RNG_CR_AR)
+	reg.Set(RNG_CR, RNG_CR_AR)
 
 	print("imx6_rng: seeding\n")
-	for reg.Get(HW_RNG_SR, HW_RNG_SR_SDN, 1) != 1 {
+	for reg.Get(RNG_SR, RNG_SR_SDN, 1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
 
@@ -113,12 +113,12 @@ func (hw *rngb) getRandomData(b []byte) {
 	need := len(b)
 
 	for read < need {
-		if reg.Get(HW_RNG_SR, HW_RNG_SR_ERR, 1) != 0 {
+		if reg.Get(RNG_SR, RNG_SR_ERR, 1) != 0 {
 			panic("imx6_rng: error during getRandomData\n")
 		}
 
-		if reg.Get(HW_RNG_SR, HW_RNG_SR_FIFO_LVL, 0b1111) > 0 {
-			read = fill(b, read, reg.Read(HW_RNG_OUT))
+		if reg.Get(RNG_SR, RNG_SR_FIFO_LVL, 0b1111) > 0 {
+			read = fill(b, read, reg.Read(RNG_OUT))
 		}
 	}
 }
