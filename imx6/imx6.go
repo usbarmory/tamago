@@ -82,7 +82,7 @@ func hwinit() {
 		ARM.InitGlobalTimers()
 	}
 
-	arm.EnableVFP()
+	ARM.EnableVFP()
 }
 
 //go:linkname initRNG runtime.initRNG
