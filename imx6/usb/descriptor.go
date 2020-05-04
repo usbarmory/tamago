@@ -30,7 +30,7 @@ const (
 )
 
 // DeviceDescriptor implements
-// p290, Table 9-8. Standard Device Descriptor, USB Specification Revision 2.0.
+// p290, Table 9-8. Standard Device Descriptor, USB2.0.
 type DeviceDescriptor struct {
 	Length            uint8
 	DescriptorType    uint8
@@ -69,7 +69,7 @@ func (d *DeviceDescriptor) Bytes() []byte {
 }
 
 // ConfigurationDescriptor implements
-// p293, Table 9-10. Standard Configuration Descriptor, USB Specification Revision 2.0.
+// p293, Table 9-10. Standard Configuration Descriptor, USB2.0.
 type ConfigurationDescriptor struct {
 	Length             uint8
 	DescriptorType     uint8
@@ -124,7 +124,7 @@ func (d *ConfigurationDescriptor) Bytes() []byte {
 }
 
 // InterfaceAssociationDescriptor implements
-// p4, Table 9-Z. Interface Association Descriptors, USB Specification Revision 2.0 (ECN).
+// p4, Table 9-Z. Interface Association Descriptors, USB2.0 (ECN).
 type InterfaceAssociationDescriptor struct {
 	Length           uint8
 	DescriptorType   uint8
@@ -150,7 +150,7 @@ func (d *InterfaceAssociationDescriptor) Bytes() []byte {
 }
 
 // InterfaceDescriptor implements
-// p296, Table 9-12. Standard Interface Descriptor, USB Specification Revision 2.0.
+// p296, Table 9-12. Standard Interface Descriptor, USB2.0.
 type InterfaceDescriptor struct {
 	IAD *InterfaceAssociationDescriptor
 
@@ -215,7 +215,7 @@ func (d *InterfaceDescriptor) Bytes() []byte {
 type EndpointFunction func(out []byte, lastErr error) (in []byte, err error)
 
 // EndpointDescriptor implements
-// p297, Table 9-13. Standard Endpoint Descriptor, USB Specification Revision 2.0.
+// p297, Table 9-13. Standard Endpoint Descriptor, USB2.0.
 type EndpointDescriptor struct {
 	Length          uint8
 	DescriptorType  uint8
@@ -268,7 +268,7 @@ func (d *EndpointDescriptor) Bytes() []byte {
 }
 
 // StringDescriptor implements
-// p273, 9.6.7 String, USB Specification Revision 2.0.
+// p273, 9.6.7 String, USB2.0.
 type StringDescriptor struct {
 	Length         uint8
 	DescriptorType uint8
@@ -291,7 +291,7 @@ func (d *StringDescriptor) Bytes() []byte {
 }
 
 // DeviceQualifierDescriptor implements
-// p292, 9.6.2 Device_Qualifier, USB Specification Revision 2.0.
+// p292, 9.6.2 Device_Qualifier, USB2.0.
 type DeviceQualifierDescriptor struct {
 	Length            uint8
 	DescriptorType    uint8
@@ -370,7 +370,7 @@ func (d *Device) setStringDescriptor(s []byte, zero bool) (uint8, error) {
 }
 
 // SetLanguageCodes configures String Descriptor Zero language codes
-// (p273, Table 9-15. String Descriptor Zero, Specifying Languages Supported by the Device, USB Specification Revision 2.0).
+// (p273, Table 9-15. String Descriptor Zero, Specifying Languages Supported by the Device, USB2.0).
 func (d *Device) SetLanguageCodes(codes []uint16) (err error) {
 	var buf []byte
 
@@ -392,7 +392,7 @@ func (d *Device) SetLanguageCodes(codes []uint16) (err error) {
 
 // AddStrings adds a string descriptor to a USB device. The returned index can
 // be used to fill string descriptor index value in configuration descriptors
-// (p274, Table 9-16. UNICODE String Descriptor, USB Specification Revision 2.0).
+// (p274, Table 9-16. UNICODE String Descriptor, USB2.0).
 func (d *Device) AddString(s string) (uint8, error) {
 	var buf []byte
 
@@ -419,7 +419,7 @@ func (d *Device) AddConfiguration(conf *ConfigurationDescriptor) {
 
 // Configuration converts the device configuration hierarchy to a buffer, as expected by Get
 // Descriptor for configuration descriptor type
-// (p281, 9.4.3 Get Descriptor, USB Specification Revision 2.0).
+// (p281, 9.4.3 Get Descriptor, USB2.0).
 func (d *Device) Configuration(wIndex uint16, wLength uint16) (buf []byte, err error) {
 	if int(wIndex+1) > len(d.Configurations) {
 		err = errors.New("invalid configuration index")

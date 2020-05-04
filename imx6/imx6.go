@@ -9,6 +9,21 @@
 //
 // +build tamago,arm
 
+// Package imx6 provides support to Go bare metal unikernels written using the
+// TamaGo framework.
+//
+// It implements initialization and drivers for specific NXP i.MX6
+// System-on-Chip (SoC) peripherals.
+//
+// Its implementation adopts, where indicated, the following reference
+// specifications:
+//   * IMX6ULLRM  - i.MX 6ULL Applications Processor Reference Manual                - Rev 1      2017/11
+//   * IMX6FG     - i.MX 6 Series Firmware Guide                                     - Rev 0      2012/11
+//   * IMX6ULLCEC - i.MX6ULL Data Sheet                                              - Rev 1.2    2017/11
+//   * MCIMX28RM  - i.MX28 Applications Processor Reference Manual                   - Rev 2      2013/08
+//   * SD-PL-7.10 - SD Specifications Part 1 Physical Layer Simplified Specification - 7.10       2020/03/25
+//   * JESD84-B51 - Embedded Multi-Media Card (e•MMC) Electrical Standard (5.1)      - JESD84-B51 2015/02
+//   * USB2.0     - USB Specification Revision 2.0                                   - 2.0        2000/04/27
 package imx6
 
 import (
@@ -66,6 +81,8 @@ func hwinit() {
 	default:
 		ARM.InitGlobalTimers()
 	}
+
+	arm.EnableVFP()
 }
 
 //go:linkname initRNG runtime.initRNG

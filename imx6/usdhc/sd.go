@@ -42,17 +42,6 @@ const (
 
 	SD_DETECT_LOOP_CNT = 300
 	SD_DETECT_TIMEOUT  = 1 * time.Second
-
-	// p127, 4.9.5 (Published RCA response), SD-PL-7.10
-	SD_RCA_ADDR   = 16
-	SD_RCA_STATUS = 0
-
-	// p131, Table 4-42 : Card Status, SD-PL-7.10
-	STATUS_CURRENT_STATE = 9
-	STATUS_APP_CMD       = 5
-
-	CURRENT_STATE_IDENT = 2
-	CURRENT_STATE_TRAN  = 4
 )
 
 // p350, 35.4.4 SD voltage validation flow chart, IMX6FG
@@ -138,6 +127,7 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 // p57, 4.2.3 Card Initialization and Identification Process, SD-PL-7.10
 func (hw *usdhc) initSD() (err error) {
 	var arg uint32
+	var bus_width uint32
 
 	// CMD2 - ALL_SEND_CID - get unique card identification
 	err = hw.cmd(2, READ, arg, RSP_136, false, true)
@@ -163,7 +153,7 @@ func (hw *usdhc) initSD() (err error) {
 	hw.setClock(DVS_OP, SDCLKFS_OP)
 
 	// CMD7 - SELECT/DESELECT CARD - enter transfer state
-	rca := hw.rsp(0) & (0xffff << SD_RCA_ADDR)
+	rca := hw.rsp(0) & (0xffff << RCA_ADDR)
 	err = hw.cmd(7, READ, rca, RSP_48_CHECK_BUSY, true, true)
 
 	if err != nil {
@@ -192,10 +182,7 @@ func (hw *usdhc) initSD() (err error) {
 		return fmt.Errorf("card not expecting application command")
 	}
 
-	// ACMD6 - SET_BUS_WIDTH - define the card data bus width
 	// p118, Table 4-31, SD-PL-7.10
-	var bus_width uint32
-
 	switch hw.width {
 	case 1:
 		bus_width = 0b00
@@ -205,6 +192,7 @@ func (hw *usdhc) initSD() (err error) {
 		return errors.New("unsupported SD bus width")
 	}
 
+	// ACMD6 - SET_BUS_WIDTH - define the card data bus width
 	return hw.cmd(6, READ, uint32(bus_width), RSP_48, true, true)
 }
 
