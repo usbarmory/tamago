@@ -15,72 +15,89 @@ package usdhc
 
 import (
 	"errors"
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/f-secure-foundry/tamago/imx6"
+	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
 	"github.com/f-secure-foundry/tamago/internal/bits"
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 const (
 	// p4012, 58.8 uSDHC Memory Map/Register Definition, IMX6ULLRM
-	HW_USDHC1_BASE uint32 = 0x02190000
-	HW_USDHC2_BASE uint32 = 0x02194000
+	USDHC1_BASE uint32 = 0x02190000
+	USDHC2_BASE uint32 = 0x02194000
 
-	HW_USDHCx_CMD_ARG = 0x08
+	USDHCx_BLK_ATT  = 0x04
+	BLK_ATT_BLKCNT  = 16
+	BLK_ATT_BLKSIZE = 0
 
-	HW_USDHCx_CMD_XFR_TYP = 0x0c
-	CMD_XFR_TYP_CMDINX    = 24
-	CMD_XFR_TYP_DPSEL     = 21
-	CMD_XFR_TYP_CICEN     = 20
-	CMD_XFR_TYP_CCCEN     = 19
-	CMD_XFR_TYP_RSPTYP    = 16
+	USDHCx_CMD_ARG = 0x08
 
-	HW_USDHCx_CMD_RSP0 = 0x10
-	HW_USDHCx_CMD_RSP1 = 0x14
-	HW_USDHCx_CMD_RSP2 = 0x18
-	HW_USDHCx_CMD_RSP3 = 0x1c
+	USDHCx_CMD_XFR_TYP = 0x0c
+	CMD_XFR_TYP_CMDINX = 24
+	CMD_XFR_TYP_DPSEL  = 21
+	CMD_XFR_TYP_CICEN  = 20
+	CMD_XFR_TYP_CCCEN  = 19
+	CMD_XFR_TYP_RSPTYP = 16
 
-	HW_USDHCx_PRES_STATE = 0x24
-	PRES_STATE_SDSTB     = 3
-	PRES_STATE_CDIHB     = 1
-	PRES_STATE_CIHB      = 0
+	USDHCx_CMD_RSP0 = 0x10
+	USDHCx_CMD_RSP1 = 0x14
+	USDHCx_CMD_RSP2 = 0x18
+	USDHCx_CMD_RSP3 = 0x1c
 
-	HW_USDHCx_PROT_CTRL = 0x28
-	PROT_CTRL_DMASEL    = 8
-	PROT_CTRL_EMODE     = 4
-	PROT_CTRL_DTW       = 1
+	USDHCx_PRES_STATE = 0x24
+	PRES_STATE_BREN   = 11
+	PRES_STATE_SDSTB  = 3
+	PRES_STATE_CDIHB  = 1
+	PRES_STATE_CIHB   = 0
 
-	HW_USDHCx_SYS_CTRL = 0x2c
-	SYS_CTRL_INITA     = 27
-	SYS_CTRL_RSTD      = 26
-	SYS_CTRL_RSTC      = 25
-	SYS_CTRL_RSTA      = 24
-	SYS_CTRL_DTOCV     = 16
-	SYS_CTRL_SDCLKFS   = 8
-	SYS_CTRL_DVS       = 4
+	USDHCx_PROT_CTRL = 0x28
+	PROT_CTRL_DMASEL = 8
+	PROT_CTRL_EMODE  = 4
+	PROT_CTRL_DTW    = 1
 
-	HW_USDHCx_INT_STATUS = 0x30
-	INT_STATUS_DMAE      = 28
-	INT_STATUS_TNE       = 26
-	INT_STATUS_CIE       = 19
-	INT_STATUS_CEBE      = 18
-	INT_STATUS_CCE       = 17
-	INT_STATUS_CTOE      = 16
-	INT_STATUS_CC        = 0
+	USDHCx_SYS_CTRL  = 0x2c
+	SYS_CTRL_INITA   = 27
+	SYS_CTRL_RSTD    = 26
+	SYS_CTRL_RSTC    = 25
+	SYS_CTRL_RSTA    = 24
+	SYS_CTRL_DTOCV   = 16
+	SYS_CTRL_SDCLKFS = 8
+	SYS_CTRL_DVS     = 4
 
-	HW_USDHCx_INT_STATUS_EN = 0x34
-	INT_STATUS_EN_DTOESEN   = 20
+	USDHCx_INT_STATUS = 0x30
+	INT_STATUS_DMAE   = 28
+	INT_STATUS_TNE    = 26
+	INT_STATUS_CIE    = 19
+	INT_STATUS_CEBE   = 18
+	INT_STATUS_CCE    = 17
+	INT_STATUS_CTOE   = 16
+	INT_STATUS_BRR    = 5
+	INT_STATUS_TC     = 1
+	INT_STATUS_CC     = 0
 
-	HW_USDHCx_INT_SIGNAL_EN = 0x38
+	USDHCx_INT_STATUS_EN  = 0x34
+	INT_STATUS_EN_DTOESEN = 20
 
-	HW_USDHCx_MIX_CTRL = 0x48
-	MIX_CTRL_MSBSEL    = 5
-	MIX_CTRL_DTDSEL    = 4
-	MIX_CTRL_DDR_EN    = 3
-	MIX_CTRL_AC12EN    = 2
-	MIX_CTRL_BCEN      = 1
-	MIX_CTRL_DMAEN     = 0
+	USDHCx_INT_SIGNAL_EN = 0x38
+
+	USDHCx_WTMK_LVL = 0x44
+	WTMK_LVL_WR_WML = 16
+	WTMK_LVL_RD_WML = 0
+
+	USDHCx_MIX_CTRL = 0x48
+	MIX_CTRL_MSBSEL = 5
+	MIX_CTRL_DTDSEL = 4
+	MIX_CTRL_DDR_EN = 3
+	MIX_CTRL_AC12EN = 2
+	MIX_CTRL_BCEN   = 1
+	MIX_CTRL_DMAEN  = 0
+
+	USDHCx_ADMA_ERR_STATUS = 0x54
+	USDHCx_ADMA_SYS_ADDR   = 0x58
 )
 
 // p348, 35.4.2 Frequency divider configuration, IMX6FG
@@ -91,55 +108,90 @@ const (
 	// 200 MHz
 	BASE_CLOCK = 200
 
-	// Dual Data Rate
-	DDR_ID = 0
+	// Data Timeout Counter Value: SDCLK x 2** 28
+	DTOCV = 0b1110
+
 	// Divide-by-8
 	DVS_ID = 8
 	// Base clock divided by 64
 	SDCLKFS_ID = 0x20
 	// identification frequency: 200 / (8 * 64) == ~400 KHz
 
-	// Dual Data Rate
-	DDR_OP = 0
 	// Divide-by-2
 	DVS_OP = 2
 	// Base clock divided by 4
 	SDCLKFS_OP = 0x02
 	// operating frequency: 200 / (2 * 4) == 25 MHz
 
-	// Dual Data Rate
-	DDR_HS = 1
 	// Divide-by-1
 	DVS_HS = 1
 	// Base clock divided by 4
 	SDCLKFS_HS = 0x01
 	// high speed frequency: 200 / (1 * 4) == 50 MHz
 
-	// Data Timeout Counter Value: SDCLK x 2** 28
-	DTOCV = 0b1110
+	// p35, Table 4, JESD84-B51
+	//
+	// Higher speed modes for eMMC cards are HS200 (controller supported,
+	// currently unimplemented by this driver) and HS400 mode (unsupported
+	// at controller level).
+	//
+	// p37-38, Figure 3-14 and 3-15, SD-PL-7.10
+	//
+	// Higher speed modes for SD cards are SDR50/SDR104 (controller
+	// supported, currently unimplemented by this driver) and FD156/HD312
+	// (unsupported at controller level).
 )
+
+// type alias for export
+type Interface = usdhc
+
+type CardInfo struct {
+	// eMMC card
+	MMC bool
+	// SD card
+	SD bool
+	// High Capacity
+	HC bool
+	// High Speed
+	HS bool
+	// Dual Data Rate
+	DDR bool
+}
 
 type usdhc struct {
 	sync.Mutex
 
-	n             int
-	width         int
-	ddr           bool
-	cg            int
-	cmd_arg       uint32
-	cmd_xfr       uint32
-	cmd_rsp       uint32
-	prot_ctrl     uint32
-	sys_ctrl      uint32
-	mix_ctrl      uint32
-	pres_state    uint32
-	int_status    uint32
-	int_status_en uint32
-	int_signal_en uint32
+	// controller index
+	n int
+	// bus width
+	width int
+	// clock gate
+	cg int
+	// Relative Card Address
+	rca uint32
 
-	mmc bool
-	sd  bool
-	hc  bool
+	// control registers
+	blk_att         uint32
+	wtmk_lvl        uint32
+	cmd_arg         uint32
+	cmd_xfr         uint32
+	cmd_rsp         uint32
+	prot_ctrl       uint32
+	sys_ctrl        uint32
+	mix_ctrl        uint32
+	pres_state      uint32
+	int_status      uint32
+	int_status_en   uint32
+	int_signal_en   uint32
+	adma_sys_addr   uint32
+	adma_err_status uint32
+
+	// detected card properties
+	card CardInfo
+
+	// timeouts
+	readTimeout  time.Duration
+	writeTimeout time.Duration
 }
 
 var USDHC1 = &usdhc{n: 1}
@@ -172,33 +224,48 @@ func (hw *usdhc) detect() (sd bool, mmc bool, hc bool, err error) {
 	return
 }
 
+func (hw *usdhc) Info() CardInfo {
+	return hw.card
+}
+
 // Init initializes the uSDHC controller instance.
-func (hw *usdhc) Init(width int, ddr bool) {
+func (hw *usdhc) Init(width int) {
 	var base uint32
 
 	hw.Lock()
 
 	switch hw.n {
 	case 1:
-		base = HW_USDHC1_BASE
+		base = USDHC1_BASE
 		hw.cg = imx6.CCM_CCGR6_CG1
 	case 2:
-		base = HW_USDHC2_BASE
+		base = USDHC2_BASE
 		hw.cg = imx6.CCM_CCGR6_CG2
 	}
 
 	hw.width = width
-	hw.ddr = ddr
-	hw.cmd_arg = base + HW_USDHCx_CMD_ARG
-	hw.cmd_xfr = base + HW_USDHCx_CMD_XFR_TYP
-	hw.cmd_rsp = base + HW_USDHCx_CMD_RSP0
-	hw.prot_ctrl = base + HW_USDHCx_PROT_CTRL
-	hw.sys_ctrl = base + HW_USDHCx_SYS_CTRL
-	hw.mix_ctrl = base + HW_USDHCx_MIX_CTRL
-	hw.pres_state = base + HW_USDHCx_PRES_STATE
-	hw.int_status = base + HW_USDHCx_INT_STATUS
-	hw.int_status_en = base + HW_USDHCx_INT_STATUS_EN
-	hw.int_signal_en = base + HW_USDHCx_INT_SIGNAL_EN
+	hw.blk_att = base + USDHCx_BLK_ATT
+	hw.wtmk_lvl = base + USDHCx_WTMK_LVL
+	hw.cmd_arg = base + USDHCx_CMD_ARG
+	hw.cmd_xfr = base + USDHCx_CMD_XFR_TYP
+	hw.cmd_rsp = base + USDHCx_CMD_RSP0
+	hw.prot_ctrl = base + USDHCx_PROT_CTRL
+	hw.sys_ctrl = base + USDHCx_SYS_CTRL
+	hw.mix_ctrl = base + USDHCx_MIX_CTRL
+	hw.pres_state = base + USDHCx_PRES_STATE
+	hw.int_status = base + USDHCx_INT_STATUS
+	hw.int_status_en = base + USDHCx_INT_STATUS_EN
+	hw.int_signal_en = base + USDHCx_INT_SIGNAL_EN
+	hw.adma_sys_addr = base + USDHCx_ADMA_SYS_ADDR
+	hw.adma_err_status = base + USDHCx_ADMA_ERR_STATUS
+
+	// Generic SD specs read/write timeout rules (applied also to MMC by
+	// this driver).
+	//
+	// p106, 4.6.2.1 Read, SD-PL-7.10
+	hw.readTimeout = 100 * time.Millisecond
+	// p106, 4.6.2.2 Write, SD-PL-7.10
+	hw.writeTimeout = 500 * time.Millisecond
 
 	hw.Unlock()
 }
@@ -210,7 +277,7 @@ func (hw *usdhc) Detect() (err error) {
 	defer hw.Unlock()
 
 	if hw.cg == 0 {
-		return errors.New("controller is uninitialized")
+		return errors.New("controller is not initialized")
 	}
 
 	// enable clock
@@ -236,7 +303,7 @@ func (hw *usdhc) Detect() (err error) {
 
 	// set data transfer width
 	reg.SetN(hw.prot_ctrl, PROT_CTRL_DTW, 0b11, uint32(dtw))
-	// set endianness (little), (TODO: expose via API?)
+	// set little endian mode
 	reg.SetN(hw.prot_ctrl, PROT_CTRL_EMODE, 0b11, 0b10)
 
 	// clear clock
@@ -254,25 +321,108 @@ func (hw *usdhc) Detect() (err error) {
 	reg.Wait(hw.sys_ctrl, SYS_CTRL_INITA, 1, 0)
 
 	// CMD0 - GO_IDLE_STATE - reset card
-	err = hw.cmd(0, READ, GO_IDLE_STATE, RSP_NONE, false, false)
+	if err = hw.cmd(0, READ, GO_IDLE_STATE, RSP_NONE, false, false, false, 0); err != nil {
+		return
+	}
+
+	hw.card.SD, hw.card.MMC, hw.card.HC, err = hw.detect()
 
 	if err != nil {
 		return
 	}
 
-	hw.sd, hw.mmc, hw.hc, err = hw.detect()
-
-	if err != nil {
-		return
-	}
-
-	if hw.sd {
+	if hw.card.SD {
 		err = hw.initSD()
-	} else if hw.mmc {
+	} else if hw.card.MMC {
 		err = hw.initMMC()
 	} else {
 		err = errors.New("no SD/MMC card detected")
 	}
 
+	if err != nil {
+		return
+	}
+
+	if !hw.card.DDR {
+		// CMD16 - SET_BLOCKLEN - define the block length,
+		// only legal In single data rate mode.
+		err = hw.cmd(16, READ, uint32(DEFAULT_BLOCK_SIZE), RSP_48, true, true, false, 0)
+	}
+
 	return
+}
+
+// Read transfers data from the card as specified in
+// p347, 35.5.1 Reading data from the card, IMX6FG.
+func (hw *usdhc) Read(offset uint32, size int) (data []byte, err error) {
+	var arg uint32
+
+	if size == 0 {
+		return
+	}
+
+	if hw.cg == 0 {
+		return nil, errors.New("controller is not initialized")
+	}
+
+	blockSize := DEFAULT_BLOCK_SIZE
+	blocks := ((offset % blockSize) + uint32(size)) / blockSize
+
+	if blocks == 0 {
+		blocks = 1
+	} else if (offset+uint32(size))%blockSize != 0 {
+		blocks += 1
+	}
+
+	bufSize := int(blocks * blockSize)
+
+	err = hw.waitState(CURRENT_STATE_TRAN, 1*time.Millisecond)
+
+	if err != nil {
+		return
+	}
+
+	// set block size
+	reg.SetN(hw.blk_att, BLK_ATT_BLKSIZE, 0x1fff, blockSize)
+	// set block count
+	reg.SetN(hw.blk_att, BLK_ATT_BLKCNT, 0xffff, blocks)
+	// set read watermark level
+	reg.SetN(hw.wtmk_lvl, WTMK_LVL_RD_WML, 0xff, blockSize/4)
+
+	// data buffer
+	data = make([]byte, bufSize)
+
+	dataBuf := mem.Alloc(data, 32)
+	defer mem.Free(dataBuf)
+
+	// ADMA2 descriptor
+	bd := &ADMABufferDescriptor{}
+	bd.Init(dataBuf, bufSize)
+
+	bdBuf := mem.Alloc(bd.Bytes(), 0)
+	defer mem.Free(bdBuf)
+
+	reg.Write(hw.adma_sys_addr, bdBuf)
+
+	if hw.card.HC {
+		// 4.3.14 Command Functional Difference in Card Capacity Types, SD-PL-7.10
+		arg = offset / blockSize
+	} else {
+		arg = offset
+	}
+	// TODO: handle eMMC with 4 KB sectors (check NATIVE_SECTOR_SIZE)
+
+	// CMD18 - READ_MULTIPLE_BLOCK - transfer consecutive blocks
+	err = hw.cmd(18, READ, arg, RSP_48, true, true, true, hw.readTimeout)
+	adma_err := reg.Read(hw.adma_err_status)
+
+	if err != nil {
+		return nil, fmt.Errorf("reading %d bytes at offset %x, ADMA status %x, %v", size, offset, adma_err, err)
+	}
+
+	if adma_err > 0 {
+		return nil, fmt.Errorf("reading %d bytes at offset %x, ADMA status %x", size, offset, adma_err)
+	}
+
+	return mem.Read(dataBuf, int(offset%blockSize), size), nil
 }

@@ -375,7 +375,6 @@ func (d *Device) SetLanguageCodes(codes []uint16) (err error) {
 	var buf []byte
 
 	if len(codes) > 1 {
-		// TODO
 		return fmt.Errorf("only a single language is currently supported")
 	}
 

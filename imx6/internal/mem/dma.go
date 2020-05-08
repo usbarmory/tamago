@@ -16,6 +16,7 @@ package mem
 
 import (
 	"container/list"
+	"reflect"
 	"sync"
 	"unsafe"
 )
@@ -33,20 +34,28 @@ var usedBlocks map[uint32]*block
 
 var mutex sync.Mutex
 
-func (b *block) read(offset int, size int) []byte {
-	data := make([]byte, size)
+func (b *block) read(offset int, size int) (data []byte) {
+	var mem []byte
 
-	for i := 0; i < size; i++ {
-		data[i] = *(*byte)(unsafe.Pointer(uintptr(b.addr + uint32(offset+i))))
-	}
+	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&mem))
+	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr + uint32(offset))))
+	hdr.Len = size
+	hdr.Cap = size
 
-	return data
+	data = make([]byte, size)
+	copy(data, mem)
+
+	return
 }
 
 func (b *block) write(data []byte, offset int) {
-	for i := range data {
-		*(*byte)(unsafe.Pointer(uintptr(b.addr + uint32(offset+i)))) = data[i]
-	}
+	var mem []byte
+
+	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&mem))
+	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr + uint32(offset))))
+	hdr.Len = len(data)
+
+	copy(mem, data)
 }
 
 func init() {
