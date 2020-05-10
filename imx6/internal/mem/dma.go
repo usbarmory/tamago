@@ -34,28 +34,25 @@ var usedBlocks map[uint32]*block
 
 var mutex sync.Mutex
 
-func (b *block) read(offset int, size int) (data []byte) {
+func (b *block) read(offset int, buf []byte) {
 	var mem []byte
 
 	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&mem))
 	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr + uint32(offset))))
-	hdr.Len = size
-	hdr.Cap = size
+	hdr.Len = len(buf)
+	hdr.Cap = hdr.Len
 
-	data = make([]byte, size)
-	copy(data, mem)
-
-	return
+	copy(buf, mem)
 }
 
-func (b *block) write(data []byte, offset int) {
+func (b *block) write(buf []byte, offset int) {
 	var mem []byte
 
 	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&mem))
 	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr + uint32(offset))))
-	hdr.Len = len(data)
+	hdr.Len = len(buf)
 
-	copy(mem, data)
+	copy(mem, buf)
 }
 
 func init() {
@@ -185,39 +182,39 @@ func Init(start uint32, size int) {
 	defer mutex.Unlock()
 }
 
-// Alloc reserves a memory region, copies over a data buffer and return its
+// Alloc reserves a memory region, copies over a buffer and return its
 // allocation address, with optional alignment. The region can be freed up with
 // `Free`.
-func Alloc(data []byte, align int) uint32 {
+func Alloc(buf []byte, align int) uint32 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	size := len(data)
+	size := len(buf)
 
 	if size == 0 {
 		return 0
 	}
 
-	b := alloc(len(data), align)
-	b.write(data, 0)
+	b := alloc(len(buf), align)
+	b.write(buf, 0)
 
 	usedBlocks[b.addr] = b
 
 	return b.addr
 }
 
-// Read returns the data buffer stored at the corresponding memory region
-// address, the region must have been previously allocated with `Alloc`.
+// Read reads exactly len(buf) bytes from a memory region address into buf, the
+// region must have been previously allocated with `Alloc`.
 //
-// The offset and size are used to retrieve a slice of the buffer, a panic
-// occurs if these parameters are not compatible with the initial allocation
-// for the address.
-func Read(addr uint32, offset int, size int) []byte {
+// The offset and buffer size are used to retrieve a slice of the memory
+// region, a panic occurs if these parameters are not compatible with the
+// initial allocation for the address.
+func Read(addr uint32, offset int, buf []byte) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	if addr == 0 {
-		return []byte{}
+		return
 	}
 
 	b, ok := usedBlocks[addr]
@@ -226,18 +223,18 @@ func Read(addr uint32, offset int, size int) []byte {
 		panic("read of unallocated pointer")
 	}
 
-	if offset+size > b.size {
+	if offset+len(buf) > b.size {
 		panic("invalid read parameters")
 	}
 
-	return b.read(offset, size)
+	b.read(offset, buf)
 }
 
-// Write writes in the data buffer stored at the corresponding memory region
-// address, the region must have been previously allocated with `Alloc`.
+// Write writes buffer contents to a memory region address, the region must
+// have been previously allocated with `Alloc`.
 //
-// An offset can be pased to write a slice of the buffer, a panic occurs if the
-// offset is not compatible with the initial allocation for the address.
+// An offset can be pased to write a slice of the memory region, a panic occurs
+// if the offset is not compatible with the initial allocation for the address.
 func Write(addr uint32, data []byte, offset int) {
 	mutex.Lock()
 	defer mutex.Unlock()

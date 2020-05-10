@@ -219,7 +219,7 @@ func (hw *usdhc) initSD() (err error) {
 	// clear clock
 	hw.setClock(0, 0)
 	// set high speed frequency
-	hw.setClock(DVS_HS, SDCLKFS_HS)
+	hw.setClock(DVS_HS, SDCLKFS_HS_SDR)
 
 	hw.card.HS = true
 

@@ -124,9 +124,10 @@ const (
 	// operating frequency: 200 / (2 * 4) == 25 MHz
 
 	// Divide-by-1
-	DVS_HS = 1
+	DVS_HS = 0
 	// Base clock divided by 4
-	SDCLKFS_HS = 0x01
+	SDCLKFS_HS_SDR = 0x02
+	SDCLKFS_HS_DDR = 0x01
 	// high speed frequency: 200 / (1 * 4) == 50 MHz
 
 	// p35, Table 4, JESD84-B51
@@ -374,6 +375,10 @@ func (hw *usdhc) Read(offset uint32, size int) (data []byte, err error) {
 		blocks += 1
 	}
 
+	if blocks > 0xffff {
+		return nil, errors.New("read size cannot exceed 65535 blocks")
+	}
+
 	bufSize := int(blocks * blockSize)
 
 	err = hw.waitState(CURRENT_STATE_TRAN, 1*time.Millisecond)
@@ -392,17 +397,17 @@ func (hw *usdhc) Read(offset uint32, size int) (data []byte, err error) {
 	// data buffer
 	data = make([]byte, bufSize)
 
-	dataBuf := mem.Alloc(data, 32)
-	defer mem.Free(dataBuf)
+	dataAddress := mem.Alloc(data, 32)
+	defer mem.Free(dataAddress)
 
 	// ADMA2 descriptor
 	bd := &ADMABufferDescriptor{}
-	bd.Init(dataBuf, bufSize)
+	bd.Init(dataAddress, bufSize)
 
-	bdBuf := mem.Alloc(bd.Bytes(), 0)
-	defer mem.Free(bdBuf)
+	bdAddress := mem.Alloc(bd.Bytes(), 0)
+	defer mem.Free(bdAddress)
 
-	reg.Write(hw.adma_sys_addr, bdBuf)
+	reg.Write(hw.adma_sys_addr, bdAddress)
 
 	if hw.card.HC {
 		// 4.3.14 Command Functional Difference in Card Capacity Types, SD-PL-7.10
@@ -424,5 +429,11 @@ func (hw *usdhc) Read(offset uint32, size int) (data []byte, err error) {
 		return nil, fmt.Errorf("reading %d bytes at offset %x, ADMA status %x", size, offset, adma_err)
 	}
 
-	return mem.Read(dataBuf, int(offset%blockSize), size), nil
+	if hw.card.HC {
+		mem.Read(dataAddress, int(offset%blockSize), data)
+	} else {
+		mem.Read(dataAddress, 0, data)
+	}
+
+	return
 }

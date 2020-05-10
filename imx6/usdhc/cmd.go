@@ -130,7 +130,7 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 		bits.Set(&xfr, CMD_XFR_TYP_DPSEL)
 		// enable multiple blocks
 		bits.Set(&mix, MIX_CTRL_MSBSEL)
-		// enable automatic CMD12 issue to stop transactions
+		// enable automatic CMD12 to stop transactions
 		bits.Set(&mix, MIX_CTRL_AC12EN)
 		// enable block count
 		bits.Set(&mix, MIX_CTRL_BCEN)

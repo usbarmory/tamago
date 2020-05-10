@@ -208,7 +208,7 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 		return nil, fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x", chstatus, code)
 	}
 
-	key = mem.Read(workPacket.DestinationBufferAddress, 0, len(key))
+	mem.Read(workPacket.DestinationBufferAddress, 0, key)
 
 	return
 }
