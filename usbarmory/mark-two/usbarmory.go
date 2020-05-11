@@ -33,7 +33,7 @@ var MMC = usdhc.USDHC2
 
 func init() {
 	// On USB armory Mk II β revisions these are the maximum achievable
-	// speed modes:
+	// theoretical speed modes:
 	//   * SD:  High Speed (HS)      25MB/s, 50MHz, 3.3V, 4-bit data bus
 	//   * MMC: High Speed (HS) DDR 104MB/s, 52MHz, 3.3V, 8-bit data bus
 

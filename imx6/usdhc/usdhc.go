@@ -105,11 +105,13 @@ const (
 //   Operating frequency ≤ 25 MHz
 //   High frequency ≤ 50 MHz
 const (
-	// 200 MHz
-	BASE_CLOCK = 200
+	// p346, 35.2 Clocks, IMX6FG.
+	//
+	// The base clock is derived by default from PDF2 (396MHz) with divide
+	// by 2, therefore 198MHz.
 
-	// Data Timeout Counter Value: SDCLK x 2** 28
-	DTOCV = 0b1110
+	// Data Timeout Counter Value: SDCLK x 2** 29
+	DTOCV = 0xf
 
 	// Divide-by-8
 	DVS_ID = 8
@@ -125,8 +127,9 @@ const (
 
 	// Divide-by-1
 	DVS_HS = 0
-	// Base clock divided by 4
+	// Base clock divided by 4 (Single Data Rate mode)
 	SDCLKFS_HS_SDR = 0x02
+	// Base clock divided by 4 (Dual Data Rate mode)
 	SDCLKFS_HS_DDR = 0x01
 	// high speed frequency: 200 / (1 * 4) == 50 MHz
 
