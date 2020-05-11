@@ -370,7 +370,8 @@ func (hw *usdhc) Read(offset uint32, size int) (data []byte, err error) {
 	}
 
 	blockSize := DEFAULT_BLOCK_SIZE
-	blocks := ((offset % blockSize) + uint32(size)) / blockSize
+	blockOffset := offset % blockSize
+	blocks := (blockOffset + uint32(size)) / blockSize
 
 	if blocks == 0 {
 		blocks = 1
@@ -432,10 +433,10 @@ func (hw *usdhc) Read(offset uint32, size int) (data []byte, err error) {
 		return nil, fmt.Errorf("reading %d bytes at offset %x, ADMA status %x", size, offset, adma_err)
 	}
 
-	if hw.card.HC {
-		mem.Read(dataAddress, int(offset%blockSize), data)
-	} else {
-		mem.Read(dataAddress, 0, data)
+	mem.Read(dataAddress, 0, data)
+
+	if hw.card.HC && blockOffset != 0 {
+		data = data[blockOffset:]
 	}
 
 	return
