@@ -31,8 +31,9 @@ const (
 	DMASEL_ADMA1 = 0b01
 	DMASEL_ADMA2 = 0b10
 
-	DEFAULT_BLOCK_SIZE uint32 = 512
-	ADMA_BD_MAX_LENGTH        = 65532
+	ADMA_BD_MAX_LENGTH = 65532
+
+	BLOCK_SIZE uint32 = 512
 )
 
 // p3964 58.4.2.4.1 ADMA Concept and Descriptor Format, IMX6ULLRM

@@ -350,7 +350,7 @@ func (hw *usdhc) Detect() (err error) {
 	if !hw.card.DDR {
 		// CMD16 - SET_BLOCKLEN - define the block length,
 		// only legal In single data rate mode.
-		err = hw.cmd(16, READ, uint32(DEFAULT_BLOCK_SIZE), RSP_48, true, true, false, 0)
+		err = hw.cmd(16, READ, uint32(BLOCK_SIZE), RSP_48, true, true, false, 0)
 	}
 
 	return
@@ -358,32 +358,14 @@ func (hw *usdhc) Detect() (err error) {
 
 // Read transfers data from the card as specified in
 // p347, 35.5.1 Reading data from the card, IMX6FG.
-func (hw *usdhc) Read(offset uint32, size int) (data []byte, err error) {
-	var arg uint32
-
-	if size == 0 {
-		return
-	}
-
+func (hw *usdhc) transfer(dtd uint32, offset uint32, blocks uint32, blockSize uint32, buf []byte) (err error) {
 	if hw.cg == 0 {
-		return nil, errors.New("controller is not initialized")
-	}
-
-	blockSize := DEFAULT_BLOCK_SIZE
-	blockOffset := offset % blockSize
-	blocks := (blockOffset + uint32(size)) / blockSize
-
-	if blocks == 0 {
-		blocks = 1
-	} else if (offset+uint32(size))%blockSize != 0 {
-		blocks += 1
+		return errors.New("controller is not initialized")
 	}
 
 	if blocks > 0xffff {
-		return nil, errors.New("read size cannot exceed 65535 blocks")
+		return errors.New("transfer size cannot exceed 65535 blocks")
 	}
-
-	bufSize := int(blocks * blockSize)
 
 	err = hw.waitState(CURRENT_STATE_TRAN, 1*time.Millisecond)
 
@@ -398,15 +380,12 @@ func (hw *usdhc) Read(offset uint32, size int) (data []byte, err error) {
 	// set read watermark level
 	reg.SetN(hw.wtmk_lvl, WTMK_LVL_RD_WML, 0xff, blockSize/4)
 
-	// data buffer
-	data = make([]byte, bufSize)
-
-	dataAddress := mem.Alloc(data, 32)
-	defer mem.Free(dataAddress)
+	bufAddress := mem.Alloc(buf, 32)
+	defer mem.Free(bufAddress)
 
 	// ADMA2 descriptor
 	bd := &ADMABufferDescriptor{}
-	bd.Init(dataAddress, bufSize)
+	bd.Init(bufAddress, len(buf))
 
 	bdAddress := mem.Alloc(bd.Bytes(), 0)
 	defer mem.Free(bdAddress)
@@ -415,29 +394,92 @@ func (hw *usdhc) Read(offset uint32, size int) (data []byte, err error) {
 
 	if hw.card.HC {
 		// 4.3.14 Command Functional Difference in Card Capacity Types, SD-PL-7.10
-		arg = offset / blockSize
-	} else {
-		arg = offset
+		offset = offset / BLOCK_SIZE
+		// TODO: handle eMMC with 4 KB sectors (check NATIVE_SECTOR_SIZE)
 	}
-	// TODO: handle eMMC with 4 KB sectors (check NATIVE_SECTOR_SIZE)
 
-	// CMD18 - READ_MULTIPLE_BLOCK - transfer consecutive blocks
-	err = hw.cmd(18, READ, arg, RSP_48, true, true, true, hw.readTimeout)
+	var index uint32
+
+	switch dtd {
+	case READ:
+		// CMD18 - READ_MULTIPLE_BLOCK - read consecutive blocks
+		index = 18
+	case WRITE:
+		// CMD25 - WRITE_MULTIPLE_BLOCK - write consecutive blocks
+		index = 25
+	default:
+		return errors.New("invalid transfer")
+	}
+
+	err = hw.cmd(index, dtd, offset, RSP_48, true, true, true, hw.readTimeout)
 	adma_err := reg.Read(hw.adma_err_status)
 
 	if err != nil {
-		return nil, fmt.Errorf("reading %d bytes at offset %x, ADMA status %x, %v", size, offset, adma_err, err)
+		return fmt.Errorf("reading %d bytes at offset %x, ADMA status %x, %v", len(buf), offset, adma_err, err)
 	}
 
 	if adma_err > 0 {
-		return nil, fmt.Errorf("reading %d bytes at offset %x, ADMA status %x", size, offset, adma_err)
+		return fmt.Errorf("reading %d bytes at offset %x, ADMA status %x", len(buf), offset, adma_err)
 	}
 
-	mem.Read(dataAddress, 0, data)
+	mem.Read(bufAddress, 0, buf)
 
-	if hw.card.HC && blockOffset != 0 {
-		data = data[blockOffset:]
+	return
+}
+
+// Read transfers data from the card as specified in
+// p347, 35.5.1 Reading data from the card, IMX6FG.
+func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
+	blockSize := BLOCK_SIZE
+
+	if size == 0 {
+		return
+	}
+
+	blockOffset := offset % blockSize
+	blocks := (blockOffset + uint32(size)) / blockSize
+
+	if blocks == 0 {
+		blocks = 1
+	} else if (offset+uint32(size))%blockSize != 0 {
+		blocks += 1
+	}
+
+	bufSize := int(blocks * blockSize)
+
+	// data buffer
+	buf = make([]byte, bufSize)
+
+	err = hw.transfer(READ, offset, blocks, blockSize, buf)
+
+	if err != nil && hw.card.HC && blockOffset != 0 {
+		buf = buf[blockOffset:]
 	}
 
 	return
+}
+
+// Write transfers data to the card as specified in
+// p354, 35.5.2 Writing data to the card, IMX6FG.
+func (hw *usdhc) Write(offset uint32, buf []byte) (err error) {
+	blockSize := BLOCK_SIZE
+	size := len(buf)
+
+	if size == 0 {
+		return
+	}
+
+	// TODO: support arbitrary write
+
+	if offset%BLOCK_SIZE != 0 {
+		return fmt.Errorf("write offset must be %d bytes aligned", blockSize)
+	}
+
+	if uint32(size)%BLOCK_SIZE != 0 {
+		return fmt.Errorf("write size must be %d bytes aligned", blockSize)
+	}
+
+	blocks := uint32(size) / blockSize
+
+	return hw.transfer(WRITE, offset, blocks, blockSize, buf)
 }
