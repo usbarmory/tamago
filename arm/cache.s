@@ -17,8 +17,8 @@ TEXT ·CacheDisable(SB),$0
 // func CacheEnable()
 TEXT ·CacheEnable(SB),$0
 	MRC	15, 0, R1, C1, C0, 0
-	AND	$1<<12, R1	// Enable I-cache
-	AND	$1<<2, R1	// Enable D-cache
+	ORR	$1<<12, R1	// Enable I-cache
+	ORR	$1<<2, R1	// Enable D-cache
 	MCR	15, 0, R1, C1, C0, 0
 	RET
 
