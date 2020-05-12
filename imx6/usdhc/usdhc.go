@@ -359,6 +359,9 @@ func (hw *usdhc) Detect() (err error) {
 // Read transfers data from the card as specified in
 // p347, 35.5.1 Reading data from the card, IMX6FG.
 func (hw *usdhc) transfer(dtd uint32, offset uint32, blocks uint32, blockSize uint32, buf []byte) (err error) {
+	hw.Lock()
+	defer hw.Unlock()
+
 	if hw.cg == 0 {
 		return errors.New("controller is not initialized")
 	}
@@ -460,7 +463,7 @@ func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
 
 	if hw.card.HC {
 		if blockOffset != 0 || trim > 0 {
-			buf = buf[blockOffset:blockOffset+uint32(size)]
+			buf = buf[blockOffset : blockOffset+uint32(size)]
 		}
 	} else if trim > 0 {
 		buf = buf[:offset+uint32(size)]
