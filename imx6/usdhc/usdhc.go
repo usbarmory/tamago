@@ -396,7 +396,7 @@ func (hw *usdhc) transfer(dtd uint32, offset uint32, blocks uint32, blockSize ui
 	reg.Write(hw.adma_sys_addr, bdAddress)
 
 	if hw.card.HC {
-		// 4.3.14 Command Functional Difference in Card Capacity Types, SD-PL-7.10
+		// p102, 4.3.14 Command Functional Difference in Card Capacity Types, SD-PL-7.10
 		offset = offset / BLOCK_SIZE
 		// TODO: handle eMMC with 4 KB sectors (check NATIVE_SECTOR_SIZE)
 	}
@@ -431,7 +431,7 @@ func (hw *usdhc) transfer(dtd uint32, offset uint32, blocks uint32, blockSize ui
 }
 
 // Read transfers data from the card as specified in
-// p347, 35.5.1 Reading data from the card, IMX6FG.
+// p353, 35.5.1 Reading data from the card, IMX6FG.
 func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
 	blockSize := uint32(BLOCK_SIZE)
 
