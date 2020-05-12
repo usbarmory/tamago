@@ -430,7 +430,7 @@ func (hw *usdhc) transfer(dtd uint32, offset uint32, blocks uint32, blockSize ui
 // Read transfers data from the card as specified in
 // p347, 35.5.1 Reading data from the card, IMX6FG.
 func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
-	blockSize := BLOCK_SIZE
+	blockSize := uint32(BLOCK_SIZE)
 
 	if size == 0 {
 		return
@@ -452,8 +452,18 @@ func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
 
 	err = hw.transfer(READ, offset, blocks, blockSize, buf)
 
-	if err != nil && hw.card.HC && blockOffset != 0 {
-		buf = buf[blockOffset:]
+	if err != nil {
+		return
+	}
+
+	trim := uint32(size) % blockSize
+
+	if hw.card.HC {
+		if blockOffset != 0 || trim > 0 {
+			buf = buf[blockOffset:blockOffset+uint32(size)]
+		}
+	} else if trim > 0 {
+		buf = buf[:offset+uint32(size)]
 	}
 
 	return
@@ -462,7 +472,7 @@ func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
 // Write transfers data to the card as specified in
 // p354, 35.5.2 Writing data to the card, IMX6FG.
 func (hw *usdhc) Write(offset uint32, buf []byte) (err error) {
-	blockSize := BLOCK_SIZE
+	blockSize := uint32(BLOCK_SIZE)
 	size := len(buf)
 
 	if size == 0 {
