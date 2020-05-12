@@ -64,6 +64,8 @@ func hwinit() {
 		Native = true
 	}
 
+	arm.CacheEnable()
+
 	// initialize console
 	UART2.init(UART2_BASE, UART_DEFAULT_BAUDRATE)
 
