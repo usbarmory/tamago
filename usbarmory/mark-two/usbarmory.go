@@ -32,8 +32,13 @@ var SD = usdhc.USDHC1
 var MMC = usdhc.USDHC2
 
 func init() {
-	SD.Init(4, false)
-	MMC.Init(8, true)
+	// On USB armory Mk II β revisions these are the maximum achievable
+	// theoretical speed modes:
+	//   * SD:  High Speed (HS)      25MB/s, 50MHz, 3.3V, 4-bit data bus
+	//   * MMC: High Speed (HS) DDR 104MB/s, 52MHz, 3.3V, 8-bit data bus
+
+	SD.Init(4)
+	MMC.Init(8)
 }
 
 //go:linkname printk runtime.printk

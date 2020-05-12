@@ -40,6 +40,18 @@ const (
 	SD_OCR_VDD_HV_MIN = 15
 	SD_OCR_VDD_LV     = 7
 
+	// p120, Table 4-32 : Switch Function Commands (class 10), SD-PL-7.10
+	SD_SWITCH_MODE        = 0
+	SD_SWITCH_ACCESS_MODE = 0
+
+	// p89, 4.3.10 Switch Function Command, SD-PL-7.10
+	MODE_CHECK         = 0
+	MODE_SWITCH        = 1
+	ACCESS_MODE_HS     = 0x1
+	ACCESS_MODE_SDR25  = 0x1
+	ACCESS_MODE_SDR50  = 0x2
+	ACCESS_MODE_SDR104 = 0x3
+
 	SD_DETECT_LOOP_CNT = 300
 	SD_DETECT_TIMEOUT  = 1 * time.Second
 )
@@ -55,14 +67,14 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 	bits.SetN(&arg, CMD8_ARG_VHS, 0b1111, VHS_HIGH)
 	bits.SetN(&arg, CMD8_ARG_CHECK_PATTERN, 0xff, CHECK_PATTERN)
 
-	if hw.cmd(8, READ, arg, RSP_48, true, true) == nil && hw.rsp(0) == arg {
+	if hw.cmd(8, READ, arg, RSP_48, true, true, false, 0) == nil && hw.rsp(0) == arg {
 		// HC/LC HV SD 2.x
 		hc = true
 		hv = true
 	} else {
 		arg = VHS_LOW<<CMD8_ARG_VHS | CHECK_PATTERN
 
-		if hw.cmd(8, READ, arg, RSP_48, true, true) == nil && hw.rsp(0) == arg {
+		if hw.cmd(8, READ, arg, RSP_48, true, true, false, 0) == nil && hw.rsp(0) == arg {
 			// LC SD 1.x
 			hc = true
 		} else {
@@ -97,11 +109,11 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 
 	for i := 0; i < SD_DETECT_LOOP_CNT; i++ {
 		// CMD55 - APP_CMD - next command is application specific
-		if hw.cmd(55, READ, 0, RSP_48, true, true) != nil {
+		if hw.cmd(55, READ, 0, RSP_48, true, true, false, 0) != nil {
 			return false, false
 		}
 
-		if err := hw.cmd(41, READ, arg, RSP_48, false, false); err != nil {
+		if err := hw.cmd(41, READ, arg, RSP_48, false, false, false, 0); err != nil {
 			return false, false
 		}
 
@@ -113,8 +125,6 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 
 		if bits.Get(&rsp, SD_OCR_HCS, 1) == 1 {
 			hc = true
-		} else {
-			hc = false
 		}
 
 		break
@@ -130,16 +140,12 @@ func (hw *usdhc) initSD() (err error) {
 	var bus_width uint32
 
 	// CMD2 - ALL_SEND_CID - get unique card identification
-	err = hw.cmd(2, READ, arg, RSP_136, false, true)
-
-	if err != nil {
+	if err = hw.cmd(2, READ, arg, RSP_136, false, true, false, 0); err != nil {
 		return
 	}
 
 	// CMD3 - SEND_RELATIVE_ADDR - get relative card address (RCA)
-	err = hw.cmd(3, READ, arg, RSP_48, true, true)
-
-	if err != nil {
+	if err = hw.cmd(3, READ, arg, RSP_48, true, true, false, 0); err != nil {
 		return
 	}
 
@@ -152,29 +158,21 @@ func (hw *usdhc) initSD() (err error) {
 	// set operating frequency
 	hw.setClock(DVS_OP, SDCLKFS_OP)
 
+	hw.rca = hw.rsp(0) & (0xffff << RCA_ADDR)
+
 	// CMD7 - SELECT/DESELECT CARD - enter transfer state
-	rca := hw.rsp(0) & (0xffff << RCA_ADDR)
-	err = hw.cmd(7, READ, rca, RSP_48_CHECK_BUSY, true, true)
-
-	if err != nil {
+	if err = hw.cmd(7, READ, hw.rca, RSP_48_CHECK_BUSY, true, true, false, 0); err != nil {
 		return
 	}
 
-	// CMD13 - SEND_STATUS/SEND_TASK_STATUS - poll card status
-	err = hw.cmd(13, READ, rca, RSP_48, true, true)
+	err = hw.waitState(CURRENT_STATE_TRAN, 1*time.Millisecond)
 
 	if err != nil {
 		return
-	}
-
-	if state := (hw.rsp(0) >> STATUS_CURRENT_STATE) & 0b1111; state != CURRENT_STATE_TRAN {
-		return fmt.Errorf("card not in tran state (%d)", state)
 	}
 
 	// CMD55 - APP_CMD - next command is application specific
-	err = hw.cmd(55, READ, rca, RSP_48, true, true)
-
-	if err != nil {
+	if err = hw.cmd(55, READ, hw.rca, RSP_48, true, true, false, 0); err != nil {
 		return
 	}
 
@@ -193,10 +191,37 @@ func (hw *usdhc) initSD() (err error) {
 	}
 
 	// ACMD6 - SET_BUS_WIDTH - define the card data bus width
-	return hw.cmd(6, READ, uint32(bus_width), RSP_48, true, true)
-}
+	if err = hw.cmd(6, READ, uint32(bus_width), RSP_48, true, true, false, 0); err != nil {
+		return
+	}
 
-// SD returns whether an SD card has been detected.
-func (hw *usdhc) SD() bool {
-	return hw.sd
+	// Enable High Speed (HS) mode.
+	//
+	// We do this unconditionally for now as only Non UHS SDXC/SDUC cards
+	// have optional HS mode support, while mandatory for all others.
+	//
+	// p46, Table 3-10 : Bus Speed Mode Option / Mandatory, SD-PL-7.10
+
+	// set `no influence` (0xf) for all functions except changed ones
+	arg = 0xffffffff
+	// set mode switch
+	bits.SetN(&arg, SD_SWITCH_MODE, 1, MODE_SWITCH)
+	// set HS access mode
+	bits.SetN(&arg, SD_SWITCH_ACCESS_MODE, 0b1111, ACCESS_MODE_HS)
+
+	// CMD6 - SWITCH - switch mode of operation
+	if err = hw.cmd(6, READ, arg, RSP_48, true, true, false, 0); err != nil {
+		return
+	}
+
+	err = hw.waitState(CURRENT_STATE_TRAN, 500*time.Millisecond)
+
+	// clear clock
+	hw.setClock(0, 0)
+	// set high speed frequency
+	hw.setClock(DVS_HS, SDCLKFS_HS_SDR)
+
+	hw.card.HS = true
+
+	return
 }

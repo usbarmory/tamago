@@ -141,8 +141,10 @@ func (hw *usb) getEP(n int, dir int) (dqh dQH) {
 	epListAddr := reg.Read(hw.eplist)
 	offset := (n*2 + dir) * DQH_SIZE
 
-	buf := bytes.NewBuffer(mem.Read(epListAddr, offset, DQH_SIZE))
-	err := binary.Read(buf, binary.LittleEndian, &dqh)
+	buf := make([]byte, DQH_SIZE)
+	mem.Read(epListAddr, offset, buf)
+
+	err := binary.Read(bytes.NewReader(buf), binary.LittleEndian, &dqh)
 
 	if err != nil {
 		panic(err)
@@ -285,7 +287,9 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 		size := dtdLength - int(dtdToken>>16)
 
 		if n != 0 && dir == OUT && size != 0 {
-			out = append(out, mem.Read(dtd._pages, 0, size)...)
+			buf := make([]byte, size)
+			mem.Read(dtd._pages, 0, buf)
+			out = append(out, buf...)
 		}
 
 		if dir == IN && size != dtdLength {
