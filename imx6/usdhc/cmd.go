@@ -43,6 +43,9 @@ const (
 	RSP_48            = 0b10
 	RSP_48_CHECK_BUSY = 0b11
 
+	// SEND_CSD response contains CSD[127:8],
+	CSD_RSP_OFF = -8
+
 	DEFAULT_CMD_TIMEOUT = 10 * time.Millisecond
 )
 
@@ -168,12 +171,18 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	return
 }
 
-func (hw *usdhc) rsp(i uint32) uint32 {
+func (hw *usdhc) rsp(i int) uint32 {
 	if i > 3 {
 		return 0
 	}
 
-	return reg.Read(hw.cmd_rsp + i*4)
+	return reg.Read(hw.cmd_rsp + uint32(i*4))
+}
+
+func (hw *usdhc) rspVal(pos int, mask int) (val uint32) {
+	val = hw.rsp(pos/32) >> (pos % 32)
+	val &= uint32(mask)
+	return
 }
 
 func (hw *usdhc) waitState(state int, timeout time.Duration) (err error) {
