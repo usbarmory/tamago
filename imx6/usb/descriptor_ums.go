@@ -30,7 +30,7 @@ const (
 	GET_MAX_LUN                  = 0xfe
 )
 
-// CBW implements p13, 5.1 Command Block Wrapper (CWB), USB Mass Storage Class 1.0
+// CBW implements p13, 5.1 Command Block Wrapper (CBW), USB Mass Storage Class 1.0
 type CBW struct {
 	Signature          uint32
 	Tag                uint32
