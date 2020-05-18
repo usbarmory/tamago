@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/f-secure-foundry/tamago/imx6"
-	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
 	"github.com/f-secure-foundry/tamago/internal/bits"
+	"github.com/f-secure-foundry/tamago/internal/dma"
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
@@ -360,8 +360,9 @@ func (hw *usdhc) Detect() (err error) {
 	return
 }
 
-// Read transfers data from the card as specified in
-// p347, 35.5.1 Reading data from the card, IMX6FG.
+// Transfer data from/to the card as specified in:
+//   p347, 35.5.1 Reading data from the card, IMX6FG,
+//   p354, 35.5.2 Writing data to the card, IMX6FG.
 func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32, blockSize uint32, buf []byte) (err error) {
 	if hw.cg == 0 {
 		return errors.New("controller is not initialized")
@@ -388,15 +389,15 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32
 	// set read watermark level
 	reg.SetN(hw.wtmk_lvl, WTMK_LVL_RD_WML, 0xff, blockSize/4)
 
-	bufAddress := mem.Alloc(buf, 32)
-	defer mem.Free(bufAddress)
+	bufAddress := dma.Alloc(buf, 32)
+	defer dma.Free(bufAddress)
 
 	// ADMA2 descriptor
 	bd := &ADMABufferDescriptor{}
 	bd.Init(bufAddress, len(buf))
 
-	bdAddress := mem.Alloc(bd.Bytes(), 0)
-	defer mem.Free(bdAddress)
+	bdAddress := dma.Alloc(bd.Bytes(), 0)
+	defer dma.Free(bdAddress)
 
 	reg.Write(hw.adma_sys_addr, bdAddress)
 
@@ -416,13 +417,34 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32
 		return fmt.Errorf("reading %d bytes at offset %x, ADMA status %x", len(buf), offset, adma_err)
 	}
 
-	mem.Read(bufAddress, 0, buf)
+	dma.Read(bufAddress, 0, buf)
 
 	return
 }
 
-// Read transfers data from the card as specified in
-// p353, 35.5.1 Reading data from the card, IMX6FG.
+// ReadBlocks transfers full blocks of data from the card.
+func (hw *usdhc) ReadBlocks(lba int, blocks int) (buf []byte, err error) {
+	blockSize := hw.card.BlockSize
+	bufSize := blocks * blockSize
+	offset := uint32(lba * blockSize)
+
+	if bufSize == 0 {
+		return
+	}
+
+	// data buffer
+	buf = make([]byte, bufSize)
+
+	hw.Lock()
+	defer hw.Unlock()
+
+	// CMD18 - READ_MULTIPLE_BLOCK - read consecutive blocks
+	err = hw.transfer(18, READ, offset, uint32(blocks), uint32(blockSize), buf)
+
+	return
+}
+
+// Read transfers data from the card.
 func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
 	blockSize := uint32(hw.card.BlockSize)
 
@@ -467,8 +489,7 @@ func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
 	return
 }
 
-// Write transfers data to the card as specified in
-// p354, 35.5.2 Writing data to the card, IMX6FG.
+// Write transfers data to the card.
 func (hw *usdhc) Write(offset uint32, buf []byte) (err error) {
 	blockSize := uint32(hw.card.BlockSize)
 	size := len(buf)
