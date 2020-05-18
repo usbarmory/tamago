@@ -18,8 +18,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
 	"github.com/f-secure-foundry/tamago/internal/bits"
+	"github.com/f-secure-foundry/tamago/internal/dma"
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
@@ -43,6 +43,7 @@ const (
 	DQH_LIST_ALIGN = 2048
 	DQH_ALIGN      = 64
 	DQH_SIZE       = 64
+	DQH_INFO       = 0
 	DQH_CURRENT    = 4
 	DQH_NEXT       = 8
 	DQH_TOKEN      = 12
@@ -52,6 +53,7 @@ const (
 	DTD_SIZE      = 28
 	DTD_PAGES     = 5
 	DTD_PAGE_SIZE = 4096
+	DTD_NEXT      = 0
 	DTD_TOKEN     = 4
 )
 
@@ -65,6 +67,11 @@ type dTD struct {
 	// DMA buffer pointers
 	_dtd   uint32
 	_pages uint32
+}
+
+func (dtd *dTD) free() {
+	dma.Free(dtd._pages)
+	dma.Free(dtd._dtd)
 }
 
 // dQH implements
@@ -98,7 +105,7 @@ func (hw *usb) initEP() {
 	buf := new(bytes.Buffer)
 
 	binary.Write(buf, binary.LittleEndian, &epList)
-	epListAddr := mem.Alloc(buf.Bytes(), DQH_LIST_ALIGN)
+	epListAddr := dma.Alloc(buf.Bytes(), DQH_LIST_ALIGN)
 
 	// set endpoint queue head
 	reg.Write(hw.eplist, epListAddr)
@@ -106,13 +113,13 @@ func (hw *usb) initEP() {
 
 // setEP configures a queue head as described in
 // p3784, 56.4.5.1 Endpoint Queue Head, IMX6ULLRM.
-func (hw *usb) setEP(n int, dir int, max int, zlt int, mult int) {
+func (hw *usb) setEP(n int, dir int, max int, mult int) {
 	dqh := dQH{}
 
 	// Mult
 	bits.SetN(&dqh.Info, 30, 0b11, uint32(mult))
 	// zlt
-	bits.SetN(&dqh.Info, 29, 1, uint32(zlt))
+	bits.SetN(&dqh.Info, 29, 1, 0)
 	// Maximum Packet Length
 	bits.SetN(&dqh.Info, 16, 0x7ff, uint32(max))
 
@@ -133,7 +140,7 @@ func (hw *usb) setEP(n int, dir int, max int, zlt int, mult int) {
 
 	epListAddr := reg.Read(hw.eplist)
 	offset := (n*2 + dir) * DQH_SIZE
-	mem.Write(epListAddr, buf.Bytes(), offset)
+	dma.Write(epListAddr, buf.Bytes(), offset)
 }
 
 // getEP returns an Endpoint Queue Head (dQH)
@@ -142,7 +149,7 @@ func (hw *usb) getEP(n int, dir int) (dqh dQH) {
 	offset := (n*2 + dir) * DQH_SIZE
 
 	buf := make([]byte, DQH_SIZE)
-	mem.Read(epListAddr, offset, buf)
+	dma.Read(epListAddr, offset, buf)
 
 	err := binary.Read(bytes.NewReader(buf), binary.LittleEndian, &dqh)
 
@@ -154,18 +161,16 @@ func (hw *usb) getEP(n int, dir int) (dqh dQH) {
 }
 
 // next sets the next endpoint transfer pointer
-func (hw *usb) nextDTD(n int, dir int, next uint32) {
+func (hw *usb) nextDTD(n int, dir int, next uint32, zlt int) {
 	offset := (n*2 + dir) * DQH_SIZE
 	dqh := reg.Read(hw.eplist) + uint32(offset)
 
 	// set next dTD
 	reg.Write(dqh+uint32(DQH_NEXT), next)
+	// zlt
+	reg.SetN(dqh+uint32(DQH_INFO), 29, 1, uint32(zlt))
 	// reset endpoint status (active and halt bits)
 	reg.SetN(dqh+uint32(DQH_TOKEN), 6, 0b11, 0b00)
-
-	if current := reg.Read(dqh + uint32(DQH_CURRENT)); current != 1 {
-		mem.Free(current)
-	}
 }
 
 // addDTD configures an endpoint transfer descriptor as described in
@@ -190,7 +195,7 @@ func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD) {
 	// total bytes
 	bits.SetN(&dtd.Token, 16, 0xffff, uint32(len(data)))
 
-	dtd._pages = mem.Alloc(data, DTD_PAGE_SIZE)
+	dtd._pages = dma.Alloc(data, DTD_PAGE_SIZE)
 
 	for n := 0; n < DTD_PAGES; n++ {
 		dtd.Buffer[n] = dtd._pages + uint32(DTD_PAGE_SIZE*n)
@@ -200,7 +205,7 @@ func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD) {
 	binary.Write(buf, binary.LittleEndian, dtd)
 
 	// skip internal DMA buffer pointers
-	dtd._dtd = mem.Alloc(buf.Bytes()[0:DTD_SIZE], DTD_ALIGN)
+	dtd._dtd = dma.Alloc(buf.Bytes()[0:DTD_SIZE], DTD_ALIGN)
 
 	return
 }
@@ -227,7 +232,7 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 	}
 
 	dtd := buildDTD(n, dir, ioc, data[0:dtdLength])
-	defer mem.Free(dtd._pages)
+	defer dtd.free()
 
 	dtds = append(dtds, dtd)
 
@@ -239,17 +244,26 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 		}
 
 		next := buildDTD(n, dir, ioc, data[i:size])
-		defer mem.Free(next._pages)
+		defer next.free()
 
 		// treat dtd.next as a register within the dtd DMA buffer
-		reg.Write(dtd._dtd, next._dtd)
+		reg.Write(dtd._dtd+DTD_NEXT, next._dtd)
 
 		dtd = next
 		dtds = append(dtds, next)
 	}
 
+	zlt := 0
+
+	// If more than one dTD is sent we see that the automatic zlt is
+	// causing issues, for now we leave up to the application sending zlt
+	// on large transfers.
+	if dir == IN && len(dtds) > 1 {
+		zlt = 1
+	}
+
 	// set dQH head pointer
-	hw.nextDTD(n, dir, dtds[0]._dtd)
+	hw.nextDTD(n, dir, dtds[0]._dtd, zlt)
 
 	// hw.prime IN:ENDPTPRIME_PETB+n    OUT:ENDPTPRIME_PERB+n
 	// hw.pos   IN:ENDPTCOMPLETE_ETCE+n OUT:ENDPTCOMPLETE_ERCE+n
@@ -288,7 +302,7 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 
 		if n != 0 && dir == OUT && size != 0 {
 			buf := make([]byte, size)
-			mem.Read(dtd._pages, 0, buf)
+			dma.Read(dtd._pages, 0, buf)
 			out = append(out, buf...)
 		}
 
