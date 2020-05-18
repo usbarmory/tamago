@@ -52,8 +52,27 @@ const (
 	ACCESS_MODE_SDR50  = 0x2
 	ACCESS_MODE_SDR104 = 0x3
 
-	SD_DETECT_LOOP_CNT = 300
-	SD_DETECT_TIMEOUT  = 1 * time.Second
+	// p201 5.3.1 CSD_STRUCTURE, SD-PL-7.10
+	SD_CSD_STRUCTURE = 126 + CSD_RSP_OFF
+
+	// p202 5.3.2 CSD Register (CSD Version 1.0), SD-PL-7.10
+	SD_CSD_C_SIZE_MULT_1 = 47 + CSD_RSP_OFF
+	SD_CSD_C_SIZE_1      = 62 + CSD_RSP_OFF
+	SD_CSD_READ_BL_LEN_1 = 80 + CSD_RSP_OFF
+
+	// p209 5.3.3 CSD Register (CSD Version 2.0), SD-PL-7.10
+	SD_CSD_C_SIZE_2      = 48 + CSD_RSP_OFF
+	SD_CSD_READ_BL_LEN_2 = 80 + CSD_RSP_OFF
+
+	// p212 5.3.4 CSD Register (CSD Version 3.0), SD-PL-7.10
+	SD_CSD_C_SIZE_3      = 48 + CSD_RSP_OFF
+	SD_CSD_READ_BL_LEN_3 = 80 + CSD_RSP_OFF
+)
+
+const (
+	SD_DETECT_LOOP_CNT    = 300
+	SD_DETECT_TIMEOUT     = 1 * time.Second
+	SD_DEFAULT_BLOCK_SIZE = 512
 )
 
 // p350, 35.4.4 SD voltage validation flow chart, IMX6FG
@@ -61,7 +80,7 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 	var arg uint32
 	var hv bool
 
-	// CMD8 - SEND_EXT_CSD - read device data
+	// CMD8 - SEND_IF_COND - read device data
 	// p101, 4.3.13 Send Interface Condition Command (CMD8), SD-PL-7.10
 
 	bits.SetN(&arg, CMD8_ARG_VHS, 0b1111, VHS_HIGH)
@@ -133,6 +152,47 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 	return true, hc
 }
 
+func (hw *usdhc) detectCapacitySD(blockSize uint32) (err error) {
+	// CMD9 - SEND_CSD - read device data
+	if err = hw.cmd(9, READ, hw.rca, RSP_136, false, true, false, 0); err != nil {
+		return
+	}
+
+	ver := hw.rspVal(SD_CSD_STRUCTURE, 0b11)
+
+	switch ver {
+	case 0:
+		// CSD Version 1.0
+		c_size_mult := hw.rspVal(SD_CSD_C_SIZE_MULT_1, 0b111)
+		c_size := hw.rspVal(SD_CSD_C_SIZE_1, 0xfff)
+		read_bl_len := hw.rspVal(SD_CSD_READ_BL_LEN_1, 0xf)
+
+		// p205, C_SIZE, SD-PL-7.10
+		hw.card.BlockSize = 2 << (read_bl_len - 1)
+		hw.card.Blocks = int((c_size + 1) * (2 << (c_size_mult + 2)))
+	case 1:
+		// CSD Version 2.0
+		c_size := hw.rspVal(SD_CSD_C_SIZE_2, 0x3fffff)
+		read_bl_len := hw.rspVal(SD_CSD_READ_BL_LEN_2, 0xf)
+
+		// p210, C_SIZE, SD-PL-7.10
+		hw.card.BlockSize = 2 << (read_bl_len - 1)
+		hw.card.Blocks = int(c_size+1) * 1024
+	case 2:
+		// CSD Version 3.0
+		c_size := hw.rspVal(SD_CSD_C_SIZE_2, 0xfffffff)
+		read_bl_len := hw.rspVal(SD_CSD_READ_BL_LEN_2, 0xf)
+
+		// p213, C_SIZE, SD-PL-7.10
+		hw.card.BlockSize = 2 << (read_bl_len - 1)
+		hw.card.Blocks = int(c_size+1) * 1024
+	default:
+		return fmt.Errorf("unsupported CSD version %d", ver)
+	}
+
+	return
+}
+
 // p351, 35.4.5 SD card initialization flow chart, IMX6FG
 // p57, 4.2.3 Card Initialization and Identification Process, SD-PL-7.10
 func (hw *usdhc) initSD() (err error) {
@@ -158,7 +218,14 @@ func (hw *usdhc) initSD() (err error) {
 	// set operating frequency
 	hw.setClock(DVS_OP, SDCLKFS_OP)
 
+	// set relative card address
 	hw.rca = hw.rsp(0) & (0xffff << RCA_ADDR)
+
+	err = hw.detectCapacitySD(SD_DEFAULT_BLOCK_SIZE)
+
+	if err != nil {
+		return
+	}
 
 	// CMD7 - SELECT/DESELECT CARD - enter transfer state
 	if err = hw.cmd(7, READ, hw.rca, RSP_48_CHECK_BUSY, true, true, false, 0); err != nil {

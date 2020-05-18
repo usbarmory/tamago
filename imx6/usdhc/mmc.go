@@ -14,6 +14,7 @@
 package usdhc
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"time"
@@ -41,8 +42,11 @@ const (
 	ACCESS_WRITE_BYTE = 0b11
 
 	// p184 7.3 CSD register, JESD84-B51
-	CSD_TRAN_SPEED = 96
-	CSD_SPEC_VERS  = 122
+	MMC_CSD_C_SIZE_MULT = 47 + CSD_RSP_OFF
+	MMC_CSD_C_SIZE      = 62 + CSD_RSP_OFF
+	MMC_CSD_READ_BL_LEN = 80 + CSD_RSP_OFF
+	MMC_CSD_TRAN_SPEED  = 96 + CSD_RSP_OFF
+	MMC_CSD_SPEC_VERS   = 122 + CSD_RSP_OFF
 
 	// p186 TRAN_SPEED [103:96], JESD84-B51
 	TRAN_SPEED_26MHZ = 0x32
@@ -50,6 +54,7 @@ const (
 	// p193, 7.4 Extended CSD register, JESD84-B51
 	EXT_CSD_BUS_WIDTH = 183
 	EXT_CSD_HS_TIMING = 185
+	EXT_CSD_SEC_COUNT = 212
 
 	// p222, 7.4.65 HS_TIMING [185], JESD84-B51
 	HS_TIMING_HS    = 0x1
@@ -57,8 +62,9 @@ const (
 )
 
 const (
-	MMC_DETECT_LOOP_CNT = 300
-	MMC_DETECT_TIMEOUT  = 1 * time.Second
+	MMC_DETECT_LOOP_CNT    = 300
+	MMC_DETECT_TIMEOUT     = 1 * time.Second
+	MMC_DEFAULT_BLOCK_SIZE = 512
 )
 
 // p352, 35.4.6 MMC voltage validation flow chart, IMX6FG
@@ -122,6 +128,30 @@ func (hw *usdhc) writeCardRegister(reg uint32, val uint32) (err error) {
 	return hw.waitState(CURRENT_STATE_TRAN, 500*time.Millisecond)
 }
 
+// p128, Table 39 — e•MMC internal sizes and related Units / Granularities, JESD84-B51
+func (hw *usdhc) detectCapacityMMC(blockSize uint32, c_size_mult uint32, c_size uint32, read_bl_len uint32) (err error) {
+	// density greater than 2GB
+	if c_size > 0xff {
+		// emulation mode is assumed for densities greater than 256GB
+		hw.card.BlockSize = int(blockSize)
+
+		extCSD := make([]byte, blockSize)
+
+		// CMD8 - SEND_EXT_CSD - read extended device data
+		if err = hw.transfer(8, READ, 0, 1, 512, extCSD); err != nil {
+			return
+		}
+
+		hw.card.Blocks = int(binary.LittleEndian.Uint32(extCSD[EXT_CSD_SEC_COUNT:]))
+	} else {
+		// p188, 7.3.12 C_SIZE [73:62], JESD84-B51
+		hw.card.BlockSize = 2 << (read_bl_len - 1)
+		hw.card.Blocks = int((c_size + 1) * (2 << (c_size_mult + 2)))
+	}
+
+	return
+}
+
 // p352, 35.4.7 MMC card initialization flow chart, IMX6FG
 // p58, 6.4.4 Device identification process, JESD84-B51
 func (hw *usdhc) initMMC() (err error) {
@@ -151,10 +181,16 @@ func (hw *usdhc) initMMC() (err error) {
 		return
 	}
 
-	// SEND_CDS response contains CSD[127:8],
-	// p184 7.3 CSD register, JESD84-B51.
-	mhz := hw.rsp(2) >> 24
-	ver := (hw.rsp(3) >> 18) & 0b111
+	// block count multiplier
+	c_size_mult := hw.rspVal(MMC_CSD_C_SIZE_MULT, 0b111)
+	// block count
+	c_size := hw.rspVal(MMC_CSD_C_SIZE, 0xfff)
+	// block size
+	read_bl_len := hw.rspVal(MMC_CSD_READ_BL_LEN, 0xf)
+	// operating frequency
+	mhz := hw.rspVal(MMC_CSD_TRAN_SPEED, 0xff)
+	// e•MMC specification version
+	ver := hw.rspVal(MMC_CSD_SPEC_VERS, 0xf)
 
 	if mhz == TRAN_SPEED_26MHZ {
 		// clear clock
@@ -187,6 +223,12 @@ func (hw *usdhc) initMMC() (err error) {
 	}
 
 	err = hw.writeCardRegister(EXT_CSD_BUS_WIDTH, bus_width)
+
+	if err != nil {
+		return
+	}
+
+	err = hw.detectCapacityMMC(MMC_DEFAULT_BLOCK_SIZE, c_size_mult, c_size, read_bl_len)
 
 	if err != nil {
 		return

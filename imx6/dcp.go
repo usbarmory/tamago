@@ -20,7 +20,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/f-secure-foundry/tamago/imx6/internal/mem"
+	"github.com/f-secure-foundry/tamago/internal/dma"
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
@@ -176,15 +176,15 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	defer hw.Unlock()
 
 	workPacket.BufferSize = uint32(len(diversifier))
-	workPacket.SourceBufferAddress = mem.Alloc(diversifier, 0)
-	defer mem.Free(workPacket.SourceBufferAddress)
+	workPacket.SourceBufferAddress = dma.Alloc(diversifier, 0)
+	defer dma.Free(workPacket.SourceBufferAddress)
 
-	workPacket.DestinationBufferAddress = mem.Alloc(key, 0)
-	defer mem.Free(workPacket.DestinationBufferAddress)
+	workPacket.DestinationBufferAddress = dma.Alloc(key, 0)
+	defer dma.Free(workPacket.DestinationBufferAddress)
 
 	// p1073, Table 13-12. DCP Payload Field, MCIMX28RM
-	workPacket.PayloadPointer = mem.Alloc(iv, 0)
-	defer mem.Free(workPacket.PayloadPointer)
+	workPacket.PayloadPointer = dma.Alloc(iv, 0)
+	defer dma.Free(workPacket.PayloadPointer)
 
 	// clear channel status
 	reg.Write(HW_DCP_CH0STAT_CLR, 0xffffffff)
@@ -192,8 +192,8 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, &workPacket)
 
-	pkt := mem.Alloc(buf.Bytes(), 0)
-	defer mem.Free(pkt)
+	pkt := dma.Alloc(buf.Bytes(), 0)
+	defer dma.Free(pkt)
 
 	reg.Write(HW_DCP_CH0CMDPTR, pkt)
 	reg.Set(HW_DCP_CH0SEMA, 0)
@@ -208,7 +208,7 @@ func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) 
 		return nil, fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x", chstatus, code)
 	}
 
-	mem.Read(workPacket.DestinationBufferAddress, 0, key)
+	dma.Read(workPacket.DestinationBufferAddress, 0, key)
 
 	return
 }

@@ -9,10 +9,10 @@
 //
 // +build tamago,arm
 
-// Package mem provides primitives for direct memory allocation and alignment,
+// Package dma provides primitives for direct memory allocation and alignment,
 // it is primarily used in bare metal device driver operation to avoid passing
 // Go pointers for DMA purposes.
-package mem
+package dma
 
 import (
 	"container/list"
@@ -20,9 +20,6 @@ import (
 	"sync"
 	"unsafe"
 )
-
-const iramStart uint32 = 0x00900000
-const iramSize = 0x20000
 
 type block struct {
 	addr uint32
@@ -53,11 +50,6 @@ func (b *block) write(buf []byte, offset int) {
 	hdr.Len = len(buf)
 
 	copy(mem, buf)
-}
-
-func init() {
-	// use internal OCRAM (iRAM) by default
-	Init(iramStart, iramSize)
 }
 
 func defrag() {
