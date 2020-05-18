@@ -21,9 +21,9 @@ const (
 	CSW_SIGNATURE = 0x53425355
 
 	// p15, Table 5.3 - Command Block Status Values, USB Mass Storage Class 1.0
-	STATUS_COMMAND_PASSED = 0x00
-	STATUS_COMMAND_FAILED = 0x01
-	STATUS_PHASE_ERROR    = 0x02
+	CSW_STATUS_COMMAND_PASSED = 0x00
+	CSW_STATUS_COMMAND_FAILED = 0x01
+	CSW_STATUS_PHASE_ERROR    = 0x02
 
 	// p7, 3.1 - 3.2, USB Mass Storage Class 1.0
 	BULK_ONLY_MASS_STORAGE_RESET = 0xff
@@ -64,7 +64,7 @@ type CSW struct {
 // SetDefaults initializes default values for the CSW descriptor.
 func (d *CSW) SetDefaults() {
 	d.Signature = CSW_SIGNATURE
-	d.Status = STATUS_COMMAND_PASSED
+	d.Status = CSW_STATUS_COMMAND_PASSED
 }
 
 // Bytes converts the descriptor structure to byte array format.
