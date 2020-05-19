@@ -190,8 +190,8 @@ func (hw *usdhc) waitState(state int, timeout time.Duration) (err error) {
 
 	for {
 		// CMD13 - SEND_STATUS - poll card status
-		if err = hw.cmd(13, READ, hw.rca, RSP_48, true, true, false, 0); err != nil {
-			return
+		if err = hw.cmd(13, READ, hw.rca, RSP_48, true, true, false, hw.writeTimeout); err != nil {
+			continue
 		}
 
 		curState := (hw.rsp(0) >> STATUS_CURRENT_STATE) & 0b1111
