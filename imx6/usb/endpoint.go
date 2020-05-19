@@ -64,9 +64,12 @@ type dTD struct {
 	Token  uint32
 	Buffer [5]uint32
 
-	// DMA buffer pointers
+	// DMA pointer for dTD structure
 	_dtd   uint32
+	// DMA pointer for dTD transfer buffer
 	_pages uint32
+	// transfer buffer size
+	_size uint32
 }
 
 func (dtd *dTD) free() {
@@ -113,15 +116,20 @@ func (hw *usb) initEP() {
 
 // setEP configures a queue head as described in
 // p3784, 56.4.5.1 Endpoint Queue Head, IMX6ULLRM.
-func (hw *usb) setEP(n int, dir int, max int, mult int) {
+func (hw *usb) setEP(n int, dir int, max int, zlt bool, mult int) {
 	dqh := dQH{}
+
+	// Maximum Packet Length
+	bits.SetN(&dqh.Info, 16, 0x7ff, uint32(max))
+
+	if !zlt {
+		// Zero Length Termination must be disabled for multi dTD
+		// requests.
+		bits.SetN(&dqh.Info, 29, 1, 1)
+	}
 
 	// Mult
 	bits.SetN(&dqh.Info, 30, 0b11, uint32(mult))
-	// zlt
-	bits.SetN(&dqh.Info, 29, 1, 0)
-	// Maximum Packet Length
-	bits.SetN(&dqh.Info, 16, 0x7ff, uint32(max))
 
 	if n == 0 && dir == IN {
 		// interrupt on setup (ios)
@@ -161,14 +169,12 @@ func (hw *usb) getEP(n int, dir int) (dqh dQH) {
 }
 
 // next sets the next endpoint transfer pointer
-func (hw *usb) nextDTD(n int, dir int, next uint32, zlt int) {
+func (hw *usb) nextDTD(n int, dir int, next uint32) {
 	offset := (n*2 + dir) * DQH_SIZE
 	dqh := reg.Read(hw.eplist) + uint32(offset)
 
 	// set next dTD
 	reg.Write(dqh+uint32(DQH_NEXT), next)
-	// zlt
-	reg.SetN(dqh+uint32(DQH_INFO), 29, 1, uint32(zlt))
 	// reset endpoint status (active and halt bits)
 	reg.SetN(dqh+uint32(DQH_TOKEN), 6, 0b11, 0b00)
 }
@@ -178,6 +184,7 @@ func (hw *usb) nextDTD(n int, dir int, next uint32, zlt int) {
 func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD) {
 	// p3809, 56.4.6.6.2 Building a Transfer Descriptor, IMX6ULLRM
 	dtd = &dTD{}
+	size := uint32(len(data))
 
 	// interrupt on completion (ioc)
 	if ioc {
@@ -193,9 +200,10 @@ func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD) {
 	// active status
 	bits.Set(&dtd.Token, 7)
 	// total bytes
-	bits.SetN(&dtd.Token, 16, 0xffff, uint32(len(data)))
+	bits.SetN(&dtd.Token, 16, 0xffff, size)
 
 	dtd._pages = dma.Alloc(data, DTD_PAGE_SIZE)
+	dtd._size = size
 
 	for n := 0; n < DTD_PAGES; n++ {
 		dtd.Buffer[n] = dtd._pages + uint32(DTD_PAGE_SIZE*n)
@@ -213,37 +221,33 @@ func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD) {
 // transferDTD manages a transfer using transfer descriptors (dTDs) as
 // described in p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors,
 // IMX6ULLRM.
-func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err error) {
-	var data []byte
+func (hw *usb) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, err error) {
 	var dtds []*dTD
+	dtdLength := DTD_PAGES * DTD_PAGE_SIZE
 
-	max := DTD_PAGES * DTD_PAGE_SIZE
-
-	if dir == IN {
-		data = in
-	} else {
-		data = make([]byte, max)
+	if dir == OUT && buf == nil {
+		buf = make([]byte, dtdLength)
 	}
 
-	dtdLength := len(data)
+	transferSize := len(buf)
 
-	if dtdLength > max {
-		dtdLength = max
+	if transferSize < dtdLength {
+		dtdLength = transferSize
 	}
 
-	dtd := buildDTD(n, dir, ioc, data[0:dtdLength])
+	dtd := buildDTD(n, dir, ioc, buf[0:dtdLength])
 	defer dtd.free()
 
 	dtds = append(dtds, dtd)
 
-	for i := dtdLength; i < len(data); i += dtdLength {
-		size := i + dtdLength
+	for i := dtdLength; i < transferSize; i += dtdLength {
+		end := i + dtdLength
 
-		if size > len(data) {
-			size = len(data)
+		if end > transferSize {
+			end = transferSize
 		}
 
-		next := buildDTD(n, dir, ioc, data[i:size])
+		next := buildDTD(n, dir, ioc, buf[i:end])
 		defer next.free()
 
 		// treat dtd.next as a register within the dtd DMA buffer
@@ -253,17 +257,8 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 		dtds = append(dtds, next)
 	}
 
-	zlt := 0
-
-	// If more than one dTD is sent we see that the automatic zlt is
-	// causing issues, for now we leave up to the application sending zlt
-	// on large transfers.
-	if dir == IN && len(dtds) > 1 {
-		zlt = 1
-	}
-
 	// set dQH head pointer
-	hw.nextDTD(n, dir, dtds[0]._dtd, zlt)
+	hw.nextDTD(n, dir, dtds[0]._dtd)
 
 	// hw.prime IN:ENDPTPRIME_PETB+n    OUT:ENDPTPRIME_PERB+n
 	// hw.pos   IN:ENDPTCOMPLETE_ETCE+n OUT:ENDPTCOMPLETE_ERCE+n
@@ -298,16 +293,16 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, in []byte) (out []byte, err
 
 		// p3787 "This field is decremented by the number of bytes
 		// actually moved during the transaction", IMX6ULLRM.
-		size := dtdLength - int(dtdToken>>16)
+		size := int(dtd._size - (dtdToken >> 16))
 
 		if n != 0 && dir == OUT && size != 0 {
-			buf := make([]byte, size)
-			dma.Read(dtd._pages, 0, buf)
-			out = append(out, buf...)
+			dtdBuf := make([]byte, size)
+			dma.Read(dtd._pages, 0, dtdBuf)
+			out = append(out, dtdBuf...)
 		}
 
-		if dir == IN && size != dtdLength {
-			return nil, fmt.Errorf("dTD[%d] partial transfer (%d/%d bytes)", i, size, dtdLength)
+		if dir == IN && size != int(dtd._size) {
+			return nil, fmt.Errorf("dTD[%d] partial transfer (%d/%d bytes)", i, size, dtd._size)
 		}
 	}
 
@@ -323,18 +318,18 @@ func (hw *usb) tx(n int, ioc bool, in []byte) (err error) {
 
 	// p3803, 56.4.6.4.2.3 Status Phase, IMX6ULLRM
 	if n == 0 {
-		_, err = hw.transferDTD(n, OUT, true, nil)
+		_, err = hw.transferDTD(n, OUT, false, nil)
 	}
 
 	return
 }
 
-func (hw *usb) rx(n int, ioc bool) (out []byte, err error) {
-	return hw.transferDTD(n, OUT, ioc, nil)
+func (hw *usb) rx(n int, ioc bool, buf []byte) (out []byte, err error) {
+	return hw.transferDTD(n, OUT, ioc, buf)
 }
 
 func (hw *usb) ack(n int) (err error) {
-	_, err = hw.transferDTD(n, IN, true, nil)
+	_, err = hw.transferDTD(n, IN, false, nil)
 	return
 }
 

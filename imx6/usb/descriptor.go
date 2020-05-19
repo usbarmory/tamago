@@ -203,16 +203,18 @@ func (d *InterfaceDescriptor) Bytes() []byte {
 }
 
 // EndpointFunction represents the function to process either IN or OUT
-// transfer, depending on the endpoint configuration.
+// transfers, depending on the endpoint configuration.
 //
-// On OUT transfers the function is expected to receive data from the host in
-// the `out` byte array, the `in` return value is ignored.
+// On OUT endpoints the function is expected to receive data from the host in
+// the input buffer. The expected size for the next OUT transfer can be
+// selected with a non-zero result buffer, otherwise a short or single packet
+// is assumed.
 //
-// On IN transfers the function is expected to return a data slice for
+// On IN endpoints the function is expected to return a data slice for
 // transmission to the host, such data is used to fill the DMA buffer in
 // advance, to respond to IN requests. The function is invoked by the
 // EndpointHandler to fill the buffer as needed.
-type EndpointFunction func(out []byte, lastErr error) (in []byte, err error)
+type EndpointFunction func(buf []byte, lastErr error) (res []byte, err error)
 
 // EndpointDescriptor implements
 // p297, Table 9-13. Standard Endpoint Descriptor, USB2.0.
@@ -223,6 +225,9 @@ type EndpointDescriptor struct {
 	Attributes      uint8
 	MaxPacketSize   uint16
 	Interval        uint8
+
+	// automatic Zero Length Termination
+	Zero bool
 
 	Function EndpointFunction
 
@@ -236,6 +241,8 @@ func (d *EndpointDescriptor) SetDefaults() {
 	d.DescriptorType = ENDPOINT
 	// EP1 IN
 	d.EndpointAddress = 0x81
+	// most applications require Zero Length Termination
+	d.Zero = true
 }
 
 // Number returns the endpoint number.

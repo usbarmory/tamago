@@ -406,15 +406,23 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32
 		offset = offset / uint32(blockSize)
 	}
 
-	err = hw.cmd(index, dtd, offset, RSP_48, true, true, true, hw.readTimeout)
+	timeout := hw.readTimeout
+	msg := "reading"
+
+	if dtd == WRITE {
+		timeout = hw.writeTimeout
+		msg = "writing"
+	}
+
+	err = hw.cmd(index, dtd, offset, RSP_48, true, true, true, timeout)
 	adma_err := reg.Read(hw.adma_err_status)
 
 	if err != nil {
-		return fmt.Errorf("reading %d bytes at offset %x, ADMA status %x, %v", len(buf), offset, adma_err, err)
+		return fmt.Errorf("%s %d bytes at offset %x, ADMA status %x, %v", msg, len(buf), offset, adma_err, err)
 	}
 
 	if adma_err > 0 {
-		return fmt.Errorf("reading %d bytes at offset %x, ADMA status %x", len(buf), offset, adma_err)
+		return fmt.Errorf("%s %d bytes at offset %x, ADMA status %x", msg, len(buf), offset, adma_err)
 	}
 
 	dma.Read(bufAddress, 0, buf)
@@ -487,6 +495,14 @@ func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
 	}
 
 	return
+}
+
+// WriteBlocks transfers full blocks of data to the card.
+func (hw *usdhc) WriteBlocks(lba int, buf []byte) (err error) {
+	blockSize := hw.card.BlockSize
+	offset := uint32(lba * blockSize)
+
+	return hw.Write(offset, buf)
 }
 
 // Write transfers data to the card.
