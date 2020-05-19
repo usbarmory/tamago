@@ -105,7 +105,7 @@ func (hw *usdhc) voltageValidationMMC() (mmc bool, hc bool) {
 	return true, hc
 }
 
-func (hw *usdhc) writeCardRegister(reg uint32, val uint32) (err error) {
+func (hw *usdhc) writeCardRegisterMMC(reg uint32, val uint32) (err error) {
 	var arg uint32
 
 	// write MMC_SWITCH_VALUE in register pointed in MMC_SWITCH_INDEX
@@ -134,7 +134,6 @@ func (hw *usdhc) detectCapacityMMC(blockSize uint32, c_size_mult uint32, c_size 
 	if c_size > 0xff {
 		// emulation mode is assumed for densities greater than 256GB
 		hw.card.BlockSize = int(blockSize)
-
 		extCSD := make([]byte, blockSize)
 
 		// CMD8 - SEND_EXT_CSD - read extended device data
@@ -222,7 +221,7 @@ func (hw *usdhc) initMMC() (err error) {
 		return errors.New("unsupported MMC bus width")
 	}
 
-	err = hw.writeCardRegister(EXT_CSD_BUS_WIDTH, bus_width)
+	err = hw.writeCardRegisterMMC(EXT_CSD_BUS_WIDTH, bus_width)
 
 	if err != nil {
 		return
@@ -241,7 +240,7 @@ func (hw *usdhc) initMMC() (err error) {
 	}
 
 	// p112, Dual Data Rate mode operation, JESD84-B51
-	err = hw.writeCardRegister(EXT_CSD_HS_TIMING, HS_TIMING_HS)
+	err = hw.writeCardRegisterMMC(EXT_CSD_HS_TIMING, HS_TIMING_HS)
 
 	if err != nil {
 		return
@@ -255,7 +254,7 @@ func (hw *usdhc) initMMC() (err error) {
 		bus_width = 6
 	}
 
-	err = hw.writeCardRegister(EXT_CSD_BUS_WIDTH, bus_width)
+	err = hw.writeCardRegisterMMC(EXT_CSD_BUS_WIDTH, bus_width)
 
 	if err != nil {
 		return

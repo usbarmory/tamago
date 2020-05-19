@@ -65,7 +65,7 @@ type dTD struct {
 	Buffer [5]uint32
 
 	// DMA pointer for dTD structure
-	_dtd   uint32
+	_dtd uint32
 	// DMA pointer for dTD transfer buffer
 	_pages uint32
 	// transfer buffer size

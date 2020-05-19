@@ -126,6 +126,8 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	if hw.card.DDR {
 		// enable dual data rate
 		bits.Set(&mix, MIX_CTRL_DDR_EN)
+	} else {
+		bits.Clear(&mix, MIX_CTRL_DDR_EN)
 	}
 
 	if dma {
@@ -139,6 +141,12 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 		bits.Set(&mix, MIX_CTRL_BCEN)
 		// enable DMA
 		bits.Set(&mix, MIX_CTRL_DMAEN)
+	} else {
+		bits.Clear(&xfr, CMD_XFR_TYP_DPSEL)
+		bits.Clear(&mix, MIX_CTRL_MSBSEL)
+		bits.Clear(&mix, MIX_CTRL_AC12EN)
+		bits.Clear(&mix, MIX_CTRL_BCEN)
+		bits.Clear(&mix, MIX_CTRL_DMAEN)
 	}
 
 	reg.Write(hw.mix_ctrl, mix)
