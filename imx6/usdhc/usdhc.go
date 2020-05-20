@@ -71,6 +71,7 @@ const (
 	USDHCx_INT_STATUS = 0x30
 	INT_STATUS_DMAE   = 28
 	INT_STATUS_TNE    = 26
+	INT_STATUS_AC12E  = 24
 	INT_STATUS_CIE    = 19
 	INT_STATUS_CEBE   = 18
 	INT_STATUS_CCE    = 17
@@ -82,19 +83,24 @@ const (
 	USDHCx_INT_STATUS_EN  = 0x34
 	INT_STATUS_EN_DTOESEN = 20
 
-	USDHCx_INT_SIGNAL_EN = 0x38
+	USDHCx_INT_SIGNAL_EN        = 0x38
+	USDHCx_AUTOCMD12_ERR_STATUS = 0x3c
 
 	USDHCx_WTMK_LVL = 0x44
 	WTMK_LVL_WR_WML = 16
 	WTMK_LVL_RD_WML = 0
 
-	USDHCx_MIX_CTRL = 0x48
-	MIX_CTRL_MSBSEL = 5
-	MIX_CTRL_DTDSEL = 4
-	MIX_CTRL_DDR_EN = 3
-	MIX_CTRL_AC12EN = 2
-	MIX_CTRL_BCEN   = 1
-	MIX_CTRL_DMAEN  = 0
+	USDHCx_MIX_CTRL       = 0x48
+	MIX_CTRL_FBCLK_SEL    = 25
+	MIX_CTRL_AUTO_TUNE_EN = 24
+	MIX_CTRL_SMP_CLK_SEL  = 23
+	MIX_CTRL_EXE_TUNE     = 22
+	MIX_CTRL_MSBSEL       = 5
+	MIX_CTRL_DTDSEL       = 4
+	MIX_CTRL_DDR_EN       = 3
+	MIX_CTRL_AC12EN       = 2
+	MIX_CTRL_BCEN         = 1
+	MIX_CTRL_DMAEN        = 0
 
 	USDHCx_ADMA_ERR_STATUS = 0x54
 	USDHCx_ADMA_SYS_ADDR   = 0x58
@@ -193,6 +199,7 @@ type usdhc struct {
 	int_signal_en   uint32
 	adma_sys_addr   uint32
 	adma_err_status uint32
+	ac12_err_status uint32
 
 	// detected card properties
 	card CardInfo
@@ -209,12 +216,12 @@ func (hw *usdhc) setClock(dvs int, sdclkfs int) {
 	// wait for stable clock to comply with p4038, IMX6ULLRM DVS note
 	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)
 
-	ctrl := reg.Read(hw.sys_ctrl)
+	sys := reg.Read(hw.sys_ctrl)
 
-	bits.SetN(&ctrl, SYS_CTRL_DVS, 0xf, uint32(dvs))
-	bits.SetN(&ctrl, SYS_CTRL_SDCLKFS, 0xff, uint32(sdclkfs))
+	bits.SetN(&sys, SYS_CTRL_DVS, 0xf, uint32(dvs))
+	bits.SetN(&sys, SYS_CTRL_SDCLKFS, 0xff, uint32(sdclkfs))
 
-	reg.Write(hw.sys_ctrl, ctrl)
+	reg.Write(hw.sys_ctrl, sys)
 	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)
 }
 
@@ -265,6 +272,7 @@ func (hw *usdhc) Init(width int) {
 	hw.int_signal_en = base + USDHCx_INT_SIGNAL_EN
 	hw.adma_sys_addr = base + USDHCx_ADMA_SYS_ADDR
 	hw.adma_err_status = base + USDHCx_ADMA_ERR_STATUS
+	hw.ac12_err_status = base + USDHCx_AUTOCMD12_ERR_STATUS
 
 	// Generic SD specs read/write timeout rules (applied also to MMC by
 	// this driver).
@@ -287,12 +295,24 @@ func (hw *usdhc) Detect() (err error) {
 		return errors.New("controller is not initialized")
 	}
 
+	// clear card information
+	hw.card = CardInfo{}
+
 	// enable clock
 	reg.SetN(imx6.CCM_CCGR6, hw.cg, 0b11, 0b11)
 
 	// soft reset uSDHC
 	reg.Set(hw.sys_ctrl, SYS_CTRL_RSTA)
 	reg.Wait(hw.sys_ctrl, SYS_CTRL_RSTA, 1, 0)
+
+	// A soft reset fails to clear MIX_CTRL register, clear it all except
+	// tuning bits.
+	mix := reg.Read(hw.mix_ctrl)
+	bits.Clear(&mix, MIX_CTRL_FBCLK_SEL)
+	bits.Clear(&mix, MIX_CTRL_AUTO_TUNE_EN)
+	bits.Clear(&mix, MIX_CTRL_SMP_CLK_SEL)
+	bits.Clear(&mix, MIX_CTRL_EXE_TUNE)
+	reg.Write(hw.mix_ctrl, mix)
 
 	// data transfer width, default to 1-bit mode
 	dtw := 0b00
@@ -417,11 +437,11 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32
 	adma_err := reg.Read(hw.adma_err_status)
 
 	if err != nil {
-		return fmt.Errorf("len:%d offset:%x timeout:%v ADMA:%x, %v", len(buf), offset, timeout, adma_err, err)
+		return fmt.Errorf("len:%d offset:%#x timeout:%v ADMA:%#x, %v", len(buf), offset, timeout, adma_err, err)
 	}
 
 	if adma_err > 0 {
-		return fmt.Errorf("len:%d offset:%x timeout:%v ADMA:%x", len(buf), offset, timeout, adma_err)
+		return fmt.Errorf("len:%d offset:%#x timeout:%v ADMA:%#x", len(buf), offset, timeout, adma_err)
 	}
 
 	dma.Read(bufAddress, 0, buf)

@@ -171,9 +171,22 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	// read status
 	status := reg.Read(hw.int_status)
 
-	// check for any error value
+	// p3997, 58.5.3.5.4 Auto CMD12 Error, IMX6ULLRM
+	if (status >> 16) == ((1 << INT_STATUS_AC12E) >> 16) {
+		// retry once CMD12 if the Auto one fails
+		if err := hw.cmd(12, WRITE, 0, RSP_NONE, true, true, false, hw.writeTimeout); err == nil {
+			bits.Clear(&status, INT_STATUS_AC12E)
+		}
+	}
+
 	if (status >> 16) > 0 {
-		err = fmt.Errorf("CMD%d error status %x", index, status)
+		msg := fmt.Sprintf("status:%#x", status)
+
+		if bits.Get(&status, INT_STATUS_AC12E, 1) == 1 {
+			msg += fmt.Sprintf(" AC12:%#x", reg.Read(hw.ac12_err_status))
+		}
+
+		err = fmt.Errorf("CMD%d %s", index, msg)
 	}
 
 	return
