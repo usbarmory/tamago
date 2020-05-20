@@ -197,7 +197,6 @@ type usdhc struct {
 	// detected card properties
 	card CardInfo
 
-	// timeouts
 	readTimeout  time.Duration
 	writeTimeout time.Duration
 }
@@ -364,6 +363,8 @@ func (hw *usdhc) Detect() (err error) {
 //   p347, 35.5.1 Reading data from the card, IMX6FG,
 //   p354, 35.5.2 Writing data to the card, IMX6FG.
 func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32, blockSize uint32, buf []byte) (err error) {
+	var timeout time.Duration
+
 	if hw.cg == 0 {
 		return errors.New("controller is not initialized")
 	}
@@ -406,15 +407,21 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32
 		offset = offset / uint32(blockSize)
 	}
 
-	err = hw.cmd(index, dtd, offset, RSP_48, true, true, true, hw.readTimeout)
+	if dtd == WRITE {
+		timeout = hw.writeTimeout * time.Duration(blocks)
+	} else {
+		timeout = hw.readTimeout * time.Duration(blocks)
+	}
+
+	err = hw.cmd(index, dtd, offset, RSP_48, true, true, true, timeout)
 	adma_err := reg.Read(hw.adma_err_status)
 
 	if err != nil {
-		return fmt.Errorf("reading %d bytes at offset %x, ADMA status %x, %v", len(buf), offset, adma_err, err)
+		return fmt.Errorf("len:%d offset:%x timeout:%v ADMA:%x, %v", len(buf), offset, timeout, adma_err, err)
 	}
 
 	if adma_err > 0 {
-		return fmt.Errorf("reading %d bytes at offset %x, ADMA status %x", len(buf), offset, adma_err)
+		return fmt.Errorf("len:%d offset:%x timeout:%v ADMA:%x", len(buf), offset, timeout, adma_err)
 	}
 
 	dma.Read(bufAddress, 0, buf)
@@ -487,6 +494,14 @@ func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
 	}
 
 	return
+}
+
+// WriteBlocks transfers full blocks of data to the card.
+func (hw *usdhc) WriteBlocks(lba int, buf []byte) (err error) {
+	blockSize := hw.card.BlockSize
+	offset := uint32(lba * blockSize)
+
+	return hw.Write(offset, buf)
 }
 
 // Write transfers data to the card.

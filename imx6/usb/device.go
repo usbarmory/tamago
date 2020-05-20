@@ -44,8 +44,8 @@ func (hw *usb) DeviceMode() {
 	// initialize endpoint queue head list
 	hw.initEP()
 	// set control endpoint
-	hw.setEP(0, IN, 64, 0)
-	hw.setEP(0, OUT, 64, 0)
+	hw.setEP(0, IN, 64, true, 0)
+	hw.setEP(0, OUT, 64, true, 0)
 
 	// set OTG termination
 	reg.Set(hw.otg, OTGSC_OT)
@@ -92,8 +92,8 @@ func (hw *usb) setupHandler(dev *Device) {
 
 func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) {
 	var err error
-	var out []byte
-	var in []byte
+	var buf []byte
+	var res []byte
 
 	if ep.Function == nil {
 		return
@@ -114,22 +114,22 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) 
 		}
 
 		if !ep.enabled {
-			hw.setEP(n, dir, int(ep.MaxPacketSize), 0)
+			hw.setEP(n, dir, int(ep.MaxPacketSize), ep.Zero, 0)
 			hw.enable(n, dir, ep.TransferType())
 			ep.enabled = true
 		}
 
 		if dir == OUT {
-			out, err = hw.rx(n, true)
+			buf, err = hw.rx(n, false, res)
 
 			if err == nil {
-				_, err = ep.Function(out, err)
+				res, err = ep.Function(buf, err)
 			}
 		} else {
-			in, err = ep.Function(out, err)
+			res, err = ep.Function(nil, err)
 
-			if err == nil && len(in) != 0 {
-				err = hw.tx(n, true, in)
+			if err == nil && len(res) != 0 {
+				err = hw.tx(n, false, res)
 			}
 		}
 
