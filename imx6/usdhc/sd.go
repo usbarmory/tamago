@@ -70,7 +70,6 @@ const (
 )
 
 const (
-	SD_DETECT_LOOP_CNT    = 300
 	SD_DETECT_TIMEOUT     = 1 * time.Second
 	SD_DEFAULT_BLOCK_SIZE = 512
 )
@@ -126,19 +125,20 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 
 	start := time.Now()
 
-	for i := 0; i < SD_DETECT_LOOP_CNT; i++ {
+	for time.Since(start) <= SD_DETECT_TIMEOUT {
 		// CMD55 - APP_CMD - next command is application specific
 		if hw.cmd(55, READ, 0, RSP_48, true, true, false, 0) != nil {
 			return false, false
 		}
 
+		// ACMD41 - SD_SEND_OP_COND - send operating conditions
 		if err := hw.cmd(41, READ, arg, RSP_48, false, false, false, 0); err != nil {
 			return false, false
 		}
 
 		rsp := hw.rsp(0)
 
-		if bits.Get(&rsp, SD_OCR_BUSY, 1) == 0 && time.Since(start) < SD_DETECT_TIMEOUT {
+		if bits.Get(&rsp, SD_OCR_BUSY, 1) == 0 {
 			continue
 		}
 
@@ -146,10 +146,10 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 			hc = true
 		}
 
-		break
+		return true, hc
 	}
 
-	return true, hc
+	return false, false
 }
 
 func (hw *usdhc) detectCapacitySD(blockSize uint32) (err error) {

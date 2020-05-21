@@ -62,7 +62,6 @@ const (
 )
 
 const (
-	MMC_DETECT_LOOP_CNT    = 300
 	MMC_DETECT_TIMEOUT     = 1 * time.Second
 	MMC_DEFAULT_BLOCK_SIZE = 512
 )
@@ -84,14 +83,15 @@ func (hw *usdhc) voltageValidationMMC() (mmc bool, hc bool) {
 
 	start := time.Now()
 
-	for i := 0; i < MMC_DETECT_LOOP_CNT; i++ {
+	for time.Since(start) <= MMC_DETECT_TIMEOUT {
+		// CMD1 - SEND_OP_COND - send operating conditions
 		if err := hw.cmd(1, READ, arg, RSP_48, false, false, false, 0); err != nil {
 			return false, false
 		}
 
 		rsp := hw.rsp(0)
 
-		if bits.Get(&rsp, MMC_OCR_BUSY, 1) == 0 && time.Since(start) < MMC_DETECT_TIMEOUT {
+		if bits.Get(&rsp, MMC_OCR_BUSY, 1) == 0 {
 			continue
 		}
 
@@ -99,10 +99,10 @@ func (hw *usdhc) voltageValidationMMC() (mmc bool, hc bool) {
 			hc = true
 		}
 
-		break
+		return true, hc
 	}
 
-	return true, hc
+	return false, false
 }
 
 func (hw *usdhc) writeCardRegisterMMC(reg uint32, val uint32) (err error) {
