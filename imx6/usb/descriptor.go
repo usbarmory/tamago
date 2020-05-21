@@ -433,6 +433,8 @@ func (d *Device) AddConfiguration(conf *ConfigurationDescriptor) (err error) {
 	}
 
 	d.Descriptor.NumConfigurations += 1
+
+	return
 }
 
 // Configuration converts the device configuration hierarchy to a buffer, as expected by Get
