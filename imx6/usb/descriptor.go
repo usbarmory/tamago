@@ -425,8 +425,13 @@ func (d *Device) AddString(s string) (uint8, error) {
 
 // AddConfiguration adds a Configuration Descriptor to a device, updating its
 // Device Descriptor configuration count accordingly.
-func (d *Device) AddConfiguration(conf *ConfigurationDescriptor) {
+func (d *Device) AddConfiguration(conf *ConfigurationDescriptor) (err error) {
 	d.Configurations = append(d.Configurations, conf)
+
+	if d.Descriptor == nil {
+		return errors.New("invalid device descriptor")
+	}
+
 	d.Descriptor.NumConfigurations += 1
 }
 

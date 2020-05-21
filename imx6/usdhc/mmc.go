@@ -137,7 +137,7 @@ func (hw *usdhc) detectCapacityMMC(blockSize uint32, c_size_mult uint32, c_size 
 		extCSD := make([]byte, blockSize)
 
 		// CMD8 - SEND_EXT_CSD - read extended device data
-		if err = hw.transfer(8, READ, 0, 1, 512, extCSD); err != nil {
+		if err = hw.transfer(8, READ, 0, 1, blockSize, extCSD); err != nil {
 			return
 		}
 
@@ -197,7 +197,7 @@ func (hw *usdhc) initMMC() (err error) {
 		// set operating frequency
 		hw.setClock(DVS_OP, SDCLKFS_OP)
 	} else {
-		return fmt.Errorf("unexpected TRAN_SPEED %x", mhz)
+		return fmt.Errorf("unexpected TRAN_SPEED %#x", mhz)
 	}
 
 	// CMD7 - SELECT/DESELECT CARD - enter transfer state

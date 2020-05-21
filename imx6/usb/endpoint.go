@@ -284,11 +284,11 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, er
 		dtdToken := reg.Read(token)
 
 		if !inactive {
-			return nil, fmt.Errorf("dTD[%d] timeout waiting for completion (token:%x)", i, dtdToken)
+			return nil, fmt.Errorf("dTD[%d] timeout waiting for completion, token:%#x", i, dtdToken)
 		}
 
 		if (dtdToken & 0xff) != 0 {
-			return nil, fmt.Errorf("dTD[%d] error status (token:%x)", i, dtdToken)
+			return nil, fmt.Errorf("dTD[%d] error status, token:%#x", i, dtdToken)
 		}
 
 		// p3787 "This field is decremented by the number of bytes

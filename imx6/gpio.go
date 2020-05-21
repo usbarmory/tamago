@@ -67,13 +67,13 @@ func NewGPIO(num int, mux uint32, pad uint32, data uint32, dir uint32) (gpio *GP
 
 	for _, r := range []uint32{mux, pad} {
 		if !(r >= IOMUXC_START || r <= IOMUXC_END) {
-			return nil, fmt.Errorf("invalid IOMUXC register %x", r)
+			return nil, fmt.Errorf("invalid IOMUXC register %#x", r)
 		}
 	}
 
 	for _, r := range []uint32{data, dir} {
 		if !(r >= GPIO_START || r <= GPIO_END) {
-			return nil, fmt.Errorf("invalid GPIO register %x", r)
+			return nil, fmt.Errorf("invalid GPIO register %#x", r)
 		}
 	}
 
