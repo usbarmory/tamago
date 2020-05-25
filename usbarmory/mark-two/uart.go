@@ -9,11 +9,18 @@
 //
 // +build tamago,arm
 
-// The usbarmory package provides hardware initialization, automatically on
-// import, for the USB armory Mk II single board computer. It is meant to be
-// used on bare metal with tamago/arm.
 package usbarmory
 
 import (
-	_ "github.com/f-secure-foundry/tamago/imx6/imx6ul"
+	_ "unsafe"
+
+	"github.com/f-secure-foundry/tamago/imx6"
 )
+
+// On the USB armory Mk II the main serial port is UART2, therefore standard
+// output is redirected there.
+
+//go:linkname printk runtime.printk
+func printk(c byte) {
+	imx6.UART2.Write(c)
+}
