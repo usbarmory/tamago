@@ -38,6 +38,7 @@ const (
 
 	USDHCx_CMD_XFR_TYP = 0x0c
 	CMD_XFR_TYP_CMDINX = 24
+	CMD_XFR_TYP_CMDTYP = 22
 	CMD_XFR_TYP_DPSEL  = 21
 	CMD_XFR_TYP_CICEN  = 20
 	CMD_XFR_TYP_CCCEN  = 19
@@ -49,6 +50,7 @@ const (
 	USDHCx_CMD_RSP3 = 0x1c
 
 	USDHCx_PRES_STATE = 0x24
+	PRES_STATE_WPSPL  = 19
 	PRES_STATE_BREN   = 11
 	PRES_STATE_SDSTB  = 3
 	PRES_STATE_CDIHB  = 1
@@ -363,7 +365,7 @@ func (hw *usdhc) Detect() (err error) {
 	} else if hw.card.MMC {
 		err = hw.initMMC()
 	} else {
-		err = errors.New("no SD/MMC card detected")
+		err = fmt.Errorf("no card detected on uSDHC%d", hw.n)
 	}
 
 	if err != nil {
@@ -407,8 +409,6 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32
 	reg.SetN(hw.blk_att, BLK_ATT_BLKSIZE, 0x1fff, blockSize)
 	// set block count
 	reg.SetN(hw.blk_att, BLK_ATT_BLKCNT, 0xffff, blocks)
-	// set read watermark level
-	reg.SetN(hw.wtmk_lvl, WTMK_LVL_RD_WML, 0xff, blockSize/4)
 
 	bufAddress := dma.Alloc(buf, 32)
 	defer dma.Free(bufAddress)
@@ -429,8 +429,12 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32
 
 	if dtd == WRITE {
 		timeout = hw.writeTimeout * time.Duration(blocks)
+		// set write watermark level
+		reg.SetN(hw.wtmk_lvl, WTMK_LVL_WR_WML, 0xff, blockSize/4)
 	} else {
 		timeout = hw.readTimeout * time.Duration(blocks)
+		// set read watermark level
+		reg.SetN(hw.wtmk_lvl, WTMK_LVL_RD_WML, 0xff, blockSize/4)
 	}
 
 	err = hw.cmd(index, dtd, offset, RSP_48, true, true, true, timeout)
@@ -444,7 +448,9 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32
 		return fmt.Errorf("len:%d offset:%#x timeout:%v ADMA:%#x", len(buf), offset, timeout, adma_err)
 	}
 
-	dma.Read(bufAddress, 0, buf)
+	if dtd == READ {
+		dma.Read(bufAddress, 0, buf)
+	}
 
 	return
 }
