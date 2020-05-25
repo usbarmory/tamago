@@ -50,8 +50,6 @@ const (
 )
 
 // cmd sends an SD / MMC command as described in
-// p142, 6.10.4 Detailed command description, JEDEC Standard No. 84-B51
-// and
 // p349, 35.4.3 Send command to card flow chart, IMX6FG
 func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool, ccc bool, dma bool, timeout time.Duration) (err error) {
 	if timeout == 0 {
@@ -76,6 +74,12 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 
 	// clear interrupts status
 	reg.Write(hw.int_status, 0xffffffff)
+
+	if dtd == WRITE && reg.Get(hw.pres_state, PRES_STATE_WPSPL, 1) == 0 {
+		// The uSDHC merely reports on WP, it doesn't really act on it
+		// despite IMX6ULLRM suggesting otherwise (e.g. p4017).
+		return fmt.Errorf("card is write protected")
+	}
 
 	defer func() {
 		if err != nil {
@@ -103,6 +107,8 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 
 	// set command index
 	bits.SetN(&xfr, CMD_XFR_TYP_CMDINX, 0b111111, index)
+	// clear special command types
+	bits.SetN(&xfr, CMD_XFR_TYP_CMDTYP, 0b11, 0)
 
 	// command index verification
 	if cic {
@@ -162,7 +168,11 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 
 	// wait for completion
 	if !reg.WaitFor(timeout, hw.int_status, int_status, 1, 1) {
-		err = fmt.Errorf("CMD%d timeout", index)
+		err = fmt.Errorf("CMD%d:timeout pres_state:%#x int_status:%#x", index,
+			reg.Read(hw.pres_state),
+			reg.Read(hw.int_status))
+		// according to the IMX6FG flow chart we shouldn't return in
+		// case of error, but still go ahead and check status
 	}
 
 	// mask all interrupts
@@ -180,13 +190,13 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	}
 
 	if (status >> 16) > 0 {
-		msg := fmt.Sprintf("status:%#x", status)
+		msg := fmt.Sprintf("pres_state:%#x int_status:%#x", reg.Read(hw.pres_state), status)
 
 		if bits.Get(&status, INT_STATUS_AC12E, 1) == 1 {
 			msg += fmt.Sprintf(" AC12:%#x", reg.Read(hw.ac12_err_status))
 		}
 
-		err = fmt.Errorf("CMD%d %s", index, msg)
+		err = fmt.Errorf("CMD%d:error %s", index, msg)
 	}
 
 	return
