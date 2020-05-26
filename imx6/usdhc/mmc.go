@@ -129,15 +129,15 @@ func (hw *usdhc) writeCardRegisterMMC(reg uint32, val uint32) (err error) {
 }
 
 // p128, Table 39 — e•MMC internal sizes and related Units / Granularities, JESD84-B51
-func (hw *usdhc) detectCapacityMMC(blockSize uint32, c_size_mult uint32, c_size uint32, read_bl_len uint32) (err error) {
+func (hw *usdhc) detectCapacityMMC(blockSize int, c_size_mult uint32, c_size uint32, read_bl_len uint32) (err error) {
 	// density greater than 2GB
 	if c_size > 0xff {
 		// emulation mode is assumed for densities greater than 256GB
-		hw.card.BlockSize = int(blockSize)
+		hw.card.BlockSize = blockSize
 		extCSD := make([]byte, blockSize)
 
 		// CMD8 - SEND_EXT_CSD - read extended device data
-		if err = hw.transfer(8, READ, 0, 1, blockSize, extCSD); err != nil {
+		if err = hw.transfer(8, READ, 0, 1, uint32(blockSize), extCSD); err != nil {
 			return
 		}
 

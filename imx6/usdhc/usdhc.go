@@ -384,7 +384,7 @@ func (hw *usdhc) Detect() (err error) {
 // Transfer data from/to the card as specified in:
 //   p347, 35.5.1 Reading data from the card, IMX6FG,
 //   p354, 35.5.2 Writing data to the card, IMX6FG.
-func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32, blockSize uint32, buf []byte) (err error) {
+func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint64, blocks uint32, blockSize uint32, buf []byte) (err error) {
 	var timeout time.Duration
 
 	if hw.cg == 0 {
@@ -424,7 +424,7 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32
 
 	if hw.card.HC {
 		// p102, 4.3.14 Command Functional Difference in Card Capacity Types, SD-PL-7.10
-		offset = offset / uint32(blockSize)
+		offset = offset / uint64(blockSize)
 	}
 
 	if dtd == WRITE {
@@ -437,7 +437,7 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32
 		reg.SetN(hw.wtmk_lvl, WTMK_LVL_RD_WML, 0xff, blockSize/4)
 	}
 
-	err = hw.cmd(index, dtd, offset, RSP_48, true, true, true, timeout)
+	err = hw.cmd(index, dtd, uint32(offset), RSP_48, true, true, true, timeout)
 	adma_err := reg.Read(hw.adma_err_status)
 
 	if err != nil {
@@ -459,7 +459,7 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint32, blocks uint32
 func (hw *usdhc) ReadBlocks(lba int, blocks int) (buf []byte, err error) {
 	blockSize := hw.card.BlockSize
 	bufSize := blocks * blockSize
-	offset := uint32(lba * blockSize)
+	offset := uint64(lba) * uint64(blockSize)
 
 	if bufSize == 0 {
 		return
@@ -478,19 +478,19 @@ func (hw *usdhc) ReadBlocks(lba int, blocks int) (buf []byte, err error) {
 }
 
 // Read transfers data from the card.
-func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
-	blockSize := uint32(hw.card.BlockSize)
+func (hw *usdhc) Read(offset int, size int) (buf []byte, err error) {
+	blockSize := hw.card.BlockSize
 
 	if size == 0 {
 		return
 	}
 
 	blockOffset := offset % blockSize
-	blocks := (blockOffset + uint32(size)) / blockSize
+	blocks := (blockOffset + size) / blockSize
 
 	if blocks == 0 {
 		blocks = 1
-	} else if (offset+uint32(size))%blockSize != 0 {
+	} else if (offset+size)%blockSize != 0 {
 		blocks += 1
 	}
 
@@ -503,20 +503,20 @@ func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
 	defer hw.Unlock()
 
 	// CMD18 - READ_MULTIPLE_BLOCK - read consecutive blocks
-	err = hw.transfer(18, READ, offset, blocks, blockSize, buf)
+	err = hw.transfer(18, READ, uint64(offset), uint32(blocks), uint32(blockSize), buf)
 
 	if err != nil {
 		return
 	}
 
-	trim := uint32(size) % blockSize
+	trim := size % blockSize
 
 	if hw.card.HC {
 		if blockOffset != 0 || trim > 0 {
-			buf = buf[blockOffset : blockOffset+uint32(size)]
+			buf = buf[blockOffset : blockOffset+size]
 		}
 	} else if trim > 0 {
-		buf = buf[:offset+uint32(size)]
+		buf = buf[:offset+size]
 	}
 
 	return
@@ -525,13 +525,13 @@ func (hw *usdhc) Read(offset uint32, size int) (buf []byte, err error) {
 // WriteBlocks transfers full blocks of data to the card.
 func (hw *usdhc) WriteBlocks(lba int, buf []byte) (err error) {
 	blockSize := hw.card.BlockSize
-	offset := uint32(lba * blockSize)
+	offset := uint64(lba) * uint64(blockSize)
 
 	return hw.Write(offset, buf)
 }
 
 // Write transfers data to the card.
-func (hw *usdhc) Write(offset uint32, buf []byte) (err error) {
+func (hw *usdhc) Write(offset uint64, buf []byte) (err error) {
 	blockSize := uint32(hw.card.BlockSize)
 	size := len(buf)
 
@@ -541,7 +541,7 @@ func (hw *usdhc) Write(offset uint32, buf []byte) (err error) {
 
 	// TODO: support arbitrary write
 
-	if offset%blockSize != 0 {
+	if uint32(offset)%blockSize != 0 {
 		return fmt.Errorf("write offset must be %d bytes aligned", blockSize)
 	}
 
