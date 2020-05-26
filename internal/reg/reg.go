@@ -14,53 +14,80 @@ package reg
 
 import (
 	"runtime"
+	"sync/atomic"
 	"time"
 	"unsafe"
 )
 
-func Get(addr uint32, pos int, mask int) (val uint32) {
+func Get(addr uint32, pos int, mask int) uint32 {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	return uint32((int(*reg) >> pos) & mask)
+	r := atomic.LoadUint32(reg)
+
+	return uint32((int(r) >> pos) & mask)
 }
 
 func Set(addr uint32, pos int) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	*reg |= (1 << pos)
+
+	r := atomic.LoadUint32(reg)
+	r |= (1 << pos)
+
+	atomic.StoreUint32(reg, r)
 }
 
 func Clear(addr uint32, pos int) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	*reg &= ^(1 << pos)
+
+	r := atomic.LoadUint32(reg)
+	r &= ^(1 << pos)
+
+	atomic.StoreUint32(reg, r)
 }
 
 func SetN(addr uint32, pos int, mask int, val uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	*reg = (*reg & (^(uint32(mask) << pos))) | (val << pos)
+
+	r := atomic.LoadUint32(reg)
+	r = (r & (^(uint32(mask) << pos))) | (val << pos)
+
+	atomic.StoreUint32(reg, r)
 }
 
 func ClearN(addr uint32, pos int, mask int) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	*reg &= ^(uint32(mask) << pos)
+
+	r := atomic.LoadUint32(reg)
+	r &= ^(uint32(mask) << pos)
+
+	atomic.StoreUint32(reg, r)
 }
 
-func Read(addr uint32) (val uint32) {
+func Read(addr uint32) uint32 {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	return *reg
+	return atomic.LoadUint32(reg)
 }
 
 func Write(addr uint32, val uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	*reg = val
+	atomic.StoreUint32(reg, val)
 }
 
 func WriteBack(addr uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	*reg |= *reg
+
+	r := atomic.LoadUint32(reg)
+	r |= r
+
+	atomic.StoreUint32(reg, r)
 }
 
 func Or(addr uint32, val uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	*reg |= val
+
+	r := atomic.LoadUint32(reg)
+	r |= val
+
+	atomic.StoreUint32(reg, r)
 }
 
 // Wait waits for a specific register bit to match a value. This function

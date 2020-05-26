@@ -17,9 +17,9 @@ import (
 	"github.com/f-secure-foundry/tamago/imx6"
 )
 
-// On the USB armory Mk II
-// the white LED is connected to CSI_DATA00 pad and GPIO4_IO21,
-// the blue  LED is connected to CSI_DATA01 pad and GPIO4_IO22.
+// On the USB armory Mk II the following LEDs are connected:
+//   * pad CSI_DATA00, GPIO4_IO21: white
+//   * pad CSI_DATA01, GPIO4_IO22: blue
 
 const (
 	// GPIO4 data
@@ -45,15 +45,12 @@ const (
 var white *imx6.GPIO
 var blue *imx6.GPIO
 
-func configurePad(gpio *imx6.GPIO) {
-	gpio.PadCtl((1 << imx6.SW_PAD_CTL_PKE) |
-		(imx6.SW_PAD_CTL_SPEED_100MHZ << imx6.SW_PAD_CTL_SPEED) |
-		(imx6.SW_PAD_CTL_DSE_2_R0_6 << imx6.SW_PAD_CTL_DSE))
-	gpio.Out()
-}
-
 func init() {
 	var err error
+
+	ctl := uint32((1 << imx6.SW_PAD_CTL_PKE) |
+		(imx6.SW_PAD_CTL_SPEED_100MHZ << imx6.SW_PAD_CTL_SPEED) |
+		(imx6.SW_PAD_CTL_DSE_2_R0_6 << imx6.SW_PAD_CTL_DSE))
 
 	white, err = imx6.NewGPIO(WHITE,
 		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA00, IOMUXC_SW_PAD_CTL_PAD_CSI_DATA00,
@@ -75,8 +72,11 @@ func init() {
 		return
 	}
 
-	configurePad(white)
-	configurePad(blue)
+	white.Pad.Ctl(ctl)
+	white.Out()
+
+	blue.Pad.Ctl(ctl)
+	blue.Out()
 }
 
 // LED turns on/off an LED by name.

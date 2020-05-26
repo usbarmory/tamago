@@ -10,18 +10,18 @@
 // +build tamago,arm
 // +build !linkramsize
 
-// Go applications meant for tamago/arm on the USB armory Mk II simply need to
-// import this package for all necessary hardware initialization.
-
 package usbarmory
 
 import (
 	_ "unsafe"
 )
 
-// Applications can override ramSize with the `linkramsize` build tag. This is
-// useful for applications that require large DMA descriptors and want to
-// re-initialize tamago `mem` package in extermal RAM.
+// Applications can override ramSize with the `linkramsize` build tag.
+//
+// This is useful when large DMA descriptors are required to re-initialize
+// tamago `mem` package in external RAM.
+
+// The standard USB armory Mk II features a single 512MB DDR3 RAM module.
 
 //go:linkname ramSize runtime.ramSize
 var ramSize uint32 = 0x20000000 // 512 MB
