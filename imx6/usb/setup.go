@@ -195,7 +195,7 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 			return fmt.Errorf("unsupported request code: %#x", setup.Request)
 		}
 
-		in, err := dev.Setup(setup)
+		in, err = dev.Setup(setup)
 
 		if err != nil {
 			hw.stall(0, IN)
