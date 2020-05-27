@@ -21,6 +21,8 @@ const (
 	IOMUXC_START uint32 = 0x020e0000
 	IOMUXC_END   uint32 = 0x0203ffff
 
+	SW_PAD_CTL_HYS                = 16
+
 	SW_PAD_CTL_PUS                = 14
 	SW_PAD_CTL_PUS_PULL_DOWN_100K = 0
 	SW_PAD_CTL_PUS_PULL_UP_47K    = 1
@@ -29,6 +31,7 @@ const (
 
 	SW_PAD_CTL_PUE = 13
 	SW_PAD_CTL_PKE = 12
+	SW_PAD_CTL_ODE = 11
 
 	SW_PAD_CTL_SPEED        = 6
 	SW_PAD_CTL_SPEED_50MHZ  = 0b00
@@ -44,7 +47,10 @@ const (
 	SW_PAD_CTL_DSE_2_R0_6                 = 0b110
 	SW_PAD_CTL_DSE_2_R0_7                 = 0b111
 
-	MUX_MODE = 0
+	SW_PAD_CTL_SRE = 0
+
+	SW_MUX_CTL_SION = 4
+	SW_MUX_CTL_MUX_MODE = 0
 )
 
 type Pad struct {
@@ -73,7 +79,16 @@ func NewPad(mux uint32, pad uint32, daisy uint32) (*Pad, error) {
 
 // Mode configures the pad iomux mode.
 func (pad *Pad) Mode(mode uint32) {
-	reg.SetN(pad.mux, MUX_MODE, 0b1111, mode)
+	reg.SetN(pad.mux, SW_MUX_CTL_MUX_MODE, 0b1111, mode)
+}
+
+// SoftwareInput configures the pad SION bit.
+func (pad *Pad) SoftwareInput(enabled bool) {
+	if enabled {
+		reg.Set(pad.mux, SW_MUX_CTL_SION)
+	} else {
+		reg.Clear(pad.mux, SW_MUX_CTL_SION)
+	}
 }
 
 // Ctl configures the pad control register.
