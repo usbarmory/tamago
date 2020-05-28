@@ -131,20 +131,13 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 
 		switch bDescriptorType {
 		case DEVICE:
-			desc := dev.Descriptor.Bytes()
-
-			// the host might request a partial descriptor
-			if int(setup.Length) < len(desc) {
-				desc = desc[0:setup.Length]
-			}
-
 			log.Printf("imx6_usb: sending device descriptor")
-			err = hw.tx(0, false, desc)
+			err = hw.tx(0, false, trim(dev.Descriptor.Bytes(), setup.Length))
 		case CONFIGURATION:
 			var conf []byte
-			if conf, err = dev.Configuration(index, setup.Length); err == nil {
+			if conf, err = dev.Configuration(index); err == nil {
 				log.Printf("imx6_usb: sending configuration descriptor %d (%d bytes)", index, setup.Length)
-				err = hw.tx(0, false, conf)
+				err = hw.tx(0, false, trim(conf, setup.Length))
 			}
 		case STRING:
 			if int(index+1) > len(dev.Strings) {
@@ -157,7 +150,7 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 					log.Printf("imx6_usb: sending string descriptor %d: \"%s\"", index, dev.Strings[index][2:])
 				}
 
-				err = hw.tx(0, false, dev.Strings[index])
+				err = hw.tx(0, false, trim(dev.Strings[index], setup.Length))
 			}
 		case DEVICE_QUALIFIER:
 			log.Printf("imx6_usb: sending device qualifier")
@@ -205,4 +198,12 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 	}
 
 	return
+}
+
+func trim(buf []byte, wLength uint16) []byte {
+	if int(wLength) < len(buf) {
+		buf = buf[0:wLength]
+	}
+
+	return buf
 }

@@ -440,17 +440,13 @@ func (d *Device) AddConfiguration(conf *ConfigurationDescriptor) (err error) {
 // Configuration converts the device configuration hierarchy to a buffer, as expected by Get
 // Descriptor for configuration descriptor type
 // (p281, 9.4.3 Get Descriptor, USB2.0).
-func (d *Device) Configuration(wIndex uint16, wLength uint16) (buf []byte, err error) {
+func (d *Device) Configuration(wIndex uint16) (buf []byte, err error) {
 	if int(wIndex+1) > len(d.Configurations) {
 		err = errors.New("invalid configuration index")
 		return
 	}
 
 	conf := d.Configurations[int(wIndex)]
-
-	if int(wLength) <= len(buf) {
-		return buf, err
-	}
 
 	for i := 0; i < len(conf.Interfaces); i++ {
 		iface := conf.Interfaces[i]
@@ -473,10 +469,5 @@ func (d *Device) Configuration(wIndex uint16, wLength uint16) (buf []byte, err e
 	conf.TotalLength = uint16(int(conf.Length) + len(buf))
 	buf = append(conf.Bytes(), buf...)
 
-	if int(wLength) > len(buf) {
-		// device may return less than what is requested
-		return buf, err
-	}
-
-	return buf[0:wLength], err
+	return
 }
