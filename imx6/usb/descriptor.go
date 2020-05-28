@@ -394,7 +394,7 @@ func (d *Device) SetLanguageCodes(codes []uint16) (err error) {
 
 	for i := 0; i < len(codes); i++ {
 		b := make([]byte, 2)
-		binary.BigEndian.PutUint16(b, codes[i])
+		binary.LittleEndian.PutUint16(b, codes[i])
 		buf = append(buf, b...)
 	}
 
