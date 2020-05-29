@@ -20,7 +20,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/f-secure-foundry/tamago/internal/dma"
+	"github.com/f-secure-foundry/tamago/dma"
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
