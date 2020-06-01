@@ -456,7 +456,7 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 }
 
 // ReadBlocks transfers full blocks of data from the card.
-func (hw *usdhc) ReadBlocks(lba int, blocks int) (buf []byte, err error) {
+func (hw *usdhc) ReadBlocks(lba int, blocks int, buf []byte) (err error) {
 	blockSize := hw.card.BlockSize
 	bufSize := blocks * blockSize
 	offset := uint64(lba) * uint64(blockSize)
@@ -465,8 +465,9 @@ func (hw *usdhc) ReadBlocks(lba int, blocks int) (buf []byte, err error) {
 		return
 	}
 
-	// data buffer
-	buf = make([]byte, bufSize)
+	if len(buf) < bufSize {
+		return errors.New("invalid buffer size")
+	}
 
 	hw.Lock()
 	defer hw.Unlock()

@@ -14,19 +14,8 @@ package dma
 import (
 	"container/list"
 	"reflect"
-	"sync"
 	"unsafe"
 )
-
-type block struct {
-	addr uint32
-	size int
-}
-
-var freeBlocks *list.List
-var usedBlocks map[uint32]*block
-
-var mutex sync.Mutex
 
 func (b *block) read(offset int, buf []byte) {
 	var mem []byte
@@ -53,13 +42,13 @@ func defrag() {
 	var prevBlock *block
 
 	// find contiguous free blocks and combine them
-	for e := freeBlocks.Front(); e != nil; e = e.Next() {
+	for e := dma.freeBlocks.Front(); e != nil; e = e.Next() {
 		b := e.Value.(*block)
 
 		if prevBlock != nil {
 			if prevBlock.addr+uint32(prevBlock.size) == b.addr {
 				prevBlock.size += b.size
-				defer freeBlocks.Remove(e)
+				defer dma.freeBlocks.Remove(e)
 				continue
 			}
 		}
@@ -78,7 +67,7 @@ func alloc(size int, align int) *block {
 	}
 
 	// find suitable block
-	for e = freeBlocks.Front(); e != nil; e = e.Next() {
+	for e = dma.freeBlocks.Front(); e != nil; e = e.Next() {
 		b := e.Value.(*block)
 
 		if b.size >= size {
@@ -92,7 +81,7 @@ func alloc(size int, align int) *block {
 	}
 
 	// when we are done remove block from free linked list
-	defer freeBlocks.Remove(e)
+	defer dma.freeBlocks.Remove(e)
 
 	// adjust block to desired size, add new block to leave remainder
 	if size < freeBlock.size {
@@ -102,7 +91,7 @@ func alloc(size int, align int) *block {
 		}
 
 		freeBlock.size = size
-		freeBlocks.InsertAfter(newBlockAfter, e)
+		dma.freeBlocks.InsertAfter(newBlockAfter, e)
 	}
 
 	if align > 0 {
@@ -117,7 +106,7 @@ func alloc(size int, align int) *block {
 
 			freeBlock.addr += uint32(offset)
 			freeBlock.size -= offset
-			freeBlocks.InsertBefore(newBlockBefore, e)
+			dma.freeBlocks.InsertBefore(newBlockBefore, e)
 		}
 
 		// original requested size
@@ -131,7 +120,7 @@ func alloc(size int, align int) *block {
 			}
 
 			freeBlock.size = size
-			freeBlocks.InsertAfter(newBlockAfter, e)
+			dma.freeBlocks.InsertAfter(newBlockAfter, e)
 		}
 	}
 
@@ -139,15 +128,15 @@ func alloc(size int, align int) *block {
 }
 
 func free(usedBlock *block) {
-	for e := freeBlocks.Front(); e != nil; e = e.Next() {
+	for e := dma.freeBlocks.Front(); e != nil; e = e.Next() {
 		b := e.Value.(*block)
 
 		if b.addr > usedBlock.addr {
-			freeBlocks.InsertBefore(usedBlock, e)
+			dma.freeBlocks.InsertBefore(usedBlock, e)
 			defrag()
 			return
 		}
 	}
 
-	freeBlocks.PushBack(usedBlock)
+	dma.freeBlocks.PushBack(usedBlock)
 }

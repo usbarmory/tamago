@@ -16,14 +16,42 @@ package dma
 
 import (
 	"container/list"
+	"reflect"
+	"sync"
+	"unsafe"
 )
+
+type block struct {
+	// pointer address
+	addr uint32
+	// buffer size
+	size int
+	// distinguish regular (`Alloc`/`Free`) and reserved
+	// (`Reserve`/`Release`) blocks.
+	res bool
+}
+
+type region struct {
+	sync.Mutex
+
+	start uint32
+	size  int
+
+	freeBlocks *list.List
+	usedBlocks map[uint32]*block
+}
+
+var dma = &region{}
 
 // Init initializes a memory region for DMA buffer allocation, the application
 // must guarantee that the passed memory range is never used by the Go
 // runtime (defining `runtime.ramStart` and `runtime.ramSize` accordingly).
 func Init(start uint32, size int) {
-	mutex.Lock()
+	dma.Lock()
 	// note: cannot defer during initialization
+
+	dma.start = start
+	dma.size = size
 
 	// initialize a single block to fit all available memory
 	b := &block{
@@ -31,20 +59,62 @@ func Init(start uint32, size int) {
 		size: size,
 	}
 
-	freeBlocks = list.New()
-	freeBlocks.PushFront(b)
+	dma.freeBlocks = list.New()
+	dma.freeBlocks.PushFront(b)
 
-	usedBlocks = make(map[uint32]*block)
+	dma.usedBlocks = make(map[uint32]*block)
 
-	defer mutex.Unlock()
+	dma.Unlock()
 }
 
-// Alloc reserves a memory region, copies over a buffer and return its
-// allocation address, with optional alignment. The region can be freed up with
-// `Free`.
-func Alloc(buf []byte, align int) uint32 {
-	mutex.Lock()
-	defer mutex.Unlock()
+// Reserve allocated a slice of bytes for DMA purposes, by placing its data
+// within the DMA region, with optional alignment. It returns the slice along
+// with its data allocation address. The buffer can be freed up with `Release`.
+//
+// Reserving buffers with `Reserve` allows applications to pre-allocate DMA
+// regions, avoiding unnecessary memory copy operations when performance is a
+// concern. Reserved buffers cause `Alloc` and `Read` to return without any
+// allocation or memory copy.
+func Reserve(size int, align int) (addr uint32, buf []byte) {
+	dma.Lock()
+	defer dma.Unlock()
+
+	if size == 0 {
+		return
+	}
+
+	b := alloc(size, align)
+	b.res = true
+
+	dma.usedBlocks[b.addr] = b
+
+	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&buf))
+	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr)))
+	hdr.Len = size
+	hdr.Cap = hdr.Len
+
+	return b.addr, buf
+}
+
+// Reserved returns whether a slice of bytes data is allocated within the DMA
+// buffer region, it is used to determine whether the passed buffer has been
+// previously allocated by this package with `Reserve`.
+func Reserved(buf []byte) (res bool, addr uint32) {
+	addr = uint32(uintptr(unsafe.Pointer(&buf[0])))
+	res = addr >= dma.start && addr+uint32(len(buf)) <= dma.start+uint32(dma.size)
+
+	return
+}
+
+// Alloc reserves a memory region for DMA purposes, copying over a buffer and
+// returning its allocation address, with optional alignment. The region can be
+// freed up with `Free`.
+//
+// If the argument is a buffer previously created with `Reserve`, then
+// its address is return without any re-allocation.
+func Alloc(buf []byte, align int) (addr uint32) {
+	dma.Lock()
+	defer dma.Unlock()
 
 	size := len(buf)
 
@@ -52,35 +122,49 @@ func Alloc(buf []byte, align int) uint32 {
 		return 0
 	}
 
+	if res, addr := Reserved(buf); res {
+		return addr
+	}
+
 	b := alloc(len(buf), align)
 	b.write(buf, 0)
 
-	usedBlocks[b.addr] = b
+	dma.usedBlocks[b.addr] = b
 
 	return b.addr
 }
 
-// Read reads exactly len(buf) bytes from a memory region address into buf, the
-// region must have been previously allocated with `Alloc`.
+// Read reads exactly len(buf) bytes from a memory region address into a
+// buffer, the region must have been previously allocated with `Alloc`.
 //
 // The offset and buffer size are used to retrieve a slice of the memory
 // region, a panic occurs if these parameters are not compatible with the
 // initial allocation for the address.
+//
+// If the argument is a buffer previously created with `Reserve`, then the
+// function returns without modifying it, as it is assumed for the buffer to be
+// already updated.
 func Read(addr uint32, offset int, buf []byte) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	dma.Lock()
+	defer dma.Unlock()
 
-	if addr == 0 {
+	size := len(buf)
+
+	if addr == 0 || size == 0 {
 		return
 	}
 
-	b, ok := usedBlocks[addr]
+	if res, _ := Reserved(buf); res {
+		return
+	}
+
+	b, ok := dma.usedBlocks[addr]
 
 	if !ok {
 		panic("read of unallocated pointer")
 	}
 
-	if offset+len(buf) > b.size {
+	if offset+size > b.size {
 		panic("invalid read parameters")
 	}
 
@@ -93,8 +177,8 @@ func Read(addr uint32, offset int, buf []byte) {
 // An offset can be pased to write a slice of the memory region, a panic occurs
 // if the offset is not compatible with the initial allocation for the address.
 func Write(addr uint32, data []byte, offset int) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	dma.Lock()
+	defer dma.Unlock()
 
 	size := len(data)
 
@@ -102,10 +186,10 @@ func Write(addr uint32, data []byte, offset int) {
 		return
 	}
 
-	b, ok := usedBlocks[addr]
+	b, ok := dma.usedBlocks[addr]
 
 	if !ok {
-		panic("write of unallocated pointer")
+		return
 	}
 
 	if offset+size > b.size {
@@ -116,22 +200,35 @@ func Write(addr uint32, data []byte, offset int) {
 }
 
 // Free frees the memory region stored at the passed address, the region must
-// have been previously allocated with `Alloc`. A region can only be freed
-// once, otherwise a panic occurs.
+// have been previously allocated with `Alloc`.
 func Free(addr uint32) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	freeBlock(addr, false)
+}
+
+// Release frees the memory region stored at the passed address, the region
+// must have been previously allocated with `Reserve`.
+func Release(addr uint32) {
+	freeBlock(addr, true)
+}
+
+func freeBlock(addr uint32, res bool) {
+	dma.Lock()
+	defer dma.Unlock()
 
 	if addr == 0 {
 		return
 	}
 
-	b, ok := usedBlocks[addr]
+	b, ok := dma.usedBlocks[addr]
 
 	if !ok {
-		panic("free of unallocated pointer")
+		return
+	}
+
+	if b.res != res {
+		return
 	}
 
 	free(b)
-	delete(usedBlocks, addr)
+	delete(dma.usedBlocks, addr)
 }
