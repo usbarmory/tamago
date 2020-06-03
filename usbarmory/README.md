@@ -81,15 +81,21 @@ Executing and debugging
 =======================
 
 The [example application](https://github.com/f-secure-foundry/tamago-example)
-provides reference usage and a Makefile target for automatic creation of a raw
-image for flashing.
+provides reference usage and a Makefile target for automatic creation of an ELF
+as well as `imx` image for flashing.
 
-Native hardware
----------------
+Native hardware: imx image
+--------------------------
 
-Copy the compiled application on an external microSD card (replace `$dev` with
-`0`) or the internal eMMC (replace `$dev` with `1`), then launch it from the
-U-Boot console as follows:
+Follow [these instructions](https://github.com/f-secure-foundry/usbarmory/wiki/Boot-Modes-(Mk-II)#flashing-bootable-images-on-externalinternal-media)
+using built `imx` images.
+
+Native hardware: existing bootloader
+------------------------------------
+
+Copy the built ELF binary on an external microSD card (replace `$dev` with `0`)
+or the internal eMMC (replace `$dev` with `1`), then launch it from the U-Boot
+console as follows:
 
 ```
 ext2load mmc $dev:1 0x90000000 example
