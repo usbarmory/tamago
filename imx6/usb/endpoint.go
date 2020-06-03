@@ -178,7 +178,7 @@ func (hw *usb) nextDTD(n int, dir int, next uint32) {
 	reg.SetN(dqh+uint32(DQH_TOKEN), 6, 0b11, 0b00)
 }
 
-// addDTD configures an endpoint transfer descriptor as described in
+// buildDTD configures an endpoint transfer descriptor as described in
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
 func buildDTD(n int, dir int, ioc bool, addr uint32, size int) (dtd *dTD) {
 	// p3809, 56.4.6.6.2 Building a Transfer Descriptor, IMX6ULLRM
