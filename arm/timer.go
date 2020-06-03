@@ -43,9 +43,6 @@ const (
 	refFreq int64 = 1000000000
 )
 
-var TimerFn func() int64
-var timerMultiplier int64
-
 // defined in timer_arm.s
 func read_gtc() int64
 func read_cntfrq() int32
@@ -55,8 +52,8 @@ func Busyloop(int32)
 
 // InitGlobalTimers initializes ARM Cortex-A9 timers
 func (c *CPU) InitGlobalTimers() {
-	TimerFn = read_gtc
-	timerMultiplier = 10
+	c.TimerFn = read_gtc
+	c.TimerMultiplier = 10
 }
 
 // InitGenericTimers initializes ARM Cortex-A7 timers
@@ -76,11 +73,7 @@ func (c *CPU) InitGenericTimers(freq int32) {
 	}
 
 	timerFreq = int64(read_cntfrq())
-	timerMultiplier = int64(refFreq / timerFreq)
-	TimerFn = read_cntpct
-}
 
-//go:linkname nanotime1 runtime.nanotime1
-func nanotime1() int64 {
-	return int64(TimerFn() * timerMultiplier)
+	c.TimerMultiplier = int64(refFreq / timerFreq)
+	c.TimerFn = read_cntpct
 }

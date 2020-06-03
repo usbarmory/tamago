@@ -9,6 +9,7 @@
 //
 // +build tamago,arm
 
+// Package arm provides support for ARM architecture specific operations.
 package arm
 
 const (
@@ -38,6 +39,10 @@ type CPU struct {
 	mProfileModel    bool
 	virtualization   bool
 	genericTimer     bool
+
+	// timer information
+	TimerMultiplier int64
+	TimerFn         func() int64
 }
 
 func (c *CPU) Init() {
@@ -48,12 +53,14 @@ func (c *CPU) Init() {
 func read_cpsr() uint32
 func read_scr() uint32
 
-func GetProcessorMode() uint8 {
+// Mode returns the processor mode.
+func (cpu *CPU) Mode() uint8 {
 	return uint8(read_cpsr() & 0x1f)
 }
 
-func GetProcessorModeName() (mode string) {
-	switch GetProcessorMode() {
+// Mode returns the processor mode name.
+func (cpu *CPU) ModeName() (mode string) {
+	switch cpu.Mode() {
 	case USR_MODE:
 		mode = "USR"
 	case FIQ_MODE:
@@ -79,11 +86,13 @@ func GetProcessorModeName() (mode string) {
 	return
 }
 
-// Checks SCR.NS bit
-func NonSecure() bool {
-	return (read_scr() & 1 == 1)
+// NonSecure returns whether the processor security mode is non-secure
+// (SCR.NS).
+func (cpu *CPU) NonSecure() bool {
+	return (read_scr()&1 == 1)
 }
 
-func Secure() bool {
-	return !NonSecure()
+// Secure returns whether the processor security mode is secure (!SCR.NS).
+func (cpu *CPU) Secure() bool {
+	return (read_scr()&1 == 0)
 }

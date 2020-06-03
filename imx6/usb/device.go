@@ -109,7 +109,11 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) 
 		runtime.Gosched()
 
 		if dev.ConfigurationValue != conf {
-			// TODO: flush if ep.enabled
+			if ep.enabled {
+				reg.Set(hw.flush, (dir * 16) + n)
+				ep.enabled = false
+			}
+
 			continue
 		}
 

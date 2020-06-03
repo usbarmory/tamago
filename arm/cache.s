@@ -7,16 +7,16 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// func CacheDisable()
-TEXT ·CacheDisable(SB),$0
+// func cache_disable()
+TEXT ·cache_disable(SB),$0
 	MRC	15, 0, R1, C1, C0, 0
 	BIC	$0x1000, R1	// Disable I-cache
 	BIC	$0x4, R1	// Disable D-cache
 	MCR	15, 0, R1, C1, C0, 0
 	RET
 
-// func CacheEnable()
-TEXT ·CacheEnable(SB),$0
+// func cache_enable()
+TEXT ·cache_enable(SB),$0
 	MRC	15, 0, R1, C1, C0, 0
 	ORR	$1<<12, R1	// Enable I-cache
 	ORR	$1<<2, R1	// Enable D-cache
@@ -26,8 +26,8 @@ TEXT ·CacheEnable(SB),$0
 // Taken from Linux /arch/arm/mm/cache-v7.S
 // Using R8 instead of R10 as the latter is g in go runtime.
 //
-// func CacheFlushData()
-TEXT ·CacheFlushData(SB),$0
+// func cache_flush_data()
+TEXT ·cache_flush_data(SB),$0
 	WORD	$0xf57ff05f			// DMB SY
 	MRC	15, 1, R0, C0, C0, 1		// read CLIDR
 	MOVW	R0>>23, R3			// move LoC into position
@@ -76,8 +76,8 @@ finished:
 // Taken from Linux /arch/arm/mm/cache-v7.S
 // Using R8 instead of R10 as the latter is g in go runtime.
 //
-// func CacheFlushInstruction()
-TEXT ·CacheFlushInstruction(SB),$0
+// func cache_flush_instruction()
+TEXT ·cache_flush_instruction(SB),$0
 	MOVW	$0, R0
 	MCR	15, 0, R0, C7, C5, 0
 	RET

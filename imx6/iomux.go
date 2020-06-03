@@ -21,7 +21,7 @@ const (
 	IOMUXC_START uint32 = 0x020e0000
 	IOMUXC_END   uint32 = 0x0203ffff
 
-	SW_PAD_CTL_HYS                = 16
+	SW_PAD_CTL_HYS = 16
 
 	SW_PAD_CTL_PUS                = 14
 	SW_PAD_CTL_PUS_PULL_DOWN_100K = 0
@@ -49,7 +49,7 @@ const (
 
 	SW_PAD_CTL_SRE = 0
 
-	SW_MUX_CTL_SION = 4
+	SW_MUX_CTL_SION     = 4
 	SW_MUX_CTL_MUX_MODE = 0
 )
 

@@ -19,7 +19,6 @@ import (
 // As sync/atomic does not provide 16-bit support, note that these functions do
 // not necessarily enforce memory ordering.
 
-
 func Get16(addr uint32, pos int, mask int) uint16 {
 	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
 	return (*reg >> pos) & uint16(mask)

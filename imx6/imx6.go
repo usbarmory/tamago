@@ -48,14 +48,19 @@ var Native bool
 
 var ARM = &arm.CPU{}
 
+//go:linkname nanotime1 runtime.nanotime1
+func nanotime1() int64 {
+	return int64(ARM.TimerFn() * ARM.TimerMultiplier)
+}
+
 // hwinit takes care of the lower level SoC initialization triggered early in
 // runtime setup, care must be taken to ensure that no heap allocation is
 // performed (e.g. defer is not possible).
 //go:linkname hwinit runtime.hwinit
 func hwinit() {
-	// initialize CPU
 	ARM.Init()
 	ARM.EnableVFP()
+	ARM.CacheEnable()
 
 	_, fam, revMajor, revMinor := SiliconVersion()
 	Family = fam
@@ -63,8 +68,6 @@ func hwinit() {
 	if revMajor != 0 || revMinor != 0 {
 		Native = true
 	}
-
-	arm.CacheEnable()
 
 	// initialize console
 	UART2.init(UART2_BASE, UART_DEFAULT_BAUDRATE)
@@ -83,8 +86,6 @@ func hwinit() {
 	default:
 		ARM.InitGlobalTimers()
 	}
-
-	ARM.EnableVFP()
 }
 
 //go:linkname initRNG runtime.initRNG

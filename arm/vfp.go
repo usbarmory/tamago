@@ -18,7 +18,7 @@ import (
 // defined in vfp.s
 func vfp_enable()
 
-//go:linkname enableVFP runtime.vfp_enable
+//go:linkname EnableVFP runtime.vfp_enable
 func (c *CPU) EnableVFP() {
 	vfp_enable()
 }
