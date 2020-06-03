@@ -6,8 +6,6 @@
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
-//
-// +build tamago,arm
 
 // The usbarmory package provides hardware initialization, automatically on
 // import, for the USB armory Mk II single board computer. It is meant to be
