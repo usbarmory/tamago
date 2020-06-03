@@ -1,4 +1,4 @@
-// NXP i.MX6UL/i.MX6ULL initialization
+// NXP i.MX6UL initialization
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
@@ -6,8 +6,6 @@
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
-//
-// +build tamago,arm
 
 package imx6ul
 

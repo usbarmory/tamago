@@ -6,8 +6,6 @@
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
-//
-// +build tamago,arm
 
 // Package dma provides primitives for direct memory allocation and alignment,
 // it is primarily used in bare metal device driver operation to avoid passing
