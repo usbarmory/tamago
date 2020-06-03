@@ -8,9 +8,6 @@
 //
 // +build tamago,arm
 
-// Package reg provides primitives for retrieving and modifying 16 bit hardware
-// registers. As the package sync/atomic does not provide 16 bit support, those
-// functions does not enforce memory ordering to follow the program order.
 package reg
 
 import (
@@ -18,6 +15,10 @@ import (
 	"time"
 	"unsafe"
 )
+
+// As sync/atomic does not provide 16-bit support, note that these functions do
+// not necessarily enforce memory ordering.
+
 
 func Get16(addr uint32, pos int, mask int) uint16 {
 	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
@@ -64,7 +65,7 @@ func Or16(addr uint32, val uint16) {
 	*reg |= val
 }
 
-// Wait waits for a specific register bit to match a value. This function
+// Wait16 waits for a specific register bit to match a value. This function
 // cannot be used before runtime initialization with `GOOS=tamago`.
 func Wait16(addr uint32, pos int, mask int, val uint16) {
 	for Get16(addr, pos, mask) != val {
@@ -73,7 +74,7 @@ func Wait16(addr uint32, pos int, mask int, val uint16) {
 	}
 }
 
-// WaitFor waits, until a timeout expires, for a specific register bit to match
+// WaitFor16 waits, until a timeout expires, for a specific register bit to match
 // a value. The return boolean indicates whether the wait condition was checked
 // (true) or if it timed out (false). This function cannot be used before
 // runtime initialization with `GOOS=tamago`.
