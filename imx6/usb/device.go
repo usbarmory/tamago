@@ -122,7 +122,7 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) 
 		if dir == OUT {
 			buf, err = hw.rx(n, false, res)
 
-			if err == nil {
+			if err == nil && len(buf) != 0 {
 				res, err = ep.Function(buf, err)
 			}
 		} else {

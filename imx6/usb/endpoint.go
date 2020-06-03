@@ -18,8 +18,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/f-secure-foundry/tamago/dma"
 	"github.com/f-secure-foundry/tamago/internal/bits"
-	"github.com/f-secure-foundry/tamago/internal/dma"
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
@@ -67,13 +67,12 @@ type dTD struct {
 	// DMA pointer for dTD structure
 	_dtd uint32
 	// DMA pointer for dTD transfer buffer
-	_pages uint32
+	_buf uint32
 	// transfer buffer size
 	_size uint32
 }
 
 func (dtd *dTD) free() {
-	dma.Free(dtd._pages)
 	dma.Free(dtd._dtd)
 }
 
@@ -181,10 +180,9 @@ func (hw *usb) nextDTD(n int, dir int, next uint32) {
 
 // addDTD configures an endpoint transfer descriptor as described in
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
-func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD) {
+func buildDTD(n int, dir int, ioc bool, addr uint32, size int) (dtd *dTD) {
 	// p3809, 56.4.6.6.2 Building a Transfer Descriptor, IMX6ULLRM
 	dtd = &dTD{}
-	size := uint32(len(data))
 
 	// interrupt on completion (ioc)
 	if ioc {
@@ -200,13 +198,13 @@ func buildDTD(n int, dir int, ioc bool, data []byte) (dtd *dTD) {
 	// active status
 	bits.Set(&dtd.Token, 7)
 	// total bytes
-	bits.SetN(&dtd.Token, 16, 0xffff, size)
+	bits.SetN(&dtd.Token, 16, 0xffff, uint32(size))
 
-	dtd._pages = dma.Alloc(data, DTD_PAGE_SIZE)
-	dtd._size = size
+	dtd._buf = addr
+	dtd._size = uint32(size)
 
 	for n := 0; n < DTD_PAGES; n++ {
-		dtd.Buffer[n] = dtd._pages + uint32(DTD_PAGE_SIZE*n)
+		dtd.Buffer[n] = dtd._buf + uint32(DTD_PAGE_SIZE*n)
 	}
 
 	buf := new(bytes.Buffer)
@@ -235,19 +233,22 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, er
 		dtdLength = transferSize
 	}
 
-	dtd := buildDTD(n, dir, ioc, buf[0:dtdLength])
+	pages := dma.Alloc(buf, DTD_PAGE_SIZE)
+	defer dma.Free(pages)
+
+	dtd := buildDTD(n, dir, ioc, pages, dtdLength)
 	defer dtd.free()
 
 	dtds = append(dtds, dtd)
 
 	for i := dtdLength; i < transferSize; i += dtdLength {
-		end := i + dtdLength
+		size := dtdLength
 
-		if end > transferSize {
-			end = transferSize
+		if i+size > transferSize {
+			size = transferSize - i
 		}
 
-		next := buildDTD(n, dir, ioc, buf[i:end])
+		next := buildDTD(n, dir, ioc, pages+uint32(i), size)
 		defer next.free()
 
 		// treat dtd.next as a register within the dtd DMA buffer
@@ -274,6 +275,8 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, er
 	// clear completion
 	reg.Write(hw.complete, 1<<pos)
 
+	size := 0
+
 	for i, dtd := range dtds {
 		// treat dtd.token as a register within the dtd DMA buffer
 		token := dtd._dtd + DTD_TOKEN
@@ -293,17 +296,19 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, er
 
 		// p3787 "This field is decremented by the number of bytes
 		// actually moved during the transaction", IMX6ULLRM.
-		size := int(dtd._size - (dtdToken >> 16))
+		rest := dtdToken >> 16
+		n := int(dtd._size - rest)
 
-		if n != 0 && dir == OUT && size != 0 {
-			dtdBuf := make([]byte, size)
-			dma.Read(dtd._pages, 0, dtdBuf)
-			out = append(out, dtdBuf...)
+		if dir == IN && rest > 0 {
+			return nil, fmt.Errorf("dTD[%d] partial transfer (%d/%d bytes)", i, n, dtd._size)
 		}
 
-		if dir == IN && size != int(dtd._size) {
-			return nil, fmt.Errorf("dTD[%d] partial transfer (%d/%d bytes)", i, size, dtd._size)
-		}
+		size += n
+	}
+
+	if n != 0 && dir == OUT {
+		dma.Read(pages, 0, buf)
+		out = buf[0:size]
 	}
 
 	return

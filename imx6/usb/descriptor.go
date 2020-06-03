@@ -206,14 +206,14 @@ func (d *InterfaceDescriptor) Bytes() []byte {
 // transfers, depending on the endpoint configuration.
 //
 // On OUT endpoints the function is expected to receive data from the host in
-// the input buffer. The expected size for the next OUT transfer can be
-// selected with a non-zero result buffer, otherwise a short or single packet
-// is assumed.
+// the input buffer. The expected size, or reserved DMA buffer (see
+// `dma.Reserve`), for the next OUT transfer can be passed with a non-zero
+// result buffer, otherwise a short or single packet is assumed.
 //
-// On IN endpoints the function is expected to return a data slice for
-// transmission to the host, such data is used to fill the DMA buffer in
-// advance, to respond to IN requests. The function is invoked by the
-// EndpointHandler to fill the buffer as needed.
+// On IN endpoints the function is expected to return data, or reserved and
+// filled DMA buffer, for transmission to the host, such data is used to fill
+// the transmission queue in advance, to respond to IN requests. The function
+// is invoked by the EndpointHandler to fill the buffer as needed.
 type EndpointFunction func(buf []byte, lastErr error) (res []byte, err error)
 
 // EndpointDescriptor implements

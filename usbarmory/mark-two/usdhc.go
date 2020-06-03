@@ -17,7 +17,7 @@ import (
 )
 
 // On the USB armory Mk II the following uSDHC interfaces are connected:
-//   * uSDCH1: external uSD  slot (SD1)
+//   * uSDHC1: external uSD  slot (SD1)
 //   * uSDHC2: internal eMMC card (SD2/NAND)
 //
 // On the USB armory Mk II β revision the maximum achievable theoretical speed

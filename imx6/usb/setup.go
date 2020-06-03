@@ -181,12 +181,14 @@ func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
 		// no meaningful action for now
 		err = hw.ack(0)
 	default:
+		var in []byte
+
 		if dev.Setup == nil {
 			hw.stall(0, IN)
 			return fmt.Errorf("unsupported request code: %#x", setup.Request)
 		}
 
-		in, err := dev.Setup(setup)
+		in, err = dev.Setup(setup)
 
 		if err != nil {
 			hw.stall(0, IN)
