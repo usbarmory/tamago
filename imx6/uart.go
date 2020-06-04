@@ -26,100 +26,100 @@ const (
 	// i.MX 6UltraLite (G0, G1, G2, G3, G4)
 	// i.MX 6ULL (Y0, Y1, Y2)
 	// i.MX 6ULZ (Z0)
-	UART1_BASE uint32 = 0x02020000
-	UART2_BASE uint32 = 0x021e8000
-	UART3_BASE uint32 = 0x021ec000
-	UART4_BASE uint32 = 0x021f0000
+	UART1_BASE = 0x02020000
+	UART2_BASE = 0x021e8000
+	UART3_BASE = 0x021ec000
+	UART4_BASE = 0x021f0000
 
 	// i.MX 6UltraLite (G1, G2, G3, G4)
 	// i.MX 6ULL (Y1, Y2)
-	UART5_BASE uint32 = 0x021f4000
-	UART6_BASE uint32 = 0x021fc000
-	UART7_BASE uint32 = 0x02018000
-	UART8_BASE uint32 = 0x02024000
+	UART5_BASE = 0x021f4000
+	UART6_BASE = 0x021fc000
+	UART7_BASE = 0x02018000
+	UART8_BASE = 0x02024000
 
-	UARTx_URXD   uint32 = 0x0000
-	URXD_CHARRDY        = 15
-	URXD_ERR            = 14
-	URXD_OVRRUN         = 13
-	URXD_FRMERR         = 12
-	URXD_BRK            = 11
-	URXD_PRERR          = 10
-	URXD_RX_DATA        = 0
+	UARTx_URXD   = 0x0000
+	URXD_CHARRDY = 15
+	URXD_ERR     = 14
+	URXD_OVRRUN  = 13
+	URXD_FRMERR  = 12
+	URXD_BRK     = 11
+	URXD_PRERR   = 10
+	URXD_RX_DATA = 0
 
-	UARTx_UTXD   uint32 = 0x0040
-	UTXD_TX_DATA        = 0
+	UARTx_UTXD   = 0x0040
+	UTXD_TX_DATA = 0
 
-	UARTx_UCR1    uint32 = 0x0080
-	UCR1_ADEN            = 15
-	UCR1_ADBR            = 14
-	UCR1_TRDYEN          = 13
-	UCR1_IDEN            = 12
-	UCR1_ICD             = 10
-	UCR1_RRDYEN          = 9
-	UCR1_RXDMAEN         = 8
-	UCR1_IREN            = 7
-	UCR1_TXMPTYEN        = 6
-	UCR1_RTSDEN          = 5
-	UCR1_SNDBRK          = 4
-	UCR1_TXDMAEN         = 3
-	UCR1_ATDMAEN         = 2
-	UCR1_DOZE            = 1
-	UCR1_UARTEN          = 0
+	UARTx_UCR1    = 0x0080
+	UCR1_ADEN     = 15
+	UCR1_ADBR     = 14
+	UCR1_TRDYEN   = 13
+	UCR1_IDEN     = 12
+	UCR1_ICD      = 10
+	UCR1_RRDYEN   = 9
+	UCR1_RXDMAEN  = 8
+	UCR1_IREN     = 7
+	UCR1_TXMPTYEN = 6
+	UCR1_RTSDEN   = 5
+	UCR1_SNDBRK   = 4
+	UCR1_TXDMAEN  = 3
+	UCR1_ATDMAEN  = 2
+	UCR1_DOZE     = 1
+	UCR1_UARTEN   = 0
 
-	UARTx_UCR2 uint32 = 0x0084
-	UCR2_ESCI         = 15
-	UCR2_IRTS         = 14
-	UCR2_CTSC         = 13
-	UCR2_CTS          = 12
-	UCR2_ESCEN        = 11
-	UCR2_RTEC         = 9
-	UCR2_PREN         = 8
-	UCR2_PROE         = 7
-	UCR2_STPB         = 6
-	UCR2_WS           = 5
-	UCR2_RTSEN        = 4
-	UCR2_ATEN         = 3
-	UCR2_TXEN         = 2
-	UCR2_RXEN         = 1
-	UCR2_SRST         = 0
+	UARTx_UCR2 = 0x0084
+	UCR2_ESCI  = 15
+	UCR2_IRTS  = 14
+	UCR2_CTSC  = 13
+	UCR2_CTS   = 12
+	UCR2_ESCEN = 11
+	UCR2_RTEC  = 9
+	UCR2_PREN  = 8
+	UCR2_PROE  = 7
+	UCR2_STPB  = 6
+	UCR2_WS    = 5
+	UCR2_RTSEN = 4
+	UCR2_ATEN  = 3
+	UCR2_TXEN  = 2
+	UCR2_RXEN  = 1
+	UCR2_SRST  = 0
 
-	UARTx_UCR3     uint32 = 0x0088
-	UCR3_DPEC             = 14
-	UCR3_DTREN            = 13
-	UCR3_PARERREN         = 12
-	UCR3_FRAERREN         = 11
-	UCR3_DSR              = 10
-	UCR3_DCD              = 9
-	UCR3_RI               = 8
-	UCR3_ADNIMP           = 7
-	UCR3_RXDSEN           = 6
-	UCR3_AIRINTEN         = 5
-	UCR3_AWAKEN           = 4
-	UCR3_DTRDEN           = 3
-	UCR3_RXDMUXSEL        = 2
-	UCR3_INVT             = 1
-	UCR3_ACIEN            = 0
+	UARTx_UCR3     = 0x0088
+	UCR3_DPEC      = 14
+	UCR3_DTREN     = 13
+	UCR3_PARERREN  = 12
+	UCR3_FRAERREN  = 11
+	UCR3_DSR       = 10
+	UCR3_DCD       = 9
+	UCR3_RI        = 8
+	UCR3_ADNIMP    = 7
+	UCR3_RXDSEN    = 6
+	UCR3_AIRINTEN  = 5
+	UCR3_AWAKEN    = 4
+	UCR3_DTRDEN    = 3
+	UCR3_RXDMUXSEL = 2
+	UCR3_INVT      = 1
+	UCR3_ACIEN     = 0
 
-	UARTx_UCR4 uint32 = 0x008c
-	UCR4_CTSTL        = 10
+	UARTx_UCR4 = 0x008c
+	UCR4_CTSTL = 10
 
-	UARTx_UFCR  uint32 = 0x0090
-	UFCR_TXTL          = 10
-	UFCR_RFDIV         = 7
-	UFCR_DCEDTE        = 6
-	UFCR_RXTL          = 0
+	UARTx_UFCR  = 0x0090
+	UFCR_TXTL   = 10
+	UFCR_RFDIV  = 7
+	UFCR_DCEDTE = 6
+	UFCR_RXTL   = 0
 
-	UARTx_USR2 uint32 = 0x0098
-	USR2_RDR          = 0
+	UARTx_USR2 = 0x0098
+	USR2_RDR   = 0
 
-	UARTx_UESC        = 0x009c
-	UARTx_UTIM        = 0x00a0
-	UARTx_UBIR        = 0x00a4
-	UARTx_UBMR uint32 = 0x00a8
+	UARTx_UESC = 0x009c
+	UARTx_UTIM = 0x00a0
+	UARTx_UBIR = 0x00a4
+	UARTx_UBMR = 0x00a8
 
-	UARTx_UTS   uint32 = 0x00b4
-	UTS_TXEMPTY        = 6
+	UARTx_UTS   = 0x00b4
+	UTS_TXEMPTY = 6
 )
 
 type Uart struct {

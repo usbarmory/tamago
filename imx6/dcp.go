@@ -24,7 +24,7 @@ import (
 
 // DCP registers
 const (
-	HW_DCP_BASE uint32 = 0x02280000
+	HW_DCP_BASE = 0x02280000
 
 	HW_DCP_CTRL         = HW_DCP_BASE
 	HW_DCP_CTRL_SFTRST  = 31
@@ -40,10 +40,10 @@ const (
 	HW_DCP_CH0STAT     = HW_DCP_BASE + 0x0120
 	HW_DCP_CH0STAT_CLR = HW_DCP_BASE + 0x0128
 
-	SNVS_HPSR_REG               uint32 = 0x020cc014
-	SNVS_HPSR_SSM_STATE                = 8
-	SNVS_HPSR_SSM_STATE_TRUSTED        = 0b1101
-	SNVS_HPSR_SSM_STATE_SECURE         = 0b1111
+	SNVS_HPSR_REG               = 0x020cc014
+	SNVS_HPSR_SSM_STATE         = 8
+	SNVS_HPSR_SSM_STATE_TRUSTED = 0b1101
+	SNVS_HPSR_SSM_STATE_SECURE  = 0b1111
 )
 
 // DCP control packet settings

@@ -19,29 +19,27 @@ import (
 
 // Clock registers
 const (
-	CCM_CACRR          uint32 = 0x020c4010
-	CCM_CACRR_ARM_PODF        = 0
+	CCM_CACRR          = 0x020c4010
+	CCM_CACRR_ARM_PODF = 0
 
-	CCM_CSCMR1 uint32 = 0x020c401c
+	CCM_CSCDR1          = 0x020c4024
+	CSCDR1_CLK_PODF     = 0
+	CSCDR1_UART_CLK_SEL = 6
 
-	CCM_CSCDR1          uint32 = 0x020c4024
-	CSCDR1_CLK_PODF            = 0
-	CSCDR1_UART_CLK_SEL        = 6
+	CCM_ANALOG_PLL_ARM                = 0x020c8000
+	CCM_ANALOG_PLL_ARM_LOCK           = 31
+	CCM_ANALOG_PLL_ARM_BYPASS         = 16
+	CCM_ANALOG_PLL_ARM_BYPASS_CLK_SRC = 14
+	CCM_ANALOG_PLL_ARM_DIV_SELECT     = 0
 
-	CCM_ANALOG_PLL_ARM                uint32 = 0x020c8000
-	CCM_ANALOG_PLL_ARM_LOCK                  = 31
-	CCM_ANALOG_PLL_ARM_BYPASS                = 16
-	CCM_ANALOG_PLL_ARM_BYPASS_CLK_SRC        = 14
-	CCM_ANALOG_PLL_ARM_DIV_SELECT            = 0
+	PMU_REG_CORE           = 0x020c8140
+	PMU_REG_CORE_REG2_TARG = 18
+	PMU_REG_CORE_REG0_TARG = 0
 
-	PMU_REG_CORE           uint32 = 0x020c8140
-	PMU_REG_CORE_REG2_TARG        = 18
-	PMU_REG_CORE_REG0_TARG        = 0
-
-	CCM_CCGR6     uint32 = 0x20c4080
-	CCM_CCGR6_CG2        = 4
-	CCM_CCGR6_CG1        = 2
-	CCM_CCGR6_CG0        = 0
+	CCM_CCGR6     = 0x020c4080
+	CCM_CCGR6_CG2 = 4
+	CCM_CCGR6_CG1 = 2
+	CCM_CCGR6_CG0 = 0
 )
 
 // Oscillator frequencies
