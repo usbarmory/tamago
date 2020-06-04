@@ -19,6 +19,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
+// CMD constants
 const (
 	GO_IDLE_STATE = 0
 
@@ -49,7 +50,7 @@ const (
 
 // cmd sends an SD / MMC command as described in
 // p349, 35.4.3 Send command to card flow chart, IMX6FG
-func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool, ccc bool, dma bool, timeout time.Duration) (err error) {
+func (hw *USDHC) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool, ccc bool, dma bool, timeout time.Duration) (err error) {
 	if timeout == 0 {
 		timeout = DEFAULT_CMD_TIMEOUT
 	}
@@ -200,7 +201,7 @@ func (hw *usdhc) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	return
 }
 
-func (hw *usdhc) rsp(i int) uint32 {
+func (hw *USDHC) rsp(i int) uint32 {
 	if i > 3 {
 		return 0
 	}
@@ -208,13 +209,13 @@ func (hw *usdhc) rsp(i int) uint32 {
 	return reg.Read(hw.cmd_rsp + uint32(i*4))
 }
 
-func (hw *usdhc) rspVal(pos int, mask int) (val uint32) {
+func (hw *USDHC) rspVal(pos int, mask int) (val uint32) {
 	val = hw.rsp(pos/32) >> (pos % 32)
 	val &= uint32(mask)
 	return
 }
 
-func (hw *usdhc) waitState(state int, timeout time.Duration) (err error) {
+func (hw *USDHC) waitState(state int, timeout time.Duration) (err error) {
 	start := time.Now()
 
 	for {

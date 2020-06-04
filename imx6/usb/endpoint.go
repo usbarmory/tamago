@@ -21,6 +21,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
+// Endpoint constants
 const (
 	// The USB OTG device controller hardware supports up to 8 endpoint
 	// numbers.
@@ -100,7 +101,7 @@ type dQH struct {
 type EndpointList [MAX_ENDPOINTS * 2]dQH
 
 // initEP initializes the endpoint queue head list
-func (hw *usb) initEP() {
+func (hw *USB) initEP() {
 	var epList EndpointList
 	buf := new(bytes.Buffer)
 
@@ -113,7 +114,7 @@ func (hw *usb) initEP() {
 
 // setEP configures a queue head as described in
 // p3784, 56.4.5.1 Endpoint Queue Head, IMX6ULLRM.
-func (hw *usb) setEP(n int, dir int, max int, zlt bool, mult int) {
+func (hw *USB) setEP(n int, dir int, max int, zlt bool, mult int) {
 	dqh := dQH{}
 
 	// Maximum Packet Length
@@ -149,7 +150,7 @@ func (hw *usb) setEP(n int, dir int, max int, zlt bool, mult int) {
 }
 
 // getEP returns an Endpoint Queue Head (dQH)
-func (hw *usb) getEP(n int, dir int) (dqh dQH) {
+func (hw *USB) getEP(n int, dir int) (dqh dQH) {
 	epListAddr := reg.Read(hw.eplist)
 	offset := (n*2 + dir) * DQH_SIZE
 
@@ -166,7 +167,7 @@ func (hw *usb) getEP(n int, dir int) (dqh dQH) {
 }
 
 // next sets the next endpoint transfer pointer
-func (hw *usb) nextDTD(n int, dir int, next uint32) {
+func (hw *USB) nextDTD(n int, dir int, next uint32) {
 	offset := (n*2 + dir) * DQH_SIZE
 	dqh := reg.Read(hw.eplist) + uint32(offset)
 
@@ -217,7 +218,7 @@ func buildDTD(n int, dir int, ioc bool, addr uint32, size int) (dtd *dTD) {
 // transferDTD manages a transfer using transfer descriptors (dTDs) as
 // described in p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors,
 // IMX6ULLRM.
-func (hw *usb) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, err error) {
+func (hw *USB) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, err error) {
 	var dtds []*dTD
 	dtdLength := DTD_PAGES * DTD_PAGE_SIZE
 
@@ -312,7 +313,7 @@ func (hw *usb) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, er
 	return
 }
 
-func (hw *usb) tx(n int, ioc bool, in []byte) (err error) {
+func (hw *USB) tx(n int, ioc bool, in []byte) (err error) {
 	_, err = hw.transferDTD(n, IN, ioc, in)
 
 	if err != nil {
@@ -327,16 +328,16 @@ func (hw *usb) tx(n int, ioc bool, in []byte) (err error) {
 	return
 }
 
-func (hw *usb) rx(n int, ioc bool, buf []byte) (out []byte, err error) {
+func (hw *USB) rx(n int, ioc bool, buf []byte) (out []byte, err error) {
 	return hw.transferDTD(n, OUT, ioc, buf)
 }
 
-func (hw *usb) ack(n int) (err error) {
+func (hw *USB) ack(n int) (err error) {
 	_, err = hw.transferDTD(n, IN, false, nil)
 	return
 }
 
-func (hw *usb) stall(n int, dir int) {
+func (hw *USB) stall(n int, dir int) {
 	ctrl := hw.epctrl + uint32(4*n)
 
 	if dir == IN {
@@ -346,7 +347,7 @@ func (hw *usb) stall(n int, dir int) {
 	}
 }
 
-func (hw *usb) enable(n int, dir int, transferType int) {
+func (hw *USB) enable(n int, dir int, transferType int) {
 	if n == 0 {
 		// EP0 does not need enabling (p3790, IMX6ULLRM)
 		return

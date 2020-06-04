@@ -17,10 +17,8 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
+// Clock registers
 const (
-	OSC_FREQ = 24000000
-	VCO_FREQ = 480000000
-
 	CCM_CACRR          uint32 = 0x020c4010
 	CCM_CACRR_ARM_PODF        = 0
 
@@ -44,6 +42,12 @@ const (
 	CCM_CCGR6_CG2        = 4
 	CCM_CCGR6_CG1        = 2
 	CCM_CCGR6_CG0        = 0
+)
+
+// Oscillator frequencies
+const (
+	OSC_FREQ = 24000000
+	VCO_FREQ = 480000000
 )
 
 // ARMCoreDiv returns the ARM core divider value

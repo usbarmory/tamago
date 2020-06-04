@@ -16,6 +16,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
+// RNGB registers
 const (
 	RNG_BASE uint32 = 0x02284000
 
@@ -39,11 +40,12 @@ const (
 	RNG_OUT = RNG_BASE + 0x14
 )
 
-type rngb struct {
+type Rng struct {
 	sync.Mutex
 }
 
-var RNGB = &rngb{}
+// Random Number Generator (RNGB) instance
+var RNGB = &Rng{}
 
 var lcg uint32
 var getRandomDataFn func([]byte)
@@ -70,7 +72,7 @@ func getLCGData(b []byte) {
 }
 
 // Init initializes the RNGB module.
-func (hw *rngb) Init() {
+func (hw *Rng) Init() {
 	hw.Lock()
 	// note: cannot defer during initialization
 
@@ -105,7 +107,7 @@ func (hw *rngb) Init() {
 	hw.Unlock()
 }
 
-func (hw *rngb) getRandomData(b []byte) {
+func (hw *Rng) getRandomData(b []byte) {
 	read := 0
 	need := len(b)
 

@@ -16,6 +16,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
+// UART registers
 const (
 	UART_DEFAULT_BAUDRATE = 115200
 	ESC                   = 0x1b
@@ -121,7 +122,7 @@ const (
 	UTS_TXEMPTY        = 6
 )
 
-type uart struct {
+type Uart struct {
 	sync.Mutex
 
 	urxd uint32
@@ -139,9 +140,10 @@ type uart struct {
 	uts  uint32
 }
 
-var UART2 = &uart{}
+// UART2 instance
+var UART2 = &Uart{}
 
-func (hw *uart) init(base uint32, baudrate uint32) {
+func (hw *Uart) init(base uint32, baudrate uint32) {
 	hw.urxd = base + UARTx_URXD
 	hw.utxd = base + UARTx_UTXD
 	hw.ucr1 = base + UARTx_UCR1
@@ -173,21 +175,21 @@ func uartclk() uint32 {
 	return freq / (podf + 1)
 }
 
-func (hw *uart) txEmpty() bool {
+func (hw *Uart) txEmpty() bool {
 	return reg.Get(hw.uts, UTS_TXEMPTY, 1) == 0
 }
 
-func (hw *uart) rxReady() bool {
+func (hw *Uart) rxReady() bool {
 	return reg.Get(hw.usr2, USR2_RDR, 1) == 1
 }
 
-func (hw *uart) rxError() bool {
+func (hw *Uart) rxError() bool {
 	return reg.Get(hw.urxd, URXD_PRERR, 0b11111) != 0
 }
 
 // Setup programs the UART for RS-232 mode with the requested baudrate,
 // p2312, 45.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
-func (hw *uart) Init(baudrate uint32) {
+func (hw *Uart) Init(baudrate uint32) {
 	hw.Lock()
 
 	// disable UART
@@ -268,7 +270,7 @@ func (hw *uart) Init(baudrate uint32) {
 }
 
 // Write a single character to the selected serial port.
-func (hw *uart) Write(c byte) {
+func (hw *Uart) Write(c byte) {
 	// transmit data
 	reg.Write(hw.utxd, uint32(c))
 
@@ -278,7 +280,7 @@ func (hw *uart) Write(c byte) {
 }
 
 // Read a single character from the selected serial port.
-func (hw *uart) Read() (c byte, valid bool) {
+func (hw *Uart) Read() (c byte, valid bool) {
 	if !hw.rxReady() {
 		return
 	}

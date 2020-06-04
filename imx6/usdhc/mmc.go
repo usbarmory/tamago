@@ -20,6 +20,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/bits"
 )
 
+// MMC registers
 const (
 	// p181, 7.1 OCR register, JESD84-B51
 	MMC_OCR_BUSY        = 31
@@ -59,13 +60,14 @@ const (
 	HS_TIMING_HS200 = 0x2
 )
 
+// MMC constants
 const (
 	MMC_DETECT_TIMEOUT     = 1 * time.Second
 	MMC_DEFAULT_BLOCK_SIZE = 512
 )
 
 // p352, 35.4.6 MMC voltage validation flow chart, IMX6FG
-func (hw *usdhc) voltageValidationMMC() (mmc bool, hc bool) {
+func (hw *USDHC) voltageValidationMMC() (mmc bool, hc bool) {
 	var arg uint32
 
 	// CMD1 - SEND_OP_COND
@@ -103,7 +105,7 @@ func (hw *usdhc) voltageValidationMMC() (mmc bool, hc bool) {
 	return false, false
 }
 
-func (hw *usdhc) writeCardRegisterMMC(reg uint32, val uint32) (err error) {
+func (hw *USDHC) writeCardRegisterMMC(reg uint32, val uint32) (err error) {
 	var arg uint32
 
 	// write MMC_SWITCH_VALUE in register pointed in MMC_SWITCH_INDEX
@@ -127,7 +129,7 @@ func (hw *usdhc) writeCardRegisterMMC(reg uint32, val uint32) (err error) {
 }
 
 // p128, Table 39 — e•MMC internal sizes and related Units / Granularities, JESD84-B51
-func (hw *usdhc) detectCapacityMMC(blockSize int, c_size_mult uint32, c_size uint32, read_bl_len uint32) (err error) {
+func (hw *USDHC) detectCapacityMMC(blockSize int, c_size_mult uint32, c_size uint32, read_bl_len uint32) (err error) {
 	// density greater than 2GB
 	if c_size > 0xff {
 		// emulation mode is assumed for densities greater than 256GB
@@ -151,7 +153,7 @@ func (hw *usdhc) detectCapacityMMC(blockSize int, c_size_mult uint32, c_size uin
 
 // p352, 35.4.7 MMC card initialization flow chart, IMX6FG
 // p58, 6.4.4 Device identification process, JESD84-B51
-func (hw *usdhc) initMMC() (err error) {
+func (hw *USDHC) initMMC() (err error) {
 	var arg uint32
 	var bus_width uint32
 

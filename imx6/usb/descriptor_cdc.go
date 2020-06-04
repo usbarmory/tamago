@@ -14,6 +14,7 @@ import (
 	"encoding/binary"
 )
 
+// CDC descriptor constants
 const (
 	// p44, Table 24: Type Values for the bDescriptorType Field,
 	// USB Class Definitions for Communication Devices 1.1
@@ -22,6 +23,10 @@ const (
 	HEADER_LENGTH              = 5
 	UNION_LENGTH               = 5
 	ETHERNET_NETWORKING_LENGTH = 13
+
+	// p64, Table 46: Class-Specific Request Codes,
+	// USB Class Definitions for Communication Devices 1.1
+	SET_ETHERNET_PACKET_FILTER = 0x43
 
 	HEADER              = 0
 	UNION               = 6

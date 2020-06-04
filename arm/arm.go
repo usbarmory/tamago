@@ -8,11 +8,17 @@
 // that can be found in the LICENSE file.
 
 // Package arm provides support for ARM architecture specific operations.
+//
+// The following architectures/cores are supported/tested:
+//  * ARMv7-A / Cortex-A7 (single-core)
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/f-secure-foundry/tamago.
 package arm
 
+// Processor modes (p1139, ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition).
 const (
-	// Processor modes
-	// p1139, ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	USR_MODE = 0x10
 	FIQ_MODE = 0x11
 	IRQ_MODE = 0x12
@@ -24,6 +30,7 @@ const (
 	SYS_MODE = 0x1f
 )
 
+// CPU instance
 type CPU struct {
 	// instruction sets
 	arm     bool
@@ -38,13 +45,16 @@ type CPU struct {
 	virtualization   bool
 	genericTimer     bool
 
-	// timer information
+	// timer multiplier
 	TimerMultiplier int64
-	TimerFn         func() int64
+	// timer function
+	TimerFn func() int64
 }
 
-func (c *CPU) Init() {
-	c.initFeatures()
+// Init performs ARM processor instance initialization by detecting its
+// available features.
+func (cpu *CPU) Init() {
+	cpu.initFeatures()
 }
 
 // defined in arm.s

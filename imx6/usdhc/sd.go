@@ -19,6 +19,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/bits"
 )
 
+// SD registers
 const (
 	// p101, 4.3.13 Send Interface Condition Command (CMD8), SD-PL-7.10
 	CMD8_ARG_VHS           = 8
@@ -67,13 +68,14 @@ const (
 	SD_CSD_READ_BL_LEN_3 = 80 + CSD_RSP_OFF
 )
 
+// SD constants
 const (
 	SD_DETECT_TIMEOUT     = 1 * time.Second
 	SD_DEFAULT_BLOCK_SIZE = 512
 )
 
 // p350, 35.4.4 SD voltage validation flow chart, IMX6FG
-func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
+func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 	var arg uint32
 	var hv bool
 
@@ -150,7 +152,7 @@ func (hw *usdhc) voltageValidationSD() (sd bool, hc bool) {
 	return false, false
 }
 
-func (hw *usdhc) detectCapacitySD(blockSize uint32) (err error) {
+func (hw *USDHC) detectCapacitySD(blockSize uint32) (err error) {
 	// CMD9 - SEND_CSD - read device data
 	if err = hw.cmd(9, READ, hw.rca, RSP_136, false, true, false, 0); err != nil {
 		return
@@ -193,7 +195,7 @@ func (hw *usdhc) detectCapacitySD(blockSize uint32) (err error) {
 
 // p351, 35.4.5 SD card initialization flow chart, IMX6FG
 // p57, 4.2.3 Card Initialization and Identification Process, SD-PL-7.10
-func (hw *usdhc) initSD() (err error) {
+func (hw *USDHC) initSD() (err error) {
 	var arg uint32
 	var bus_width uint32
 

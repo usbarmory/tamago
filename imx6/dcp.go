@@ -22,6 +22,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
+// DCP registers
 const (
 	HW_DCP_BASE uint32 = 0x02280000
 
@@ -45,6 +46,7 @@ const (
 	SNVS_HPSR_SSM_STATE_SECURE         = 0b1111
 )
 
+// DCP control packet settings
 const (
 	// p1068, 13.2.6.4.2 Control0 Field, MCIMX28RM
 	DCP_CTRL0_OTP_KEY         = 10
@@ -63,6 +65,7 @@ const (
 	UNIQUE_KEY = 0xfe
 )
 
+// DCP channels
 const (
 	DCP_CHANNEL_1 = iota
 	DCP_CHANNEL_2
@@ -71,7 +74,8 @@ const (
 	DCP_CHANNEL_MAX
 )
 
-// p1067, 13.2.6.4 Work Packet Structure, MCIMX28RM
+// DCP work packet
+// (p1067, 13.2.6.4 Work Packet Structure, MCIMX28RM).
 type WorkPacket struct {
 	NextCmdAddr              uint32
 	Control0                 uint32
@@ -84,14 +88,15 @@ type WorkPacket struct {
 	Pad_cgo_0                [4]byte
 }
 
-type dcp struct {
+type Dcp struct {
 	sync.Mutex
 }
 
-var DCP = &dcp{}
+// Data Co-Processor (DCP) instance
+var DCP = &Dcp{}
 
 // Init initializes the DCP module.
-func (hw *dcp) Init() {
+func (hw *Dcp) Init() {
 	hw.Lock()
 	// note: cannot defer during initialization
 
@@ -118,7 +123,7 @@ func (hw *dcp) Init() {
 // enabled, otherwise a Non-volatile Test Key (NVTK), identical for each SoC,
 // is used. The secure operation of the DCP and SNVS, in production
 // deployments, should always be paired with Secure Boot activation.
-func (hw *dcp) SNVS() bool {
+func (hw *Dcp) SNVS() bool {
 	ssm := reg.Get(SNVS_HPSR_REG, SNVS_HPSR_SSM_STATE, 0b1111)
 
 	switch ssm {
@@ -134,7 +139,7 @@ func (hw *dcp) SNVS() bool {
 //
 // The diversifier is AES-CBC encrypted using the internal OTPMK key (when SNVS
 // is enabled).
-func (hw *dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) {
+func (hw *Dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) {
 	if len(iv) != aes.BlockSize {
 		return nil, errors.New("invalid IV size")
 	}

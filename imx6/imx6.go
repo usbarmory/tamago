@@ -10,11 +10,9 @@
 // Package imx6 provides support to Go bare metal unikernels written using the
 // TamaGo framework.
 //
-// It implements initialization and drivers for specific NXP i.MX6
-// System-on-Chip (SoC) peripherals.
-//
-// Its implementation adopts, where indicated, the following reference
-// specifications:
+// The package implements initialization and drivers for specific NXP i.MX6
+// System-on-Chip (SoC) peripherals, adopting, where indicated, the following
+// reference specifications:
 //   * IMX6ULLRM  - i.MX 6ULL Applications Processor Reference Manual                - Rev 1      2017/11
 //   * IMX6FG     - i.MX 6 Series Firmware Guide                                     - Rev 0      2012/11
 //   * IMX6ULLCEC - i.MX6ULL Data Sheet                                              - Rev 1.2    2017/11
@@ -22,6 +20,10 @@
 //   * SD-PL-7.10 - SD Specifications Part 1 Physical Layer Simplified Specification - 7.10       2020/03/25
 //   * JESD84-B51 - Embedded Multi-Media Card (e•MMC) Electrical Standard (5.1)      - JESD84-B51 2015/02
 //   * USB2.0     - USB Specification Revision 2.0                                   - 2.0        2000/04/27
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/f-secure-foundry/tamago.
 package imx6
 
 import (
@@ -32,21 +34,38 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
-const USB_ANALOG_DIGPROG uint32 = 0x020c8260
-const WDOG1_WCR uint32 = 0x020bc000
-const OCOTP_CFG0 uint32 = 0x021bc410
-const OCOTP_CFG1 uint32 = 0x021bc420
+// Identification registers
+const (
+	WDOG1_WCR          uint32 = 0x020bc000
+	OCOTP_CFG0         uint32 = 0x021bc410
+	OCOTP_CFG1         uint32 = 0x021bc420
+	USB_ANALOG_DIGPROG uint32 = 0x020c8260
+)
 
-const SRC_SCR uint32 = 0x020d8000
-const SCR_WARM_RESET_ENABLE = 0
+// Reset registers
+const (
+	SRC_SCR               uint32 = 0x020d8000
+	SCR_WARM_RESET_ENABLE        = 0
+)
 
-const IMX6Q = 0x63
-const IMX6UL = 0x64
-const IMX6ULL = 0x65
+// Timer register
+// (p178, Table 2-3, IMX6ULLRM)
+const SYS_CNT_BASE uint32 = 0x021dc000
 
+// i.MX processor families
+const (
+	IMX6Q   = 0x63
+	IMX6UL  = 0x64
+	IMX6ULL = 0x65
+)
+
+// Processor family
 var Family uint32
+
+// Flag for native or emulated processor
 var Native bool
 
+// ARM processor instance
 var ARM = &arm.CPU{}
 
 //go:linkname nanotime1 runtime.nanotime1
@@ -79,10 +98,10 @@ func hwinit() {
 	case IMX6UL, IMX6ULL:
 		if !Native {
 			// use QEMU fixed CNTFRQ value (62.5MHz)
-			ARM.InitGenericTimers(62500000)
+			ARM.InitGenericTimers(SYS_CNT_BASE, 62500000)
 		} else {
 			// U-Boot value for i.MX6 family (8.0MHz)
-			ARM.InitGenericTimers(8000000)
+			ARM.InitGenericTimers(SYS_CNT_BASE, 8000000)
 		}
 	default:
 		ARM.InitGlobalTimers()
@@ -111,7 +130,7 @@ func SiliconVersion() (sv, family, revMajor, revMinor uint32) {
 	return
 }
 
-// UniqueID returns the NXP SoC Device Unique 64-bit ID
+// UniqueID returns the NXP SoC Device Unique 64-bit ID.
 func UniqueID() (uid [8]byte) {
 	cfg0 := reg.Read(OCOTP_CFG0)
 	cfg1 := reg.Read(OCOTP_CFG1)

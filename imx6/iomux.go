@@ -15,6 +15,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
+// IOMUX registers
 const (
 	IOMUXC_START uint32 = 0x020e0000
 	IOMUXC_END   uint32 = 0x0203ffff
@@ -51,6 +52,7 @@ const (
 	SW_MUX_CTL_MUX_MODE = 0
 )
 
+// Pad instance.
 type Pad struct {
 	// mux register (IOMUXC_SW_MUX_CTL_PAD_*)
 	mux uint32

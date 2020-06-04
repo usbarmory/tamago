@@ -18,6 +18,7 @@ import (
 	"unicode/utf16"
 )
 
+// Standard USB descriptor sizes
 const (
 	DEVICE_LENGTH                = 18
 	CONFIGURATION_LENGTH         = 9
@@ -339,7 +340,7 @@ func (d *DeviceQualifierDescriptor) Bytes() []byte {
 }
 
 // SetupFunction represents the function to process class-specific setup
-// requests (i.e. not already handled by *usb.doSetup).
+// requests.
 type SetupFunction func(setup *SetupData) (in []byte, err error)
 
 // Device is a collection of USB device descriptors and host driven settings

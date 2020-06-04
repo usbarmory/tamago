@@ -15,10 +15,11 @@ import (
 	"github.com/f-secure-foundry/tamago/imx6"
 )
 
+// LED configuration constants
+//
 // On the USB armory Mk II the following LEDs are connected:
 //   * pad CSI_DATA00, GPIO4_IO21: white
 //   * pad CSI_DATA01, GPIO4_IO22: blue
-
 const (
 	// GPIO4 data
 	GPIO4_DR uint32 = 0x020a8000

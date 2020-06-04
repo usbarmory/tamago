@@ -16,7 +16,7 @@ import (
 // defined in vfp.s
 func vfp_enable()
 
-//go:linkname EnableVFP runtime.vfp_enable
-func (c *CPU) EnableVFP() {
+// EnableVFP activates the ARM Vector-Floating-Point co-processor.
+func (cpu *CPU) EnableVFP() {
 	vfp_enable()
 }

@@ -15,18 +15,22 @@ func cache_disable()
 func cache_flush_data()
 func cache_flush_instruction()
 
-func (c *CPU) CacheEnable() {
+// CacheEnable activates the ARM MMU instruction and data caches.
+func (cpu *CPU) CacheEnable() {
 	cache_enable()
 }
 
-func (c *CPU) CacheDisable() {
+// CacheDisable disables the ARM MMU instruction and data caches.
+func (cpu *CPU) CacheDisable() {
 	cache_disable()
 }
 
-func (c *CPU) CacheFlushData() {
+// CacheFlushData flushes the ARM MMU data cache.
+func (cpu *CPU) CacheFlushData() {
 	cache_flush_data()
 }
 
-func (c *CPU) CacheFlushInstruction() {
+// CacheFlushData flushes the ARM MMU instruction cache.
+func (cpu *CPU) CacheFlushInstruction() {
 	cache_flush_instruction()
 }

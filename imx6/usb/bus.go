@@ -7,6 +7,12 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+// Package usb implements a driver for the USB PHY designated as NXP
+// USBOH3USBO2, included in i.MX6 SoCs.
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/f-secure-foundry/tamago.
 package usb
 
 import (
@@ -17,6 +23,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
+// USB registers
 const (
 	CCM_ANALOG_PLL_USB1             uint32 = 0x020c8010
 	CCM_ANALOG_PLL_USB1_LOCK               = 31
@@ -101,7 +108,8 @@ const (
 	ENDPTCTRL_RXS             = 0
 )
 
-type usb struct {
+// USB represents a controller instance.
+type USB struct {
 	sync.Mutex
 
 	pll      uint32
@@ -123,7 +131,8 @@ type usb struct {
 	epctrl   uint32
 }
 
-var USB1 = &usb{
+// USB1 instance
+var USB1 = &USB{
 	pll:      CCM_ANALOG_PLL_USB1,
 	ctrl:     USBPHY1_CTRL,
 	pwd:      USBPHY1_PWD,
@@ -143,8 +152,9 @@ var USB1 = &usb{
 	epctrl:   USB_UOG1_ENDPTCTRL,
 }
 
-// Init initializes the USB controller.
-func (hw *usb) Init() {
+// Init initializes the controller, as a current limitation the controller is
+// hard-coded to USB1.
+func (hw *USB) Init() {
 	hw.Lock()
 	defer hw.Unlock()
 
@@ -187,7 +197,7 @@ func (hw *usb) Init() {
 }
 
 // Speed returns the port speed.
-func (hw *usb) Speed() (speed string) {
+func (hw *USB) Speed() (speed string) {
 	hw.Lock()
 	defer hw.Unlock()
 
@@ -205,8 +215,8 @@ func (hw *usb) Speed() (speed string) {
 	return
 }
 
-// Reset waits for and handles a USB bus reset.
-func (hw *usb) Reset() {
+// Reset waits for and handles a bus reset.
+func (hw *USB) Reset() {
 	hw.Lock()
 	defer hw.Unlock()
 

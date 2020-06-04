@@ -14,6 +14,14 @@ import (
 	"github.com/f-secure-foundry/tamago/imx6/usdhc"
 )
 
+// SD instance
+var SD = usdhc.USDHC1
+
+// MMC instance
+var MMC = usdhc.USDHC2
+
+// SD/MMC configuration constants.
+//
 // On the USB armory Mk II the following uSDHC interfaces are connected:
 //   * uSDHC1: external uSD  slot (SD1)
 //   * uSDHC2: internal eMMC card (SD2/NAND)
@@ -22,11 +30,6 @@ import (
 // modes are:
 //   * uSD:  High Speed (HS)      25MB/s, 50MHz, 3.3V, 4-bit data bus
 //   * eMMC: High Speed (HS) DDR 104MB/s, 52MHz, 3.3V, 8-bit data bus
-//
-
-var SD = usdhc.USDHC1
-var MMC = usdhc.USDHC2
-
 const (
 	IOMUXC_SW_MUX_CTL_PAD_CSI_DATA04 uint32 = 0x020e01f4
 	IOMUXC_SW_PAD_CTL_PAD_CSI_DATA04 uint32 = 0x020e0480

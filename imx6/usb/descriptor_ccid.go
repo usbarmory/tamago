@@ -14,6 +14,7 @@ import (
 	"encoding/binary"
 )
 
+// CCID descriptor constants
 const (
 	// p17, Table 5.1-1, CCID Rev1.1
 	CCID_INTERFACE         = 0x21

@@ -15,6 +15,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
+// GPIO constants
 const (
 	GPIO_START uint32 = 0x0209c000
 	GPIO_END   uint32 = 0x020affff
@@ -22,6 +23,7 @@ const (
 	GPIO_MODE = 5
 )
 
+// GPIO instance
 type GPIO struct {
 	num  int
 	Pad  *Pad

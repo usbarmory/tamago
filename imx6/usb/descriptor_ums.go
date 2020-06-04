@@ -13,6 +13,7 @@ import (
 	"encoding/binary"
 )
 
+// Mass Storage constants
 const (
 	CBW_LENGTH        = 31
 	CBW_CB_MAX_LENGTH = 16

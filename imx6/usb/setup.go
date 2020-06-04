@@ -17,7 +17,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
-// p279, Table 9-4. Standard Request Codes, USB2.0
+// Setup request codes (p279, Table 9-4. Standard Request Codes, USB2.0)
 const (
 	GET_STATUS        = 0
 	CLEAR_FEATURE     = 1
@@ -32,14 +32,8 @@ const (
 	SYNCH_FRAME       = 12
 )
 
-// p64, Table 46: Class-Specific Request Codes,
-// USB Class Definitions for Communication Devices 1.1
+// Descriptor types (p279, Table 9-5. Descriptor Types, USB2.0)
 const (
-	SET_ETHERNET_PACKET_FILTER = 0x43
-)
-
-const (
-	// p279, Table 9-5. Descriptor Types, USB2.0
 	DEVICE                    = 1
 	CONFIGURATION             = 2
 	STRING                    = 3
@@ -48,6 +42,7 @@ const (
 	DEVICE_QUALIFIER          = 6
 	OTHER_SPEED_CONFIGURATION = 7
 	INTERFACE_POWER           = 8
+
 	// Engineering Change Notices (ECN)
 	OTG                   = 9
 	DEBUG                 = 10
@@ -76,7 +71,7 @@ func (s *SetupData) swap() {
 	s.Index = binary.LittleEndian.Uint16(b)
 }
 
-func (hw *usb) getSetup() (setup *SetupData) {
+func (hw *USB) getSetup() (setup *SetupData) {
 	setup = &SetupData{}
 
 	// p3801, 56.4.6.4.2.1 Setup Phase, IMX6ULLRM
@@ -105,7 +100,7 @@ func (hw *usb) getSetup() (setup *SetupData) {
 	return
 }
 
-func (hw *usb) doSetup(dev *Device, setup *SetupData) (err error) {
+func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 	if setup == nil {
 		return
 	}

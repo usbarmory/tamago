@@ -16,6 +16,7 @@ import (
 	"encoding/binary"
 )
 
+// ADMA constants
 const (
 	ATTR_VALID = 0
 	ATTR_END   = 1
@@ -32,7 +33,7 @@ const (
 	ADMA_BD_MAX_LENGTH = 65532
 )
 
-// p3964 58.4.2.4.1 ADMA Concept and Descriptor Format, IMX6ULLRM
+// ADMABufferDescriptor implements p3964 58.4.2.4.1 ADMA Concept and Descriptor Format, IMX6ULLRM.
 type ADMABufferDescriptor struct {
 	Attribute uint8
 	res       uint8

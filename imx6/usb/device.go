@@ -18,7 +18,7 @@ import (
 )
 
 // DeviceMode sets the USB controller in device mode.
-func (hw *usb) DeviceMode() {
+func (hw *USB) DeviceMode() {
 	hw.Lock()
 	defer hw.Unlock()
 
@@ -60,7 +60,7 @@ func (hw *usb) DeviceMode() {
 // Current limitations:
 //   * bus reset after initial setup are not handled
 //   * only control/bulk/interrupt endpoints are supported (e.g. no isochronous support)
-func (hw *usb) Start(dev *Device) {
+func (hw *USB) Start(dev *Device) {
 	for _, conf := range dev.Configurations {
 		for _, iface := range conf.Interfaces {
 			for _, ep := range iface.Endpoints {
@@ -74,7 +74,7 @@ func (hw *usb) Start(dev *Device) {
 	hw.setupHandler(dev)
 }
 
-func (hw *usb) setupHandler(dev *Device) {
+func (hw *USB) setupHandler(dev *Device) {
 	for {
 		if !reg.WaitFor(10*time.Millisecond, hw.setup, 0, 1, 1) {
 			continue
@@ -88,7 +88,7 @@ func (hw *usb) setupHandler(dev *Device) {
 	}
 }
 
-func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) {
+func (hw *USB) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) {
 	var err error
 	var buf []byte
 	var res []byte
@@ -108,7 +108,7 @@ func (hw *usb) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) 
 
 		if dev.ConfigurationValue != conf {
 			if ep.enabled {
-				reg.Set(hw.flush, (dir * 16) + n)
+				reg.Set(hw.flush, (dir*16)+n)
 				ep.enabled = false
 			}
 

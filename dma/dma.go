@@ -10,6 +10,10 @@
 // Package dma provides primitives for direct memory allocation and alignment,
 // it is primarily used in bare metal device driver operation to avoid passing
 // Go pointers for DMA purposes.
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/f-secure-foundry/tamago.
 package dma
 
 import (
@@ -43,7 +47,7 @@ var dma = &region{}
 
 // Init initializes a memory region for DMA buffer allocation, the application
 // must guarantee that the passed memory range is never used by the Go
-// runtime (defining `runtime.ramStart` and `runtime.ramSize` accordingly).
+// runtime (defining runtime.ramStart and runtime.ramSize accordingly).
 func Init(start uint32, size int) {
 	dma.Lock()
 	// note: cannot defer during initialization
@@ -67,11 +71,11 @@ func Init(start uint32, size int) {
 
 // Reserve allocated a slice of bytes for DMA purposes, by placing its data
 // within the DMA region, with optional alignment. It returns the slice along
-// with its data allocation address. The buffer can be freed up with `Release`.
+// with its data allocation address. The buffer can be freed up with Release().
 //
-// Reserving buffers with `Reserve` allows applications to pre-allocate DMA
+// Reserving buffers with Reserve() allows applications to pre-allocate DMA
 // regions, avoiding unnecessary memory copy operations when performance is a
-// concern. Reserved buffers cause `Alloc` and `Read` to return without any
+// concern. Reserved buffers cause Alloc() and Read() to return without any
 // allocation or memory copy.
 func Reserve(size int, align int) (addr uint32, buf []byte) {
 	dma.Lock()
@@ -96,7 +100,7 @@ func Reserve(size int, align int) (addr uint32, buf []byte) {
 
 // Reserved returns whether a slice of bytes data is allocated within the DMA
 // buffer region, it is used to determine whether the passed buffer has been
-// previously allocated by this package with `Reserve`.
+// previously allocated by this package with Reserve().
 func Reserved(buf []byte) (res bool, addr uint32) {
 	addr = uint32(uintptr(unsafe.Pointer(&buf[0])))
 	res = addr >= dma.start && addr+uint32(len(buf)) <= dma.start+uint32(dma.size)
@@ -106,10 +110,10 @@ func Reserved(buf []byte) (res bool, addr uint32) {
 
 // Alloc reserves a memory region for DMA purposes, copying over a buffer and
 // returning its allocation address, with optional alignment. The region can be
-// freed up with `Free`.
+// freed up with Free().
 //
-// If the argument is a buffer previously created with `Reserve`, then
-// its address is return without any re-allocation.
+// If the argument is a buffer previously created with Reserve(), then its
+// address is return without any re-allocation.
 func Alloc(buf []byte, align int) (addr uint32) {
 	dma.Lock()
 	defer dma.Unlock()
@@ -133,13 +137,13 @@ func Alloc(buf []byte, align int) (addr uint32) {
 }
 
 // Read reads exactly len(buf) bytes from a memory region address into a
-// buffer, the region must have been previously allocated with `Alloc`.
+// buffer, the region must have been previously allocated with Alloc().
 //
 // The offset and buffer size are used to retrieve a slice of the memory
 // region, a panic occurs if these parameters are not compatible with the
 // initial allocation for the address.
 //
-// If the argument is a buffer previously created with `Reserve`, then the
+// If the argument is a buffer previously created with Reserve(), then the
 // function returns without modifying it, as it is assumed for the buffer to be
 // already updated.
 func Read(addr uint32, offset int, buf []byte) {
@@ -170,7 +174,7 @@ func Read(addr uint32, offset int, buf []byte) {
 }
 
 // Write writes buffer contents to a memory region address, the region must
-// have been previously allocated with `Alloc`.
+// have been previously allocated with Alloc().
 //
 // An offset can be pased to write a slice of the memory region, a panic occurs
 // if the offset is not compatible with the initial allocation for the address.
@@ -198,13 +202,13 @@ func Write(addr uint32, data []byte, offset int) {
 }
 
 // Free frees the memory region stored at the passed address, the region must
-// have been previously allocated with `Alloc`.
+// have been previously allocated with Alloc().
 func Free(addr uint32) {
 	freeBlock(addr, false)
 }
 
 // Release frees the memory region stored at the passed address, the region
-// must have been previously allocated with `Reserve`.
+// must have been previously allocated with Reserve().
 func Release(addr uint32) {
 	freeBlock(addr, true)
 }

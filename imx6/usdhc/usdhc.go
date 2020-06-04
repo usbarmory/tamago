@@ -9,6 +9,16 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+// Package usdhc implements a driver for Freescale Enhanced Secure Digital
+// Host Controller (eSDHC) interface, also known as NXP Ultra Secured Digital
+// Host Controller (uSDHC).
+//
+// It currently supports interfacing with SD/MMC cards up to High Speed mode
+// and Dual Data Rate.
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/f-secure-foundry/tamago.
 package usdhc
 
 import (
@@ -23,8 +33,8 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
+// USDHC registers (p4012, 58.8 uSDHC Memory Map/Register Definition, IMX6ULLRM).
 const (
-	// p4012, 58.8 uSDHC Memory Map/Register Definition, IMX6ULLRM
 	USDHC1_BASE uint32 = 0x02190000
 	USDHC2_BASE uint32 = 0x02194000
 
@@ -106,10 +116,11 @@ const (
 	USDHCx_ADMA_SYS_ADDR   = 0x58
 )
 
-// p348, 35.4.2 Frequency divider configuration, IMX6FG
-//   Identification frequency ≤ 400 KHz
-//   Operating frequency ≤ 25 MHz
-//   High frequency ≤ 50 MHz
+// Configuration constants (p348, 35.4.2 Frequency divider configuration,
+// IMX6FG) to support the following frequencies:
+//   * Identification frequency ≤ 400 KHz
+//   * Operating frequency ≤ 25 MHz
+//   * High frequency ≤ 50 MHz
 const (
 	// p346, 35.2 Clocks, IMX6FG.
 	//
@@ -152,9 +163,7 @@ const (
 	// (unsupported at controller level).
 )
 
-// type alias for export
-type Interface = usdhc
-
+// CardInfo holds detected card information.
 type CardInfo struct {
 	// eMMC card
 	MMC bool
@@ -172,7 +181,8 @@ type CardInfo struct {
 	Blocks int
 }
 
-type usdhc struct {
+// USHDC represents a controller instance.
+type USDHC struct {
 	sync.Mutex
 
 	// controller index
@@ -208,11 +218,14 @@ type usdhc struct {
 	writeTimeout time.Duration
 }
 
-var USDHC1 = &usdhc{n: 1}
-var USDHC2 = &usdhc{n: 2}
+// USDHC1 instance
+var USDHC1 = &USDHC{n: 1}
+
+// USDHC2 instance
+var USDHC2 = &USDHC{n: 2}
 
 // p348, 35.4.2 Frequency divider configuration, IMX6FG
-func (hw *usdhc) setClock(dvs int, sdclkfs int) {
+func (hw *USDHC) setClock(dvs int, sdclkfs int) {
 	// wait for stable clock to comply with p4038, IMX6ULLRM DVS note
 	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)
 
@@ -226,7 +239,7 @@ func (hw *usdhc) setClock(dvs int, sdclkfs int) {
 }
 
 // Detect performs voltage validation to detect an SD or MMC card.
-func (hw *usdhc) detect() (sd bool, mmc bool, hc bool, err error) {
+func (hw *USDHC) detect() (sd bool, mmc bool, hc bool, err error) {
 	sd, hc = hw.voltageValidationSD()
 
 	if sd {
@@ -238,12 +251,13 @@ func (hw *usdhc) detect() (sd bool, mmc bool, hc bool, err error) {
 	return
 }
 
-func (hw *usdhc) Info() CardInfo {
+// Info returns detected card information.
+func (hw *USDHC) Info() CardInfo {
 	return hw.card
 }
 
 // Init initializes the uSDHC controller instance.
-func (hw *usdhc) Init(width int) {
+func (hw *USDHC) Init(width int) {
 	var base uint32
 
 	hw.Lock()
@@ -287,7 +301,7 @@ func (hw *usdhc) Init(width int) {
 
 // Detect initializes an SD/MMC card as specified in
 // p347, 35.4.1 Initializing the SD/MMC card, IMX6FG.
-func (hw *usdhc) Detect() (err error) {
+func (hw *USDHC) Detect() (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
@@ -382,7 +396,7 @@ func (hw *usdhc) Detect() (err error) {
 // Transfer data from/to the card as specified in:
 //   p347, 35.5.1 Reading data from the card, IMX6FG,
 //   p354, 35.5.2 Writing data to the card, IMX6FG.
-func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint64, blocks uint32, blockSize uint32, buf []byte) (err error) {
+func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32, blockSize uint32, buf []byte) (err error) {
 	var timeout time.Duration
 
 	if hw.cg == 0 {
@@ -454,7 +468,7 @@ func (hw *usdhc) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 }
 
 // ReadBlocks transfers full blocks of data from the card.
-func (hw *usdhc) ReadBlocks(lba int, blocks int, buf []byte) (err error) {
+func (hw *USDHC) ReadBlocks(lba int, blocks int, buf []byte) (err error) {
 	blockSize := hw.card.BlockSize
 	bufSize := blocks * blockSize
 	offset := uint64(lba) * uint64(blockSize)
@@ -477,7 +491,7 @@ func (hw *usdhc) ReadBlocks(lba int, blocks int, buf []byte) (err error) {
 }
 
 // Read transfers data from the card.
-func (hw *usdhc) Read(offset int, size int) (buf []byte, err error) {
+func (hw *USDHC) Read(offset int, size int) (buf []byte, err error) {
 	blockSize := hw.card.BlockSize
 
 	if size == 0 {
@@ -522,7 +536,7 @@ func (hw *usdhc) Read(offset int, size int) (buf []byte, err error) {
 }
 
 // WriteBlocks transfers full blocks of data to the card.
-func (hw *usdhc) WriteBlocks(lba int, buf []byte) (err error) {
+func (hw *USDHC) WriteBlocks(lba int, buf []byte) (err error) {
 	blockSize := hw.card.BlockSize
 	offset := uint64(lba) * uint64(blockSize)
 
@@ -530,7 +544,7 @@ func (hw *usdhc) WriteBlocks(lba int, buf []byte) (err error) {
 }
 
 // Write transfers data to the card.
-func (hw *usdhc) Write(offset uint64, buf []byte) (err error) {
+func (hw *USDHC) Write(offset uint64, buf []byte) (err error) {
 	blockSize := uint32(hw.card.BlockSize)
 	size := len(buf)
 
