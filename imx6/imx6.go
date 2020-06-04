@@ -26,7 +26,7 @@ package imx6
 
 import (
 	"encoding/binary"
-	"unsafe"
+	_ "unsafe"
 
 	"github.com/f-secure-foundry/tamago/arm"
 	"github.com/f-secure-foundry/tamago/internal/reg"
@@ -34,8 +34,11 @@ import (
 
 const USB_ANALOG_DIGPROG uint32 = 0x020c8260
 const WDOG1_WCR uint32 = 0x020bc000
-const OCOTP_CFG0 = 0x021bc410
-const OCOTP_CFG1 = 0x021bc420
+const OCOTP_CFG0 uint32 = 0x021bc410
+const OCOTP_CFG1 uint32 = 0x021bc420
+
+const SRC_SCR uint32 = 0x020d8000
+const SCR_WARM_RESET_ENABLE = 0
 
 const IMX6Q = 0x63
 const IMX6UL = 0x64
@@ -137,7 +140,7 @@ func Model() (model string) {
 
 // Reboot resets the watchdog timer causing the SoC to restart.
 func Reboot() {
+	reg.Clear(SRC_SCR, SCR_WARM_RESET_ENABLE)
 	// WDOG1_WCR is a 16-bit register, 32-bit access should be avoided
-	reg := (*uint16)(unsafe.Pointer(uintptr(WDOG1_WCR)))
-	*reg = 0
+	reg.Write16(WDOG1_WCR, 0)
 }
