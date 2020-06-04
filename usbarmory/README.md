@@ -120,7 +120,7 @@ Debugging
 
 The application can be debugged with GDB over JTAG using `openocd` and the
 `imx6ull.cfg` and `gdbinit` debugging helpers published
-[here](https://github.com/f-secure-foundry/tamago/tree/master/dev).
+[here](https://github.com/f-secure-foundry/tamago/tree/master/_dev).
 
 ```
 # start openocd daemon
