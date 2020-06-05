@@ -35,8 +35,8 @@ import (
 
 // USDHC registers (p4012, 58.8 uSDHC Memory Map/Register Definition, IMX6ULLRM).
 const (
-	USDHC1_BASE uint32 = 0x02190000
-	USDHC2_BASE uint32 = 0x02194000
+	USDHC1_BASE = 0x02190000
+	USDHC2_BASE = 0x02194000
 
 	USDHCx_BLK_ATT  = 0x04
 	BLK_ATT_BLKCNT  = 16

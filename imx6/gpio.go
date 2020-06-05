@@ -17,8 +17,8 @@ import (
 
 // GPIO constants
 const (
-	GPIO_START uint32 = 0x0209c000
-	GPIO_END   uint32 = 0x020affff
+	GPIO_START = 0x0209c000
+	GPIO_END   = 0x020affff
 
 	GPIO_MODE = 5
 )

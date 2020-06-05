@@ -17,8 +17,8 @@ import (
 
 // IOMUX registers
 const (
-	IOMUXC_START uint32 = 0x020e0000
-	IOMUXC_END   uint32 = 0x0203ffff
+	IOMUXC_START = 0x020e0000
+	IOMUXC_END   = 0x0203ffff
 
 	SW_PAD_CTL_HYS = 16
 

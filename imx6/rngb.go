@@ -18,7 +18,7 @@ import (
 
 // RNGB registers
 const (
-	RNG_BASE uint32 = 0x02284000
+	RNG_BASE = 0x02284000
 
 	RNG_CMD    = RNG_BASE + 0x04
 	RNG_CMD_SR = 6
