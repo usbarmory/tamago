@@ -67,7 +67,7 @@ func (cpu *CPU) InitGenericTimers(base uint32, freq int32) {
 		// Stop system counter on debug
 		reg.Set(base+CNTCR, CNTCR_HDBG)
 		// Start system counter
-		reg.Set(CNTCR, CNTCR_EN)
+		reg.Set(base+CNTCR, CNTCR_EN)
 	}
 
 	timerFreq = int64(read_cntfrq())
