@@ -15,35 +15,53 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/f-secure-foundry/tamago/dma"
+	"github.com/f-secure-foundry/tamago/internal/bits"
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 // DCP registers
 const (
-	HW_DCP_BASE = 0x02280000
+	DCP_BASE = 0x02280000
 
-	HW_DCP_CTRL         = HW_DCP_BASE
-	HW_DCP_CTRL_SFTRST  = 31
-	HW_DCP_CTRL_CLKGATE = 30
+	DCP_CTRL     = DCP_BASE
+	CTRL_SFTRST  = 31
+	CTRL_CLKGATE = 30
 
-	HW_DCP_STAT     = HW_DCP_BASE + 0x10
-	HW_DCP_STAT_CLR = HW_DCP_BASE + 0x18
-	HW_DCP_STAT_IRQ = 0
+	DCP_STAT     = DCP_BASE + 0x10
+	DCP_STAT_CLR = DCP_BASE + 0x18
+	DCP_STAT_IRQ = 0
 
-	HW_DCP_CHANNELCTRL = HW_DCP_BASE + 0x0020
-	HW_DCP_CH0CMDPTR   = HW_DCP_BASE + 0x0100
-	HW_DCP_CH0SEMA     = HW_DCP_BASE + 0x0110
-	HW_DCP_CH0STAT     = HW_DCP_BASE + 0x0120
-	HW_DCP_CH0STAT_CLR = HW_DCP_BASE + 0x0128
+	DCP_CHANNELCTRL = DCP_BASE + 0x0020
 
-	SNVS_HPSR_REG               = 0x020cc014
-	SNVS_HPSR_SSM_STATE         = 8
-	SNVS_HPSR_SSM_STATE_TRUSTED = 0b1101
-	SNVS_HPSR_SSM_STATE_SECURE  = 0b1111
+	DCP_KEY     = DCP_BASE + 0x0060
+	KEY_INDEX   = 4
+	KEY_SUBWORD = 0
+
+	DCP_KEYDATA     = DCP_BASE + 0x0070
+	DCP_CH0CMDPTR   = DCP_BASE + 0x0100
+	DCP_CH0SEMA     = DCP_BASE + 0x0110
+
+	DCP_CH0STAT        = DCP_BASE + 0x0120
+	CHxSTAT_ERROR_CODE = 16
+	CHxSTAT_ERROR_MASK = 0b1111110
+
+	DCP_CH0STAT_CLR = DCP_BASE + 0x0128
+
+	SNVS_HPSR_REG     = 0x020cc014
+	SSM_STATE         = 8
+	SSM_STATE_TRUSTED = 0b1101
+	SSM_STATE_SECURE  = 0b1111
+)
+
+// DCP channels
+const (
+	DCP_CHANNEL_0 = iota + 1
+	DCP_CHANNEL_1
+	DCP_CHANNEL_2
+	DCP_CHANNEL_3
 )
 
 // DCP control packet settings
@@ -59,19 +77,10 @@ const (
 	DCP_CTRL1_KEY_SELECT    = 8
 	DCP_CTRL1_CIPHER_MODE   = 4
 	DCP_CTRL1_CIPHER_SELECT = 0
-	// p1098, 13.3.11 HW_DCP_PACKET2 field descriptions, MCIMX28RM
+	// p1098, 13.3.11 DCP_PACKET2 field descriptions, MCIMX28RM
 	AES128     = 0x0
 	CBC        = 0x1
 	UNIQUE_KEY = 0xfe
-)
-
-// DCP channels
-const (
-	DCP_CHANNEL_1 = iota
-	DCP_CHANNEL_2
-	DCP_CHANNEL_3
-	DCP_CHANNEL_4
-	DCP_CHANNEL_MAX
 )
 
 // DCP work packet
@@ -88,6 +97,24 @@ type WorkPacket struct {
 	Pad_cgo_0                [4]byte
 }
 
+// SetDefaults initializes default values for the DCP work packet.
+func (pkt *WorkPacket) SetDefaults() {
+	pkt.Control0 |= 1 << DCP_CTRL0_INTERRUPT_ENABL
+	pkt.Control0 |= 1 << DCP_CTRL0_DECR_SEMAPHORE
+	pkt.Control0 |= 1 << DCP_CTRL0_ENABLE_CIPHER
+	pkt.Control0 |= 1 << DCP_CTRL0_CIPHER_INIT
+
+	pkt.Control1 |= AES128 << DCP_CTRL1_CIPHER_SELECT
+	pkt.Control1 |= CBC << DCP_CTRL1_CIPHER_MODE
+}
+
+// Bytes converts the DCP work packet structure to byte array format.
+func (pkt *WorkPacket) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, pkt)
+	return buf.Bytes()
+}
+
 type Dcp struct {
 	sync.Mutex
 }
@@ -101,17 +128,17 @@ func (hw *Dcp) Init() {
 	// note: cannot defer during initialization
 
 	// soft reset DCP
-	reg.Set(HW_DCP_CTRL, HW_DCP_CTRL_SFTRST)
-	reg.Clear(HW_DCP_CTRL, HW_DCP_CTRL_SFTRST)
+	reg.Set(DCP_CTRL, CTRL_SFTRST)
+	reg.Clear(DCP_CTRL, CTRL_SFTRST)
 
 	// enable clocks
-	reg.Clear(HW_DCP_CTRL, HW_DCP_CTRL_CLKGATE)
+	reg.Clear(DCP_CTRL, CTRL_CLKGATE)
 
 	// enable all channels with merged IRQs
-	reg.Write(HW_DCP_CHANNELCTRL, 0x000100ff)
+	reg.Write(DCP_CHANNELCTRL, 0x000100ff)
 
 	// enable all channel interrupts
-	reg.SetN(HW_DCP_CHANNELCTRL, 0, 0xff, 0xff)
+	reg.SetN(DCP_CHANNELCTRL, 0, 0xff, 0xff)
 
 	hw.Unlock()
 }
@@ -124,14 +151,89 @@ func (hw *Dcp) Init() {
 // is used. The secure operation of the DCP and SNVS, in production
 // deployments, should always be paired with Secure Boot activation.
 func (hw *Dcp) SNVS() bool {
-	ssm := reg.Get(SNVS_HPSR_REG, SNVS_HPSR_SSM_STATE, 0b1111)
+	ssm := reg.Get(SNVS_HPSR_REG, SSM_STATE, 0b1111)
 
 	switch ssm {
-	case SNVS_HPSR_SSM_STATE_TRUSTED, SNVS_HPSR_SSM_STATE_SECURE:
+	case SSM_STATE_TRUSTED, SSM_STATE_SECURE:
 		return true
 	default:
 		return false
 	}
+}
+
+func (hw *Dcp) cmd(buf []byte, payload []byte, pkt *WorkPacket) (err error) {
+	if len(buf)%aes.BlockSize != 0 {
+		return fmt.Errorf("input must be %d-bytes aligned", aes.BlockSize)
+	}
+
+	// p1057, 13.1.1 DCP Limitations for Software, MCIMX28RM
+	// * buffer size must be aligned to 16 bytes for AES operations
+	pkt.BufferSize = uint32(len(buf))
+	pkt.SourceBufferAddress = dma.Alloc(buf, 16)
+	defer dma.Free(pkt.SourceBufferAddress)
+
+	// encrypt/decrypt in-place
+	pkt.DestinationBufferAddress = pkt.SourceBufferAddress
+
+	// p1073, Table 13-12. DCP Payload Field, MCIMX28RM
+	pkt.PayloadPointer = dma.Alloc(payload, 0)
+	defer dma.Free(pkt.PayloadPointer)
+
+	cmd := dma.Alloc(pkt.Bytes(), 0)
+	defer dma.Free(cmd)
+
+	hw.Lock()
+	defer hw.Unlock()
+
+	// clear channel status
+	reg.Write(DCP_CH0STAT_CLR, 0xffffffff)
+
+	// set command address
+	reg.Write(DCP_CH0CMDPTR, cmd)
+	// activate channel
+	reg.Set(DCP_CH0SEMA, 0)
+	// wait for completion
+	reg.Wait(DCP_STAT, DCP_STAT_IRQ, 1, DCP_CHANNEL_0)
+	// clear interrupt register
+	reg.Set(DCP_STAT_CLR, DCP_CHANNEL_0)
+
+	chstatus := reg.Read(DCP_CH0STAT)
+
+	// check for errors
+	if bits.Get(&chstatus, 0, CHxSTAT_ERROR_MASK) != 0 {
+		code := bits.Get(&chstatus, CHxSTAT_ERROR_CODE, 0xff)
+		return fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x", chstatus, code)
+	}
+
+	dma.Read(pkt.DestinationBufferAddress, 0, buf)
+
+	return
+}
+
+func (hw *Dcp) cipher(buf []byte, index int, iv []byte, encrypt bool) (err error) {
+	if len(buf)%aes.BlockSize != 0 {
+		return errors.New("invalid input size")
+	}
+
+	if index > 3 {
+		return errors.New("key index must be between 0 and 3")
+	}
+
+	if len(iv) != aes.BlockSize {
+		return errors.New("invalid IV size")
+	}
+
+	pkt := &WorkPacket{}
+	pkt.SetDefaults()
+
+	if encrypt {
+		pkt.Control0 |= (1 << DCP_CTRL0_CIPHER_ENCRYPT)
+	}
+
+	// use key RAM slot
+	pkt.Control1 |= (uint32(index) & 0xff) << DCP_CTRL1_KEY_SELECT
+
+	return hw.cmd(buf, iv, pkt)
 }
 
 // DeriveKey derives a hardware unique key in a manner equivalent to PKCS#11
@@ -140,80 +242,77 @@ func (hw *Dcp) SNVS() bool {
 // The diversifier is AES-CBC encrypted using the internal OTPMK key (when SNVS
 // is enabled).
 func (hw *Dcp) DeriveKey(diversifier []byte, iv []byte) (key []byte, err error) {
-	if len(iv) != aes.BlockSize {
-		return nil, errors.New("invalid IV size")
+	if !hw.SNVS() {
+		return nil, errors.New("SNVS unavailable, not in trusted or secure state")
 	}
 
 	if len(diversifier) > aes.BlockSize {
 		return nil, errors.New("invalid diversifier size")
 	}
 
-	if !hw.SNVS() {
-		err = errors.New("SNVS unavailable, not in trusted or secure state")
-		return
+	if len(iv) != aes.BlockSize {
+		return nil, errors.New("invalid IV size")
 	}
 
-	// p1057, 13.1.1 DCP Limitations for Software, MCIMX28RM
-	// * buffer size must be aligned to 16 bytes for AES operations
-	diversifier = pad(diversifier, false)
-	key = make([]byte, len(diversifier))
+	key = pad(diversifier, false)
 
-	// p1057, 13.1.1 DCP Limitations for Software, MCIMX28RM
-	// * any byte alignment is supported but 4 bytes one leads to better
-	//   performance
-	workPacket := WorkPacket{}
+	pkt := &WorkPacket{}
+	pkt.SetDefaults()
 
-	workPacket.Control0 |= (1 << DCP_CTRL0_INTERRUPT_ENABL)
-	workPacket.Control0 |= (1 << DCP_CTRL0_DECR_SEMAPHORE)
-	workPacket.Control0 |= (1 << DCP_CTRL0_ENABLE_CIPHER)
-	workPacket.Control0 |= (1 << DCP_CTRL0_CIPHER_ENCRYPT)
-	workPacket.Control0 |= (1 << DCP_CTRL0_CIPHER_INIT)
-	// Use device-specific hardware key, payload does not contain the key.
-	workPacket.Control0 |= (1 << DCP_CTRL0_OTP_KEY)
+	// Use device-specific hardware key for encryption.
+	pkt.Control0 |= (1 << DCP_CTRL0_CIPHER_ENCRYPT)
+	pkt.Control0 |= (1 << DCP_CTRL0_OTP_KEY)
+	pkt.Control1 |= UNIQUE_KEY << DCP_CTRL1_KEY_SELECT
 
-	workPacket.Control1 |= (AES128 << DCP_CTRL1_CIPHER_SELECT)
-	workPacket.Control1 |= (CBC << DCP_CTRL1_CIPHER_MODE)
-	workPacket.Control1 |= (UNIQUE_KEY << DCP_CTRL1_KEY_SELECT)
+	err = hw.cmd(key, iv, pkt)
+
+	return
+}
+
+// SetKey configures an AES-128 key in one of the 4 available slots of the DCP
+// key RAM.
+func (hw *Dcp) SetKey(index int, key []byte) (err error) {
+	var keyLocation uint32
+	var subword uint32
+
+	if index > 3 {
+		return errors.New("key index must be between 0 and 3")
+	}
+
+	if len(key) > aes.BlockSize {
+		return errors.New("invalid key size")
+	}
+
+	bits.SetN(&keyLocation, KEY_INDEX, 0b11, uint32(index))
 
 	hw.Lock()
 	defer hw.Unlock()
 
-	workPacket.BufferSize = uint32(len(diversifier))
-	workPacket.SourceBufferAddress = dma.Alloc(diversifier, 0)
-	defer dma.Free(workPacket.SourceBufferAddress)
+	for subword < 4 {
+		off := subword * 4
+		k := key[off:off+4]
 
-	workPacket.DestinationBufferAddress = dma.Alloc(key, 0)
-	defer dma.Free(workPacket.DestinationBufferAddress)
+		bits.SetN(&keyLocation, KEY_SUBWORD, 0b11, subword)
 
-	// p1073, Table 13-12. DCP Payload Field, MCIMX28RM
-	workPacket.PayloadPointer = dma.Alloc(iv, 0)
-	defer dma.Free(workPacket.PayloadPointer)
+		reg.Write(DCP_KEY, keyLocation)
+		reg.Write(DCP_KEYDATA, binary.LittleEndian.Uint32(k))
 
-	// clear channel status
-	reg.Write(HW_DCP_CH0STAT_CLR, 0xffffffff)
-
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, &workPacket)
-
-	pkt := dma.Alloc(buf.Bytes(), 0)
-	defer dma.Free(pkt)
-
-	reg.Write(HW_DCP_CH0CMDPTR, pkt)
-	reg.Set(HW_DCP_CH0SEMA, 0)
-
-	// channel 0 is used
-	log.Printf("imx6_dcp: waiting for key derivation")
-	reg.Wait(HW_DCP_STAT, HW_DCP_STAT_IRQ, 1, 1)
-	reg.Set(HW_DCP_STAT_CLR, 1)
-
-	if chstatus := reg.Get(HW_DCP_CH0STAT, 1, 0b111111); chstatus != 0 {
-		code := reg.Get(HW_DCP_CH0STAT, 16, 0xff)
-		return nil, fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x", chstatus, code)
+		subword++
 	}
 
-	dma.Read(workPacket.DestinationBufferAddress, 0, key)
-
 	return
+}
+
+// Encrypt performs in-place buffer encryption using AES-128-CBC, the key can
+// be selected with the index argument from one previously set with SetKey().
+func (hw *Dcp) Encrypt(buf []byte, index int, iv []byte) (err error) {
+	return hw.cipher(buf, index, iv, true)
+}
+
+// Decrypt performs in-place buffer decryption using AES-128-CBC, the key can
+// be selected with the index argument from one previously set with SetKey().
+func (hw *Dcp) Decrypt(buf []byte, index int, iv []byte) (err error) {
+	return hw.cipher(buf, index, iv, false)
 }
 
 func pad(buf []byte, extraBlock bool) []byte {
@@ -228,7 +327,6 @@ func pad(buf []byte, extraBlock bool) []byte {
 
 	padding := []byte{(byte)(padLen)}
 	padding = bytes.Repeat(padding, padLen)
-	buf = append(buf, padding...)
 
-	return buf
+	return append(buf, padding...)
 }
