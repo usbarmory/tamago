@@ -54,6 +54,8 @@ const (
 	DTD_PAGE_SIZE = 4096
 	DTD_NEXT      = 0
 	DTD_TOKEN     = 4
+
+	DTD_TIMEOUT = 5 * time.Second
 )
 
 // dTD implements
@@ -282,7 +284,7 @@ func (hw *USB) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, er
 
 		// The hardware might delay status update after completion,
 		// therefore best to wait for the active bit (7) to clear.
-		inactive := reg.WaitFor(5*time.Second, token, 7, 1, 0)
+		inactive := reg.WaitFor(DTD_TIMEOUT, token, 7, 1, 0)
 		dtdToken := reg.Read(token)
 
 		if !inactive {
