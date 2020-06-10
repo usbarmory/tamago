@@ -78,8 +78,10 @@ func Init(start uint32, size int) {
 // concern. Reserved buffers cause Alloc() and Read() to return without any
 // allocation or memory copy.
 //
-// Care must be taken as, on allocation, reserved buffers memory is
-// uninitialized.
+// Great care must be taken on reserved buffer as:
+//   * buf contents are uninitialized (unlike when using Alloc())
+//   * buf slices remain in reserved space but only the original buf
+//     can be subject of Release()
 func Reserve(size int, align int) (addr uint32, buf []byte) {
 	dma.Lock()
 	defer dma.Unlock()
