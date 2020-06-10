@@ -40,7 +40,7 @@ TEXT ·read_cntfrq(SB),$0
 
 	RET
 
-// func write_cntfrq() int32
+// func write_cntfrq(int32)
 TEXT ·write_cntfrq(SB),$0
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// https://wiki.osdev.org/ARMv7_Generic_Timers

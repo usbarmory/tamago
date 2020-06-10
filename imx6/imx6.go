@@ -79,6 +79,10 @@ func nanotime1() int64 {
 func hwinit() {
 	ARM.Init()
 	ARM.EnableVFP()
+
+	// required when booting in SDP mode
+	ARM.EnableSMP()
+
 	ARM.CacheEnable()
 
 	_, fam, revMajor, revMinor := SiliconVersion()

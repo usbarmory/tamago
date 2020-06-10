@@ -7,6 +7,29 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+// func read_actlr() int32
+TEXT ·read_actlr(SB),$0
+	// Cortex™-A7 MPCore® Technical Reference Manual r0p5
+	//
+	// 4.3.31 Auxiliary Control Register
+	WORD	$0xf57ff06f // isb sy
+	MRC	15, 0, R0, C1, C0, 1
+
+	MOVW	R0, ret+0(FP)
+
+	RET
+
+// func write_actlr(int32)
+TEXT ·write_actlr(SB),$0
+	// Cortex™-A7 MPCore® Technical Reference Manual r0p5
+	//
+	// 4.3.31 Auxiliary Control Register
+	MOVW aux+0(FP), R0
+	WORD	$0xf57ff06f // isb sy
+	MCR	15, 0, R0, C1, C0, 1
+
+	RET
+
 // func cache_disable()
 TEXT ·cache_disable(SB),$0
 	MRC	15, 0, R1, C1, C0, 0
