@@ -290,7 +290,7 @@ func (hw *Dcp) SetKey(index int, key []byte) (err error) {
 
 	for subword < 4 {
 		off := subword * 4
-		k := key[off:off+4]
+		k := key[off : off+4]
 
 		bits.SetN(&keyLocation, KEY_SUBWORD, 0b11, subword)
 

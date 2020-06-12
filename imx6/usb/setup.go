@@ -17,7 +17,7 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
-// Setup request codes (p279, Table 9-4. Standard Request Codes, USB2.0)
+// Standard request codes (p279, Table 9-4, USB2.0)
 const (
 	GET_STATUS        = 0
 	CLEAR_FEATURE     = 1
@@ -32,7 +32,7 @@ const (
 	SYNCH_FRAME       = 12
 )
 
-// Descriptor types (p279, Table 9-5. Descriptor Types, USB2.0)
+// Descriptor types (p279, Table 9-5, USB2.0)
 const (
 	DEVICE                    = 1
 	CONFIGURATION             = 2
@@ -47,6 +47,13 @@ const (
 	OTG                   = 9
 	DEBUG                 = 10
 	INTERFACE_ASSOCIATION = 11
+)
+
+// Standard feature selectors (p280, Table 9-6, USB2.0)
+const (
+	ENDPOINT_HALT        = 0
+	DEVICE_REMOTE_WAKEUP = 1
+	TEST_MODE            = 2
 )
 
 // SetupData implements
@@ -66,9 +73,6 @@ func (s *SetupData) swap() {
 
 	binary.BigEndian.PutUint16(b, s.Value)
 	s.Value = binary.LittleEndian.Uint16(b)
-
-	binary.BigEndian.PutUint16(b, s.Index)
-	s.Index = binary.LittleEndian.Uint16(b)
 }
 
 func (hw *USB) getSetup() (setup *SetupData) {
@@ -100,6 +104,44 @@ func (hw *USB) getSetup() (setup *SetupData) {
 	return
 }
 
+func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
+	bDescriptorType := setup.Value & 0xff
+	index := setup.Value >> 8
+
+	switch bDescriptorType {
+	case DEVICE:
+		log.Printf("imx6_usb: sending device descriptor")
+		err = hw.tx(0, false, trim(dev.Descriptor.Bytes(), setup.Length))
+	case CONFIGURATION:
+		var conf []byte
+		if conf, err = dev.Configuration(index); err == nil {
+			log.Printf("imx6_usb: sending configuration descriptor %d (%d bytes)", index, setup.Length)
+			err = hw.tx(0, false, trim(conf, setup.Length))
+		}
+	case STRING:
+		if int(index+1) > len(dev.Strings) {
+			hw.stall(0, IN)
+			err = fmt.Errorf("invalid string descriptor index %d", index)
+		} else {
+			if index == 0 {
+				log.Printf("imx6_usb: sending string descriptor zero")
+			} else {
+				log.Printf("imx6_usb: sending string descriptor %d: \"%s\"", index, dev.Strings[index][2:])
+			}
+
+			err = hw.tx(0, false, trim(dev.Strings[index], setup.Length))
+		}
+	case DEVICE_QUALIFIER:
+		log.Printf("imx6_usb: sending device qualifier")
+		err = hw.tx(0, false, dev.Qualifier.Bytes())
+	default:
+		hw.stall(0, IN)
+		err = fmt.Errorf("unsupported descriptor type %#x", bDescriptorType)
+	}
+
+	return
+}
+
 func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 	if setup == nil {
 		return
@@ -110,6 +152,18 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 		// no meaningful status to report for now
 		log.Printf("imx6_usb: sending device status")
 		err = hw.tx(0, false, []byte{0x00, 0x00})
+	case CLEAR_FEATURE:
+		switch setup.Value {
+		case ENDPOINT_HALT:
+			n := int(setup.Index & 0b1111)
+			dir := int(setup.Index&0b10000000) / 0b10000000
+			log.Printf("imx6_usb: EP%d.%d resetting PID", n, dir)
+
+			hw.reset(n, dir)
+			err = hw.ack(0)
+		default:
+			hw.stall(0, IN)
+		}
 	case SET_ADDRESS:
 		addr := uint32((setup.Value<<8)&0xff00 | (setup.Value >> 8))
 		log.Printf("imx6_usb: setting address %d", addr)
@@ -119,39 +173,7 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 
 		err = hw.ack(0)
 	case GET_DESCRIPTOR:
-		bDescriptorType := setup.Value & 0xff
-		index := setup.Value >> 8
-
-		switch bDescriptorType {
-		case DEVICE:
-			log.Printf("imx6_usb: sending device descriptor")
-			err = hw.tx(0, false, trim(dev.Descriptor.Bytes(), setup.Length))
-		case CONFIGURATION:
-			var conf []byte
-			if conf, err = dev.Configuration(index); err == nil {
-				log.Printf("imx6_usb: sending configuration descriptor %d (%d bytes)", index, setup.Length)
-				err = hw.tx(0, false, trim(conf, setup.Length))
-			}
-		case STRING:
-			if int(index+1) > len(dev.Strings) {
-				hw.stall(0, IN)
-				err = fmt.Errorf("invalid string descriptor index %d", index)
-			} else {
-				if index == 0 {
-					log.Printf("imx6_usb: sending string descriptor zero")
-				} else {
-					log.Printf("imx6_usb: sending string descriptor %d: \"%s\"", index, dev.Strings[index][2:])
-				}
-
-				err = hw.tx(0, false, trim(dev.Strings[index], setup.Length))
-			}
-		case DEVICE_QUALIFIER:
-			log.Printf("imx6_usb: sending device qualifier")
-			err = hw.tx(0, false, dev.Qualifier.Bytes())
-		default:
-			hw.stall(0, IN)
-			err = fmt.Errorf("unsupported descriptor type %#x", bDescriptorType)
-		}
+		err = hw.getDescriptor(dev, setup)
 	case GET_CONFIGURATION:
 		log.Printf("imx6_usb: sending configuration value %d", dev.ConfigurationValue)
 		err = hw.tx(0, false, []byte{dev.ConfigurationValue})

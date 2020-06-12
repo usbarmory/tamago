@@ -136,6 +136,7 @@ func (hw *USB) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) 
 		}
 
 		if err != nil {
+			reg.Set(hw.flush, (dir*16)+n)
 			log.Printf("imx6_usb: EP%d.%d transfer error, %v", n, dir, err)
 		}
 	}

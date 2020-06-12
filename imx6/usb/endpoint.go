@@ -349,6 +349,16 @@ func (hw *USB) stall(n int, dir int) {
 	}
 }
 
+func (hw *USB) reset(n int, dir int) {
+	ctrl := hw.epctrl + uint32(4*n)
+
+	if dir == IN {
+		reg.Set(ctrl, ENDPTCTRL_TXR)
+	} else {
+		reg.Set(ctrl, ENDPTCTRL_RXR)
+	}
+}
+
 func (hw *USB) enable(n int, dir int, transferType int) {
 	if n == 0 {
 		// EP0 does not need enabling (p3790, IMX6ULLRM)
