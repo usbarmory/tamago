@@ -53,9 +53,14 @@ const (
 	DTD_PAGES     = 5
 	DTD_PAGE_SIZE = 4096
 	DTD_NEXT      = 0
-	DTD_TOKEN     = 4
 
-	DTD_TIMEOUT = 5 * time.Second
+	DTD_TOKEN    = 4
+	TOKEN_TOTAL  = 16
+	TOKEN_IOC    = 15
+	TOKEN_MULTO  = 10
+	TOKEN_ACTIVE = 7
+
+	DTD_DELAY = 10 * time.Millisecond
 )
 
 // dTD implements
@@ -137,11 +142,11 @@ func (hw *USB) setEP(n int, dir int, max int, zlt bool, mult int) {
 	}
 
 	// Total bytes
-	bits.SetN(&dqh.Token, 16, 0xffff, 0)
+	bits.SetN(&dqh.Token, TOKEN_TOTAL, 0xffff, 0)
 	// interrupt on completion (ioc)
-	bits.Set(&dqh.Token, 15)
+	bits.Set(&dqh.Token, TOKEN_IOC)
 	// multiplier override (MultO)
-	bits.SetN(&dqh.Token, 10, 0b11, 0)
+	bits.SetN(&dqh.Token, TOKEN_MULTO, 0b11, 0)
 
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, &dqh)
@@ -187,19 +192,19 @@ func buildDTD(n int, dir int, ioc bool, addr uint32, size int) (dtd *dTD) {
 
 	// interrupt on completion (ioc)
 	if ioc {
-		bits.Set(&dtd.Token, 15)
+		bits.Set(&dtd.Token, TOKEN_IOC)
 	} else {
-		bits.Clear(&dtd.Token, 15)
+		bits.Clear(&dtd.Token, TOKEN_IOC)
 	}
 
 	// invalidate next pointer
-	dtd.Next = 0b1
+	dtd.Next = 1
 	// multiplier override (MultO)
-	bits.SetN(&dtd.Token, 10, 0b11, 0)
+	bits.SetN(&dtd.Token, TOKEN_MULTO, 0b11, 0)
 	// active status
-	bits.Set(&dtd.Token, 7)
+	bits.Set(&dtd.Token, TOKEN_ACTIVE)
 	// total bytes
-	bits.SetN(&dtd.Token, 16, 0xffff, uint32(size))
+	bits.SetN(&dtd.Token, TOKEN_TOTAL, 0xffff, uint32(size))
 
 	dtd._buf = addr
 	dtd._size = uint32(size)
@@ -284,7 +289,7 @@ func (hw *USB) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, er
 
 		// The hardware might delay status update after completion,
 		// therefore best to wait for the active bit (7) to clear.
-		inactive := reg.WaitFor(DTD_TIMEOUT, token, 7, 1, 0)
+		inactive := reg.WaitFor(DTD_DELAY, token, TOKEN_ACTIVE, 1, 0)
 		dtdToken := reg.Read(token)
 
 		if !inactive {
@@ -297,7 +302,7 @@ func (hw *USB) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, er
 
 		// p3787 "This field is decremented by the number of bytes
 		// actually moved during the transaction", IMX6ULLRM.
-		rest := dtdToken >> 16
+		rest := dtdToken >> TOKEN_TOTAL
 		n := int(dtd._size - rest)
 
 		if dir == IN && rest > 0 {

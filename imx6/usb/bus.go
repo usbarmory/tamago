@@ -25,25 +25,21 @@ import (
 
 // USB registers
 const (
-	CCM_ANALOG_PLL_USB1             = 0x020c8010
-	CCM_ANALOG_PLL_USB1_LOCK        = 31
-	CCM_ANALOG_PLL_USB1_BYPASS      = 16
-	CCM_ANALOG_PLL_USB1_ENABLE      = 13
-	CCM_ANALOG_PLL_USB1_POWER       = 12
-	CCM_ANALOG_PLL_USB1_EN_USB_CLKS = 6
+	CCM_ANALOG_PLL_USB1 = 0x020c8010
+	PLL_EN_USB_CLKS     = 6
 
-	USB_ANALOG_USB1_CHRG_DETECT            = 0x020c81b0
-	USB_ANALOG_USB1_CHRG_DETECT_EN_B       = 20
-	USB_ANALOG_USB1_CHRG_DETECT_CHK_CHRG_B = 19
+	USB_ANALOG_USB1_CHRG_DETECT = 0x020c81b0
+	CHRG_DETECT_EN_B            = 20
+	CHRG_DETECT_CHK_CHRG_B      = 19
 
 	USBPHY1_PWD = 0x020c9000
 
-	USBPHY1_CTRL                    = 0x020c9030
-	USBPHY1_CTRL_SFTRST             = 31
-	USBPHY1_CTRL_CLKGATE            = 30
-	USBPHY1_CTRL_ENUTMILEVEL3       = 15
-	USBPHY1_CTRL_ENUTMILEVEL2       = 15
-	USBPHY1_CTRL_ENHOSTDISCONDETECT = 1
+	USBPHY1_CTRL            = 0x020c9030
+	CTRL_SFTRST             = 31
+	CTRL_CLKGATE            = 30
+	CTRL_ENUTMILEVEL3       = 15
+	CTRL_ENUTMILEVEL2       = 15
+	CTRL_ENHOSTDISCONDETECT = 1
 
 	// p3823, 56.6 USB Core Memory Map/Register Definition, IMX6ULLRM
 
@@ -152,48 +148,47 @@ var USB1 = &USB{
 	epctrl:   USB_UOG1_ENDPTCTRL,
 }
 
-// Init initializes the controller, as a current limitation the controller is
-// hard-coded to USB1.
+// Init initializes the USB controller.
 func (hw *USB) Init() {
 	hw.Lock()
 	defer hw.Unlock()
 
 	// enable clock
-	reg.SetN(imx6.CCM_CCGR6, imx6.CCM_CCGR6_CG0, 0b11, 0b11)
+	reg.SetN(imx6.CCM_CCGR6, imx6.CCGR_CG0, 0b11, 0b11)
 
 	// power up PLL
-	reg.Set(hw.pll, CCM_ANALOG_PLL_USB1_POWER)
-	reg.Set(hw.pll, CCM_ANALOG_PLL_USB1_EN_USB_CLKS)
+	reg.Set(hw.pll, imx6.PLL_POWER)
+	reg.Set(hw.pll, PLL_EN_USB_CLKS)
 
 	// wait for lock
 	log.Printf("imx6_usb: waiting for PLL lock")
-	reg.Wait(hw.pll, CCM_ANALOG_PLL_USB1_LOCK, 1, 1)
+	reg.Wait(hw.pll, imx6.PLL_LOCK, 1, 1)
 
 	// remove bypass
-	reg.Clear(hw.pll, CCM_ANALOG_PLL_USB1_BYPASS)
+	reg.Clear(hw.pll, imx6.PLL_BYPASS)
 
 	// enable PLL
-	reg.Set(hw.pll, CCM_ANALOG_PLL_USB1_ENABLE)
+	reg.Set(hw.pll, imx6.PLL_ENABLE)
 
-	// soft reset USB1 PHY
-	reg.Set(hw.ctrl, USBPHY1_CTRL_SFTRST)
-	reg.Clear(hw.ctrl, USBPHY1_CTRL_SFTRST)
+	// soft reset USB PHY
+	reg.Set(hw.ctrl, CTRL_SFTRST)
+	reg.Clear(hw.ctrl, CTRL_SFTRST)
 
 	// enable clocks
-	reg.Clear(hw.ctrl, USBPHY1_CTRL_CLKGATE)
+	reg.Clear(hw.ctrl, CTRL_CLKGATE)
 
 	// clear power down
 	reg.Write(hw.pwd, 0)
 
 	// enable UTMI+
-	reg.Set(hw.ctrl, USBPHY1_CTRL_ENUTMILEVEL3)
-	reg.Set(hw.ctrl, USBPHY1_CTRL_ENUTMILEVEL2)
+	reg.Set(hw.ctrl, CTRL_ENUTMILEVEL3)
+	reg.Set(hw.ctrl, CTRL_ENUTMILEVEL2)
 	// enable disconnection detect
-	reg.Set(hw.ctrl, USBPHY1_CTRL_ENHOSTDISCONDETECT)
+	reg.Set(hw.ctrl, CTRL_ENHOSTDISCONDETECT)
 
 	// disable charger detector
-	reg.Set(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_EN_B)
-	reg.Set(hw.chrg, USB_ANALOG_USB1_CHRG_DETECT_CHK_CHRG_B)
+	reg.Set(hw.chrg, CHRG_DETECT_EN_B)
+	reg.Set(hw.chrg, CHRG_DETECT_CHK_CHRG_B)
 }
 
 // Speed returns the port speed.
@@ -213,6 +208,11 @@ func (hw *USB) Speed() (speed string) {
 	}
 
 	return
+}
+
+// PowerDown shuts down the USB PHY.
+func (hw *USB) PowerDown() {
+	reg.Write(hw.pwd, 0xffffffff)
 }
 
 // Reset waits for and handles a bus reset.

@@ -265,10 +265,10 @@ func (hw *USDHC) Init(width int) {
 	switch hw.n {
 	case 1:
 		base = USDHC1_BASE
-		hw.cg = imx6.CCM_CCGR6_CG1
+		hw.cg = imx6.CCGR_CG1
 	case 2:
 		base = USDHC2_BASE
-		hw.cg = imx6.CCM_CCGR6_CG2
+		hw.cg = imx6.CCGR_CG2
 	}
 
 	hw.width = width
