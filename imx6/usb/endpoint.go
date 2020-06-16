@@ -14,7 +14,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/f-secure-foundry/tamago/dma"
 	"github.com/f-secure-foundry/tamago/internal/bits"
@@ -59,8 +58,6 @@ const (
 	TOKEN_IOC    = 15
 	TOKEN_MULTO  = 10
 	TOKEN_ACTIVE = 7
-
-	DTD_DELAY = 10 * time.Millisecond
 )
 
 // dTD implements
@@ -287,14 +284,17 @@ func (hw *USB) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, er
 		// treat dtd.token as a register within the dtd DMA buffer
 		token := dtd._dtd + DTD_TOKEN
 
-		// The hardware might delay status update after completion,
-		// therefore best to wait for the active bit (7) to clear.
-		inactive := reg.WaitFor(DTD_DELAY, token, TOKEN_ACTIVE, 1, 0)
-		dtdToken := reg.Read(token)
+		// The hardware might delay status update after completion, up
+		// to 10ms of waiting for the active bit is clear are found to
+		// be conservative.
+		//
+		// On macOS however OUT endpoints complete prematurely (e.g.
+		// before the transfer takes place). This doesn't reflect any
+		// known errata and the root cause remains unknown.  To work
+		// this around we wait indefinitely.
+		reg.Wait(token, TOKEN_ACTIVE, 1, 0)
 
-		if !inactive {
-			return nil, fmt.Errorf("dTD[%d] timeout waiting for completion, token:%#x", i, dtdToken)
-		}
+		dtdToken := reg.Read(token)
 
 		if (dtdToken & 0xff) != 0 {
 			return nil, fmt.Errorf("dTD[%d] error status, token:%#x", i, dtdToken)
