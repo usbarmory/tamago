@@ -219,10 +219,9 @@ func buildDTD(n int, dir int, ioc bool, addr uint32, size int) (dtd *dTD) {
 	return
 }
 
-// transferDTD manages a transfer using transfer descriptors (dTDs) as
-// described in p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors,
-// IMX6ULLRM.
-func (hw *USB) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, err error) {
+// transfer initates a transfer using transfer descriptors (dTDs) as described
+// in p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors, IMX6ULLRM.
+func (hw *USB) transfer(n int, dir int, ioc bool, buf []byte) (out []byte, err error) {
 	var dtds []*dTD
 	dtdLength := DTD_PAGES * DTD_PAGE_SIZE
 
@@ -321,7 +320,7 @@ func (hw *USB) transferDTD(n int, dir int, ioc bool, buf []byte) (out []byte, er
 }
 
 func (hw *USB) tx(n int, ioc bool, in []byte) (err error) {
-	_, err = hw.transferDTD(n, IN, ioc, in)
+	_, err = hw.transfer(n, IN, ioc, in)
 
 	if err != nil {
 		return
@@ -329,18 +328,18 @@ func (hw *USB) tx(n int, ioc bool, in []byte) (err error) {
 
 	// p3803, 56.4.6.4.2.3 Status Phase, IMX6ULLRM
 	if n == 0 {
-		_, err = hw.transferDTD(n, OUT, false, nil)
+		_, err = hw.transfer(n, OUT, false, nil)
 	}
 
 	return
 }
 
 func (hw *USB) rx(n int, ioc bool, buf []byte) (out []byte, err error) {
-	return hw.transferDTD(n, OUT, ioc, buf)
+	return hw.transfer(n, OUT, ioc, buf)
 }
 
 func (hw *USB) ack(n int) (err error) {
-	_, err = hw.transferDTD(n, IN, false, nil)
+	_, err = hw.transfer(n, IN, false, nil)
 	return
 }
 
