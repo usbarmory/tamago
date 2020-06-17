@@ -269,6 +269,8 @@ func (hw *USDHC) Init(width int) {
 	case 2:
 		base = USDHC2_BASE
 		hw.cg = imx6.CCGR_CG2
+	default:
+		panic("invalid uSDHC controller instance")
 	}
 
 	hw.width = width

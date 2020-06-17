@@ -93,7 +93,7 @@ func hwinit() {
 	}
 
 	// initialize console
-	UART2.init(UART2_BASE, UART_DEFAULT_BAUDRATE)
+	UART2.Init(UART_DEFAULT_BAUDRATE)
 
 	switch Family {
 	case IMX6Q:

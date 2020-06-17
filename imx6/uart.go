@@ -122,9 +122,13 @@ const (
 	UTS_TXEMPTY = 6
 )
 
-type Uart struct {
+type UART struct {
 	sync.Mutex
 
+	// controller index
+	n int
+
+	// control registers
 	urxd uint32
 	utxd uint32
 	ucr1 uint32
@@ -140,10 +144,32 @@ type Uart struct {
 	uts  uint32
 }
 
-// UART2 instance
-var UART2 = &Uart{}
+// UART1 instance
+var UART1 = &UART{n: 1}
 
-func (hw *Uart) init(base uint32, baudrate uint32) {
+// UART2 instance
+var UART2 = &UART{n: 2}
+
+// Init initializes the UART for RS-232 mode with the requested baudrate,
+// p2312, 45.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
+func (hw *UART) Init(baudrate uint32) {
+	var base uint32
+
+	hw.Lock()
+
+	switch hw.n {
+	case 1:
+		base = UART1_BASE
+	case 2:
+		base = UART2_BASE
+	case 3:
+		base = UART3_BASE
+	case 4:
+		base = UART4_BASE
+	default:
+		panic("invalid UART controller instance")
+	}
+
 	hw.urxd = base + UARTx_URXD
 	hw.utxd = base + UARTx_UTXD
 	hw.ucr1 = base + UARTx_UCR1
@@ -158,7 +184,9 @@ func (hw *Uart) init(base uint32, baudrate uint32) {
 	hw.ubmr = base + UARTx_UBMR
 	hw.uts = base + UARTx_UTS
 
-	hw.Init(baudrate)
+	hw.enable(baudrate)
+
+	hw.Unlock()
 }
 
 func uartclk() uint32 {
@@ -175,23 +203,19 @@ func uartclk() uint32 {
 	return freq / (podf + 1)
 }
 
-func (hw *Uart) txEmpty() bool {
+func (hw *UART) txEmpty() bool {
 	return reg.Get(hw.uts, UTS_TXEMPTY, 1) == 0
 }
 
-func (hw *Uart) rxReady() bool {
+func (hw *UART) rxReady() bool {
 	return reg.Get(hw.usr2, USR2_RDR, 1) == 1
 }
 
-func (hw *Uart) rxError() bool {
+func (hw *UART) rxError() bool {
 	return reg.Get(hw.urxd, URXD_PRERR, 0b11111) != 0
 }
 
-// Setup programs the UART for RS-232 mode with the requested baudrate,
-// p2312, 45.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
-func (hw *Uart) Init(baudrate uint32) {
-	hw.Lock()
-
+func (hw *UART) enable(baudrate uint32) {
 	// disable UART
 	reg.Write(hw.ucr1, 0)
 	reg.Write(hw.ucr2, 0)
@@ -265,12 +289,10 @@ func (hw *Uart) Init(baudrate uint32) {
 
 	// Enable the UART
 	reg.Set(hw.ucr1, UCR1_UARTEN)
-
-	hw.Unlock()
 }
 
 // Write a single character to the selected serial port.
-func (hw *Uart) Write(c byte) {
+func (hw *UART) Write(c byte) {
 	// transmit data
 	reg.Write(hw.utxd, uint32(c))
 
@@ -280,7 +302,7 @@ func (hw *Uart) Write(c byte) {
 }
 
 // Read a single character from the selected serial port.
-func (hw *Uart) Read() (c byte, valid bool) {
+func (hw *UART) Read() (c byte, valid bool) {
 	if !hw.rxReady() {
 		return
 	}
