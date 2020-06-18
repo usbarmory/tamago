@@ -17,8 +17,13 @@ import (
 
 // GPIO constants
 const (
-	GPIO_START = 0x0209c000
-	GPIO_END   = 0x020affff
+	GPIO1_BASE = 0x0209c000
+	GPIO2_BASE = 0x020a0000
+	GPIO3_BASE = 0x020a4000
+	GPIO4_BASE = 0x020a8000
+
+	GPIO_DR   = 0x00
+	GPIO_GDIR = 0x04
 
 	GPIO_MODE = 5
 )
@@ -32,21 +37,32 @@ type GPIO struct {
 }
 
 // NewGPIO initializes a pad for GPIO mode.
-func NewGPIO(num int, mux uint32, pad uint32, data uint32, dir uint32) (gpio *GPIO, err error) {
+func NewGPIO(num int, instance int, mux uint32, pad uint32) (gpio *GPIO, err error) {
+	var base uint32
+
 	if num > 31 {
 		return nil, fmt.Errorf("invalid GPIO number %d", num)
 	}
 
-	for _, r := range []uint32{data, dir} {
-		if !(r >= GPIO_START || r <= GPIO_END) {
-			return nil, fmt.Errorf("invalid GPIO register %#x", r)
-		}
+	if instance < 1 || instance > 4 {
+		return nil, fmt.Errorf("invalid GPIO instance %d", instance)
+	}
+
+	switch instance {
+	case 1:
+		base = GPIO1_BASE
+	case 2:
+		base = GPIO2_BASE
+	case 3:
+		base = GPIO3_BASE
+	case 4:
+		base = GPIO4_BASE
 	}
 
 	gpio = &GPIO{
 		num:  num,
-		data: data,
-		dir:  dir,
+		data: base + GPIO_DR,
+		dir:  base + GPIO_GDIR,
 	}
 
 	gpio.Pad, err = NewPad(mux, pad, 0)

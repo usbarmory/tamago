@@ -17,8 +17,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/f-secure-foundry/tamago/bits"
 	"github.com/f-secure-foundry/tamago/dma"
-	"github.com/f-secure-foundry/tamago/internal/bits"
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 

@@ -21,11 +21,6 @@ import (
 //   * pad CSI_DATA00, GPIO4_IO21: white
 //   * pad CSI_DATA01, GPIO4_IO22: blue
 const (
-	// GPIO4 data
-	GPIO4_DR = 0x020a8000
-	// GPIO4 direction
-	GPIO4_GDIR = 0x020a8004
-
 	// GPIO number
 	WHITE = 21
 	// mux control
@@ -51,17 +46,15 @@ func init() {
 		(imx6.SW_PAD_CTL_SPEED_100MHZ << imx6.SW_PAD_CTL_SPEED) |
 		(imx6.SW_PAD_CTL_DSE_2_R0_6 << imx6.SW_PAD_CTL_DSE))
 
-	white, err = imx6.NewGPIO(WHITE,
-		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA00, IOMUXC_SW_PAD_CTL_PAD_CSI_DATA00,
-		GPIO4_DR, GPIO4_GDIR)
+	white, err = imx6.NewGPIO(WHITE, 4,
+		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA00, IOMUXC_SW_PAD_CTL_PAD_CSI_DATA00)
 
 	if err != nil {
 		panic(err)
 	}
 
-	blue, err = imx6.NewGPIO(BLUE,
-		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA01, IOMUXC_SW_PAD_CTL_PAD_CSI_DATA01,
-		GPIO4_DR, GPIO4_GDIR)
+	blue, err = imx6.NewGPIO(BLUE, 4,
+		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA01, IOMUXC_SW_PAD_CTL_PAD_CSI_DATA01)
 
 	if err != nil {
 		panic(err)
