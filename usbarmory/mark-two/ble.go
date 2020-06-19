@@ -11,7 +11,6 @@ package usbarmory
 
 import (
 	"errors"
-	"strings"
 	"sync"
 	"time"
 
@@ -31,6 +30,8 @@ const (
 	// BT_UART_RX
 	IOMUXC_SW_MUX_CTL_PAD_UART1_RX_DATA = 0x020e0088
 	IOMUXC_SW_PAD_CTL_PAD_UART1_RX_DATA = 0x020e0314
+	IOMUXC_UART1_RX_DATA_SELECT_INPUT   = 0x020e0624
+	DAISY_UART1_RX_DATA                 = 0b11
 
 	// BT_UART_CTS
 	IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B = 0x020e008c
@@ -53,8 +54,8 @@ const (
 	IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO04 = 0x020e02f8
 
 	// BT_SWDIO
-	IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO05 = 0x020e0070
-	IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO05 = 0x020e02fc
+	IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO06 = 0x020e0074
+	IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO06 = 0x020e0300
 
 	// BT_RESET
 	BT_RESET                         = 9
@@ -79,8 +80,10 @@ const (
 	AT_GRACE_TIME    = 500 * time.Millisecond
 )
 
-func configureBLEPad(mux uint32, pad uint32, mode uint32, ctl uint32) {
-	p, err := imx6.NewPad(mux, pad, 0)
+func configureBLEPad(mux uint32, pad uint32, daisy uint32, mode uint32, ctl uint32) (p *imx6.Pad) {
+	var err error
+
+	p, err = imx6.NewPad(mux, pad, daisy)
 
 	if err != nil {
 		panic(err)
@@ -88,6 +91,8 @@ func configureBLEPad(mux uint32, pad uint32, mode uint32, ctl uint32) {
 
 	p.Mode(mode)
 	p.Ctl(ctl)
+
+	return
 }
 
 func configureBLEGPIO(num int, instance int, mux uint32, pad uint32, ctl uint32) (gpio *imx6.GPIO) {
@@ -111,7 +116,7 @@ func configureBLEGPIO(num int, instance int, mux uint32, pad uint32, ctl uint32)
 type ANNA struct {
 	sync.Mutex
 
-	uart    *imx6.UART
+	UART    *imx6.UART
 	reset   *imx6.GPIO
 	switch1 *imx6.GPIO
 	switch2 *imx6.GPIO
@@ -136,24 +141,26 @@ func (ble *ANNA) Init() (err error) {
 	// BT_UART_TX
 	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART1_TX_DATA,
 		IOMUXC_SW_PAD_CTL_PAD_UART1_TX_DATA,
-		DEFAULT_MODE, ctl)
+		0, DEFAULT_MODE, ctl)
 
 	// BT_UART_RX
-	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART1_RX_DATA,
+	pad := configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART1_RX_DATA,
 		IOMUXC_SW_PAD_CTL_PAD_UART1_RX_DATA,
+		IOMUXC_UART1_RX_DATA_SELECT_INPUT,
 		DEFAULT_MODE, ctl)
+	pad.Select(DAISY_UART1_RX_DATA)
 
 	// BT_UART_CTS
 	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B,
 		IOMUXC_SW_PAD_CTL_PAD_UART1_CTS_B,
-		DEFAULT_MODE, ctl)
+		0, DEFAULT_MODE, ctl)
 
 	bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_DOWN_100K)
 
 	// BT_UART_RTS
 	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
 		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07,
-		UART1_RTS_B_MODE, ctl)
+		0, UART1_RTS_B_MODE, ctl)
 
 	bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_UP_22K)
 	bits.SetN(&ctl, imx6.SW_PAD_CTL_SPEED, 0b11, imx6.SW_PAD_CTL_SPEED_50MHZ)
@@ -162,17 +169,17 @@ func (ble *ANNA) Init() (err error) {
 	// BT_UART_DSR
 	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART3_TX_DATA,
 		IOMUXC_SW_PAD_CTL_PAD_UART3_TX_DATA,
-		ctl, GPIO_MODE)
+		0, ctl, GPIO_MODE)
 
 	// BT_SWDCLK
 	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO04,
 		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO04,
-		GPIO_MODE, ctl)
+		0, GPIO_MODE, ctl)
 
 	// BT_SWDIO
-	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO05,
-		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO05,
-		GPIO_MODE, ctl)
+	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO06,
+		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO06,
+		0, GPIO_MODE, ctl)
 
 	// BT_RESET
 	BLE.reset = configureBLEGPIO(BT_RESET, 1,
@@ -199,10 +206,16 @@ func (ble *ANNA) Init() (err error) {
 	// BT_UART_DTR
 	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART3_RX_DATA,
 		IOMUXC_SW_PAD_CTL_PAD_UART3_RX_DATA,
-		GPIO_MODE, ctl)
+		0, GPIO_MODE, ctl)
 
-	BLE.uart = imx6.UART1
-	BLE.uart.Init(imx6.UART_DEFAULT_BAUDRATE)
+	BLE.UART = imx6.UART1
+	BLE.UART.Init(imx6.UART_DEFAULT_BAUDRATE)
+
+	// reset in normal mode
+	BLE.switch1.High()
+	BLE.switch2.High()
+	BLE.reset.Low()
+	defer BLE.reset.High()
 
 	return
 }
@@ -254,46 +267,4 @@ func (ble *ANNA) BootloaderMode() (err error) {
 	ble.switch2.Low()
 
 	return ble.Reset()
-}
-
-// AT transmits an AT command to the BLE module serial interface.
-func (ble *ANNA) AT(cmd string) (res string, err error) {
-	var r []byte
-
-	if ble.uart == nil {
-		err = errors.New("module is not initialized")
-		return
-	}
-
-	cmd = "AT" + cmd + "\r"
-
-	ble.Lock()
-	defer ble.Unlock()
-
-	for i := 0; i < len(cmd); i++ {
-		ble.uart.Write(cmd[i])
-	}
-
-	time.Sleep(AT_GRACE_TIME)
-
-	for {
-		c, ok := ble.uart.Read()
-
-		if !ok {
-			break
-		}
-
-		r = append(r, c)
-
-		if strings.Contains(string(r), "OK") {
-			break
-		}
-
-		if strings.Contains(string(r), "ERROR") {
-			err = errors.New("response error")
-			return
-		}
-	}
-
-	return string(r), nil
 }
