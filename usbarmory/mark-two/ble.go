@@ -77,7 +77,6 @@ const (
 	UART1_RTS_B_MODE = 8
 
 	RESET_GRACE_TIME = 1 * time.Second
-	AT_GRACE_TIME    = 500 * time.Millisecond
 )
 
 func configureBLEPad(mux uint32, pad uint32, daisy uint32, mode uint32, ctl uint32) (p *imx6.Pad) {
