@@ -211,10 +211,6 @@ func (hw *UART) rxReady() bool {
 	return reg.Get(hw.usr2, USR2_RDR, 1) == 1
 }
 
-func (hw *UART) rxError() bool {
-	return reg.Get(hw.urxd, URXD_PRERR, 0b11111) != 0
-}
-
 func (hw *UART) enable(baudrate uint32) {
 	// disable UART
 	reg.Write(hw.ucr1, 0)
@@ -307,9 +303,11 @@ func (hw *UART) Read() (c byte, valid bool) {
 		return
 	}
 
-	if hw.rxError() {
+	urxd := reg.Read(hw.urxd)
+
+	if bits.Get(&urxd, URXD_PRERR, 0b11111) != 0 {
 		return
 	}
 
-	return byte(reg.Get(hw.urxd, URXD_RX_DATA, 0xff)), true
+	return byte(bits.Get(&urxd, URXD_RX_DATA, 0xff)), true
 }
