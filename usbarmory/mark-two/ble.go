@@ -22,24 +22,31 @@ import (
 //
 // On the USB armory Mk II a u-blox ANNA-B112 Bluetooth module is connected as
 // illustrated in the following constants.
+//
+// On the USB armory Mk II β revision, due to an errata, the RTS/CTS signals
+// are connected inverted on the Bluetooth module side (the ANNA.CTS GPIO is
+// exposed as a workaround).
 const (
-	// BT_UART_TX
+	// BT_UART_TX (UART1_TX_DATA)
 	IOMUXC_SW_MUX_CTL_PAD_UART1_TX_DATA = 0x020e0084
 	IOMUXC_SW_PAD_CTL_PAD_UART1_TX_DATA = 0x020e0310
 
-	// BT_UART_RX
+	// BT_UART_RX (UART1_RX_DATA)
 	IOMUXC_SW_MUX_CTL_PAD_UART1_RX_DATA = 0x020e0088
 	IOMUXC_SW_PAD_CTL_PAD_UART1_RX_DATA = 0x020e0314
 	IOMUXC_UART1_RX_DATA_SELECT_INPUT   = 0x020e0624
 	DAISY_UART1_RX_DATA                 = 0b11
 
-	// BT_UART_CTS
+	// BT_UART_CTS (UART1_CTS_B)
 	IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B = 0x020e008c
 	IOMUXC_SW_PAD_CTL_PAD_UART1_CTS_B = 0x020e0318
 
 	// BT_UART_RTS (UART1_RTS_B)
 	IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07 = 0x020e0078
 	IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07 = 0x020e0304
+	IOMUXC_UART1_RTS_B_SELECT_INPUT  = 0x020e0620
+	UART1_RTS_B_MODE                 = 8
+	DAISY_GPIO1_IO07                 = 0b01
 
 	// BT_UART_DSR (GPIO1_IO24)
 	IOMUXC_SW_MUX_CTL_PAD_UART3_TX_DATA = 0x020e00a4
@@ -72,9 +79,8 @@ const (
 	IOMUXC_SW_MUX_CTL_PAD_UART3_CTS_B = 0x020e00ac
 	IOMUXC_SW_PAD_CTL_PAD_UART3_CTS_B = 0x020e0338
 
-	DEFAULT_MODE     = 0
-	GPIO_MODE        = 5
-	UART1_RTS_B_MODE = 8
+	DEFAULT_MODE = 0
+	GPIO_MODE    = 5
 
 	RESET_GRACE_TIME = 1 * time.Second
 )
@@ -115,7 +121,10 @@ func configureBLEGPIO(num int, instance int, mux uint32, pad uint32, ctl uint32)
 type ANNA struct {
 	sync.Mutex
 
-	UART    *imx6.UART
+	UART *imx6.UART
+	// export CTS as GPIO due to errata
+	CTS *imx6.GPIO
+
 	reset   *imx6.GPIO
 	switch1 *imx6.GPIO
 	switch2 *imx6.GPIO
@@ -149,17 +158,18 @@ func (ble *ANNA) Init() (err error) {
 		DEFAULT_MODE, ctl)
 	pad.Select(DAISY_UART1_RX_DATA)
 
-	// BT_UART_CTS
-	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B,
+	// BT_UART_CTS (acting as RTS due to errata)
+	pad = configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B,
 		IOMUXC_SW_PAD_CTL_PAD_UART1_CTS_B,
 		0, DEFAULT_MODE, ctl)
 
 	bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_DOWN_100K)
 
-	// BT_UART_RTS
-	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
+	// BT_UART_RTS (exported as CTS GPIO due to errata)
+	BLE.CTS = configureBLEGPIO(7, 1,
+		IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
 		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07,
-		0, UART1_RTS_B_MODE, ctl)
+		ctl)
 
 	bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_UP_22K)
 	bits.SetN(&ctl, imx6.SW_PAD_CTL_SPEED, 0b11, imx6.SW_PAD_CTL_SPEED_50MHZ)
@@ -208,7 +218,8 @@ func (ble *ANNA) Init() (err error) {
 		0, GPIO_MODE, ctl)
 
 	BLE.UART = imx6.UART1
-	BLE.UART.Init(imx6.UART_DEFAULT_BAUDRATE)
+	BLE.UART.Flow = false
+	BLE.UART.Init()
 
 	// reset in normal mode
 	BLE.switch1.High()

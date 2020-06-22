@@ -128,6 +128,13 @@ type UART struct {
 	// controller index
 	n int
 
+	// port speed
+	Baudrate uint32
+	// DTE mode
+	DTE bool
+	// hardware flow control
+	Flow bool
+
 	// control registers
 	urxd uint32
 	utxd uint32
@@ -145,14 +152,20 @@ type UART struct {
 }
 
 // UART1 instance
-var UART1 = &UART{n: 1}
+var UART1 = &UART{
+	n:        1,
+	Baudrate: UART_DEFAULT_BAUDRATE,
+}
 
 // UART2 instance
-var UART2 = &UART{n: 2}
+var UART2 = &UART{
+	n:        2,
+	Baudrate: UART_DEFAULT_BAUDRATE,
+}
 
-// Init initializes the UART for RS-232 mode with the requested baudrate,
+// Init initializes the UART for RS-232 mode,
 // p2312, 45.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
-func (hw *UART) Init(baudrate uint32) {
+func (hw *UART) Init() {
 	var base uint32
 
 	hw.Lock()
@@ -184,7 +197,7 @@ func (hw *UART) Init(baudrate uint32) {
 	hw.ubmr = base + UARTx_UBMR
 	hw.uts = base + UARTx_UTS
 
-	hw.enable(baudrate)
+	hw.enable()
 
 	hw.Unlock()
 }
@@ -211,7 +224,7 @@ func (hw *UART) rxReady() bool {
 	return reg.Get(hw.usr2, USR2_RDR, 1) == 1
 }
 
-func (hw *UART) enable(baudrate uint32) {
+func (hw *UART) enable() {
 	// disable UART
 	reg.Write(hw.ucr1, 0)
 	reg.Write(hw.ucr2, 0)
@@ -247,6 +260,11 @@ func (hw *UART) enable(baudrate uint32) {
 	bits.SetN(&ufcr, UFCR_TXTL, 0b111111, 2)
 	// RxFIFO has 1 character
 	bits.SetN(&ufcr, UFCR_RXTL, 0b111111, 1)
+
+	if hw.DTE {
+		bits.Set(&ufcr, UFCR_DCEDTE)
+	}
+
 	// set UFCR
 	reg.Write(hw.ufcr, ufcr)
 
@@ -263,15 +281,13 @@ func (hw *UART) enable(baudrate uint32) {
 	// match /6 static divider (p424, Figure 17-3. Clock Tree - Part 2, IMX6ULLRM)
 	clk := uartclk() / 6
 	// multiply to match UFCR_RFDIV divider value
-	ubmr := clk / (2 * baudrate)
+	ubmr := clk / (2 * hw.Baudrate)
 	// neutralize denominator
 	reg.Write(hw.ubir, 15)
 	// set UBMR
 	reg.Write(hw.ubmr, ubmr)
 
 	var ucr2 uint32
-	// Ignore the RTS pin
-	bits.Set(&ucr2, UCR2_IRTS)
 	// 8-bit transmit and receive character length
 	bits.Set(&ucr2, UCR2_WS)
 	// Enable the transmitter
@@ -280,9 +296,17 @@ func (hw *UART) enable(baudrate uint32) {
 	bits.Set(&ucr2, UCR2_RXEN)
 	// Software reset
 	bits.Set(&ucr2, UCR2_SRST)
+
+	if hw.Flow {
+		// Receiver controls CTS
+		bits.Set(&ucr2, UCR2_CTSC)
+	} else {
+		// Ignore the RTS pin
+		bits.Set(&ucr2, UCR2_IRTS)
+	}
+
 	// set UCR2
 	reg.Write(hw.ucr2, ucr2)
-
 	// Enable the UART
 	reg.Set(hw.ucr1, UCR1_UARTEN)
 }
