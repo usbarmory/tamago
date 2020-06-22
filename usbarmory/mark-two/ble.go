@@ -24,8 +24,9 @@ import (
 // illustrated in the following constants.
 //
 // On the USB armory Mk II β revision, due to an errata, the RTS/CTS signals
-// are connected inverted on the Bluetooth module side (the ANNA.CTS GPIO is
-// exposed as a workaround).
+// are connected inverted on the Bluetooth module side. This is automatically
+// handled with a workaround by the CTS() function, which uses the line as GPIO
+// to force output direction.
 const (
 	// BT_UART_TX (UART1_TX_DATA)
 	IOMUXC_SW_MUX_CTL_PAD_UART1_TX_DATA = 0x020e0084
@@ -122,12 +123,13 @@ type ANNA struct {
 	sync.Mutex
 
 	UART *imx6.UART
-	// export CTS as GPIO due to errata
-	CTS *imx6.GPIO
 
 	reset   *imx6.GPIO
 	switch1 *imx6.GPIO
 	switch2 *imx6.GPIO
+
+	// On β revisions CTS is implemented as GPIO due to errata.
+	cts *imx6.GPIO
 }
 
 // BLE module instance
@@ -158,18 +160,29 @@ func (ble *ANNA) Init() (err error) {
 		DEFAULT_MODE, ctl)
 	pad.Select(DAISY_UART1_RX_DATA)
 
-	// BT_UART_CTS (acting as RTS due to errata)
+	// BT_UART_CTS
 	pad = configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B,
 		IOMUXC_SW_PAD_CTL_PAD_UART1_CTS_B,
 		0, DEFAULT_MODE, ctl)
 
 	bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_DOWN_100K)
 
-	// BT_UART_RTS (exported as CTS GPIO due to errata)
-	BLE.CTS = configureBLEGPIO(7, 1,
-		IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
-		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07,
-		ctl)
+	switch Model() {
+	case "UA-MKII-β":
+		// On β, BT_UART_RTS is used as CTS GPIO due to errata and RTS
+		// functionality is not available.
+		BLE.cts = configureBLEGPIO(7, 1,
+			IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
+			IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07,
+			ctl)
+	default:
+		// BT_UART_RTS
+		pad = configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
+			IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07,
+			IOMUXC_UART1_RTS_B_SELECT_INPUT,
+			UART1_RTS_B_MODE, ctl)
+		pad.Select(DAISY_GPIO1_IO07)
+	}
 
 	bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_UP_22K)
 	bits.SetN(&ctl, imx6.SW_PAD_CTL_SPEED, 0b11, imx6.SW_PAD_CTL_SPEED_50MHZ)
@@ -228,6 +241,16 @@ func (ble *ANNA) Init() (err error) {
 	defer BLE.reset.High()
 
 	return
+}
+
+// CTS signals the BLE module whether it is allowed to send or not data, only
+// useful on β boards when a workaround to the RTS/CTS errata is required.
+func (ble *ANNA) CTS(clear bool) {
+	if clear {
+		ble.cts.Low()
+	} else {
+		ble.cts.High()
+	}
 }
 
 // Reset the BLE module by toggling the RESET_N pin.

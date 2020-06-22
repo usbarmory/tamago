@@ -311,9 +311,8 @@ func (hw *UART) enable() {
 	reg.Set(hw.ucr1, UCR1_UARTEN)
 }
 
-// Write a single character to the selected serial port.
-func (hw *UART) Write(c byte) {
-	// transmit data
+// Tx transmits a single character to the serial port.
+func (hw *UART) Tx(c byte) {
 	reg.Write(hw.utxd, uint32(c))
 
 	for hw.txEmpty() {
@@ -321,8 +320,8 @@ func (hw *UART) Write(c byte) {
 	}
 }
 
-// Read a single character from the selected serial port.
-func (hw *UART) Read() (c byte, valid bool) {
+// Rx receives a single character from the serial port.
+func (hw *UART) Rx() (c byte, valid bool) {
 	if !hw.rxReady() {
 		return
 	}
@@ -334,4 +333,26 @@ func (hw *UART) Read() (c byte, valid bool) {
 	}
 
 	return byte(bits.Get(&urxd, URXD_RX_DATA, 0xff)), true
+}
+
+// Write data from buffer to serial port.
+func (hw *UART) Write(buf []byte) {
+	for i := 0; i < len(buf); i++ {
+		hw.Tx(buf[i])
+	}
+}
+
+// Read available data to buffer from serial port.
+func (hw *UART) Read(buf []byte) (n int) {
+	var valid bool
+
+	for n = 0; n < len(buf); n++ {
+		buf[n], valid = hw.Rx()
+
+		if !valid {
+			break
+		}
+	}
+
+	return
 }

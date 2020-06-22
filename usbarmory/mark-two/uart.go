@@ -20,5 +20,5 @@ import (
 
 //go:linkname printk runtime.printk
 func printk(c byte) {
-	imx6.UART2.Write(c)
+	imx6.UART2.Tx(c)
 }

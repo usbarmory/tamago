@@ -18,3 +18,10 @@ package usbarmory
 import (
 	_ "github.com/f-secure-foundry/tamago/imx6/imx6ul"
 )
+
+// Model returns the USB armory model name, to further detect SoC variants
+// imx6.Model() can be used.
+func Model() (model string) {
+	// for now only β exists in the wild
+	return "UA-MKII-β"
+}
