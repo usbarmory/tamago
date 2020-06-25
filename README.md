@@ -52,9 +52,9 @@ Current release level
 =====================
 
 The current release for the [TamaGo modified Go distribution](https://github.com/f-secure-foundry/tamago-go) is
-[tamago1.14.3](https://github.com/f-secure-foundry/tamago-go/tree/tamago1.14.3),
-which [adds](https://github.com/golang/go/compare/go1.14.3...f-secure-foundry:tamago1.14.3)
-`GOOS=tamago` support to go-1.14.3.
+[tamago1.14.4](https://github.com/f-secure-foundry/tamago-go/tree/tamago1.14.4),
+which [adds](https://github.com/golang/go/compare/go1.14.4...f-secure-foundry:tamago1.14.4)
+`GOOS=tamago` support to go-1.14.4.
 
 Binary releases for amd64 and armv7l Linux hosts [are available](https://github.com/f-secure-foundry/tamago-go/releases/latest).
 
@@ -89,7 +89,7 @@ Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go)
 (or use the [latest binary release](https://github.com/f-secure-foundry/tamago-go/releases/latest)):
 
 ```
-git clone https://github.com/f-secure-foundry/tamago-go -b tamago1.14.3
+git clone https://github.com/f-secure-foundry/tamago-go -b tamago1.14.4
 cd tamago-go/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
