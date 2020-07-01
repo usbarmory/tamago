@@ -36,7 +36,7 @@ func (b *block) write(buf []byte, offset int) {
 	copy(mem, buf)
 }
 
-func defrag() {
+func (dma *Region) defrag() {
 	var prevBlock *block
 
 	// find contiguous free blocks and combine them
@@ -55,7 +55,7 @@ func defrag() {
 	}
 }
 
-func alloc(size int, align int) *block {
+func (dma *Region) alloc(size int, align int) *block {
 	var e *list.Element
 	var freeBlock *block
 
@@ -125,13 +125,13 @@ func alloc(size int, align int) *block {
 	return freeBlock
 }
 
-func free(usedBlock *block) {
+func (dma *Region) free(usedBlock *block) {
 	for e := dma.freeBlocks.Front(); e != nil; e = e.Next() {
 		b := e.Value.(*block)
 
 		if b.addr > usedBlock.addr {
 			dma.freeBlocks.InsertBefore(usedBlock, e)
-			defrag()
+			dma.defrag()
 			return
 		}
 	}

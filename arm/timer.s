@@ -46,7 +46,7 @@ TEXT ·write_cntfrq(SB),$0
 	// https://wiki.osdev.org/ARMv7_Generic_Timers
 	//
 	// B4.1.21 CNTFRQ, Counter Frequency register, VMSA
-	MOVW freq+0(FP), R0
+	MOVW	freq+0(FP), R0
 	WORD	$0xf57ff06f // isb sy
 	MCR	15, 0, R0, C14, C0, 0
 

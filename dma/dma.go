@@ -33,32 +33,29 @@ type block struct {
 	res bool
 }
 
-type region struct {
+type Region struct {
 	sync.Mutex
 
-	start uint32
-	size  int
+	Start uint32
+	Size  int
 
 	freeBlocks *list.List
 	usedBlocks map[uint32]*block
 }
 
-var dma = &region{}
+var dma *Region
 
 // Init initializes a memory region for DMA buffer allocation, the application
 // must guarantee that the passed memory range is never used by the Go
 // runtime (defining runtime.ramStart and runtime.ramSize accordingly).
-func Init(start uint32, size int) {
+func (dma *Region) Init() {
 	dma.Lock()
 	// note: cannot defer during initialization
 
-	dma.start = start
-	dma.size = size
-
 	// initialize a single block to fit all available memory
 	b := &block{
-		addr: start,
-		size: size,
+		addr: dma.Start,
+		size: dma.Size,
 	}
 
 	dma.freeBlocks = list.New()
@@ -82,7 +79,7 @@ func Init(start uint32, size int) {
 //   * buf contents are uninitialized (unlike when using Alloc())
 //   * buf slices remain in reserved space but only the original buf
 //     can be subject of Release()
-func Reserve(size int, align int) (addr uint32, buf []byte) {
+func (dma *Region) Reserve(size int, align int) (addr uint32, buf []byte) {
 	dma.Lock()
 	defer dma.Unlock()
 
@@ -90,7 +87,7 @@ func Reserve(size int, align int) (addr uint32, buf []byte) {
 		return
 	}
 
-	b := alloc(size, align)
+	b := dma.alloc(size, align)
 	b.res = true
 
 	dma.usedBlocks[b.addr] = b
@@ -106,9 +103,9 @@ func Reserve(size int, align int) (addr uint32, buf []byte) {
 // Reserved returns whether a slice of bytes data is allocated within the DMA
 // buffer region, it is used to determine whether the passed buffer has been
 // previously allocated by this package with Reserve().
-func Reserved(buf []byte) (res bool, addr uint32) {
+func (dma *Region) Reserved(buf []byte) (res bool, addr uint32) {
 	addr = uint32(uintptr(unsafe.Pointer(&buf[0])))
-	res = addr >= dma.start && addr+uint32(len(buf)) <= dma.start+uint32(dma.size)
+	res = addr >= dma.Start && addr+uint32(len(buf)) <= dma.Start+uint32(dma.Size)
 
 	return
 }
@@ -119,7 +116,7 @@ func Reserved(buf []byte) (res bool, addr uint32) {
 //
 // If the argument is a buffer previously created with Reserve(), then its
 // address is return without any re-allocation.
-func Alloc(buf []byte, align int) (addr uint32) {
+func (dma *Region) Alloc(buf []byte, align int) (addr uint32) {
 	dma.Lock()
 	defer dma.Unlock()
 
@@ -133,7 +130,7 @@ func Alloc(buf []byte, align int) (addr uint32) {
 		return addr
 	}
 
-	b := alloc(len(buf), align)
+	b := dma.alloc(len(buf), align)
 	b.write(buf, 0)
 
 	dma.usedBlocks[b.addr] = b
@@ -151,7 +148,7 @@ func Alloc(buf []byte, align int) (addr uint32) {
 // If the argument is a buffer previously created with Reserve(), then the
 // function returns without modifying it, as it is assumed for the buffer to be
 // already updated.
-func Read(addr uint32, offset int, buf []byte) {
+func (dma *Region) Read(addr uint32, offset int, buf []byte) {
 	dma.Lock()
 	defer dma.Unlock()
 
@@ -183,7 +180,7 @@ func Read(addr uint32, offset int, buf []byte) {
 //
 // An offset can be pased to write a slice of the memory region, a panic occurs
 // if the offset is not compatible with the initial allocation for the address.
-func Write(addr uint32, data []byte, offset int) {
+func (dma *Region) Write(addr uint32, data []byte, offset int) {
 	dma.Lock()
 	defer dma.Unlock()
 
@@ -208,17 +205,17 @@ func Write(addr uint32, data []byte, offset int) {
 
 // Free frees the memory region stored at the passed address, the region must
 // have been previously allocated with Alloc().
-func Free(addr uint32) {
-	freeBlock(addr, false)
+func (dma *Region) Free(addr uint32) {
+	dma.freeBlock(addr, false)
 }
 
 // Release frees the memory region stored at the passed address, the region
 // must have been previously allocated with Reserve().
-func Release(addr uint32) {
-	freeBlock(addr, true)
+func (dma *Region) Release(addr uint32) {
+	dma.freeBlock(addr, true)
 }
 
-func freeBlock(addr uint32, res bool) {
+func (dma *Region) freeBlock(addr uint32, res bool) {
 	dma.Lock()
 	defer dma.Unlock()
 
@@ -236,6 +233,64 @@ func freeBlock(addr uint32, res bool) {
 		return
 	}
 
-	free(b)
+	dma.free(b)
 	delete(dma.usedBlocks, addr)
+}
+
+// Init initializes the global memory region for DMA buffer allocation, the
+// application must guarantee that the passed memory range is never used by the
+// Go runtime (defining runtime.ramStart and runtime.ramSize accordingly).
+//
+// The global region is used throughout the tamago package for all DMA
+// allocations.
+//
+// Separate DMA regions can be allocated in other areas (e.g. external RAM) by
+// the application using Region.Init().
+func Init(start uint32, size int) {
+	dma = &Region{
+		Start: start,
+		Size:  size,
+	}
+
+	dma.Init()
+}
+
+// Default returns the global DMA region instance.
+func Default() *Region {
+	return dma
+}
+
+// Reserve is the equivalent of Region.Reserve() on the global DMA region.
+func Reserve(size int, align int) (addr uint32, buf []byte) {
+	return dma.Reserve(size, align)
+}
+
+// Reserved is the equivalent of Region.Reserved() on the global DMA region.
+func Reserved(buf []byte) (res bool, addr uint32) {
+	return dma.Reserved(buf)
+}
+
+// Alloc is the equivalent of Region.Alloc() on the global DMA region.
+func Alloc(buf []byte, align int) (addr uint32) {
+	return dma.Alloc(buf, align)
+}
+
+// Read is the equivalent of Region.Read() on the global DMA region.
+func Read(addr uint32, offset int, buf []byte) {
+	dma.Read(addr, offset, buf)
+}
+
+// Write is the equivalent of Region.Write() on the global DMA region.
+func Write(addr uint32, data []byte, offset int) {
+	dma.Write(addr, data, offset)
+}
+
+// Free is the equivalent of Region.Free() on the global DMA region.
+func Free(addr uint32) {
+	dma.Free(addr)
+}
+
+// Release is the equivalent of Region.Release() on the global DMA region.
+func Release(addr uint32) {
+	dma.Release(addr)
 }
