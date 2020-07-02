@@ -6,7 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// func Move(int32)
+// func Move(dst uint32, src uint32)
 TEXT ·Move(SB),$0
 	MOVW	dst+0(FP), R0
 	MOVW	src+4(FP), R1
