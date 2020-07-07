@@ -25,7 +25,7 @@ import (
 //
 // On the USB armory Mk II β revision, due to an errata, the RTS/CTS signals
 // are connected inverted on the Bluetooth module side. This is automatically
-// handled with a workaround by the RTS() and CTS() functions, which uses the
+// handled with a workaround by the RTS() and CTS() functions, which use the
 // lines as GPIOs to invert their direction.
 const (
 	// BT_UART_TX (UART1_TX_DATA)
