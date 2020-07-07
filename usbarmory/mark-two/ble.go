@@ -129,8 +129,9 @@ type ANNA struct {
 	switch2 *imx6.GPIO
 
 	// On β revisions RTS/CTS are implemented as GPIO due to errata.
-	rts *imx6.GPIO
-	cts *imx6.GPIO
+	errata bool
+	rts    *imx6.GPIO
+	cts    *imx6.GPIO
 }
 
 // BLE module instance
@@ -165,11 +166,14 @@ func (ble *ANNA) Init() (err error) {
 
 	switch Model() {
 	case "UA-MKII-β":
+		BLE.errata = true
+
 		// On β BT_UART_RTS is set to GPIO for CTS due to errata.
 		BLE.cts = configureBLEGPIO(7, 1,
 			IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
 			IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07,
 			ctl)
+		BLE.cts.Out()
 
 		bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_DOWN_100K)
 
@@ -178,9 +182,8 @@ func (ble *ANNA) Init() (err error) {
 			IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B,
 			IOMUXC_SW_PAD_CTL_PAD_UART1_CTS_B,
 			ctl)
-
 		BLE.rts.In()
-		BLE.cts.Out()
+
 		BLE.UART.Flow = false
 	default:
 		// BT_UART_CTS
@@ -260,12 +263,20 @@ func (ble *ANNA) Init() (err error) {
 // RTS returns whether the BLE module allows to send or not data, only useful
 // on β boards when a workaround to the RTS/CTS errata is required.
 func (ble *ANNA) RTS() (ready bool) {
+	if !BLE.errata {
+		return
+	}
+
 	return !ble.rts.Value()
 }
 
 // CTS signals the BLE module whether it is allowed to send or not data, only
 // useful on β boards when a workaround to the RTS/CTS errata is required.
 func (ble *ANNA) CTS(clear bool) {
+	if !BLE.errata {
+		return
+	}
+
 	if clear {
 		ble.cts.Low()
 	} else {
