@@ -41,8 +41,11 @@ const (
 	SD_OCR_VDD_LV     = 7
 
 	// p120, Table 4-32 : Switch Function Commands (class 10), SD-PL-7.10
-	SD_SWITCH_MODE        = 0
-	SD_SWITCH_ACCESS_MODE = 0
+	SD_SWITCH_MODE = 31
+	// p92, Table 4-11 : Available Functions of CMD6, SD-PL-7.10
+	SD_SWITCH_ACCESS_MODE_GROUP = 1
+	// p95, 4.3.10.4 Switch Function Status, SD-PL-7.10
+	SD_SWITCH_STATUS_LENGTH = 64
 
 	// p89, 4.3.10 Switch Function Command, SD-PL-7.10
 	MODE_CHECK         = 0
@@ -79,6 +82,28 @@ const (
 	SD_DETECT_TIMEOUT     = 1 * time.Second
 	SD_DEFAULT_BLOCK_SIZE = 512
 )
+
+func (hw *USDHC) switchSD(mode uint32, group int, val uint32) (status []byte, err error) {
+	var arg uint32
+
+	// set `no influence` (0xf) for all function groups
+	arg = 0x00ffffff
+	// set mode check
+	bits.SetN(&arg, SD_SWITCH_MODE, 1, mode)
+	// set function group
+	bits.SetN(&arg, (group-1)*4, 0b1111, val)
+
+	status = make([]byte, SD_SWITCH_STATUS_LENGTH)
+
+	// CMD6 - SWITCH - switch mode of operation
+	if err = hw.transfer(6, READ, uint64(arg), 1, SD_SWITCH_STATUS_LENGTH, status); err != nil {
+		return
+	}
+
+	err = hw.waitState(CURRENT_STATE_TRAN, 500*time.Millisecond)
+
+	return
+}
 
 // p350, 35.4.4 SD voltage validation flow chart, IMX6FG
 func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
@@ -154,8 +179,6 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 			hc = true
 		}
 
-		// TODO: use CMD6 to detect SDR104 for UHS-I and UHS-II
-
 		if bits.Get(&rsp, SD_OCR_S18R, 1) == 1 {
 			// UHS-I
 			hw.card.Rate = SDR50_MBPS
@@ -173,7 +196,7 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 	return false, false
 }
 
-func (hw *USDHC) detectCapacitySD(blockSize uint32) (err error) {
+func (hw *USDHC) detectCapabilitiesSD() (err error) {
 	// CMD9 - SEND_CSD - read device data
 	if err = hw.cmd(9, READ, hw.rca, RSP_136, false, true, false, 0); err != nil {
 		return
@@ -242,7 +265,7 @@ func (hw *USDHC) initSD() (err error) {
 	// set relative card address
 	hw.rca = hw.rsp(0) & (0xffff << RCA_ADDR)
 
-	err = hw.detectCapacitySD(SD_DEFAULT_BLOCK_SIZE)
+	err = hw.detectCapabilitiesSD()
 
 	if err != nil {
 		return
@@ -283,26 +306,14 @@ func (hw *USDHC) initSD() (err error) {
 		return
 	}
 
-	// Enable High Speed (HS) mode.
-	//
-	// We do this unconditionally for now as only Non UHS SDXC/SDUC cards
-	// have optional HS mode support, while mandatory for all others.
-	//
-	// p46, Table 3-10 : Bus Speed Mode Option / Mandatory, SD-PL-7.10
-
-	// set `no influence` (0xf) for all functions except changed ones
-	arg = 0xffffffff
-	// set mode switch
-	bits.SetN(&arg, SD_SWITCH_MODE, 1, MODE_SWITCH)
-	// set HS access mode
-	bits.SetN(&arg, SD_SWITCH_ACCESS_MODE, 0b1111, ACCESS_MODE_HS)
-
-	// CMD6 - SWITCH - switch mode of operation
-	if err = hw.cmd(6, READ, arg, RSP_48, true, true, false, 0); err != nil {
+	if hw.card.Rate < HS_MBPS {
 		return
 	}
 
-	err = hw.waitState(CURRENT_STATE_TRAN, 500*time.Millisecond)
+	// Enable High Speed (HS) mode.
+	if _, err = hw.switchSD(MODE_SWITCH, SD_SWITCH_ACCESS_MODE_GROUP, ACCESS_MODE_HS); err != nil {
+		return
+	}
 
 	// clear clock
 	hw.setClock(0, 0)
@@ -310,6 +321,10 @@ func (hw *USDHC) initSD() (err error) {
 	hw.setClock(DVS_HS, SDCLKFS_HS_SDR)
 
 	hw.card.HS = true
+
+	// TODO: if card is UHS (rate >= SDR50_MBPS) switch to 1.8V and detect
+	// if SDR104 is supported with
+	//   hw.switchSD(MODE_CHECK, SD_SWITCH_ACCESS_MODE_GROUP, 0)
 
 	return
 }

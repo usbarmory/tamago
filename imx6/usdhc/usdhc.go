@@ -439,7 +439,7 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 
 	reg.Write(hw.adma_sys_addr, bdAddress)
 
-	if hw.card.HC {
+	if hw.card.HC && index != 6 {
 		// p102, 4.3.14 Command Functional Difference in Card Capacity Types, SD-PL-7.10
 		offset = offset / uint64(blockSize)
 	}
