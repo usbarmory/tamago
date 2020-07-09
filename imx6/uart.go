@@ -246,8 +246,6 @@ func (hw *UART) enable() {
 	// set UCR3
 	reg.Write(hw.ucr3, ucr3)
 
-	// 32 characters in the RxFIFO (maximum)
-	reg.SetN(hw.ucr4, UCR4_CTSTL, 0b111111, 32)
 	// set escape character
 	reg.Write(hw.uesc, ESC)
 	// reset escape timer
@@ -300,9 +298,16 @@ func (hw *UART) enable() {
 	if hw.Flow {
 		// Receiver controls CTS
 		bits.Set(&ucr2, UCR2_CTSC)
+
+		// 16 characters in the RxFIFO as the maximum value leads to
+		// overflow even with hardware flow control in place.
+		reg.SetN(hw.ucr4, UCR4_CTSTL, 0b111111, 16)
 	} else {
 		// Ignore the RTS pin
 		bits.Set(&ucr2, UCR2_IRTS)
+
+		// 32 characters in the RxFIFO (maximum)
+		reg.SetN(hw.ucr4, UCR4_CTSTL, 0b111111, 32)
 	}
 
 	// set UCR2
