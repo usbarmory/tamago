@@ -33,6 +33,7 @@ const (
 	// p198, 5.1 OCR register, SD-PL-7.10
 	SD_OCR_BUSY       = 31
 	SD_OCR_HCS        = 30
+	SD_OCR_UHSII      = 29
 	SD_OCR_XPC        = 28
 	SD_OCR_S18R       = 24
 	SD_OCR_VDD_HV_MAX = 23
@@ -66,6 +67,11 @@ const (
 	// p212 5.3.4 CSD Register (CSD Version 3.0), SD-PL-7.10
 	SD_CSD_C_SIZE_3      = 48 + CSD_RSP_OFF
 	SD_CSD_READ_BL_LEN_3 = 80 + CSD_RSP_OFF
+
+	// p23, 2. System Features, SD-PL-7.10
+	HS_MBPS    = 25
+	SDR50_MBPS = 50
+	DDR50_MBPS = 50
 )
 
 // SD constants
@@ -114,6 +120,8 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 		bits.Set(&arg, SD_OCR_HCS)
 		// Maximum Performance
 		bits.Set(&arg, SD_OCR_XPC)
+		// Switch to 1.8V (only check acceptance for speed detection)
+		bits.Set(&arg, SD_OCR_S18R)
 	}
 
 	if hv {
@@ -144,6 +152,19 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 
 		if bits.Get(&rsp, SD_OCR_HCS, 1) == 1 {
 			hc = true
+		}
+
+		// TODO: use CMD6 to detect SDR104 for UHS-I and UHS-II
+
+		if bits.Get(&rsp, SD_OCR_S18R, 1) == 1 {
+			// UHS-I
+			hw.card.Rate = SDR50_MBPS
+		} else if bits.Get(&rsp, SD_OCR_UHSII, 1) == 1 {
+			// UHS-II
+			hw.card.Rate = SDR50_MBPS
+		} else {
+			// Non UHS-I
+			hw.card.Rate = HS_MBPS
 		}
 
 		return true, hc

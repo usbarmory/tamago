@@ -134,13 +134,13 @@ const (
 	DVS_ID = 8
 	// Base clock divided by 64
 	SDCLKFS_ID = 0x20
-	// identification frequency: 200 / (8 * 64) == ~400 KHz
+	// Identification frequency: 200 / (8 * 64) == ~400 KHz
 
 	// Divide-by-2
 	DVS_OP = 2
 	// Base clock divided by 4
 	SDCLKFS_OP = 0x02
-	// operating frequency: 200 / (2 * 4) == 25 MHz
+	// Operating frequency: 200 / (2 * 4) == 25 MHz
 
 	// Divide-by-1
 	DVS_HS = 0
@@ -148,7 +148,7 @@ const (
 	SDCLKFS_HS_SDR = 0x02
 	// Base clock divided by 4 (Dual Data Rate mode)
 	SDCLKFS_HS_DDR = 0x01
-	// high speed frequency: 200 / (1 * 4) == 50 MHz
+	// High Speed frequency: 200 / (1 * 4) == 50 MHz
 
 	// p35, Table 4, JESD84-B51
 	//
@@ -159,7 +159,7 @@ const (
 	// p37-38, Figure 3-14 and 3-15, SD-PL-7.10
 	//
 	// Higher speed modes for SD cards are SDR50/SDR104 (controller
-	// supported, currently unimplemented by this driver) and FD156/HD312
+	// supported, currently unimplemented by this driver) and UHS-II modes
 	// (unsupported at controller level).
 )
 
@@ -175,6 +175,9 @@ type CardInfo struct {
 	HS bool
 	// Dual Data Rate
 	DDR bool
+	// Maximum throughput (on this controller)
+	Rate int
+
 	// Block Size
 	BlockSize int
 	// Capacity

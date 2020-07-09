@@ -51,13 +51,19 @@ const (
 	TRAN_SPEED_26MHZ = 0x32
 
 	// p193, 7.4 Extended CSD register, JESD84-B51
-	EXT_CSD_BUS_WIDTH = 183
-	EXT_CSD_HS_TIMING = 185
-	EXT_CSD_SEC_COUNT = 212
+	EXT_CSD_BUS_WIDTH   = 183
+	EXT_CSD_HS_TIMING   = 185
+	EXT_CSD_DEVICE_TYPE = 196
+	EXT_CSD_SEC_COUNT   = 212
 
 	// p222, 7.4.65 HS_TIMING [185], JESD84-B51
 	HS_TIMING_HS    = 0x1
 	HS_TIMING_HS200 = 0x2
+
+	// p35, 5.3.2 Bus Speed Modes, JESD84-B51
+	HSSDR_MBPS = 52
+	HSDDR_MBPS = 104
+	HS200_MBPS = 200
 )
 
 // MMC constants
@@ -128,24 +134,35 @@ func (hw *USDHC) writeCardRegisterMMC(reg uint32, val uint32) (err error) {
 	return hw.waitState(CURRENT_STATE_TRAN, 500*time.Millisecond)
 }
 
-// p128, Table 39 — e•MMC internal sizes and related Units / Granularities, JESD84-B51
-func (hw *USDHC) detectCapacityMMC(blockSize int, c_size_mult uint32, c_size uint32, read_bl_len uint32) (err error) {
-	// density greater than 2GB
+func (hw *USDHC) detectCapabilitiesMMC(c_size_mult uint32, c_size uint32, read_bl_len uint32) (err error) {
+	extCSD := make([]byte, MMC_DEFAULT_BLOCK_SIZE)
+
+	// CMD8 - SEND_EXT_CSD - read extended device data
+	if err = hw.transfer(8, READ, 0, 1, MMC_DEFAULT_BLOCK_SIZE, extCSD); err != nil {
+		return
+	}
+
+	// p128, Table 39 — e•MMC internal sizes and related Units / Granularities, JESD84-B51
+
+	// density greater than 2GB (emulation mode is always assumed)
 	if c_size > 0xff {
-		// emulation mode is assumed for densities greater than 256GB
-		hw.card.BlockSize = blockSize
-		extCSD := make([]byte, blockSize)
-
-		// CMD8 - SEND_EXT_CSD - read extended device data
-		if err = hw.transfer(8, READ, 0, 1, uint32(blockSize), extCSD); err != nil {
-			return
-		}
-
+		hw.card.BlockSize = MMC_DEFAULT_BLOCK_SIZE
 		hw.card.Blocks = int(binary.LittleEndian.Uint32(extCSD[EXT_CSD_SEC_COUNT:]))
 	} else {
 		// p188, 7.3.12 C_SIZE [73:62], JESD84-B51
 		hw.card.BlockSize = 2 << (read_bl_len - 1)
 		hw.card.Blocks = int((c_size + 1) * (2 << (c_size_mult + 2)))
+	}
+
+	// p220, Table 137 — Device types, JESD84-B51
+	deviceType := extCSD[EXT_CSD_DEVICE_TYPE]
+
+	if (deviceType>>4)&0b11 > 0 {
+		hw.card.Rate = HS200_MBPS
+	} else if (deviceType>>2)&0b11 > 0 {
+		hw.card.Rate = HSDDR_MBPS
+	} else if deviceType&0b11 > 0 {
+		hw.card.Rate = HSSDR_MBPS
 	}
 
 	return
@@ -227,15 +244,15 @@ func (hw *USDHC) initMMC() (err error) {
 		return
 	}
 
-	err = hw.detectCapacityMMC(MMC_DEFAULT_BLOCK_SIZE, c_size_mult, c_size, read_bl_len)
+	err = hw.detectCapabilitiesMMC(c_size_mult, c_size, read_bl_len)
 
 	if err != nil {
 		return
 	}
 
-	// Enable High Speed DDR (DDR104) mode only on Version 4.1 or above
-	// eMMC cards.
-	if ver < 4 {
+	// Enable High Speed DDR mode only on Version 4.1 or above eMMC cards
+	// with supported rate.
+	if ver < 4 || hw.card.Rate <= HSSDR_MBPS {
 		return
 	}
 
