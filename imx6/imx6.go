@@ -111,16 +111,6 @@ func hwinit() {
 	}
 }
 
-//go:linkname initRNG runtime.initRNG
-func initRNG() {
-	if Family == IMX6ULL && Native {
-		RNGB.Init()
-		getRandomDataFn = RNGB.getRandomData
-	} else {
-		getRandomDataFn = getLCGData
-	}
-}
-
 // SiliconVersion returns the SoC silicon version information
 // (p3945, 57.4.11 Chip Silicon Version (USB_ANALOG_DIGPROG), IMX6ULLRM).
 func SiliconVersion() (sv, family, revMajor, revMinor uint32) {

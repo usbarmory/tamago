@@ -50,6 +50,16 @@ var RNGB = &Rng{}
 var lcg uint32
 var getRandomDataFn func([]byte)
 
+//go:linkname initRNG runtime.initRNG
+func initRNG() {
+	if Family == IMX6ULL && Native {
+		RNGB.Init()
+		getRandomDataFn = RNGB.getRandomData
+	} else {
+		getRandomDataFn = getLCGData
+	}
+}
+
 //go:linkname getRandomData runtime.getRandomData
 func getRandomData(b []byte) {
 	getRandomDataFn(b)

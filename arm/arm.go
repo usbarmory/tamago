@@ -17,17 +17,18 @@
 // https://github.com/f-secure-foundry/tamago.
 package arm
 
-// Processor modes (p1139, ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition).
+// ARM processor modes
+// Table B1-1 ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
 const (
-	USR_MODE = 0x10
-	FIQ_MODE = 0x11
-	IRQ_MODE = 0x12
-	SVC_MODE = 0x13
-	MON_MODE = 0x16
-	ABT_MODE = 0x17
-	HYP_MODE = 0x1a
-	UND_MODE = 0x1b
-	SYS_MODE = 0x1f
+	USR_MODE = 0b10000
+	FIQ_MODE = 0b10001
+	IRQ_MODE = 0b10010
+	SVC_MODE = 0b10011
+	MON_MODE = 0b10110
+	ABT_MODE = 0b10111
+	HYP_MODE = 0b11010
+	UND_MODE = 0b11011
+	SYS_MODE = 0b11111
 )
 
 // CPU instance
@@ -51,47 +52,45 @@ type CPU struct {
 	TimerFn func() int64
 }
 
+// defined in arm.s
+func read_cpsr() uint32
+func read_scr() uint32
+
 // Init performs ARM processor instance initialization by detecting its
 // available features.
 func (cpu *CPU) Init() {
 	cpu.initFeatures()
 }
 
-// defined in arm.s
-func read_cpsr() uint32
-func read_scr() uint32
-
 // Mode returns the processor mode.
-func (cpu *CPU) Mode() uint8 {
-	return uint8(read_cpsr() & 0x1f)
+func (cpu *CPU) Mode() int {
+	return int(read_cpsr() & 0x1f)
 }
 
-// Mode returns the processor mode name.
-func (cpu *CPU) ModeName() (mode string) {
-	switch cpu.Mode() {
+// ModeName returns the processor mode name.
+func ModeName(mode int) string {
+	switch mode {
 	case USR_MODE:
-		mode = "USR"
+		return "USR"
 	case FIQ_MODE:
-		mode = "FIQ"
+		return "FIQ"
 	case IRQ_MODE:
-		mode = "IRQ"
+		return "IRQ"
 	case SVC_MODE:
-		mode = "SVC"
+		return "SVC"
 	case MON_MODE:
-		mode = "MON"
+		return "MON"
 	case ABT_MODE:
-		mode = "ABT"
+		return "ABT"
 	case HYP_MODE:
-		mode = "HYP"
+		return "HYP"
 	case UND_MODE:
-		mode = "UND"
+		return "UND"
 	case SYS_MODE:
-		mode = "SYS"
-	default:
-		mode = "Unknown"
+		return "SYS"
 	}
 
-	return
+	return "Unknown"
 }
 
 // NonSecure returns whether the processor security mode is non-secure
