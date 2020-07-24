@@ -496,8 +496,8 @@ func (hw *USDHC) ReadBlocks(lba int, blocks int, buf []byte) (err error) {
 }
 
 // Read transfers data from the card.
-func (hw *USDHC) Read(offset int, size int) (buf []byte, err error) {
-	blockSize := hw.card.BlockSize
+func (hw *USDHC) Read(offset int64, size int64) (buf []byte, err error) {
+	blockSize := int64(hw.card.BlockSize)
 
 	if size == 0 {
 		return
@@ -543,13 +543,13 @@ func (hw *USDHC) Read(offset int, size int) (buf []byte, err error) {
 // WriteBlocks transfers full blocks of data to the card.
 func (hw *USDHC) WriteBlocks(lba int, buf []byte) (err error) {
 	blockSize := hw.card.BlockSize
-	offset := uint64(lba) * uint64(blockSize)
+	offset := int64(lba) * int64(blockSize)
 
 	return hw.Write(offset, buf)
 }
 
 // Write transfers data to the card.
-func (hw *USDHC) Write(offset uint64, buf []byte) (err error) {
+func (hw *USDHC) Write(offset int64, buf []byte) (err error) {
 	blockSize := uint32(hw.card.BlockSize)
 	size := len(buf)
 
@@ -573,5 +573,5 @@ func (hw *USDHC) Write(offset uint64, buf []byte) (err error) {
 	defer hw.Unlock()
 
 	// CMD25 - WRITE_MULTIPLE_BLOCK - write consecutive blocks
-	return hw.transfer(25, WRITE, offset, blocks, blockSize, buf)
+	return hw.transfer(25, WRITE, uint64(offset), blocks, blockSize, buf)
 }
