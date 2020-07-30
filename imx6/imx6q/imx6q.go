@@ -19,8 +19,5 @@ import (
 	_ "unsafe"
 )
 
-//go:linkname ramStart runtime.ramStart
-var ramStart uint32 = 0x10000000
-
 //go:linkname ramStackOffset runtime.ramStackOffset
 var ramStackOffset uint32 = 0x100000
