@@ -81,6 +81,16 @@ func getLCGData(b []byte) {
 	}
 }
 
+// Reset resets the RNGB module.
+func (hw *Rng) Reset() {
+	hw.Lock()
+
+	// soft reset RNGB
+	reg.Set(RNG_CMD, RNG_CMD_SR)
+
+	hw.Unlock()
+}
+
 // Init initializes the RNGB module.
 func (hw *Rng) Init() {
 	hw.Lock()
