@@ -288,8 +288,7 @@ func (hw *Dcp) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, 
 	pkt.Control0 |= (1 << DCP_CTRL0_OTP_KEY)
 	pkt.Control1 |= UNIQUE_KEY << DCP_CTRL1_KEY_SELECT
 
-	pkt.BufferSize = uint32(aes.BlockSize)
-
+	pkt.BufferSize = uint32(len(key))
 	pkt.SourceBufferAddress = region.Alloc(key, aes.BlockSize)
 	defer region.Free(pkt.SourceBufferAddress)
 
