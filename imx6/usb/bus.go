@@ -215,6 +215,16 @@ func (hw *USB) PowerDown() {
 	reg.Write(hw.pwd, 0xffffffff)
 }
 
+// Run sets the controller in run mode.
+func (hw *USB) Run() {
+	reg.Set(hw.cmd, USBCMD_RS)
+}
+
+// Stop sets the controller in stop mode.
+func (hw *USB) Stop() {
+	reg.Clear(hw.cmd, USBCMD_RS)
+}
+
 // Reset waits for and handles a bus reset.
 func (hw *USB) Reset() {
 	hw.Lock()
