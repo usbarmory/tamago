@@ -158,7 +158,7 @@ const (
 	//
 	// p37-38, Figure 3-14 and 3-15, SD-PL-7.10
 	//
-	// Higher speed modes for SD cards are SDR50/SDR104 (controller
+	// Higher speed modes for SD cards are SDR50/SDR104/DDR50 (controller
 	// supported, currently unimplemented by this driver) and UHS-II modes
 	// (unsupported at controller level).
 )
