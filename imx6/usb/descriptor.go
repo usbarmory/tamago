@@ -240,6 +240,8 @@ func (d *EndpointDescriptor) SetDefaults() {
 	d.DescriptorType = ENDPOINT
 	// EP1 IN
 	d.EndpointAddress = 0x81
+	// maximum packet size for EP1+ (high speed)
+	d.MaxPacketSize = 512
 	// most applications require Zero Length Termination
 	d.Zero = true
 }
