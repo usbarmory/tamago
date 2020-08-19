@@ -1,4 +1,4 @@
-// Ethernet over USB driver - CDC ECM
+// Ethernet over USB driver
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
