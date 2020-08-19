@@ -64,6 +64,9 @@ Documentation
 The main documentation can be found on the
 [project wiki](https://github.com/f-secure-foundry/tamago/wiki).
 
+The package API documentation can be found on
+[pkg.go.dev](https://pkg.go.dev/github.com/f-secure-foundry/tamago).
+
 Supported hardware
 ==================
 

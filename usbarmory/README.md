@@ -37,6 +37,9 @@ For more information about TamaGo see its
 For the underlying driver support for this board see package
 [imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6).
 
+The package API documentation can be found on
+[pkg.go.dev](https://pkg.go.dev/github.com/f-secure-foundry/tamago).
+
 Supported hardware
 ==================
 
