@@ -188,6 +188,9 @@ type CardInfo struct {
 type USDHC struct {
 	sync.Mutex
 
+	// voltage switch control
+	VoltageSwitch *imx6.GPIO
+
 	// controller index
 	n int
 	// bus width

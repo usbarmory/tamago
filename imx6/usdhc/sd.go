@@ -54,6 +54,7 @@ const (
 	ACCESS_MODE_SDR25  = 0x1
 	ACCESS_MODE_SDR50  = 0x2
 	ACCESS_MODE_SDR104 = 0x3
+	ACCESS_MODE_DDR50  = 0x4
 
 	// p201 5.3.1 CSD_STRUCTURE, SD-PL-7.10
 	SD_CSD_STRUCTURE = 126 + CSD_RSP_OFF
@@ -233,6 +234,18 @@ func (hw *USDHC) detectCapabilitiesSD() (err error) {
 	default:
 		return fmt.Errorf("unsupported CSD version %d", ver)
 	}
+
+	return
+}
+
+// p60, 4.2.4 Bus Signal Voltage Switch Sequence, SD-PL-7.10
+func (hw *USDHC) voltageSwitchSD() (err error) {
+	// CMD11 - VOLTAGE_SWITCH - switch to 1.8V signaling
+	if err = hw.cmd(11, READ, 0, RSP_48, true, true, false, 0); err != nil {
+		return
+	}
+
+	hw.VoltageSwitch.Low()
 
 	return
 }
