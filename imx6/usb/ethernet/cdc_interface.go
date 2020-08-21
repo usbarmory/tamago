@@ -16,7 +16,7 @@ import (
 )
 
 // Build a CDC control interface.
-func (eth *NIC) buildControlInterface(device *usb.Device) (iface *usb.InterfaceDescriptor) {
+func addControlInterface(device *usb.Device, configurationIndex int, eth *NIC) (iface *usb.InterfaceDescriptor) {
 	iface = &usb.InterfaceDescriptor{}
 	iface.SetDefaults()
 
@@ -47,6 +47,12 @@ func (eth *NIC) buildControlInterface(device *usb.Device) (iface *usb.InterfaceD
 	union := &usb.CDCUnionDescriptor{}
 	union.SetDefaults()
 
+	// Master/Slave are identical as ECM requires the use of "alternate
+	// settings" for its data interface.
+	numInterfaces := 1 + len(device.Configurations[configurationIndex].Interfaces)
+	union.MasterInterface = uint8(numInterfaces - 1)
+	union.SlaveInterface0 = uint8(numInterfaces - 1)
+
 	iface.ClassDescriptors = append(iface.ClassDescriptors, union.Bytes())
 
 	ethernet := &usb.CDCEthernetDescriptor{}
@@ -67,11 +73,13 @@ func (eth *NIC) buildControlInterface(device *usb.Device) (iface *usb.InterfaceD
 
 	iface.Endpoints = append(iface.Endpoints, ep2IN)
 
+	device.Configurations[configurationIndex].AddInterface(iface)
+
 	return
 }
 
 // Build a CDC data interface.
-func (eth *NIC) buildDataInterface(device *usb.Device) (iface *usb.InterfaceDescriptor) {
+func addDataInterface(device *usb.Device, configurationIndex int, eth *NIC) (iface *usb.InterfaceDescriptor) {
 	iface = &usb.InterfaceDescriptor{}
 	iface.SetDefaults()
 
@@ -98,6 +106,8 @@ func (eth *NIC) buildDataInterface(device *usb.Device) (iface *usb.InterfaceDesc
 	ep1OUT.Function = eth.Rx
 
 	iface.Endpoints = append(iface.Endpoints, ep1OUT)
+
+	device.Configurations[configurationIndex].AddInterface(iface)
 
 	return
 }

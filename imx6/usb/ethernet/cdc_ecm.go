@@ -83,12 +83,10 @@ func (eth *NIC) Init(device *usb.Device, configurationIndex int) (err error) {
 		eth.Control = eth.ECMControl
 	}
 
-	controlInterface := eth.buildControlInterface(device)
-	dataInterface := eth.buildDataInterface(device)
-	eth.maxPacketSize = int(dataInterface.Endpoints[0].MaxPacketSize)
+	addControlInterface(device, configurationIndex, eth)
+	dataInterface := addDataInterface(device, configurationIndex, eth)
 
-	device.Configurations[configurationIndex].AddInterface(controlInterface)
-	device.Configurations[configurationIndex].AddInterface(dataInterface)
+	eth.maxPacketSize = int(dataInterface.Endpoints[0].MaxPacketSize)
 
 	return
 }
