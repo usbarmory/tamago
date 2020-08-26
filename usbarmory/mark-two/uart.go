@@ -15,7 +15,7 @@ import (
 	"github.com/f-secure-foundry/tamago/imx6"
 )
 
-// On the USB armory Mk II the main serial port is UART2, therefore standard
+// On the USB armory Mk II the serial console is UART2, therefore standard
 // output is redirected there.
 
 //go:linkname printk runtime.printk

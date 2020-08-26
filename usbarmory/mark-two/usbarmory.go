@@ -16,6 +16,8 @@
 package usbarmory
 
 import (
+	_ "unsafe"
+	"github.com/f-secure-foundry/tamago/imx6"
 	_ "github.com/f-secure-foundry/tamago/imx6/imx6ul"
 )
 
@@ -24,4 +26,15 @@ import (
 func Model() (model string) {
 	// for now only β exists in the wild
 	return "UA-MKII-β"
+}
+
+// hwinit takes care of the lower level SoC initialization triggered early in
+// runtime setup, care must be taken to ensure that no heap allocation is
+// performed (e.g. defer is not possible).
+//go:linkname Init runtime.hwinit
+func Init() {
+	imx6.Init()
+
+	// initialize serial console
+	imx6.UART2.Init()
 }

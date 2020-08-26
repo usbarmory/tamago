@@ -72,11 +72,10 @@ func nanotime1() int64 {
 	return int64(ARM.TimerFn() * ARM.TimerMultiplier)
 }
 
-// hwinit takes care of the lower level SoC initialization triggered early in
+// Init takes care of the lower level SoC initialization triggered early in
 // runtime setup, care must be taken to ensure that no heap allocation is
 // performed (e.g. defer is not possible).
-//go:linkname hwinit runtime.hwinit
-func hwinit() {
+func Init() {
 	ARM.Init()
 	ARM.EnableVFP()
 
@@ -91,9 +90,6 @@ func hwinit() {
 	if revMajor != 0 || revMinor != 0 {
 		Native = true
 	}
-
-	// initialize console
-	UART2.Init()
 
 	switch Family {
 	case IMX6Q:
