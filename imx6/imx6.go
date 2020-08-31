@@ -73,8 +73,7 @@ func nanotime1() int64 {
 }
 
 // Init takes care of the lower level SoC initialization triggered early in
-// runtime setup, care must be taken to ensure that no heap allocation is
-// performed (e.g. defer is not possible).
+// runtime setup.
 func Init() {
 	ARM.Init()
 	ARM.EnableVFP()

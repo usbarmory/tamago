@@ -94,7 +94,7 @@ func (hw *Rng) Reset() {
 // Init initializes the RNGB module.
 func (hw *Rng) Init() {
 	hw.Lock()
-	// note: cannot defer during initialization
+	defer hw.Unlock()
 
 	// p3105, 44.5.2 Automatic seeding, IMX6ULLRM
 
@@ -123,8 +123,6 @@ func (hw *Rng) Init() {
 	for reg.Get(RNG_SR, RNG_SR_SDN, 1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
-
-	hw.Unlock()
 }
 
 func (hw *Rng) getRandomData(b []byte) {

@@ -125,7 +125,7 @@ var DCP = &Dcp{}
 // Init initializes the DCP module.
 func (hw *Dcp) Init() {
 	hw.Lock()
-	// note: cannot defer during initialization
+	hw.Unlock()
 
 	// soft reset DCP
 	reg.Set(DCP_CTRL, CTRL_SFTRST)
@@ -139,8 +139,6 @@ func (hw *Dcp) Init() {
 
 	// enable all channel interrupts
 	reg.SetN(DCP_CHANNELCTRL, 0, 0xff, 0xff)
-
-	hw.Unlock()
 }
 
 // SNVS verifies whether the Secure Non Volatile Storage (SNVS) is available in

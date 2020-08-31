@@ -23,8 +23,7 @@ import (
 )
 
 // Init takes care of the lower level SoC initialization triggered early in
-// runtime setup, care must be taken to ensure that no heap allocation is
-// performed (e.g. defer is not possible).
+// runtime setup.
 //
 //go:linkname Init runtime.hwinit
 func Init() {

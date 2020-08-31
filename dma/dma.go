@@ -50,7 +50,7 @@ var dma *Region
 // runtime (defining runtime.ramStart and runtime.ramSize accordingly).
 func (dma *Region) Init() {
 	dma.Lock()
-	// note: cannot defer during initialization
+	defer dma.Unlock()
 
 	// initialize a single block to fit all available memory
 	b := &block{
@@ -62,8 +62,6 @@ func (dma *Region) Init() {
 	dma.freeBlocks.PushFront(b)
 
 	dma.usedBlocks = make(map[uint32]*block)
-
-	dma.Unlock()
 }
 
 // Reserve allocated a slice of bytes for DMA purposes, by placing its data
