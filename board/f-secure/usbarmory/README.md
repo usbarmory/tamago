@@ -23,7 +23,7 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal ARM System-on-Chip (SoC) components.
 
-The [usbarmory](https://github.com/f-secure-foundry/tamago/tree/master/usbarmory)
+The [usbarmory](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory)
 package provide support for the [USB armory](https://github.com/f-secure-foundry/usbarmory/wiki)
 Single Board Computer.
 
@@ -45,7 +45,7 @@ Supported hardware
 
 | SoC           | Board                                                                  | SoC package                                                         | Board package                                                                                   |
 |---------------|------------------------------------------------------------------------|---------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6) | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/usbarmory/mark-two) |
+| NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6) | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory/mark-two) |
 
 Compiling
 =========
@@ -55,7 +55,7 @@ ensure that hardware initialization and runtime support takes place:
 
 ```golang
 import (
-	_ "github.com/f-secure-foundry/tamago/usbarmory/mark-two"
+	_ "github.com/f-secure-foundry/tamago/board/f-secure/usbarmory/mark-two"
 )
 ```
 

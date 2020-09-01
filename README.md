@@ -74,7 +74,7 @@ The following table summarizes currently supported SoCs and boards.
 
 | SoC           | Board                                                                                                                                                                                | SoC package                                                         | Board package                                                                           |
 |---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki)                                                                                                               | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6) | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/usbarmory)  |
+| NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki)                                                                                                               | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6) | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory)  |
 | NXP i.MX6ULL  | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6) | [mx6ullevk](https://github.com/f-secure-foundry/tamago/tree/master/board/nxp/mx6ullevk) |
 
 Compiling
@@ -85,7 +85,7 @@ ensure that hardware initialization and runtime support takes place:
 
 ```golang
 import (
-	_ "github.com/f-secure-foundry/tamago/usbarmory/mark-two"
+	_ "github.com/f-secure-foundry/tamago/board/f-secure/usbarmory/mark-two"
 )
 ```
 
