@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/f-secure-foundry/tamago/bits"
-	"github.com/f-secure-foundry/tamago/imx6"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
 
 // BLE module configuration constants.

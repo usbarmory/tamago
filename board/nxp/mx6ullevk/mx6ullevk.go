@@ -18,8 +18,8 @@ package mx6ullevk
 import (
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/imx6"
-	_ "github.com/f-secure-foundry/tamago/imx6/imx6ul"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
+	_ "github.com/f-secure-foundry/tamago/soc/imx6/imx6ul"
 )
 
 // Init takes care of the lower level SoC initialization triggered early in

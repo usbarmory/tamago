@@ -18,8 +18,8 @@ package usbarmory
 import (
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/imx6"
-	_ "github.com/f-secure-foundry/tamago/imx6/imx6ul"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
+	_ "github.com/f-secure-foundry/tamago/soc/imx6/imx6ul"
 )
 
 // Model returns the USB armory model name, to further detect SoC variants

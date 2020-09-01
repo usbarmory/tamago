@@ -12,7 +12,7 @@ package usbarmory
 import (
 	"errors"
 
-	"github.com/f-secure-foundry/tamago/imx6"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
 
 // LED configuration constants

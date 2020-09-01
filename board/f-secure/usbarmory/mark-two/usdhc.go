@@ -10,8 +10,8 @@
 package usbarmory
 
 import (
-	"github.com/f-secure-foundry/tamago/imx6"
-	"github.com/f-secure-foundry/tamago/imx6/usdhc"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
+	"github.com/f-secure-foundry/tamago/soc/imx6/usdhc"
 )
 
 // SD instance

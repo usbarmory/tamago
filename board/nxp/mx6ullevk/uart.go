@@ -12,7 +12,7 @@ package mx6ullevk
 import (
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/imx6"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
 
 // On the MCIMX6ULL-EVK the serial console is UART1, therefore standard

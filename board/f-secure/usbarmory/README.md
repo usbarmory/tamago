@@ -35,7 +35,7 @@ For more information about TamaGo see its
 [project wiki](https://github.com/f-secure-foundry/tamago/wiki).
 
 For the underlying driver support for this board see package
-[imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6).
+[imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6).
 
 The package API documentation can be found on
 [pkg.go.dev](https://pkg.go.dev/github.com/f-secure-foundry/tamago).
@@ -45,7 +45,7 @@ Supported hardware
 
 | SoC           | Board                                                                  | SoC package                                                         | Board package                                                                                   |
 |---------------|------------------------------------------------------------------------|---------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6) | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory/mark-two) |
+| NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6) | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory/mark-two) |
 
 Compiling
 =========

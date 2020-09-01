@@ -25,7 +25,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/f-secure-foundry/tamago/imx6/usb"
+	"github.com/f-secure-foundry/tamago/soc/imx6/usb"
 
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/buffer"

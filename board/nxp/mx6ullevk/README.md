@@ -34,7 +34,7 @@ For more information about TamaGo see its
 [project wiki](https://github.com/f-secure-foundry/tamago/wiki).
 
 For the underlying driver support for this board see package
-[imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6).
+[imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6).
 
 The package API documentation can be found on
 [pkg.go.dev](https://pkg.go.dev/github.com/f-secure-foundry/tamago).
@@ -44,7 +44,7 @@ Supported hardware
 
 | SoC           | Board                                                                  | SoC package                                                         | Board package                                                                                   |
 |---------------|------------------------------------------------------------------------|---------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| NXP i.MX6ULL  | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/imx6) | [mx6ullevk](https://github.com/f-secure-foundry/tamago/tree/master/board/nxp/mx6ullevk) |
+| NXP i.MX6ULL  | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6) | [mx6ullevk](https://github.com/f-secure-foundry/tamago/tree/master/board/nxp/mx6ullevk) |
 
 Compiling
 =========

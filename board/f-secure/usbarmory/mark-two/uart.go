@@ -12,7 +12,7 @@ package usbarmory
 import (
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/imx6"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
 
 // On the USB armory Mk II the serial console is UART2, therefore standard
