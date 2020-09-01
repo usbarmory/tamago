@@ -10,11 +10,11 @@ import (
 	// Using go:linkname
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/bcm2835"
+	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 
 	// Ensure pi package is linked in, so client apps only *need* to
 	// import this package
-	_ "github.com/f-secure-foundry/tamago/pi"
+	_ "github.com/f-secure-foundry/tamago/board/pi-foundation"
 )
 
 const peripheralBase uint32 = 0x20000000

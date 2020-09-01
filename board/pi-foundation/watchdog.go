@@ -9,8 +9,8 @@ package pi
 import (
 	"time"
 
-	"github.com/f-secure-foundry/tamago/bcm2835"
 	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 )
 
 const (
