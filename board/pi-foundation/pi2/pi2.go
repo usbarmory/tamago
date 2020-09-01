@@ -27,5 +27,5 @@ const peripheralBase uint32 = 0x3f000000
 func hwinit() {
 	// Defer to generic BCM2835 initialization, with Pi 2
 	// peripheral base address.
-	bcm2835.HardwareInit(peripheralBase)
+	bcm2835.Init(peripheralBase)
 }

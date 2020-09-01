@@ -13,6 +13,11 @@ import (
 	"github.com/f-secure-foundry/tamago/arm"
 )
 
+const (
+	// nanos - should be same value as arm/timer.go refFreq
+	refFreq int64 = 1000000000
+)
+
 // PeripheralBase is the (remapped) peripheral base address.
 //
 // In Raspberry Pi, the VideoCore chip is responsible for
@@ -33,11 +38,11 @@ func nanotime1() int64 {
 	return int64(read_systimer() * ARM.TimerMultiplier)
 }
 
-// HardwareInit takes care of the lower level SoC initialization.
+// Init takes care of the lower level SoC initialization.
 //
 // Triggered early in runtime setup, care must be taken to ensure that
 // no heap allocation is performed (e.g. defer is not possible).
-func HardwareInit(peripheralBase uint32) {
+func Init(peripheralBase uint32) {
 
 	// The peripheral base address differs by board
 	PeripheralBase = peripheralBase
@@ -50,7 +55,8 @@ func HardwareInit(peripheralBase uint32) {
 
 	ARM.CacheEnable()
 
-	ARM.InitSpecificTimer(read_systimer, SysTimerFreq)
+	ARM.TimerMultiplier = refFreq / SysTimerFreq
+	ARM.TimerFn = read_systimer
 
 	uartInit()
 }

@@ -75,9 +75,3 @@ func (cpu *CPU) InitGenericTimers(base uint32, freq int32) {
 	cpu.TimerMultiplier = int64(refFreq / timerFreq)
 	cpu.TimerFn = read_cntpct
 }
-
-// InitSpecificTimer initializes a board or cpu specific timer
-func (cpu *CPU) InitSpecificTimer(fn func() int64, timerFreq int64) {
-	cpu.TimerMultiplier = int64(refFreq / timerFreq)
-	cpu.TimerFn = fn
-}
