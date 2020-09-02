@@ -35,8 +35,8 @@ func initRNG() {
 	hwLock.Lock()
 
 	// Discard
-	reg.Write(PeripheralBase+RNG_BASE+RNG_STATUS, warmupCount)
-	reg.Write(PeripheralBase+RNG_BASE+RNG_CTRL, RNG_RBGEN)
+	reg.Write(PeripheralAddress(RNG_BASE+RNG_STATUS), warmupCount)
+	reg.Write(PeripheralAddress(RNG_BASE+RNG_CTRL), RNG_RBGEN)
 
 	hwLock.Unlock()
 }
@@ -50,10 +50,10 @@ func getRandomData(b []byte) {
 
 	for read < need {
 		// Wait for at least one word to be available
-		for (reg.Read(PeripheralBase+RNG_BASE+RNG_STATUS) >> 24) == 0 {
+		for (reg.Read(PeripheralAddress(RNG_BASE+RNG_STATUS)) >> 24) == 0 {
 		}
 
-		read = fill(b, read, reg.Read(PeripheralBase+RNG_BASE+RNG_DATA))
+		read = fill(b, read, reg.Read(PeripheralAddress(RNG_BASE+RNG_DATA)))
 	}
 
 	hwLock.Unlock()

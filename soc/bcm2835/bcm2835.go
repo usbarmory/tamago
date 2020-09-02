@@ -18,7 +18,7 @@ const (
 	refFreq int64 = 1000000000
 )
 
-// PeripheralBase is the (remapped) peripheral base address.
+// peripheralBase is the (remapped) peripheral base address.
 //
 // In Raspberry Pi, the VideoCore chip is responsible for
 // bootstrapping.  In Pi2+, it remaps registers from their
@@ -27,8 +27,8 @@ const (
 //
 // This varies by model, hence variable so can be overridden
 // at runtime.
-//go:linkname PeripheralBase runtime.PeripheralBase
-var PeripheralBase uint32
+//go:linkname peripheralBase runtime.peripheralBase
+var peripheralBase uint32
 
 // ARM processor instance
 var ARM = &arm.CPU{}
@@ -42,10 +42,10 @@ func nanotime1() int64 {
 //
 // Triggered early in runtime setup, care must be taken to ensure that
 // no heap allocation is performed (e.g. defer is not possible).
-func Init(peripheralBase uint32) {
+func Init(baseAddress uint32) {
 
 	// The peripheral base address differs by board
-	PeripheralBase = peripheralBase
+	peripheralBase = baseAddress
 
 	ARM.Init()
 	ARM.EnableVFP()
@@ -59,4 +59,13 @@ func Init(peripheralBase uint32) {
 	ARM.TimerFn = read_systimer
 
 	uartInit()
+}
+
+// PeripheralAddress gets the absolute address for a peripheral.
+//
+// The Pi boards map 'bus addresses' to different memory addresses
+// by board, but have a consistent layout otherwise.
+//
+func PeripheralAddress(offset uint32) uint32 {
+	return peripheralBase + offset
 }

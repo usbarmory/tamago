@@ -44,39 +44,39 @@ const (
 )
 
 func uartInit() {
-	reg.Write(PeripheralBase+AUX_ENABLES, 1)
-	reg.Write(PeripheralBase+AUX_MU_IER_REG, 0)
-	reg.Write(PeripheralBase+AUX_MU_CNTL_REG, 0)
-	reg.Write(PeripheralBase+AUX_MU_LCR_REG, 3)
-	reg.Write(PeripheralBase+AUX_MU_MCR_REG, 0)
-	reg.Write(PeripheralBase+AUX_MU_IER_REG, 0)
-	reg.Write(PeripheralBase+AUX_MU_IIR_REG, 0xC6)
-	reg.Write(PeripheralBase+AUX_MU_BAUD_REG, 270)
+	reg.Write(PeripheralAddress(AUX_ENABLES), 1)
+	reg.Write(PeripheralAddress(AUX_MU_IER_REG), 0)
+	reg.Write(PeripheralAddress(AUX_MU_CNTL_REG), 0)
+	reg.Write(PeripheralAddress(AUX_MU_LCR_REG), 3)
+	reg.Write(PeripheralAddress(AUX_MU_MCR_REG), 0)
+	reg.Write(PeripheralAddress(AUX_MU_IER_REG), 0)
+	reg.Write(PeripheralAddress(AUX_MU_IIR_REG), 0xC6)
+	reg.Write(PeripheralAddress(AUX_MU_BAUD_REG), 270)
 
-	ra := reg.Read(PeripheralBase + GPFSEL1)
+	ra := reg.Read(PeripheralAddress(GPFSEL1))
 	ra &= ^(uint32(7) << 12) // gpio14
 	ra |= 2 << 12            // alt5
 	ra &= ^(uint32(7) << 15) // gpio15
 	ra |= 2 << 15            // alt5
-	reg.Write(PeripheralBase+GPFSEL1, ra)
+	reg.Write(PeripheralAddress(GPFSEL1), ra)
 
-	reg.Write(PeripheralBase+GPPUD, 0)
+	reg.Write(PeripheralAddress(GPPUD), 0)
 	delay(150)
-	reg.Write(PeripheralBase+GPPUDCLK0, (1<<14)|(1<<15))
+	reg.Write(PeripheralAddress(GPPUDCLK0), (1<<14)|(1<<15))
 	delay(150)
-	reg.Write(PeripheralBase+GPPUDCLK0, 0)
+	reg.Write(PeripheralAddress(GPPUDCLK0), 0)
 
-	reg.Write(PeripheralBase+AUX_MU_CNTL_REG, 3)
+	reg.Write(PeripheralAddress(AUX_MU_CNTL_REG), 3)
 }
 
 func uartPutc(c uint32) {
 	for {
-		if (reg.Read(PeripheralBase+AUX_MU_LSR_REG) & 0x20) != 0 {
+		if (reg.Read(PeripheralAddress(AUX_MU_LSR_REG)) & 0x20) != 0 {
 			break
 		}
 	}
 
-	reg.Write(PeripheralBase+AUX_MU_IO_REG, c)
+	reg.Write(PeripheralAddress(AUX_MU_IO_REG), c)
 }
 
 func delay(c int) {

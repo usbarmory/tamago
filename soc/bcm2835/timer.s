@@ -6,7 +6,7 @@
 
 // func read_systimer() int64
 TEXT ·read_systimer(SB),$0
-	MOVW	runtime·PeripheralBase(SB), R2
+	MOVW	runtime·peripheralBase(SB), R2
 	ADD	$0x00003000, R2 // timer peripheral offset
 
 	MOVW	4(R2), R0 // lower 32-bits

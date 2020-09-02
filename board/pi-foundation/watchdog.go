@@ -66,20 +66,20 @@ func (w *watchdog) Start(timeout time.Duration) {
 func (w *watchdog) Reset() {
 	// Reset could probably be done more efficiently, there should be a way to reset
 	// without a full re-initialization
-	pm_rstc := reg.Read(bcm2835.PeripheralBase + PM_RSTC)
+	pm_rstc := reg.Read(bcm2835.PeripheralAddress(PM_RSTC))
 	pm_wdog := PM_PASSWORD | (w.timeout & PM_WDOG_TIME_SET)
 	pm_rstc = PM_PASSWORD | (pm_rstc & PM_RSTC_WRCFG_CLR) | PM_RSTC_WRCFG_FULL_RESET
-	reg.Write(bcm2835.PeripheralBase+PM_WDOG, pm_wdog)
-	reg.Write(bcm2835.PeripheralBase+PM_RSTC, pm_rstc)
+	reg.Write(bcm2835.PeripheralAddress(PM_WDOG), pm_wdog)
+	reg.Write(bcm2835.PeripheralAddress(PM_RSTC), pm_rstc)
 }
 
 // Stop the watchdog
 func (w *watchdog) Stop() {
-	reg.Write(bcm2835.PeripheralBase+PM_RSTC, PM_PASSWORD|PM_RSTC_RESET)
+	reg.Write(bcm2835.PeripheralAddress(PM_RSTC), PM_PASSWORD|PM_RSTC_RESET)
 }
 
 // Remaining gets the remaining duration on the watchdog
 func (w *watchdog) Remaining() time.Duration {
-	t := reg.Read(bcm2835.PeripheralBase+PM_WDOG) & PM_WDOG_TIME_SET
+	t := reg.Read(bcm2835.PeripheralAddress(PM_WDOG)) & PM_WDOG_TIME_SET
 	return time.Duration(uint64(t) * watchdogPeriod)
 }

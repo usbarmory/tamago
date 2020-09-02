@@ -58,7 +58,7 @@ func (p gpio) SelectFunction(line int, fn GPIOFunction) error {
 		return fmt.Errorf("invalid parameter")
 	}
 
-	register := bcm2835.PeripheralBase + gpfsel0 + 4*uint32(line/10)
+	register := bcm2835.PeripheralAddress(gpfsel0 + 4*uint32(line/10))
 	shift := uint32((line % 10) * 3)
 	mask := uint32(0x7 << shift)
 
@@ -76,7 +76,7 @@ func (p gpio) GetFunction(line int) (GPIOFunction, error) {
 		return GPIOFunctionInput, fmt.Errorf("invalid parameter")
 	}
 
-	register := bcm2835.PeripheralBase + gpfsel0 + 4*uint32(line/10)
+	register := bcm2835.PeripheralAddress(gpfsel0 + 4*uint32(line/10))
 	shift := uint32((line % 10) * 3)
 	val := reg.Read(register)
 	return GPIOFunction((val >> shift) & 0x7), nil
@@ -88,7 +88,7 @@ func (p gpio) Set(line int) error {
 		return fmt.Errorf("invalid parameter")
 	}
 
-	register := bcm2835.PeripheralBase + gpset0 + 4*uint32(line/32)
+	register := bcm2835.PeripheralAddress(gpset0 + 4*uint32(line/32))
 	shift := uint32(line % 32)
 
 	reg.Write(register, 1<<shift)
@@ -102,7 +102,7 @@ func (p gpio) Clear(line int) error {
 		return fmt.Errorf("invalid parameter")
 	}
 
-	register := bcm2835.PeripheralBase + gpclr0 + 4*uint32(line/32)
+	register := bcm2835.PeripheralAddress(gpclr0 + 4*uint32(line/32))
 	shift := uint32(line % 32)
 	reg.Write(register, 1<<shift)
 
