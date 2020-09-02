@@ -8,7 +8,7 @@
 // that can be found in the LICENSE file.
 
 // func read_gtc() int64
-TEXT ·read_gtc(SB),$0
+TEXT ·read_gtc(SB),$0-8
 	// Cortex™-A9 MPCore® Technical Reference Manual
 	// 4.4.1 Global Timer Counter Registers, 0x00 and 0x04
 	//
@@ -28,7 +28,7 @@ read:
 	RET
 
 // func read_cntfrq() int32
-TEXT ·read_cntfrq(SB),$0
+TEXT ·read_cntfrq(SB),$0-4
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// https://wiki.osdev.org/ARMv7_Generic_Timers
 	//
@@ -40,8 +40,8 @@ TEXT ·read_cntfrq(SB),$0
 
 	RET
 
-// func write_cntfrq(int32)
-TEXT ·write_cntfrq(SB),$0
+// func write_cntfrq(freq int32)
+TEXT ·write_cntfrq(SB),$0-4
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// https://wiki.osdev.org/ARMv7_Generic_Timers
 	//
@@ -53,7 +53,7 @@ TEXT ·write_cntfrq(SB),$0
 	RET
 
 // func read_cntpct() int64
-TEXT ·read_cntpct(SB),$0
+TEXT ·read_cntpct(SB),$0-8
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// https://wiki.osdev.org/ARMv7_Generic_Timers
 	//
@@ -66,8 +66,8 @@ TEXT ·read_cntpct(SB),$0
 
 	RET
 
-// func busyloop(int32)
-TEXT ·Busyloop(SB),$0
+// func busyloop(count int32)
+TEXT ·Busyloop(SB),$0-4
 	MOVW count+0(FP), R0
 loop:
 	SUB.S	$1, R0, R0

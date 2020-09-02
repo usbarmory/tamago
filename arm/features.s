@@ -8,7 +8,7 @@
 // that can be found in the LICENSE file.
 
 // func read_id_pfr0() uint32
-TEXT ·read_idpfr0(SB),$0
+TEXT ·read_idpfr0(SB),$0-4
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// https://wiki.osdev.org/ARMv7_Generic_Timers
 	//
@@ -21,7 +21,7 @@ TEXT ·read_idpfr0(SB),$0
 	RET
 
 // func read_id_pfr1() uint32
-TEXT ·read_idpfr1(SB),$0
+TEXT ·read_idpfr1(SB),$0-4
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// https://wiki.osdev.org/ARMv7_Generic_Timers
 	//

@@ -41,12 +41,12 @@ const (
 // defined in timer_arm.s
 func read_gtc() int64
 func read_cntfrq() int32
-func write_cntfrq(int32)
+func write_cntfrq(freq int32)
 func read_cntpct() int64
 
 // Busyloop spins the processor for busy waiting purposes, taking a counter
 // value for the number of loops.
-func Busyloop(int32)
+func Busyloop(count int32)
 
 // InitGlobalTimers initializes ARM Cortex-A9 timers.
 func (cpu *CPU) InitGlobalTimers() {

@@ -8,7 +8,7 @@
 // that can be found in the LICENSE file.
 
 // func read_actlr() int32
-TEXT ·read_actlr(SB),$0
+TEXT ·read_actlr(SB),$0-4
 	// Cortex™-A7 MPCore® Technical Reference Manual r0p5
 	//
 	// 4.3.31 Auxiliary Control Register
@@ -19,8 +19,8 @@ TEXT ·read_actlr(SB),$0
 
 	RET
 
-// func write_actlr(int32)
-TEXT ·write_actlr(SB),$0
+// func write_actlr(aux int32)
+TEXT ·write_actlr(SB),$0-4
 	// Cortex™-A7 MPCore® Technical Reference Manual r0p5
 	//
 	// 4.3.31 Auxiliary Control Register

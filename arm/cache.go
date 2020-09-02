@@ -16,7 +16,7 @@ const (
 
 // defined in cache.s
 func read_actlr() int32
-func write_actlr(int32)
+func write_actlr(aux int32)
 func cache_enable()
 func cache_disable()
 func cache_flush_data()
