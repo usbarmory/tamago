@@ -17,7 +17,7 @@ import (
 	_ "github.com/f-secure-foundry/tamago/board/pi-foundation"
 )
 
-const peripheralBase uint32 = 0x20000000
+const peripheralBase = 0x20000000
 
 // hwinit takes care of the lower level SoC initialization.
 //go:linkname hwinit runtime.hwinit

@@ -13,9 +13,11 @@ import (
 	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 )
 
-const gpfsel0 uint32 = 0x200000
-const gpset0 uint32 = 0x20001C
-const gpclr0 uint32 = 0x200028
+const (
+	gpfsel0 = 0x200000
+	gpset0  = 0x20001C
+	gpclr0  = 0x200028
+)
 
 // GPIOFunction represents the modes of a GPIO line
 type GPIOFunction uint32

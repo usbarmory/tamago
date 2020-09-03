@@ -15,14 +15,14 @@ import (
 
 const (
 	// RNG_BASE is the offset within the peripheral address space
-	RNG_BASE uint32 = 0x104000
+	RNG_BASE = 0x104000
 
-	RNG_CTRL   uint32 = 0x0
-	RNG_STATUS uint32 = 0x4
-	RNG_DATA   uint32 = 0x8
+	RNG_CTRL   = 0x0
+	RNG_STATUS = 0x4
+	RNG_DATA   = 0x8
 
 	// RNG_RBGEN enables RNG
-	RNG_RBGEN uint32 = 0x1
+	RNG_RBGEN = 0x1
 )
 
 const warmupCount = 0x40000
