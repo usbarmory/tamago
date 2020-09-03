@@ -8,6 +8,10 @@ package pizero
 
 import "github.com/f-secure-foundry/tamago/board/pi-foundation"
 
+const (
+	gpioLineActivityLED = 0x2f
+)
+
 type board struct{}
 
 // Board provides access to the capabilities of the Pi Zero.
@@ -16,6 +20,6 @@ var Board pi.Board = &board{}
 func (b *board) LEDs() []pi.LED {
 	return []pi.LED{{
 		Type: pi.ActivityLED,
-		Line: 0x2f,
+		Line: gpioLineActivityLED,
 	}}
 }
