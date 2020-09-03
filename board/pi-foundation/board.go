@@ -8,10 +8,6 @@ package pi
 
 // Board provides a basic abstraction over the different models of Pi.
 type Board interface {
-	// LEDs gets the LEDs present on the board
-	//
-	// The board LEDs available varies by model, the Pi Zero has a single
-	// 'activity' LED (no 'power' LED), the Pi 2 has both an 'activity'
-	// and a 'power' LED.
-	LEDs() []LED
+	LEDNames() []string
+	LED(name string, on bool) (err error)
 }

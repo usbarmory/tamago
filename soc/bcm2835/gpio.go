@@ -1,22 +1,22 @@
-// Raspberry Pi GPIO Support
+// BCM2835 SOC GPIO Support
 // https://github.com/f-secure-foundry/tamago
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package pi
+package bcm2835
 
 import (
 	"fmt"
 
 	"github.com/f-secure-foundry/tamago/internal/reg"
-	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 )
 
 const (
 	gpfsel0 = 0x200000
 	gpset0  = 0x20001C
 	gpclr0  = 0x200028
+	gplev0  = 0x200034
 )
 
 // GPIOFunction represents the modes of a GPIO line
@@ -48,20 +48,38 @@ const (
 	GPIOFunctionAltFunction5 = 7
 )
 
-type gpio struct {
+// GPIO instance
+type GPIO struct {
+	num int
 }
 
-// GPIO provides convenient access to the Raspberry Pi GPIO lines
-var GPIO = gpio{}
-
-// SelectFunction selects the function of a GPIO line
-func (p gpio) SelectFunction(line int, fn GPIOFunction) error {
-	if line > 54 || line < 0 || fn > GPIOFunctionAltFunction5 {
-		return fmt.Errorf("invalid parameter")
+// NewGPIO gets access to a single GPIO line
+func NewGPIO(num int) (*GPIO, error) {
+	if num > 54 || num < 0 {
+		return nil, fmt.Errorf("invalid GPIO number %d", num)
 	}
 
-	register := bcm2835.PeripheralAddress(gpfsel0 + 4*uint32(line/10))
-	shift := uint32((line % 10) * 3)
+	return &GPIO{num: num}, nil
+}
+
+// Out configures a GPIO as output.
+func (gpio *GPIO) Out() {
+	gpio.SelectFunction(GPIOFunctionOutput)
+}
+
+// In configures a GPIO as input.
+func (gpio *GPIO) In() {
+	gpio.SelectFunction(GPIOFunctionInput)
+}
+
+// SelectFunction selects the function of a GPIO line
+func (gpio *GPIO) SelectFunction(fn GPIOFunction) error {
+	if fn > GPIOFunctionAltFunction5 {
+		return fmt.Errorf("invalid GPIO function %d", fn)
+	}
+
+	register := PeripheralAddress(gpfsel0 + 4*uint32(gpio.num/10))
+	shift := uint32((gpio.num % 10) * 3)
 	mask := uint32(0x7 << shift)
 
 	val := reg.Read(register)
@@ -73,40 +91,30 @@ func (p gpio) SelectFunction(line int, fn GPIOFunction) error {
 }
 
 // GetFunction gets the current function of a GPIO line
-func (p gpio) GetFunction(line int) (GPIOFunction, error) {
-	if line > 54 || line < 0 {
-		return GPIOFunctionInput, fmt.Errorf("invalid parameter")
-	}
-
-	register := bcm2835.PeripheralAddress(gpfsel0 + 4*uint32(line/10))
-	shift := uint32((line % 10) * 3)
+func (gpio *GPIO) GetFunction(line int) (GPIOFunction, error) {
+	register := PeripheralAddress(gpfsel0 + 4*uint32(gpio.num/10))
+	shift := uint32((gpio.num % 10) * 3)
 	val := reg.Read(register)
 	return GPIOFunction((val >> shift) & 0x7), nil
 }
 
-// Set the status of a GPIO line to 'on'
-func (p gpio) Set(line int) error {
-	if line > 54 || line < 0 {
-		return fmt.Errorf("invalid parameter")
-	}
-
-	register := bcm2835.PeripheralAddress(gpset0 + 4*uint32(line/32))
-	shift := uint32(line % 32)
-
+// High configures a GPIO signal as high.
+func (gpio *GPIO) High() {
+	register := PeripheralAddress(gpset0 + 4*uint32(gpio.num/32))
+	shift := uint32(gpio.num % 32)
 	reg.Write(register, 1<<shift)
-
-	return nil
 }
 
-// Set the status of a GPIO line to 'off'
-func (p gpio) Clear(line int) error {
-	if line > 54 || line < 0 {
-		return fmt.Errorf("invalid parameter")
-	}
-
-	register := bcm2835.PeripheralAddress(gpclr0 + 4*uint32(line/32))
-	shift := uint32(line % 32)
+// Low configures a GPIO signal as low.
+func (gpio *GPIO) Low() {
+	register := PeripheralAddress(gpclr0 + 4*uint32(gpio.num/32))
+	shift := uint32(gpio.num % 32)
 	reg.Write(register, 1<<shift)
+}
 
-	return nil
+// Value returns the GPIO signal level.
+func (gpio *GPIO) Value() (high bool) {
+	register := PeripheralAddress(gplev0 + 4*uint32(gpio.num/32))
+	shift := uint32(gpio.num % 32)
+	return (reg.Read(register)>>shift)&0x1 != 0
 }

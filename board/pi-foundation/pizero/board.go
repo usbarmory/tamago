@@ -6,7 +6,12 @@
 
 package pizero
 
-import "github.com/f-secure-foundry/tamago/board/pi-foundation"
+import (
+	"errors"
+
+	"github.com/f-secure-foundry/tamago/board/pi-foundation"
+	"github.com/f-secure-foundry/tamago/soc/bcm2835"
+)
 
 const (
 	gpioLineActivityLED = 0x2f
@@ -17,9 +22,36 @@ type board struct{}
 // Board provides access to the capabilities of the Pi Zero.
 var Board pi.Board = &board{}
 
-func (b *board) LEDs() []pi.LED {
-	return []pi.LED{{
-		Type: pi.ActivityLED,
-		Line: gpioLineActivityLED,
-	}}
+var activityLED *bcm2835.GPIO
+
+func init() {
+	var err error
+	activityLED, err = bcm2835.NewGPIO(gpioLineActivityLED)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (b *board) LEDNames() []string {
+	return []string{"activity"}
+}
+
+func (b *board) LED(name string, on bool) (err error) {
+	var led *bcm2835.GPIO
+
+	switch name {
+	case "activity", "Activity", "ACTIVITY":
+		led = activityLED
+	default:
+		return errors.New("invalid LED")
+	}
+
+	led.Out()
+	if on {
+		led.High()
+	} else {
+		led.Low()
+	}
+
+	return nil
 }
