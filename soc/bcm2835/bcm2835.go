@@ -39,9 +39,6 @@ func nanotime1() int64 {
 }
 
 // Init takes care of the lower level SoC initialization.
-//
-// Triggered early in runtime setup, care must be taken to ensure that
-// no heap allocation is performed (e.g. defer is not possible).
 func Init(baseAddress uint32) {
 
 	// The peripheral base address differs by board

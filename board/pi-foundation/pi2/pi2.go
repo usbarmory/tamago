@@ -20,9 +20,6 @@ import (
 const peripheralBase uint32 = 0x3f000000
 
 // hwinit takes care of the lower level SoC initialization.
-//
-// Triggered early in runtime setup, care must be taken to ensure that
-// no heap allocation is performed (e.g. defer is not possible).
 //go:linkname hwinit runtime.hwinit
 func hwinit() {
 	// Defer to generic BCM2835 initialization, with Pi 2
