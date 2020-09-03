@@ -55,7 +55,7 @@ func Init(baseAddress uint32) {
 	ARM.TimerMultiplier = refFreq / SysTimerFreq
 	ARM.TimerFn = read_systimer
 
-	uartInit()
+	MiniUART.Init()
 }
 
 // PeripheralAddress gets the absolute address for a peripheral.
