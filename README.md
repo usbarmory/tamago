@@ -93,7 +93,7 @@ Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go)
 (or use the [latest binary release](https://github.com/f-secure-foundry/tamago-go/releases/latest)):
 
 ```
-git clone https://github.com/f-secure-foundry/tamago-go -b tamago1.15.1
+git clone https://github.com/f-secure-foundry/tamago-go -b latest
 cd tamago-go/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
