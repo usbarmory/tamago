@@ -27,23 +27,36 @@ const (
 
 const warmupCount = 0x40000
 
-var hwLock sync.Mutex
+type Rng struct {
+	sync.Mutex
+}
+
+// Random Number Generator instance
+var RNG = &Rng{}
 
 //go:linkname initRNG runtime.initRNG
 func initRNG() {
-	// note: cannot defer during initialization
-	hwLock.Lock()
-
-	// Discard
-	reg.Write(PeripheralAddress(RNG_BASE+RNG_STATUS), warmupCount)
-	reg.Write(PeripheralAddress(RNG_BASE+RNG_CTRL), RNG_RBGEN)
-
-	hwLock.Unlock()
+	RNG.Init()
 }
 
 //go:linkname getRandomData runtime.getRandomData
 func getRandomData(b []byte) {
-	hwLock.Lock()
+	RNG.getRandomData(b)
+}
+
+// Init initializes the RNG by discarding 'warmup bytes'
+func (hw *Rng) Init() {
+	hw.Lock()
+	defer hw.Unlock()
+
+	// Discard
+	reg.Write(PeripheralAddress(RNG_BASE+RNG_STATUS), warmupCount)
+	reg.Write(PeripheralAddress(RNG_BASE+RNG_CTRL), RNG_RBGEN)
+}
+
+func (hw *Rng) getRandomData(b []byte) {
+	hw.Lock()
+	defer hw.Unlock()
 
 	read := 0
 	need := len(b)
@@ -55,8 +68,6 @@ func getRandomData(b []byte) {
 
 		read = fill(b, read, reg.Read(PeripheralAddress(RNG_BASE+RNG_DATA)))
 	}
-
-	hwLock.Unlock()
 }
 
 func fill(b []byte, index int, val uint32) int {
