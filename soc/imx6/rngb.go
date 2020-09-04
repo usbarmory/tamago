@@ -40,11 +40,12 @@ const (
 	RNG_OUT = RNG_BASE + 0x14
 )
 
+// Rng represents a Random number generator instance
 type Rng struct {
 	sync.Mutex
 }
 
-// Random Number Generator (RNGB) instance
+// RNGB (Random Number Generator) module instance
 var RNGB = &Rng{}
 
 var lcg uint32

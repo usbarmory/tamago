@@ -48,8 +48,10 @@ const (
 	SCR_WARM_RESET_ENABLE = 0
 )
 
-// Timer register (p178, Table 2-3, IMX6ULLRM)
-const SYS_CNT_BASE = 0x021dc000
+// Timer registers (p178, Table 2-3, IMX6ULLRM)
+const (
+	SYS_CNT_BASE = 0x021dc000
+)
 
 // i.MX processor families
 const (

@@ -33,6 +33,7 @@ type block struct {
 	res bool
 }
 
+// Region represents a memory region allocated form DMA purposes.
 type Region struct {
 	sync.Mutex
 
@@ -176,8 +177,9 @@ func (dma *Region) Read(addr uint32, offset int, buf []byte) {
 // Write writes buffer contents to a memory region address, the region must
 // have been previously allocated with Alloc().
 //
-// An offset can be pased to write a slice of the memory region, a panic occurs
-// if the offset is not compatible with the initial allocation for the address.
+// An offset can be passed to write a slice of the memory region, a panic
+// occurs if the offset is not compatible with the initial allocation for the
+// address.
 func (dma *Region) Write(addr uint32, data []byte, offset int) {
 	dma.Lock()
 	defer dma.Unlock()

@@ -122,6 +122,7 @@ const (
 	UTS_TXEMPTY = 6
 )
 
+// UART represents a serial port instance
 type UART struct {
 	sync.Mutex
 

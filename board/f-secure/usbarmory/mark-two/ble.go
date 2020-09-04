@@ -137,6 +137,7 @@ type ANNA struct {
 // BLE module instance
 var BLE = &ANNA{}
 
+// Init initializes, in normal mode, a BLE module instance.
 func (ble *ANNA) Init() (err error) {
 	ble.Lock()
 	defer ble.Unlock()
@@ -301,7 +302,7 @@ func (ble *ANNA) Reset() (err error) {
 	return
 }
 
-// Enter bootloader mode by driving low SWITCH_1 and SWITCH_2 during a module
+// Enter normal mode by driving high SWITCH_1 and SWITCH_2 during a module
 // reset cycle.
 func (ble *ANNA) NormalMode() (err error) {
 	ble.Lock()
@@ -317,7 +318,7 @@ func (ble *ANNA) NormalMode() (err error) {
 	return ble.Reset()
 }
 
-// Enter normal mode by driving high SWITCH_1 and SWITCH_2 during a module
+// Enter bootloader mode by driving low SWITCH_1 and SWITCH_2 during a module
 // reset cycle.
 func (ble *ANNA) BootloaderMode() (err error) {
 	ble.Lock()

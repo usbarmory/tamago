@@ -68,7 +68,7 @@ func (d *CCIDDescriptor) SetDefaults() {
 	//   Auto voltage selection
 	//   Auto clock change
 	//   Auto baud rate change
-	//   Auto parameter negotation made by CCID
+	//   Auto parameter negotiation made by CCID
 	//   Short and extended APDU level exchange
 	d.Features = 0x400fe
 	d.MaxCCIDMessageLength = DTD_PAGES * DTD_PAGE_SIZE

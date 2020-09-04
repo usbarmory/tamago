@@ -404,7 +404,7 @@ func (d *Device) SetLanguageCodes(codes []uint16) (err error) {
 	return
 }
 
-// AddStrings adds a string descriptor to a USB device. The returned index can
+// AddString adds a string descriptor to a USB device. The returned index can
 // be used to fill string descriptor index value in configuration descriptors
 // (p274, Table 9-16. UNICODE String Descriptor, USB2.0).
 func (d *Device) AddString(s string) (uint8, error) {

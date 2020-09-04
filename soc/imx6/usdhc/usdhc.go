@@ -29,8 +29,8 @@ import (
 
 	"github.com/f-secure-foundry/tamago/bits"
 	"github.com/f-secure-foundry/tamago/dma"
-	"github.com/f-secure-foundry/tamago/soc/imx6"
 	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
 
 // USDHC registers (p4012, 58.8 uSDHC Memory Map/Register Definition, IMX6ULLRM).
@@ -114,6 +114,10 @@ const (
 
 	USDHCx_ADMA_ERR_STATUS = 0x54
 	USDHCx_ADMA_SYS_ADDR   = 0x58
+
+	USDHCx_VEND_SPEC       = 0xc0
+	VEND_SPEC_FRC_SDCLK_ON = 8
+	VEND_SPEC_VSELECT      = 1
 )
 
 // Configuration constants (p348, 35.4.2 Frequency divider configuration,
@@ -184,7 +188,7 @@ type CardInfo struct {
 	Blocks int
 }
 
-// USHDC represents a controller instance.
+// USDHC represents a controller instance.
 type USDHC struct {
 	sync.Mutex
 
@@ -216,6 +220,7 @@ type USDHC struct {
 	adma_sys_addr   uint32
 	adma_err_status uint32
 	ac12_err_status uint32
+	vend_spec       uint32
 
 	// detected card properties
 	card CardInfo
@@ -239,6 +244,9 @@ func (hw *USDHC) setClock(dvs int, sdclkfs int) {
 
 	bits.SetN(&sys, SYS_CTRL_DVS, 0xf, uint32(dvs))
 	bits.SetN(&sys, SYS_CTRL_SDCLKFS, 0xff, uint32(sdclkfs))
+
+	// prevent possible glitch on the card clock
+	reg.Clear(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
 
 	reg.Write(hw.sys_ctrl, sys)
 	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)
@@ -295,6 +303,7 @@ func (hw *USDHC) Init(width int) {
 	hw.adma_sys_addr = base + USDHCx_ADMA_SYS_ADDR
 	hw.adma_err_status = base + USDHCx_ADMA_ERR_STATUS
 	hw.ac12_err_status = base + USDHCx_AUTOCMD12_ERR_STATUS
+	hw.vend_spec = base + USDHCx_VEND_SPEC
 
 	// Generic SD specs read/write timeout rules (applied also to MMC by
 	// this driver).

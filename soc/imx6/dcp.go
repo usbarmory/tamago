@@ -83,7 +83,7 @@ const (
 	UNIQUE_KEY = 0xfe
 )
 
-// DCP work packet
+// WorkPacket represents a DCP work packet
 // (p1067, 13.2.6.4 Work Packet Structure, MCIMX28RM).
 type WorkPacket struct {
 	NextCmdAddr              uint32
@@ -115,11 +115,12 @@ func (pkt *WorkPacket) Bytes() []byte {
 	return buf.Bytes()
 }
 
+// Dcp represents a DCP module instance
 type Dcp struct {
 	sync.Mutex
 }
 
-// Data Co-Processor (DCP) instance
+// DCP (Data Co-Processor) module instance
 var DCP = &Dcp{}
 
 // Init initializes the DCP module.
