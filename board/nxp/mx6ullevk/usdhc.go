@@ -49,7 +49,7 @@ func init() {
 	var err error
 
 	// There are no write-protect lines on uSD cards. The write-protect
-	// line on the full size slot is not connectes. Therefore the
+	// line on the full size slot is not connected. Therefore the
 	// respective SoC pads must be selected on pulled down unconnected pads
 	// to ensure the driver never see write protection enabled.
 	ctl := uint32((1 << imx6.SW_PAD_CTL_PUE) | (1 << imx6.SW_PAD_CTL_PKE))
