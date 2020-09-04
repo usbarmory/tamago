@@ -14,10 +14,10 @@ import (
 	"github.com/f-secure-foundry/tamago/soc/imx6/usdhc"
 )
 
-// Base board full size SD instance
+// SD1 is the base board full size SD instance
 var SD1 = usdhc.USDHC1
 
-// CPU board microSD instance
+// SD2 is the CPU board microSD instance
 var SD2 = usdhc.USDHC2
 
 // SD1/SD2 configuration constants.
@@ -25,7 +25,6 @@ var SD2 = usdhc.USDHC2
 // On the MCIMX6ULL-EVK the following uSDHC interfaces are connected:
 //   * uSDHC1: base board full size SD slot (SD1)
 //   * uSDHC2: CPU board microSD slot (SD2)
-
 const (
 	IOMUXC_SW_MUX_CTL_PAD_CSI_DATA04 = 0x020e01f4
 	IOMUXC_SW_PAD_CTL_PAD_CSI_DATA04 = 0x020e0480

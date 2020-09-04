@@ -29,8 +29,8 @@ import (
 
 	"github.com/f-secure-foundry/tamago/bits"
 	"github.com/f-secure-foundry/tamago/dma"
-	"github.com/f-secure-foundry/tamago/soc/imx6"
 	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
 
 // USDHC registers (p4012, 58.8 uSDHC Memory Map/Register Definition, IMX6ULLRM).
@@ -188,7 +188,7 @@ type CardInfo struct {
 	Blocks int
 }
 
-// USHDC represents a controller instance.
+// USDHC represents a controller instance.
 type USDHC struct {
 	sync.Mutex
 

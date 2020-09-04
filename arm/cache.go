@@ -47,7 +47,7 @@ func (cpu *CPU) CacheFlushData() {
 	cache_flush_data()
 }
 
-// CacheFlushData flushes the ARM instruction cache.
+// CacheFlushInstruction flushes the ARM instruction cache.
 func (cpu *CPU) CacheFlushInstruction() {
 	cache_flush_instruction()
 }

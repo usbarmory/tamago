@@ -11,7 +11,6 @@
 
 // Package imx6q provides hardware initialization, automatically on import, for
 // the i.MX6Q family of System-on-Chip components.
-
 package imx6q
 
 import (

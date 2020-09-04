@@ -33,6 +33,7 @@ type block struct {
 	res bool
 }
 
+// Region represents a memory region allocated form DMA purposes.
 type Region struct {
 	sync.Mutex
 

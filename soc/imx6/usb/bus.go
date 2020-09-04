@@ -19,8 +19,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/f-secure-foundry/tamago/soc/imx6"
 	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
 
 // USB registers
