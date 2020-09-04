@@ -12,7 +12,11 @@ TEXT ·read_actlr(SB),$0-4
 	// Cortex™-A7 MPCore® Technical Reference Manual r0p5
 	//
 	// 4.3.31 Auxiliary Control Register
-	WORD	$0xf57ff06f // isb sy
+
+	// Invalidate Entire Instruction Cache
+	MOVW $0, R0
+	MCR 15, 0, R0, C7, C5, 0
+
 	MRC	15, 0, R0, C1, C0, 1
 
 	MOVW	R0, ret+0(FP)
@@ -25,7 +29,11 @@ TEXT ·write_actlr(SB),$0-4
 	//
 	// 4.3.31 Auxiliary Control Register
 	MOVW aux+0(FP), R0
-	WORD	$0xf57ff06f // isb sy
+
+	// Invalidate Entire Instruction Cache
+	MOVW $0, R1
+	MCR 15, 0, R1, C7, C5, 0
+
 	MCR	15, 0, R0, C1, C0, 1
 
 	RET
