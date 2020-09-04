@@ -245,7 +245,9 @@ func (hw *USDHC) voltageSwitchSD() (err error) {
 		return
 	}
 
-	hw.VoltageSwitch.Low()
+	if hw.VoltageSwitch != nil {
+		hw.VoltageSwitch.Low()
+	}
 
 	return
 }
