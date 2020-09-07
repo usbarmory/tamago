@@ -245,8 +245,16 @@ func (hw *USDHC) voltageSwitchSD() (err error) {
 		return
 	}
 
+	if !reg.WaitFor(1*time.Millisecond, hw.pres_state, PRES_STATE_DLSL, 1, 0) {
+		return fmt.Errorf("voltage switch failed")
+	}
+
+	hw.setClock(0, 0)
+
+	// SoC uSDHC IO power voltage selection signal (might be unused)
 	reg.Set(hw.vend_spec, VEND_SPEC_VSELECT)
 
+	// board specific power voltage selection function
 	if hw.VoltageSwitch != nil {
 		if err = hw.VoltageSwitch(); err != nil {
 			return
@@ -254,6 +262,12 @@ func (hw *USDHC) voltageSwitchSD() (err error) {
 	}
 
 	time.Sleep(10 * time.Millisecond)
+
+	hw.setClock(DVS_OP, SDCLKFS_OP)
+
+	if !reg.WaitFor(1*time.Millisecond, hw.pres_state, PRES_STATE_DLSL, 1, 1) {
+		return fmt.Errorf("voltage switch failed")
+	}
 
 	return
 }
@@ -266,14 +280,13 @@ func (hw *USDHC) initSD() (err error) {
 	var mode uint32
 	var clk int
 
-	if hw.card.Rate >= DDR50_MBPS {
+	if hw.VoltageSwitch == nil {
+		hw.card.Rate = HS_MBPS
+	} else if hw.card.Rate >= DDR50_MBPS {
 		if err = hw.voltageSwitchSD(); err != nil {
 			hw.card.Rate = HS_MBPS
 		}
 	}
-
-	hw.setClock(0, 0)
-	hw.setClock(DVS_OP, SDCLKFS_OP)
 
 	// CMD2 - ALL_SEND_CID - get unique card identification
 	if err = hw.cmd(2, READ, arg, RSP_136, false, true, false, 0); err != nil {
@@ -287,6 +300,11 @@ func (hw *USDHC) initSD() (err error) {
 
 	if state := (hw.rsp(0) >> STATUS_CURRENT_STATE) & 0b1111; state != CURRENT_STATE_IDENT {
 		return fmt.Errorf("card not in ident state (%d)", state)
+	}
+
+	if hw.card.Rate == HS_MBPS {
+		hw.setClock(0, 0)
+		hw.setClock(DVS_OP, SDCLKFS_OP)
 	}
 
 	// set relative card address
@@ -329,10 +347,6 @@ func (hw *USDHC) initSD() (err error) {
 		return
 	}
 
-	if hw.card.Rate < HS_MBPS {
-		return
-	}
-
 	switch hw.card.Rate {
 	case HS_MBPS:
 		mode = ACCESS_MODE_HS
@@ -341,6 +355,8 @@ func (hw *USDHC) initSD() (err error) {
 		mode = ACCESS_MODE_DDR50
 		clk = SDCLKFS_HS_DDR
 		hw.card.DDR = true
+	default:
+		return
 	}
 
 	if _, err = hw.switchSD(MODE_SWITCH, SD_SWITCH_ACCESS_MODE_GROUP, mode); err != nil {

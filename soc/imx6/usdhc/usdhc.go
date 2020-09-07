@@ -58,6 +58,7 @@ const (
 	USDHCx_CMD_RSP3 = 0x1c
 
 	USDHCx_PRES_STATE = 0x24
+	PRES_STATE_DLSL   = 24
 	PRES_STATE_WPSPL  = 19
 	PRES_STATE_BREN   = 11
 	PRES_STATE_SDSTB  = 3
@@ -237,11 +238,8 @@ var USDHC2 = &USDHC{n: 2}
 
 // p348, 35.4.2 Frequency divider configuration, IMX6FG
 func (hw *USDHC) setClock(dvs int, sdclkfs int) {
-	if hw.card.SD {
-		// prevent possible glitch on the card clock
-		reg.Clear(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
-		defer reg.Set(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
-	}
+	// prevent possible glitch on the card clock
+	reg.Clear(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
 
 	if dvs == 0 && sdclkfs == 0 {
 		return
@@ -257,6 +255,10 @@ func (hw *USDHC) setClock(dvs int, sdclkfs int) {
 
 	reg.Write(hw.sys_ctrl, sys)
 	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)
+
+	if hw.card.SD {
+		reg.Set(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
+	}
 }
 
 // Detect performs voltage validation to detect an SD or MMC card.
