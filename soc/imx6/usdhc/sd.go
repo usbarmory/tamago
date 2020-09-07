@@ -354,7 +354,6 @@ func (hw *USDHC) initSD() (err error) {
 	case DDR50_MBPS:
 		mode = ACCESS_MODE_DDR50
 		clk = SDCLKFS_HS_DDR
-		hw.card.DDR = true
 	default:
 		return
 	}
@@ -365,7 +364,12 @@ func (hw *USDHC) initSD() (err error) {
 
 	hw.setClock(0, 0)
 	hw.setClock(DVS_HS, clk)
+
 	hw.card.HS = true
+
+	if hw.card.Rate == DDR50_MBPS {
+		hw.card.DDR = true
+	}
 
 	return
 }
