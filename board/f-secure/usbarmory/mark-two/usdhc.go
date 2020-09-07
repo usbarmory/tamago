@@ -10,6 +10,8 @@
 package usbarmory
 
 import (
+	"errors"
+
 	"github.com/f-secure-foundry/tamago/soc/imx6"
 	"github.com/f-secure-foundry/tamago/soc/imx6/usdhc"
 )
@@ -89,4 +91,13 @@ func init() {
 
 	SD.Init(SD_BUS_WIDTH)
 	MMC.Init(MMC_BUS_WIDTH)
+
+	SD.VoltageSwitch = func() error {
+		switch Model() {
+		case "UA-MKII-β":
+			return errors.New("unsupported")
+		default:
+			return errors.New("unexpected model")
+		}
+	}
 }

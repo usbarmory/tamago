@@ -193,7 +193,7 @@ type USDHC struct {
 	sync.Mutex
 
 	// voltage switch control
-	VoltageSwitch *imx6.GPIO
+	VoltageSwitch func() error
 
 	// controller index
 	n int
@@ -237,6 +237,16 @@ var USDHC2 = &USDHC{n: 2}
 
 // p348, 35.4.2 Frequency divider configuration, IMX6FG
 func (hw *USDHC) setClock(dvs int, sdclkfs int) {
+	if hw.card.SD {
+		// prevent possible glitch on the card clock
+		reg.Clear(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
+		defer reg.Set(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
+	}
+
+	if dvs == 0 && sdclkfs == 0 {
+		return
+	}
+
 	// wait for stable clock to comply with p4038, IMX6ULLRM DVS note
 	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)
 
@@ -244,9 +254,6 @@ func (hw *USDHC) setClock(dvs int, sdclkfs int) {
 
 	bits.SetN(&sys, SYS_CTRL_DVS, 0xf, uint32(dvs))
 	bits.SetN(&sys, SYS_CTRL_SDCLKFS, 0xff, uint32(sdclkfs))
-
-	// prevent possible glitch on the card clock
-	reg.Clear(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
 
 	reg.Write(hw.sys_ctrl, sys)
 	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)

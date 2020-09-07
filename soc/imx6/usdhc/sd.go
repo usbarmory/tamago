@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/f-secure-foundry/tamago/bits"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 // SD registers
@@ -74,7 +75,6 @@ const (
 
 	// p23, 2. System Features, SD-PL-7.10
 	HS_MBPS    = 25
-	SDR50_MBPS = 50
 	DDR50_MBPS = 50
 )
 
@@ -182,10 +182,10 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 
 		if bits.Get(&rsp, SD_OCR_S18R, 1) == 1 {
 			// UHS-I
-			hw.card.Rate = SDR50_MBPS
+			hw.card.Rate = DDR50_MBPS
 		} else if bits.Get(&rsp, SD_OCR_UHSII, 1) == 1 {
 			// UHS-II
-			hw.card.Rate = SDR50_MBPS
+			hw.card.Rate = DDR50_MBPS
 		} else {
 			// Non UHS-I
 			hw.card.Rate = HS_MBPS
@@ -245,9 +245,15 @@ func (hw *USDHC) voltageSwitchSD() (err error) {
 		return
 	}
 
+	reg.Set(hw.vend_spec, VEND_SPEC_VSELECT)
+
 	if hw.VoltageSwitch != nil {
-		hw.VoltageSwitch.Low()
+		if err = hw.VoltageSwitch(); err != nil {
+			return
+		}
 	}
+
+	time.Sleep(10 * time.Millisecond)
 
 	return
 }
@@ -257,6 +263,17 @@ func (hw *USDHC) voltageSwitchSD() (err error) {
 func (hw *USDHC) initSD() (err error) {
 	var arg uint32
 	var bus_width uint32
+	var mode uint32
+	var clk int
+
+	if hw.card.Rate >= DDR50_MBPS {
+		if err = hw.voltageSwitchSD(); err != nil {
+			hw.card.Rate = HS_MBPS
+		}
+	}
+
+	hw.setClock(0, 0)
+	hw.setClock(DVS_OP, SDCLKFS_OP)
 
 	// CMD2 - ALL_SEND_CID - get unique card identification
 	if err = hw.cmd(2, READ, arg, RSP_136, false, true, false, 0); err != nil {
@@ -272,17 +289,10 @@ func (hw *USDHC) initSD() (err error) {
 		return fmt.Errorf("card not in ident state (%d)", state)
 	}
 
-	// clear clock
-	hw.setClock(0, 0)
-	// set operating frequency
-	hw.setClock(DVS_OP, SDCLKFS_OP)
-
 	// set relative card address
 	hw.rca = hw.rsp(0) & (0xffff << RCA_ADDR)
 
-	err = hw.detectCapabilitiesSD()
-
-	if err != nil {
+	if err = hw.detectCapabilitiesSD(); err != nil {
 		return
 	}
 
@@ -291,9 +301,7 @@ func (hw *USDHC) initSD() (err error) {
 		return
 	}
 
-	err = hw.waitState(CURRENT_STATE_TRAN, 1*time.Millisecond)
-
-	if err != nil {
+	if err = hw.waitState(CURRENT_STATE_TRAN, 1*time.Millisecond); err != nil {
 		return
 	}
 
@@ -325,21 +333,23 @@ func (hw *USDHC) initSD() (err error) {
 		return
 	}
 
-	// Enable High Speed (HS) mode.
-	if _, err = hw.switchSD(MODE_SWITCH, SD_SWITCH_ACCESS_MODE_GROUP, ACCESS_MODE_HS); err != nil {
+	switch hw.card.Rate {
+	case HS_MBPS:
+		mode = ACCESS_MODE_HS
+		clk = SDCLKFS_HS_SDR
+	case DDR50_MBPS:
+		mode = ACCESS_MODE_DDR50
+		clk = SDCLKFS_HS_DDR
+		hw.card.DDR = true
+	}
+
+	if _, err = hw.switchSD(MODE_SWITCH, SD_SWITCH_ACCESS_MODE_GROUP, mode); err != nil {
 		return
 	}
 
-	// clear clock
 	hw.setClock(0, 0)
-	// set high speed frequency
-	hw.setClock(DVS_HS, SDCLKFS_HS_SDR)
-
+	hw.setClock(DVS_HS, clk)
 	hw.card.HS = true
-
-	// TODO: if card is UHS (rate >= SDR50_MBPS) switch to 1.8V and detect
-	// if SDR104 is supported with
-	//   hw.switchSD(MODE_CHECK, SD_SWITCH_ACCESS_MODE_GROUP, 0)
 
 	return
 }
