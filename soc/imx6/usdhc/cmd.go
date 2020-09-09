@@ -221,6 +221,10 @@ func (hw *USDHC) waitState(state int, timeout time.Duration) (err error) {
 	for {
 		// CMD13 - SEND_STATUS - poll card status
 		if err = hw.cmd(13, READ, hw.rca, RSP_48, true, true, false, hw.writeTimeout); err != nil {
+			if time.Since(start) >= timeout {
+				return fmt.Errorf("error polling card status, %v", err)
+			}
+
 			continue
 		}
 
