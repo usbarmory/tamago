@@ -149,13 +149,13 @@ const (
 	DTOCV = 0xf
 
 	// Divide-by-8
-	DVS_ID = 8
+	DVS_ID = 7
 	// Base clock divided by 64
 	SDCLKFS_ID = 0x20
 	// Identification frequency: 200 / (8 * 64) == ~400 KHz
 
 	// Divide-by-2
-	DVS_OP = 2
+	DVS_OP = 1
 	// Base clock divided by 4
 	SDCLKFS_OP = 0x02
 	// Operating frequency: 200 / (2 * 4) == 25 MHz
