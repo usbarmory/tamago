@@ -75,7 +75,16 @@ const (
 
 	// p23, 2. System Features, SD-PL-7.10
 	HS_MBPS    = 25
-	DDR50_MBPS = 50
+	DDR50_MBPS = 45 // ERR010450
+	SDR50_MBPS = 50
+
+	// Base clock divided by 4 (Dual Data Rate mode)
+	SDCLKFS_UHS_DDR50 = 0x01
+	// DDR50 frequency: 200 / (1 * 4) == 50 MHz
+
+	// Base clock divided by 2 (Single Data Rate mode)
+	SDCLKFS_UHS_SDR50 = 0x01
+	// SDR50 frequency: 200 / (1 * 2) == 100 MHz
 )
 
 // SD constants
@@ -180,12 +189,15 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 			hc = true
 		}
 
+		// Select the fastest mandatory speed mode, supported by this
+		// driver, according to the card type.
+
 		if bits.Get(&rsp, SD_OCR_S18R, 1) == 1 {
 			// UHS-I
-			hw.card.Rate = DDR50_MBPS
+			hw.card.Rate = SDR50_MBPS
 		} else if bits.Get(&rsp, SD_OCR_UHSII, 1) == 1 {
 			// UHS-II
-			hw.card.Rate = DDR50_MBPS
+			hw.card.Rate = SDR50_MBPS
 		} else {
 			// Non UHS-I
 			hw.card.Rate = HS_MBPS
@@ -347,13 +359,21 @@ func (hw *USDHC) initSD() (err error) {
 		return
 	}
 
+	// hw.card.DDR must be set after switchSD
+	var ddr bool
+
 	switch hw.card.Rate {
 	case HS_MBPS:
 		mode = ACCESS_MODE_HS
 		clk = SDCLKFS_HS_SDR
 	case DDR50_MBPS:
 		mode = ACCESS_MODE_DDR50
-		clk = SDCLKFS_HS_DDR
+		clk = SDCLKFS_UHS_DDR50
+		ddr = true
+	case SDR50_MBPS:
+		mode = ACCESS_MODE_SDR50
+		clk = SDCLKFS_UHS_SDR50
+
 	default:
 		return
 	}
@@ -366,10 +386,7 @@ func (hw *USDHC) initSD() (err error) {
 	hw.setClock(DVS_HS, clk)
 
 	hw.card.HS = true
-
-	if hw.card.Rate == DDR50_MBPS {
-		hw.card.DDR = true
-	}
+	hw.card.DDR = ddr
 
 	return
 }
