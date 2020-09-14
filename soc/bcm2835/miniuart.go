@@ -1,12 +1,13 @@
 // BCM2835 mini-UART
 // https://github.com/f-secure-foundry/tamago
 //
+// Copyright (c) the bcm2835 package authors
+//
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
-
 //
 // This mini-UART is specifically intended for use as a
-// console.  See BCM2835-ARM-Peripherals.pdf that is
+// console. See BCM2835-ARM-Peripherals.pdf that is
 // widely available.
 //
 

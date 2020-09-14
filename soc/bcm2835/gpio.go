@@ -1,5 +1,7 @@
-// BCM2835 SOC GPIO Support
+// BCM2835 SoC GPIO Support
 // https://github.com/f-secure-foundry/tamago
+//
+// Copyright (c) the bcm2835 package authors
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.

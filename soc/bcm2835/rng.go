@@ -1,5 +1,8 @@
-// BCM2835 SOC Random Number Generator
+// BCM2835 SoC Random Number Generator
 // https://github.com/f-secure-foundry/tamago
+//
+// Copyright (c) the bcm2835 package authors
+//
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
