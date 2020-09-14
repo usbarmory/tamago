@@ -10,6 +10,5 @@ package pi
 
 // Board provides a basic abstraction over the different models of Pi.
 type Board interface {
-	LEDNames() []string
 	LED(name string, on bool) (err error)
 }
