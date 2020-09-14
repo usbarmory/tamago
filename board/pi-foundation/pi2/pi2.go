@@ -25,6 +25,8 @@ import (
 	"github.com/f-secure-foundry/tamago/board/pi-foundation"
 )
 
+// On the Raspberry Pi2+ peripheral addresses are remapped from their hardware
+// 'bus' address to the 0x3f000000 'physical' address.
 const peripheralBase = 0x3f000000
 
 type board struct{}

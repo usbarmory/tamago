@@ -1,4 +1,4 @@
-// BCM2835 SOC support
+// BCM2835 SoC support
 // https://github.com/f-secure-foundry/tamago
 //
 // Use of this source code is governed by the license
@@ -6,7 +6,7 @@
 
 // func read_systimer() int64
 TEXT ·read_systimer(SB),$0
-	MOVW	runtime·peripheralBase(SB), R2
+	MOVW	·peripheralBase(SB), R2
 	ADD	$0x00003000, R2 // timer peripheral offset
 
 	MOVW	4(R2), R0 // lower 32-bits
