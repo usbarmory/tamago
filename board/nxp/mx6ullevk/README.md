@@ -24,7 +24,7 @@ TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal ARM System-on-Chip (SoC) components.
 
 The [mx6ullevk](https://github.com/f-secure-foundry/tamago/tree/master/board/nxp/mx6ullevk)
-package provide support for the [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) development board.
+package provides support for the [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) development board.
 
 Documentation
 =============

@@ -24,7 +24,7 @@ TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal ARM System-on-Chip (SoC) components.
 
 The [usbarmory](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory)
-package provide support for the [USB armory](https://github.com/f-secure-foundry/usbarmory/wiki)
+package provides support for the [USB armory](https://github.com/f-secure-foundry/usbarmory/wiki)
 Single Board Computer.
 
 Documentation
