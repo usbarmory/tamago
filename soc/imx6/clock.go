@@ -22,9 +22,15 @@ const (
 	CCM_CACRR      = 0x020c4010
 	CACRR_ARM_PODF = 0
 
-	CCM_CSCDR1           = 0x020c4024
-	CSCDR1_UART_CLK_PODF = 0
-	CSCDR1_UART_CLK_SEL  = 6
+	CCM_CSCDR1             = 0x020c4024
+	CSCDR1_USDHC2_CLK_PODF = 16
+	CSCDR1_USDHC1_CLK_PODF = 11
+	CSCDR1_UART_CLK_SEL    = 6
+	CSCDR1_UART_CLK_PODF   = 0
+
+	CCM_CSCMR1            = 0x020c401c
+	CSCMR1_USDHC2_CLK_SEL = 17
+	CSCMR1_USDHC1_CLK_SEL = 16
 
 	CCM_ANALOG_PLL_ARM = 0x020c8000
 	PLL_LOCK           = 31
@@ -33,6 +39,17 @@ const (
 	PLL_ENABLE         = 13
 	PLL_POWER          = 12
 	PLL_DIV_SELECT     = 0
+
+	CCM_ANALOG_PFD_480  = 0x020c80f0
+	CCM_ANALOG_PFD_528  = 0x020c8100
+	ANALOG_PFD3_CLKGATE = 31
+	ANALOG_PFD3_FRAC    = 24
+	ANALOG_PFD2_CLKGATE = 23
+	ANALOG_PFD2_FRAC    = 16
+	ANALOG_PFD1_CLKGATE = 15
+	ANALOG_PFD1_FRAC    = 8
+	ANALOG_PFD0_CLKGATE = 7
+	ANALOG_PFD0_FRAC    = 0
 
 	PMU_REG_CORE   = 0x020c8140
 	CORE_REG2_TARG = 18
@@ -46,8 +63,9 @@ const (
 
 // Oscillator frequencies
 const (
-	OSC_FREQ = 24000000
-	VCO_FREQ = 480000000
+	OSC_FREQ  = 24000000
+	PLL2_FREQ = 528000000
+	PLL3_FREQ = 480000000
 )
 
 // ARMCoreDiv returns the ARM core divider value
@@ -181,4 +199,93 @@ func SetARMFreq(mhz uint32) (err error) {
 	}
 
 	return
+}
+
+// GetPFD returns the fractional divider and frequency in Hz of a PLL PFD
+// (p734, 18.7.15 480MHz Clock (PLL3) Phase Fractional Divider Control Register, IMX6ULLRM)
+// (p736, 18.7.16 480MHz Clock (PLL2) Phase Fractional Divider Control Register, IMX6ULLRM).
+func GetPFD(pll int, pfd int) (div uint32, hz uint32) {
+	var register uint32
+	var div_pos, gate_pos int
+	var freq float64
+
+	switch pll {
+	case 2:
+		register = CCM_ANALOG_PFD_528
+		freq = PLL2_FREQ
+	case 3:
+		register = CCM_ANALOG_PFD_480
+		freq = PLL3_FREQ
+	default:
+		// Only PLL2 and PLL3 have PFD's.
+		return
+	}
+
+	switch pfd {
+	case 0:
+		gate_pos = ANALOG_PFD0_CLKGATE
+		div_pos = ANALOG_PFD0_FRAC
+	case 1:
+		gate_pos = ANALOG_PFD1_CLKGATE
+		div_pos = ANALOG_PFD1_FRAC
+	case 2:
+		gate_pos = ANALOG_PFD2_CLKGATE
+		div_pos = ANALOG_PFD2_FRAC
+	case 3:
+		gate_pos = ANALOG_PFD3_CLKGATE
+		div_pos = ANALOG_PFD3_FRAC
+	default:
+		return
+	}
+
+	if reg.Get(register, gate_pos, 0b1) == 1 {
+		return
+	}
+
+	div = reg.Get(register, div_pos, 0b111111)
+	// Output frequency has a static multiplicator of 18
+	// p646, 18.5.1.4 Phase Fractional Dividers (PFD)
+	hz = uint32((freq * 18) / float64(div))
+
+	return
+}
+
+// SetPFD sets the fractional divider of a PPL PFD
+// (p734, 18.7.15 480MHz Clock (PLL3) Phase Fractional Divider Control Register, IMX6ULLRM)
+// (p736, 18.7.16 480MHz Clock (PLL2) Phase Fractional Divider Control Register, IMX6ULLRM).
+func SetPFD(pll uint32, pfd uint32, div uint32) (error) {
+	var register uint32
+	var div_pos int
+
+	switch pll {
+	case 2:
+		register = CCM_ANALOG_PFD_528
+	case 3:
+		register = CCM_ANALOG_PFD_480
+	default:
+		return errors.New("invalid pll index")
+	}
+
+	// Divider can range from 12 to 35
+	// p646, 18.5.1.4 Phase Fractional Dividers (PFD), IMX6ULLRM.
+	if div < 12 || div > 35 {
+		return errors.New("invalid div value")
+	}
+
+	switch pfd {
+	case 0:
+		div_pos = ANALOG_PFD0_FRAC
+	case 1:
+		div_pos = ANALOG_PFD1_FRAC
+	case 2:
+		div_pos = ANALOG_PFD2_FRAC
+	case 3:
+		div_pos = ANALOG_PFD3_FRAC
+	default:
+		return errors.New("invalid pfd index")
+	}
+
+	reg.SetN(register, div_pos, 0b111111, div)
+
+	return nil
 }

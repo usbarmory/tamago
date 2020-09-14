@@ -209,7 +209,7 @@ func uartclk() uint32 {
 	if reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, 0b1) == 1 {
 		freq = OSC_FREQ
 	} else {
-		freq = VCO_FREQ
+		freq = PLL3_FREQ
 	}
 
 	podf := reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_PODF, 0b111111)
