@@ -20,6 +20,9 @@ const (
 	refFreq int64 = 1000000000
 )
 
+//go:linkname ramStackOffset runtime.ramStackOffset
+var ramStackOffset uint32 = 0x100000 // 1 MB
+
 // peripheralBase is the (remapped) peripheral base address.
 //
 // In Raspberry Pi, the VideoCore chip is responsible for
