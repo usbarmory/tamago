@@ -21,7 +21,7 @@ const (
 	UART_DEFAULT_BAUDRATE = 115200
 	ESC                   = 0x1b
 
-	// p2315, 45.15 UART Memory Map/Register Definition, IMX6ULLRM
+	// p3608, 55.15 UART Memory Map/Register Definition, IMX6ULLRM
 
 	// i.MX 6UltraLite (G0, G1, G2, G3, G4)
 	// i.MX 6ULL (Y0, Y1, Y2)
@@ -165,7 +165,7 @@ var UART2 = &UART{
 }
 
 // Init initializes the UART for RS-232 mode,
-// p2312, 45.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
+// p3605, 55.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
 func (hw *UART) Init() {
 	var base uint32
 
@@ -212,7 +212,7 @@ func uartclk() uint32 {
 		freq = VCO_FREQ
 	}
 
-	podf := reg.Get(CCM_CSCDR1, CSCDR1_CLK_PODF, 0b111111)
+	podf := reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_PODF, 0b111111)
 
 	return freq / (podf + 1)
 }
@@ -267,7 +267,7 @@ func (hw *UART) enable() {
 	// set UFCR
 	reg.Write(hw.ufcr, ufcr)
 
-	// p2299, 45.5 Binary Rate Multiplier (BRM), IMX6ULLRM
+	// p3592, 55.5 Binary Rate Multiplier (BRM), IMX6ULLRM
 	//
 	//              ref_clk_freq
 	// baudrate = -----------------
@@ -277,7 +277,7 @@ func (hw *UART) enable() {
 	//
 	// ref_clk_freq = module_clock
 
-	// match /6 static divider (p424, Figure 17-3. Clock Tree - Part 2, IMX6ULLRM)
+	// match /6 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
 	clk := uartclk() / 6
 	// multiply to match UFCR_RFDIV divider value
 	ubmr := clk / (2 * hw.Baudrate)

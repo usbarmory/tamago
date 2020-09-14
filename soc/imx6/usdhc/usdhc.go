@@ -16,6 +16,32 @@
 // It currently supports interfacing with SD/MMC cards up to High Speed mode
 // and Dual Data Rate.
 //
+// Higher speed modes for eMMC cards are HS200 (controller supported and driver
+// supported) and HS400 mode (unsupported at controller level) [p35, Table 4,
+// JESD84-B51].
+//
+// Higher speed modes for SD cards are SDR50/SDR104 (controller and driver
+// supported), DDR50 (controller supported, unimplemented in this driver) and
+// UHS-II modes (unsupported at controller level) [p37-38, Figure 3-14 and
+// 3-15, SD-PL-7.10].
+//
+// The highest speed supported by the driver, card and controller is
+// automatically selected by Detect().
+//
+// For eMMC cards, speed mode HS200 requires the target board to have eMMC I/O
+// signaling to 1.8V, this must be advertised by the board package by defining
+// LowVoltage() on the relevant USDHC instance.
+//
+// For SD cards, speed modes SDR50/SDR104 require the target board to switch SD
+// I/O signaling to 1.8V, the switching procedure must be implemented by the
+// board package by defining LowVoltage() on the relevant USDHC instance.
+//
+// Note that due to NXP errata ERR010450 the following maximum values apply:
+//  * eMMC  HS200: 150MB/s - 150MHz (instead of 200MB/s - 200MHz), unimplemented
+//  * eMMC  DDR52:  90MB/s -  45MHz (instead of 104MB/s -  52MHz), supported
+//  *   SD SDR104:  75MB/s - 150MHz (instead of 104MB/s - 208MHz), supported
+//  *   SD  DDR50:  45MB/s -  45MHz (instead of  50MB/s -  50MHz), unsupported
+//
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
 // https://github.com/f-secure-foundry/tamago.
@@ -58,6 +84,7 @@ const (
 	USDHCx_CMD_RSP3 = 0x1c
 
 	USDHCx_PRES_STATE = 0x24
+	PRES_STATE_DLSL   = 24
 	PRES_STATE_WPSPL  = 19
 	PRES_STATE_BREN   = 11
 	PRES_STATE_SDSTB  = 3
@@ -128,20 +155,20 @@ const (
 const (
 	// p346, 35.2 Clocks, IMX6FG.
 	//
-	// The base clock is derived by default from PDF2 (396MHz) with divide
+	// The base clock is derived by default from PFD2 (396MHz) with divide
 	// by 2, therefore 198MHz.
 
 	// Data Timeout Counter Value: SDCLK x 2** 29
 	DTOCV = 0xf
 
 	// Divide-by-8
-	DVS_ID = 8
+	DVS_ID = 7
 	// Base clock divided by 64
 	SDCLKFS_ID = 0x20
 	// Identification frequency: 200 / (8 * 64) == ~400 KHz
 
 	// Divide-by-2
-	DVS_OP = 2
+	DVS_OP = 1
 	// Base clock divided by 4
 	SDCLKFS_OP = 0x02
 	// Operating frequency: 200 / (2 * 4) == 25 MHz
@@ -153,18 +180,6 @@ const (
 	// Base clock divided by 4 (Dual Data Rate mode)
 	SDCLKFS_HS_DDR = 0x01
 	// High Speed frequency: 200 / (1 * 4) == 50 MHz
-
-	// p35, Table 4, JESD84-B51
-	//
-	// Higher speed modes for eMMC cards are HS200 (controller supported,
-	// currently unimplemented by this driver) and HS400 mode (unsupported
-	// at controller level).
-	//
-	// p37-38, Figure 3-14 and 3-15, SD-PL-7.10
-	//
-	// Higher speed modes for SD cards are SDR50/SDR104/DDR50 (controller
-	// supported, currently unimplemented by this driver) and UHS-II modes
-	// (unsupported at controller level).
 )
 
 // CardInfo holds detected card information.
@@ -192,8 +207,10 @@ type CardInfo struct {
 type USDHC struct {
 	sync.Mutex
 
-	// voltage switch control
-	VoltageSwitch *imx6.GPIO
+	// LowVoltage is the board specific function responsible for low
+	// voltage switching (SD) or indication (eMMC). The return value
+	// reflects whether LV I/O signaling is present.
+	LowVoltage func() bool
 
 	// controller index
 	n int
@@ -235,24 +252,33 @@ var USDHC1 = &USDHC{n: 1}
 // USDHC2 instance
 var USDHC2 = &USDHC{n: 2}
 
-// p348, 35.4.2 Frequency divider configuration, IMX6FG
 func (hw *USDHC) setClock(dvs int, sdclkfs int) {
-	// wait for stable clock to comply with p4038, IMX6ULLRM DVS note
+	// Prevent possible glitch on the card clock as noted in
+	// p4011, 58.7.7 Change Clock Frequency, IMX6ULLRM.
+	reg.Clear(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
+
+	if dvs < 0 && sdclkfs < 0 {
+		return
+	}
+
+	// Wait for stable clock as noted in
+	// p4038, DVS[3:0], IMX6ULLRM.
 	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)
 
 	sys := reg.Read(hw.sys_ctrl)
 
+	// p348, 35.4.2 Frequency divider configuration, IMX6FG
 	bits.SetN(&sys, SYS_CTRL_DVS, 0xf, uint32(dvs))
 	bits.SetN(&sys, SYS_CTRL_SDCLKFS, 0xff, uint32(sdclkfs))
 
-	// prevent possible glitch on the card clock
-	reg.Clear(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
-
 	reg.Write(hw.sys_ctrl, sys)
 	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)
+
+	if hw.card.SD {
+		reg.Set(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
+	}
 }
 
-// Detect performs voltage validation to detect an SD or MMC card.
 func (hw *USDHC) detect() (sd bool, mmc bool, hc bool, err error) {
 	sd, hc = hw.voltageValidationSD()
 
@@ -316,8 +342,10 @@ func (hw *USDHC) Init(width int) {
 	hw.Unlock()
 }
 
-// Detect initializes an SD/MMC card as specified in
-// p347, 35.4.1 Initializing the SD/MMC card, IMX6FG.
+// Detect initializes an SD/MMC card. The highest speed supported by the
+// driver, card and controller is automatically selected. Speed modes that
+// require voltage switching require definition of function VoltageSelect on
+// the USDHC instance, which is up to board packages.
 func (hw *USDHC) Detect() (err error) {
 	hw.Lock()
 	defer hw.Unlock()
@@ -365,7 +393,7 @@ func (hw *USDHC) Detect() (err error) {
 	reg.SetN(hw.prot_ctrl, PROT_CTRL_EMODE, 0b11, 0b10)
 
 	// clear clock
-	hw.setClock(0, 0)
+	hw.setClock(-1, -1)
 	// set identification frequency
 	hw.setClock(DVS_ID, SDCLKFS_ID)
 
