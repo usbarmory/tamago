@@ -14,8 +14,8 @@ TEXT ·read_actlr(SB),$0-4
 	// 4.3.31 Auxiliary Control Register
 
 	// Invalidate Entire Instruction Cache
-	MOVW $0, R0
-	MCR 15, 0, R0, C7, C5, 0
+	MOVW	$0, R0
+	MCR	15, 0, R0, C7, C5, 0
 
 	MRC	15, 0, R0, C1, C0, 1
 
@@ -31,8 +31,8 @@ TEXT ·write_actlr(SB),$0-4
 	MOVW aux+0(FP), R0
 
 	// Invalidate Entire Instruction Cache
-	MOVW $0, R1
-	MCR 15, 0, R1, C7, C5, 0
+	MOVW	$0, R1
+	MCR	15, 0, R1, C7, C5, 0
 
 	MCR	15, 0, R0, C1, C0, 1
 
