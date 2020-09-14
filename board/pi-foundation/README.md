@@ -3,7 +3,7 @@ TamaGo - bare metal Go for ARM SoCs - Raspberry Pi Support
 
 tamago | https://github.com/f-secure-foundry/tamago  
 
-Copyright (c) the pi package authors/contributors  
+Copyright (c) the pi/pi2/pizero package authors  
 
 ![TamaGo gopher](https://github.com/f-secure-foundry/tamago/wiki/images/tamago.svg?sanitize=true)
 

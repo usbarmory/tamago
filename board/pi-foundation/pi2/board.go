@@ -1,6 +1,8 @@
 // Raspberry Pi 2 Support
 // https://github.com/f-secure-foundry/tamago
 //
+// Copyright (c) the pi2 package authors
+//
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
