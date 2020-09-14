@@ -21,7 +21,7 @@ import (
 	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 
 	// Ensure pi package is linked in, so client apps only *need* to
-	// import this package
+	// import this package.
 	"github.com/f-secure-foundry/tamago/board/pi-foundation"
 )
 
@@ -32,9 +32,11 @@ type board struct{}
 // Board provides access to the capabilities of the Pi2.
 var Board pi.Board = &board{}
 
-// hwinit takes care of the lower level SoC initialization.
-//go:linkname hwinit runtime.hwinit
-func hwinit() {
+// Init takes care of the lower level SoC initialization triggered early in
+// runtime setup.
+//
+//go:linkname Init runtime.hwinit
+func Init() {
 	// Defer to generic BCM2835 initialization, with Pi 2
 	// peripheral base address.
 	bcm2835.Init(peripheralBase)
