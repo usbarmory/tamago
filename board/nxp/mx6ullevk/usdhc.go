@@ -86,13 +86,11 @@ func init() {
 	SD1.Init(SD1_BUS_WIDTH)
 	SD2.Init(SD2_BUS_WIDTH)
 
-	// Define an empty function to allow voltage switching for higher
-	// speeds on UHS microSD cards.
-	//
-	// No actual function is required as VEND_SPEC_VSELECT, already set by
-	// the usdhc driver, is sufficient on this board. Only SD1 supports
-	// 1.8V on this board.
-	SD1.VoltageSwitch = func() error {
-		return nil
+	// Only SD1 supports 1.8V switching on this board.
+	SD1.LowVoltage = func() bool {
+		// No actual function is required as VEND_SPEC_VSELECT, already
+		// set by the usdhc driver, is used on this board circuitry to
+		// switch to LV.
+		return true
 	}
 }

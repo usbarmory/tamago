@@ -16,25 +16,31 @@
 // It currently supports interfacing with SD/MMC cards up to High Speed mode
 // and Dual Data Rate.
 //
-// Higher speed modes for eMMC cards are HS200 (controller supported,
-// currently unimplemented by this driver) and HS400 mode (unsupported
-// at controller level) [p35, Table 4, JESD84-B51].
+// Higher speed modes for eMMC cards are HS200 (controller supported and driver
+// supported) and HS400 mode (unsupported at controller level) [p35, Table 4,
+// JESD84-B51].
 //
-// Higher speed modes for SD cards are SDR50/SDR104/DDR50 (controller
-// supported, currently unimplemented by this driver) and UHS-II modes
-// (unsupported at controller level) [p37-38, Figure 3-14 and 3-15,
-// SD-PL-7.10].
+// Higher speed modes for SD cards are SDR50/SDR104 (controller and driver
+// supported), DDR50 (controller supported, unimplemented in this driver) and
+// UHS-II modes (unsupported at controller level) [p37-38, Figure 3-14 and
+// 3-15, SD-PL-7.10].
 //
 // The highest speed supported by the driver, card and controller is
-// automatically selected by Detect(). Speed modes that require voltage
-// switching require definition of function VoltageSelect() on the USDHC
-// instance, which is up to board packages.
+// automatically selected by Detect().
+//
+// For eMMC cards, speed mode HS200 requires the target board to have eMMC I/O
+// signaling to 1.8V, this must be advertised by the board package by defining
+// LowVoltage() on the relevant USDHC instance.
+//
+// For SD cards, speed modes SDR50/SDR104 require the target board to switch SD
+// I/O signaling to 1.8V, the switching procedure must be implemented by the
+// board package by defining LowVoltage() on the relevant USDHC instance.
 //
 // Note that due to NXP errata ERR010450 the following maximum values apply:
-//  * eMMC  HS200: 150MB/s - 150MHz (instead of 200MB/s - 200MHz)
-//  * eMMC  DDR52:  90MB/s -  45MHz (instead of 104MB/s -  52MHz)
-//  *   SD SDR104:  75MB/s - 150MHz (instead of 104MB/s - 208MHz)
-//  *   SD  DDR50:  45MB/s -  45MHz (instead of  50MB/s -  50MHz)
+//  * eMMC  HS200: 150MB/s - 150MHz (instead of 200MB/s - 200MHz), unimplemented
+//  * eMMC  DDR52:  90MB/s -  45MHz (instead of 104MB/s -  52MHz), supported
+//  *   SD SDR104:  75MB/s - 150MHz (instead of 104MB/s - 208MHz), supported
+//  *   SD  DDR50:  45MB/s -  45MHz (instead of  50MB/s -  50MHz), unsupported
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
@@ -149,7 +155,7 @@ const (
 const (
 	// p346, 35.2 Clocks, IMX6FG.
 	//
-	// The base clock is derived by default from PDF2 (396MHz) with divide
+	// The base clock is derived by default from PFD2 (396MHz) with divide
 	// by 2, therefore 198MHz.
 
 	// Data Timeout Counter Value: SDCLK x 2** 29
@@ -201,8 +207,10 @@ type CardInfo struct {
 type USDHC struct {
 	sync.Mutex
 
-	// voltage switch control
-	VoltageSwitch func() error
+	// LowVoltage is the board specific function responsible for low
+	// voltage switching (SD) or indication (eMMC). The return value
+	// reflects whether LV I/O signaling is present.
+	LowVoltage func() bool
 
 	// controller index
 	n int
@@ -249,7 +257,7 @@ func (hw *USDHC) setClock(dvs int, sdclkfs int) {
 	// p4011, 58.7.7 Change Clock Frequency, IMX6ULLRM.
 	reg.Clear(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
 
-	if dvs == 0 && sdclkfs == 0 {
+	if dvs < 0 && sdclkfs < 0 {
 		return
 	}
 
@@ -385,7 +393,7 @@ func (hw *USDHC) Detect() (err error) {
 	reg.SetN(hw.prot_ctrl, PROT_CTRL_EMODE, 0b11, 0b10)
 
 	// clear clock
-	hw.setClock(0, 0)
+	hw.setClock(-1, -1)
 	// set identification frequency
 	hw.setClock(DVS_ID, SDCLKFS_ID)
 

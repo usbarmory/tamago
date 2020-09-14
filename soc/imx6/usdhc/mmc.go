@@ -63,7 +63,12 @@ const (
 	// p35, 5.3.2 Bus Speed Modes, JESD84-B51
 	HSSDR_MBPS = 52
 	HSDDR_MBPS = 104
-	HS200_MBPS = 200
+	HS200_MBPS = 150 // instead of 200 due to NXP ERR010450
+
+	// Base clock divided by 1 (Single Data Rate mode)
+	SDCLKFS_HS200 = 0x00
+	// SDR104 frequency: 200 / (1 * 1) == 200 MHz
+
 )
 
 // MMC constants
@@ -157,7 +162,7 @@ func (hw *USDHC) detectCapabilitiesMMC(c_size_mult uint32, c_size uint32, read_b
 	// p220, Table 137 — Device types, JESD84-B51
 	deviceType := extCSD[EXT_CSD_DEVICE_TYPE]
 
-	if (deviceType>>4)&0b11 > 0 {
+	if (deviceType>>4)&0b11 > 0 && hw.LowVoltage() {
 		hw.card.Rate = HS200_MBPS
 	} else if (deviceType>>2)&0b11 > 0 {
 		hw.card.Rate = HSDDR_MBPS
@@ -173,6 +178,9 @@ func (hw *USDHC) detectCapabilitiesMMC(c_size_mult uint32, c_size uint32, read_b
 func (hw *USDHC) initMMC() (err error) {
 	var arg uint32
 	var bus_width uint32
+	var timing uint32
+	var clk int
+	var ddr bool
 
 	// CMD2 - ALL_SEND_CID - get unique card identification
 	if err = hw.cmd(2, READ, arg, RSP_136, false, true, false, 0); err != nil {
@@ -210,7 +218,7 @@ func (hw *USDHC) initMMC() (err error) {
 
 	if mhz == TRAN_SPEED_26MHZ {
 		// clear clock
-		hw.setClock(0, 0)
+		hw.setClock(-1, -1)
 		// set operating frequency
 		hw.setClock(DVS_OP, SDCLKFS_OP)
 	} else {
@@ -256,19 +264,31 @@ func (hw *USDHC) initMMC() (err error) {
 		return
 	}
 
-	// p112, Dual Data Rate mode operation, JESD84-B51
-	err = hw.writeCardRegisterMMC(EXT_CSD_HS_TIMING, HS_TIMING_HS)
+	switch hw.card.Rate {
+	case HSDDR_MBPS:
+		timing = HS_TIMING_HS
+		clk = SDCLKFS_HS_DDR
+		ddr = true
 
-	if err != nil {
+		// p223, 7.4.67 BUS_WIDTH [183], JESD84-B51
+		switch hw.width {
+		case 4:
+			bus_width = 5
+		case 8:
+			bus_width = 6
+		}
+	case HS200_MBPS:
+		timing = HS_TIMING_HS200
+		clk = SDCLKFS_HS200
+	default:
 		return
 	}
 
-	// p223, 7.4.67 BUS_WIDTH [183], JESD84-B51
-	switch hw.width {
-	case 4:
-		bus_width = 5
-	case 8:
-		bus_width = 6
+	// p112, Dual Data Rate mode operation, JESD84-B51
+	err = hw.writeCardRegisterMMC(EXT_CSD_HS_TIMING, timing)
+
+	if err != nil {
+		return
 	}
 
 	err = hw.writeCardRegisterMMC(EXT_CSD_BUS_WIDTH, bus_width)
@@ -278,11 +298,11 @@ func (hw *USDHC) initMMC() (err error) {
 	}
 
 	// clear clock
-	hw.setClock(0, 0)
+	hw.setClock(-1, -1)
 	// set high speed frequency
-	hw.setClock(DVS_HS, SDCLKFS_HS_DDR)
+	hw.setClock(DVS_HS, clk)
 
-	hw.card.DDR = true
+	hw.card.DDR = ddr
 	hw.card.HS = true
 
 	return
