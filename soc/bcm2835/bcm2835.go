@@ -6,6 +6,12 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+// Package bcm2835 provides support to Go bare metal unikernels written using
+// the TamaGo framework on BCM2835/BCM2836 SoCs.
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/f-secure-foundry/tamago.
 package bcm2835
 
 import (
