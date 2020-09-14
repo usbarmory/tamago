@@ -1,4 +1,4 @@
-// Raspberry Pi Zero Support
+// Raspberry Pi Zero support for tamago/arm
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) the pizero package authors

@@ -11,7 +11,6 @@ package pi2
 import (
 	"errors"
 
-	"github.com/f-secure-foundry/tamago/board/pi-foundation"
 	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 )
 

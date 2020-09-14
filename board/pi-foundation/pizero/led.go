@@ -1,4 +1,4 @@
-// Raspberry Pi Zero support for tamago/arm
+// Raspberry Pi Zero LED support
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) the pizero package authors
@@ -11,7 +11,6 @@ package pizero
 import (
 	"errors"
 
-	"github.com/f-secure-foundry/tamago/board/pi-foundation"
 	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 )
 
@@ -26,7 +25,7 @@ var activity *bcm2835.GPIO
 func init() {
 	var err error
 
-	activityLED, err = bcm2835.NewGPIO(ACTIVITY)
+	activity, err = bcm2835.NewGPIO(ACTIVITY)
 
 	if err != nil {
 		panic(err)

@@ -1,4 +1,4 @@
-// Raspberry Pi Watchdog Timer Support
+// Raspberry Pi watchdog timer support
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) the pi package authors
