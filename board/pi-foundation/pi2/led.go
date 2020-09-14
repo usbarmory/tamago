@@ -23,7 +23,7 @@ const (
 )
 
 var activity *bcm2835.GPIO
-var power    *bcm2835.GPIO
+var power *bcm2835.GPIO
 
 func init() {
 	var err error
@@ -44,6 +44,7 @@ func init() {
 	power.Out()
 }
 
+// LED turns on/off an LED by name.
 func (b *board) LED(name string, on bool) (err error) {
 	var led *bcm2835.GPIO
 

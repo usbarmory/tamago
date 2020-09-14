@@ -29,8 +29,6 @@ const (
 	GPPUDCLK0 = GPIO_BASE + 0x98
 )
 
-var gpmux = sync.Mutex{}
-
 // GPIO function selections (p92, BCM2835 ARM Peripherals)
 const (
 	GPIO_INPUT  = 0b000
@@ -47,6 +45,8 @@ const (
 type GPIO struct {
 	num int
 }
+
+var gpmux = sync.Mutex{}
 
 // NewGPIO gets access to a single GPIO line
 func NewGPIO(num int) (*GPIO, error) {

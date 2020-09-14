@@ -15,14 +15,17 @@ import (
 	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 )
 
+// Power Management, Reset controller and Watchdog registers
 const (
-	// Power Management, Reset controller and Watchdog registers
-	PM_BASE                  = 0x100000
-	PM_RSTC                  = PM_BASE + 0x1c
-	PM_WDOG                  = PM_BASE + 0x24
-	PM_WDOG_RESET            = 0000000000
+	PM_BASE = 0x100000
+
+	PM_RSTC = PM_BASE + 0x1c
+
+	PM_WDOG          = PM_BASE + 0x24
+	PM_WDOG_RESET    = 0000000000
+	PM_WDOG_TIME_SET = 0x000fffff
+
 	PM_PASSWORD              = 0x5a000000
-	PM_WDOG_TIME_SET         = 0x000fffff
 	PM_RSTC_WRCFG_CLR        = 0xffffffcf
 	PM_RSTC_WRCFG_SET        = 0x00000030
 	PM_RSTC_WRCFG_FULL_RESET = 0x00000020

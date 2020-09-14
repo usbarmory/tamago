@@ -15,7 +15,6 @@
 package bcm2835
 
 import (
-	// using go:linkname
 	_ "unsafe"
 
 	"github.com/f-secure-foundry/tamago/arm"

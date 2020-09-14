@@ -11,7 +11,6 @@
 package pi2
 
 import (
-	// Using go:linkname
 	_ "unsafe"
 )
 

@@ -34,6 +34,7 @@ func init() {
 	activity.Out()
 }
 
+// LED turns on/off an LED by name.
 func (b *board) LED(name string, on bool) (err error) {
 	var led *bcm2835.GPIO
 

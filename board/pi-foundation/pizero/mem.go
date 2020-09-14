@@ -11,7 +11,6 @@
 package pizero
 
 import (
-	// use of go:linkname
 	_ "unsafe"
 )
 

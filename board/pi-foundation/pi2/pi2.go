@@ -15,14 +15,10 @@
 package pi2
 
 import (
-	// Using go:linkname
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/soc/bcm2835"
-
-	// Ensure pi package is linked in, so client apps only *need* to
-	// import this package.
 	"github.com/f-secure-foundry/tamago/board/pi-foundation"
+	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 )
 
 // On the Raspberry Pi2+ peripheral addresses are remapped from their hardware

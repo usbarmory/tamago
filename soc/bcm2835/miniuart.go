@@ -14,7 +14,6 @@
 package bcm2835
 
 import (
-	// uses go:linkname
 	_ "unsafe"
 
 	"github.com/f-secure-foundry/tamago/arm"
@@ -87,7 +86,7 @@ func printk(c byte) {
 // TX transmits a single character to the serial port.
 func (hw *miniUART) Tx(c byte) {
 	for {
-		if reg.Read(hw.lsr) & 0x20 != 0 {
+		if reg.Read(hw.lsr)&0x20 != 0 {
 			break
 		}
 	}
