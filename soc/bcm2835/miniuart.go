@@ -1,4 +1,4 @@
-// BCM2835 mini-UART
+// BCM2835 mini-UART driver
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) the bcm2835 package authors

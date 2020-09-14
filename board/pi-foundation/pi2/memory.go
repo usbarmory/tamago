@@ -1,4 +1,4 @@
-// Raspberry Pi 2 Support
+// Raspberry Pi 2 support for tamago/arm
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) the pi2 package authors

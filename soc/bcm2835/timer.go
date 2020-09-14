@@ -1,4 +1,4 @@
-// BCM2835 SoC support
+// BCM2835 SoC timer support
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) the bcm2835 package authors
