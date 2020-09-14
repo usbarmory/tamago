@@ -30,8 +30,9 @@ const (
 
 // GPIO instance
 type GPIO struct {
-	num  int
 	Pad  *Pad
+
+	num  int
 	data uint32
 	dir  uint32
 }
