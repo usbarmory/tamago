@@ -18,7 +18,7 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal ARM System-on-Chip (SoC) components.
 
-The [pi](https://github.com/f-secure-foundry/tamago/tree/master/board/pi-foundation)
+The [pi](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi)
 package provides support for the [Raspberry Pi](https://www.raspberrypi.org/)
 series of Single Board Computer.
 
@@ -51,7 +51,7 @@ ensure that hardware initialization and runtime support takes place:
 
 ```golang
 import (
-    _ "github.com/f-secure-foundry/tamago/board/pi-foundation/pi2"
+    _ "github.com/f-secure-foundry/tamago/board/raspberrypi/pi2"
 )
 ```
 
@@ -59,7 +59,7 @@ OR
 
 ```golang
 import (
-    _ "github.com/f-secure-foundry/tamago/board/pi-foundation/pizero"
+    _ "github.com/f-secure-foundry/tamago/board/raspberrypi/pizero"
 )
 ```
 
@@ -154,7 +154,7 @@ Standard output
 
 The standard output can be accessed through the UART pins on the Raspberry Pi.
 A 3.3v USB-to-serial cable, such as the [Adafruit USB to TTL Serial Cable](https://www.adafruit.com/product/954)
-can be used. Any suitable terminal emulater can be used to access standard output.
+can be used. Any suitable terminal emulator can be used to access standard output.
 
 NOTE: Go outputs 'LF' for newline, for best results use a terminal app capable
 of mapping 'LF' to 'CRLF' as-needed.

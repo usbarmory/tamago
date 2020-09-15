@@ -17,7 +17,7 @@ package pi2
 import (
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/board/pi-foundation"
+	"github.com/f-secure-foundry/tamago/board/raspberrypi"
 	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 )
 
