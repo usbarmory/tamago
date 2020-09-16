@@ -162,7 +162,7 @@ func (hw *USDHC) detectCapabilitiesMMC(c_size_mult uint32, c_size uint32, read_b
 	// p220, Table 137 — Device types, JESD84-B51
 	deviceType := extCSD[EXT_CSD_DEVICE_TYPE]
 
-	if (deviceType>>4)&0b11 > 0 && hw.LowVoltage() {
+	if (deviceType>>4)&0b11 > 0 && hw.LowVoltage != nil && hw.LowVoltage() {
 		hw.card.Rate = HS200_MBPS
 	} else if (deviceType>>2)&0b11 > 0 {
 		hw.card.Rate = HSDDR_MBPS
