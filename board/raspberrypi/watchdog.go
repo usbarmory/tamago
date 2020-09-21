@@ -49,7 +49,7 @@ var Watchdog = &watchdog{}
 
 // Start the watchdog timer, with a given timeout.
 func (w *watchdog) Start(timeout time.Duration) {
-	t := uint64(timeout) / bcm2835.WatchdogFreq
+	t := uint64(timeout) / bcm2835.WatchdogPeriod
 
 	// Exceeding the watchdog timeout is indicative of a major logic issue, so
 	// panic rather than returning error.
@@ -83,5 +83,5 @@ func (w *watchdog) Stop() {
 // Remaining gets the remaining duration of the watchdog.
 func (w *watchdog) Remaining() time.Duration {
 	t := reg.Read(bcm2835.PeripheralAddress(PM_WDOG)) & PM_WDOG_TIME_SET
-	return time.Duration(uint64(t) * bcm2835.WatchdogFreq)
+	return time.Duration(uint64(t) * bcm2835.WatchdogPeriod)
 }

@@ -13,7 +13,7 @@ import (
 )
 
 // WatchdogPeriod is the fixed 16us frequency of the BCM2835 watchdog.
-const WatchdogFreq = uint64(16 * time.Microsecond)
+const WatchdogPeriod = uint64(16 * time.Microsecond)
 
 // SysTimerFreq is the frequency (Hz) of the BCM2835 free-running
 // timer (fixed at 1Hz).
