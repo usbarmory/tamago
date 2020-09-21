@@ -5,7 +5,7 @@
 // that can be found in the LICENSE file.
 
 // func read_systimer() int64
-TEXT ·read_systimer(SB),$0
+TEXT ·read_systimer(SB),$0-8
 	MOVW	·peripheralBase(SB), R2
 	ADD	$0x00003000, R2 // timer peripheral offset
 
