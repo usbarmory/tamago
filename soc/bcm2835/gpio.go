@@ -46,6 +46,8 @@ type GPIO struct {
 	num int
 }
 
+type GPIOFunction uint32
+
 var gpmux = sync.Mutex{}
 
 // NewGPIO gets access to a single GPIO line
@@ -68,7 +70,7 @@ func (gpio *GPIO) In() {
 }
 
 // SelectFunction selects the function of a GPIO line.
-func (gpio *GPIO) SelectFunction(n uint32) (err error) {
+func (gpio *GPIO) SelectFunction(n GPIOFunction) (err error) {
 	if n > 0b111 {
 		return fmt.Errorf("invalid GPIO function %d", n)
 	}
@@ -87,11 +89,11 @@ func (gpio *GPIO) SelectFunction(n uint32) (err error) {
 }
 
 // GetFunction gets the current function of a GPIO line
-func (gpio *GPIO) GetFunction(line int) uint32 {
+func (gpio *GPIO) GetFunction(line int) GPIOFunction {
 	val := reg.Read(PeripheralAddress(GPFSEL0 + 4*uint32(gpio.num/10)))
 	shift := uint32((gpio.num % 10) * 3)
 
-	return (val >> shift) & 0x7
+	return GPIOFunction(val >> shift) & 0x7
 }
 
 // High configures a GPIO signal as high.
