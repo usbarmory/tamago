@@ -119,9 +119,14 @@ const (
 
 	USDHCx_INT_STATUS_EN  = 0x34
 	INT_STATUS_EN_DTOESEN = 20
+	INT_STATUS_EN_BWRSEN  = 4
 
-	USDHCx_INT_SIGNAL_EN        = 0x38
-	USDHCx_AUTOCMD12_ERR_STATUS = 0x3c
+	USDHCx_INT_SIGNAL_EN = 0x38
+	INT_SIGNAL_EN_BWRIEN = 4
+
+	USDHCx_AUTOCMD12_ERR_STATUS      = 0x3c
+	AUTOCMD12_ERR_STATUS_SMP_CLK_SEL = 23
+	AUTOCMD12_ERR_STATUS_EXE_TUNE    = 22
 
 	USDHCx_WTMK_LVL = 0x44
 	WTMK_LVL_WR_WML = 16
@@ -145,6 +150,11 @@ const (
 	USDHCx_VEND_SPEC       = 0xc0
 	VEND_SPEC_FRC_SDCLK_ON = 8
 	VEND_SPEC_VSELECT      = 1
+
+	USDHCx_TUNING_CTRL           = 0xcc
+	TUNING_CTRL_STD_TUNING_EN    = 24
+	TUNING_CTRL_TUNING_STEP      = 16
+	TUNING_CTRL_TUNING_START_TAP = 0
 )
 
 // Configuration constants (p348, 35.4.2 Frequency divider configuration,
@@ -238,6 +248,7 @@ type USDHC struct {
 	adma_err_status uint32
 	ac12_err_status uint32
 	vend_spec       uint32
+	tuning_ctrl     uint32
 
 	// detected card properties
 	card CardInfo
@@ -330,6 +341,7 @@ func (hw *USDHC) Init(width int) {
 	hw.adma_err_status = base + USDHCx_ADMA_ERR_STATUS
 	hw.ac12_err_status = base + USDHCx_AUTOCMD12_ERR_STATUS
 	hw.vend_spec = base + USDHCx_VEND_SPEC
+	hw.tuning_ctrl = base + USDHCx_TUNING_CTRL
 
 	// Generic SD specs read/write timeout rules (applied also to MMC by
 	// this driver).
@@ -456,10 +468,11 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 		return errors.New("transfer size cannot exceed 65535 blocks")
 	}
 
-	err = hw.waitState(CURRENT_STATE_TRAN, 1*time.Millisecond)
-
-	if err != nil {
-		return
+	// State polling cannot be issued while tuning (CMD19).
+	if index != 19 {
+		if err = hw.waitState(CURRENT_STATE_TRAN, 1*time.Millisecond); err != nil {
+			return
+		}
 	}
 
 	// set block size

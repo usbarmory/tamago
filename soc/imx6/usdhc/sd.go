@@ -44,6 +44,7 @@ const (
 	// p120, Table 4-32 : Switch Function Commands (class 10), SD-PL-7.10
 	SD_SWITCH_MODE = 31
 	// p92, Table 4-11 : Available Functions of CMD6, SD-PL-7.10
+	SD_SWITCH_POWER_LIMIT_GROUP = 4
 	SD_SWITCH_ACCESS_MODE_GROUP = 1
 	// p95, 4.3.10.4 Switch Function Status, SD-PL-7.10
 	SD_SWITCH_STATUS_LENGTH = 64
@@ -54,6 +55,7 @@ const (
 	ACCESS_MODE_HS     = 0x1
 	ACCESS_MODE_SDR50  = 0x2
 	ACCESS_MODE_SDR104 = 0x3
+	POWER_LIMIT_288W   = 0x3
 
 	// p201 5.3.1 CSD_STRUCTURE, SD-PL-7.10
 	SD_CSD_STRUCTURE = 126 + CSD_RSP_OFF
@@ -89,6 +91,15 @@ const (
 const (
 	SD_DETECT_TIMEOUT     = 1 * time.Second
 	SD_DEFAULT_BLOCK_SIZE = 512
+
+	// Tuning should complete in max 40 cycles
+	// p42, 4.2.4.5 Tuning Command, SD-PL-7.10
+	TUNING_MAX_LOOP_COUNT = 40
+
+	// The following values are set to make the standard tuning logic
+	// complete in less then 40 cycles.
+	TUNING_STEP      = 2
+	TUNING_START_TAP = 20
 )
 
 func (hw *USDHC) switchSD(mode uint32, group int, val uint32) (status []byte, err error) {
@@ -111,6 +122,40 @@ func (hw *USDHC) switchSD(mode uint32, group int, val uint32) (status []byte, er
 	err = hw.waitState(CURRENT_STATE_TRAN, 500*time.Millisecond)
 
 	return
+}
+
+func (hw *USDHC) executeTuning() error {
+	reg.SetN(hw.tuning_ctrl, TUNING_CTRL_TUNING_STEP, 0b111, TUNING_STEP)
+	reg.SetN(hw.tuning_ctrl, TUNING_CTRL_TUNING_START_TAP, 0xff, TUNING_START_TAP)
+	reg.Set(hw.tuning_ctrl, TUNING_CTRL_STD_TUNING_EN)
+
+	reg.Clear(hw.ac12_err_status, AUTOCMD12_ERR_STATUS_SMP_CLK_SEL)
+	reg.Set(hw.ac12_err_status, AUTOCMD12_ERR_STATUS_EXE_TUNE)
+
+	reg.Set(hw.mix_ctrl, MIX_CTRL_FBCLK_SEL)
+	reg.Set(hw.mix_ctrl, MIX_CTRL_AUTO_TUNE_EN)
+
+	// Temporarly disable interrupts other than Buffer Read Ready
+	defer reg.Write(hw.int_signal_en, reg.Read(hw.int_signal_en))
+	defer reg.Write(hw.int_status_en, reg.Read(hw.int_status_en))
+	reg.Write(hw.int_signal_en, INT_SIGNAL_EN_BWRIEN)
+	reg.Write(hw.int_status_en, INT_STATUS_EN_BWRSEN)
+
+	tuning_block := make([]byte, 64)
+
+	for i := 0; i < TUNING_MAX_LOOP_COUNT; i++ {
+		// CMD19 - send tuning block command, ignore responses
+		hw.transfer(19, READ, 0, 1, 64, tuning_block)
+
+		ac12_err_status := reg.Read(hw.ac12_err_status)
+
+		if bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_EXE_TUNE, 0b1) == 0 &&
+			bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_SMP_CLK_SEL, 0b1) == 1 {
+			return nil
+		}
+	}
+
+	return errors.New("tuning failed")
 }
 
 // p350, 35.4.4 SD voltage validation flow chart, IMX6FG
@@ -377,12 +422,20 @@ func (hw *USDHC) initSD() (err error) {
 		return
 	}
 
+	if _, err = hw.switchSD(MODE_SWITCH, SD_SWITCH_POWER_LIMIT_GROUP, POWER_LIMIT_288W); err != nil {
+		return
+	}
+
 	if _, err = hw.switchSD(MODE_SWITCH, SD_SWITCH_ACCESS_MODE_GROUP, mode); err != nil {
 		return
 	}
 
 	hw.setClock(-1, -1)
 	hw.setClock(DVS_HS, clk)
+
+	if err = hw.executeTuning(); err != nil {
+		return
+	}
 
 	hw.card.HS = true
 
