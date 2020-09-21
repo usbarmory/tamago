@@ -24,7 +24,7 @@ TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal ARM System-on-Chip (SoC) components.
 
 The [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6) package
-provide support for NXP i.MX 6 series of System-on-Chip (SoCs) parts.
+provides support for NXP i.MX 6 series of System-on-Chip (SoCs) parts.
 
 Documentation
 =============
@@ -38,10 +38,10 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC                 | Related board packages                                                                 | Peripheral drivers                                                      |
-|---------------------|----------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| SoC                 | Related board packages                                                                                | Peripheral drivers                                                      |
+|---------------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
 | NXP i.MX 6UltraLite | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory) | DCP, RNGB, UART, USB, GPIO, USDHC                                       |
-| NXP i.MX 6Quad      | none, used under QEMU for testing                                                      | UART                                                                    |
+| NXP i.MX 6Quad      | none, used under QEMU for testing                                                                     | UART                                                                    |
 
 License
 =======
