@@ -61,7 +61,7 @@ func (hw *Rng) Init() {
 
 	// Discard
 	reg.Write(hw.status, warmupCount)
-	reg.Set(hw.ctrl, CTRL_EN)
+	reg.Write(hw.ctrl, CTRL_EN)
 }
 
 func (hw *Rng) getRandomData(b []byte) {
