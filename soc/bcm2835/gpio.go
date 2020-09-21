@@ -148,6 +148,6 @@ func (gpio *GPIO) PullUpDown(val uint32) {
 	reg.Write(clkRegister, 1<<clkShift)
 	arm.Busyloop(150)
 
-	reg.Write(GPPUD, 0)
+	reg.Write(PeripheralAddress(GPPUD), 0)
 	reg.Write(clkRegister, 0)
 }
