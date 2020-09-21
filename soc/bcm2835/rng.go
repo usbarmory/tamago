@@ -19,7 +19,7 @@ import (
 const (
 	RNG_BASE = 0x104000
 
-	RNG_CTRL = 0x0
+	RNG_CTRL = RNG_BASE + 0x0
 	CTRL_EN  = 1
 
 	RNG_STATUS = RNG_BASE + 0x4
