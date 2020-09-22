@@ -158,3 +158,22 @@ can be used. Any suitable terminal emulator can be used to access standard outpu
 
 NOTE: Go outputs 'LF' for newline, for best results use a terminal app capable
 of mapping 'LF' to 'CRLF' as-needed.
+
+License
+=======
+
+tamago | https://github.com/f-secure-foundry/tamago  
+Copyright (c) F-Secure Corporation
+
+raspberrypi | https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi  
+Copyright (c) the pi package authors
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation under version 3 of the License.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+See accompanying LICENSE file for full details.
