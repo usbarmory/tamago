@@ -1,13 +1,20 @@
-// BCM2835 SOC support
+// BCM2835 SoC support
 // https://github.com/f-secure-foundry/tamago
+//
+// Copyright (c) the bcm2835 package authors
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+// Package bcm2835 provides support to Go bare metal unikernels written using
+// the TamaGo framework on BCM2835/BCM2836 SoCs.
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/f-secure-foundry/tamago.
 package bcm2835
 
 import (
-	// using go:linkname
 	_ "unsafe"
 
 	"github.com/f-secure-foundry/tamago/arm"
@@ -18,16 +25,12 @@ const (
 	refFreq int64 = 1000000000
 )
 
-// peripheralBase is the (remapped) peripheral base address.
-//
-// In Raspberry Pi, the VideoCore chip is responsible for
-// bootstrapping.  In Pi2+, it remaps registers from their
-// hardware 'bus' address to the 0x3f000000 'physical'
-// address.  In Pi Zero, registers start at 0x20000000.
-//
-// This varies by model, hence variable so can be overridden
-// at runtime.
-//go:linkname peripheralBase runtime.peripheralBase
+//go:linkname ramStackOffset runtime.ramStackOffset
+var ramStackOffset uint32 = 0x100000 // 1 MB
+
+// peripheralBase represents the (remapped) peripheral base address, it varies
+// by model and it is therefore initialized (see Init) by individual board
+// packages.
 var peripheralBase uint32
 
 // ARM processor instance
@@ -38,11 +41,10 @@ func nanotime1() int64 {
 	return int64(read_systimer() * ARM.TimerMultiplier)
 }
 
-// Init takes care of the lower level SoC initialization.
-func Init(baseAddress uint32) {
-
-	// The peripheral base address differs by board
-	peripheralBase = baseAddress
+// Init takes care of the lower level SoC initialization triggered early in
+// runtime setup.
+func Init(base uint32) {
+	peripheralBase = base
 
 	ARM.Init()
 	ARM.EnableVFP()
@@ -55,14 +57,13 @@ func Init(baseAddress uint32) {
 	ARM.TimerMultiplier = refFreq / SysTimerFreq
 	ARM.TimerFn = read_systimer
 
+	// initialize serial console
 	MiniUART.Init()
 }
 
-// PeripheralAddress gets the absolute address for a peripheral.
-//
-// The Pi boards map 'bus addresses' to different memory addresses
-// by board, but have a consistent layout otherwise.
-//
+// PeripheralAddress returns the absolute address for a peripheral. The Pi
+// boards map 'bus addresses' to board specific base addresses but with
+// consistent layout otherwise.
 func PeripheralAddress(offset uint32) uint32 {
 	return peripheralBase + offset
 }
