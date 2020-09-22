@@ -78,13 +78,21 @@ const (
 	SDR50_MBPS  = 50
 	SDR104_MBPS = 75 // instead of 104 due to NXP ERR010450
 
-	// Base clock divided by 2 (Single Data Rate mode)
-	SDCLKFS_UHS_SDR50 = 0x01
-	// SDR50 frequency: 200 / (1 * 2) == 100 MHz
+	// PLL2 PFD2 clock divided by 2
+	ROOTCLK_UHS_SDR50 = 1
+	// Root clock frequency: 396 MHz / (1 + 1) = 198 MHz
 
-	// Base clock divided by 2 (Single Data Rate mode)
-	SDCLKFS_UHS_SDR104 = 0x01 // instead of 0x00 due to NXP ERR010450
-	// SDR104 frequency: 200 / (1 * 2) == 100 MHz
+	// PLL2 PFD2 clock divided by 3
+	ROOTCLK_UHS_SDR104 = 2 // instead of 1 due to NXP ERR010450
+	// Root clock frequency: 396 MHz / (1 + 2) = 132 MHz
+
+	// Root clock divided by 2 (Single Data Rate mode)
+	SDCLKFS_UHS_SDR50 = 0x01
+	// SDR50 frequency: 198 / (1 * 2) == 99 MHz
+
+	// Root clock divided by 1 (Single Data Rate mode)
+	SDCLKFS_UHS_SDR104 = 0
+	// SDR104 frequency: 132 / (1 * 1) == 132 MHz
 )
 
 // SD constants
@@ -331,7 +339,9 @@ func (hw *USDHC) initSD() (err error) {
 	var arg uint32
 	var bus_width uint32
 	var mode uint32
+	var root_clk uint32
 	var clk int
+	var tune bool
 
 	if hw.LowVoltage == nil {
 		hw.card.Rate = HS_MBPS
@@ -411,13 +421,18 @@ func (hw *USDHC) initSD() (err error) {
 	switch hw.card.Rate {
 	case HS_MBPS:
 		mode = ACCESS_MODE_HS
+		root_clk = ROOTCLK_HS_SDR
 		clk = SDCLKFS_HS_SDR
 	case SDR50_MBPS:
 		mode = ACCESS_MODE_SDR50
+		root_clk = ROOTCLK_UHS_SDR50
 		clk = SDCLKFS_UHS_SDR50
+		tune = true
 	case SDR104_MBPS:
 		mode = ACCESS_MODE_SDR104
+		root_clk = ROOTCLK_UHS_SDR104
 		clk = SDCLKFS_UHS_SDR104
+		tune = true
 	default:
 		return
 	}
@@ -431,10 +446,11 @@ func (hw *USDHC) initSD() (err error) {
 	}
 
 	hw.setClock(-1, -1)
+	hw.setRootClock(root_clk, 0)
 	hw.setClock(DVS_HS, clk)
 
-	if err = hw.executeTuning(); err != nil {
-		return
+	if tune {
+		err = hw.executeTuning()
 	}
 
 	hw.card.HS = true

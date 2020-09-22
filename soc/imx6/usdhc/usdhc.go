@@ -165,7 +165,7 @@ const (
 const (
 	// p346, 35.2 Clocks, IMX6FG.
 	//
-	// The base clock is derived by default from PFD2 (396MHz) with divide
+	// The root clock is derived by default from PLL2 PFD2 (396MHz) with divide
 	// by 2, therefore 198MHz.
 
 	// Data Timeout Counter Value: SDCLK x 2** 29
@@ -173,23 +173,28 @@ const (
 
 	// Divide-by-8
 	DVS_ID = 7
-	// Base clock divided by 64
+	// Root clock divided by 64
 	SDCLKFS_ID = 0x20
-	// Identification frequency: 200 / (8 * 64) == ~400 KHz
+	// Identification frequency: 198 / (8 * 64) == ~400 KHz
 
 	// Divide-by-2
 	DVS_OP = 1
-	// Base clock divided by 4
+	// Root clock divided by 4
 	SDCLKFS_OP = 0x02
-	// Operating frequency: 200 / (2 * 4) == 25 MHz
+	// Operating frequency: 198 / (2 * 4) == 24.75 MHz
+
+	// PLL2 PFD2 clock divided by 2
+	ROOTCLK_HS_SDR = 1
+	// Root clock frequency: 396 MHz / (1 + 1) = 198 MHz
 
 	// Divide-by-1
 	DVS_HS = 0
-	// Base clock divided by 4 (Single Data Rate mode)
+	// Root clock divided by 4 (Single Data Rate mode)
 	SDCLKFS_HS_SDR = 0x02
-	// Base clock divided by 4 (Dual Data Rate mode)
+	// Root clock divided by 4 (Dual Data Rate mode)
 	SDCLKFS_HS_DDR = 0x01
-	// High Speed frequency: 200 / (1 * 4) == 50 MHz
+	// High Speed frequency: 198 / (1 * 4) == 49.5 MHz
+
 )
 
 // CardInfo holds detected card information.
@@ -263,6 +268,74 @@ var USDHC1 = &USDHC{n: 1}
 // USDHC2 instance
 var USDHC2 = &USDHC{n: 2}
 
+// getRootClock returns the USDHCx_CLK_ROOT clock by reading CSCMR1[USDHCx_CLK_SEL]
+// and CSCDR1[USDHCx_PODF]
+// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM)
+func (hw *USDHC) getRootClock() (podf uint32, sel uint32, clock uint32) {
+	var podf_pos int
+	var clksel_pos int
+	var freq uint32
+
+	switch hw.n {
+	case 1:
+		podf_pos = imx6.CSCDR1_USDHC1_CLK_PODF
+		clksel_pos = imx6.CSCMR1_USDHC1_CLK_SEL
+	case 2:
+		podf_pos = imx6.CSCDR1_USDHC2_CLK_PODF
+		clksel_pos = imx6.CSCMR1_USDHC2_CLK_SEL
+	default:
+		return
+	}
+
+	podf = reg.Get(imx6.CCM_CSCDR1, podf_pos, 0b111)
+	sel = reg.Get(imx6.CCM_CSCMR1, clksel_pos, 0b1)
+
+	if sel == 1 {
+		_, freq = imx6.GetPFD(2, 0)
+	} else {
+		_, freq = imx6.GetPFD(2, 2)
+	}
+
+	clock = freq / (podf + 1)
+
+	return
+}
+
+// setRootClock controls the USDHCx_CLK_ROOT clock by setting CSCMR1[USDHCx_CLK_SEL]
+// and CSCDR1[USDHCx_PODF]
+// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM).
+func (hw *USDHC) setRootClock(podf uint32, sel uint32) (err error) {
+	var podf_pos int
+	var clksel_pos int
+
+	if podf < 0 || podf > 7 {
+		return errors.New("podf value out of range")
+	}
+
+	if sel < 0 || sel > 1 {
+		return errors.New("selector value out of range")
+	}
+
+	switch hw.n {
+	case 1:
+		podf_pos = imx6.CSCDR1_USDHC1_CLK_PODF
+		clksel_pos = imx6.CSCMR1_USDHC1_CLK_SEL
+	case 2:
+		podf_pos = imx6.CSCDR1_USDHC2_CLK_PODF
+		clksel_pos = imx6.CSCMR1_USDHC2_CLK_SEL
+	default:
+		return errors.New("invalid interface index")
+	}
+
+	reg.SetN(imx6.CCM_CSCDR1, podf_pos, 0b111, podf)
+	reg.SetN(imx6.CCM_CSCMR1, clksel_pos, 0b1, sel)
+
+	return
+}
+
+// setClock controls the clock of USDHCx_CLK line by setting
+// the SDCLKFS and DVS fields of USDHCx_SYS_CTRL register
+// p4035, 58.8.12 System Control (uSDHCx_SYS_CTRL), IMX6ULLRM.
 func (hw *USDHC) setClock(dvs int, sdclkfs int) {
 	// Prevent possible glitch on the card clock as noted in
 	// p4011, 58.7.7 Change Clock Frequency, IMX6ULLRM.
