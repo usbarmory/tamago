@@ -1,9 +1,9 @@
 TamaGo - bare metal Go for ARM SoCs - USB armory support
 ========================================================
 
-tamago | https://github.com/f-secure-foundry/tamago  
+tamago | https://github.com/f-secure-foundry/tamago
 
-Copyright (c) F-Secure Corporation  
+Copyright (c) F-Secure Corporation
 https://foundry.f-secure.com
 
 ![TamaGo gopher](https://github.com/f-secure-foundry/tamago/wiki/images/tamago.svg?sanitize=true)
@@ -11,11 +11,11 @@ https://foundry.f-secure.com
 Authors
 =======
 
-Andrea Barisani  
-andrea.barisani@f-secure.com | andrea@inversepath.com  
+Andrea Barisani
+andrea.barisani@f-secure.com | andrea@inversepath.com
 
-Andrej Rosano  
-andrej.rosano@f-secure.com   | andrej@inversepath.com  
+Andrej Rosano
+andrej.rosano@f-secure.com   | andrej@inversepath.com
 
 Introduction
 ============
@@ -173,7 +173,7 @@ continue
 License
 =======
 
-tamago | https://github.com/f-secure-foundry/tamago  
+tamago | https://github.com/f-secure-foundry/tamago
 Copyright (c) F-Secure Corporation
 
 This program is free software: you can redistribute it and/or modify it under

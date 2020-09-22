@@ -1,9 +1,9 @@
 TamaGo - bare metal Go for ARM SoCs - Raspberry Pi Support
 ==========================================================
 
-tamago | https://github.com/f-secure-foundry/tamago  
+tamago | https://github.com/f-secure-foundry/tamago
 
-Copyright (c) the pi/pi2/pizero package authors  
+Copyright (c) the pi/pi2/pizero package authors
 
 ![TamaGo gopher](https://github.com/f-secure-foundry/tamago/wiki/images/tamago.svg?sanitize=true)
 
@@ -162,10 +162,10 @@ of mapping 'LF' to 'CRLF' as-needed.
 License
 =======
 
-tamago | https://github.com/f-secure-foundry/tamago  
+tamago | https://github.com/f-secure-foundry/tamago
 Copyright (c) F-Secure Corporation
 
-raspberrypi | https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi  
+raspberrypi | https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi
 Copyright (c) the pi package authors
 
 This program is free software: you can redistribute it and/or modify it under

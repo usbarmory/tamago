@@ -62,7 +62,7 @@ const readmeTemplate = `
 This project imports each package in the stdlib and reports if it imports cleanly in tamago.
 A package with a check may work a package with a x will definately not currently work.
 
-| Package | Imported? | 
+| Package | Imported? |
 | --- | --- |{{ range $key, $value := .}}
 | {{$value.Name}} | {{if $value.Imported}} ok {{else}} [failed](#{{$value.Link}}) {{end}} | {{ end }}
 

@@ -3,7 +3,7 @@ TamaGo - bare metal Go for ARM SoCs - BCM2835 support
 
 tamago | https://github.com/f-secure-foundry/tamago
 
-Copyright (c) the bcm2835 package authors  
+Copyright (c) the bcm2835 package authors
 
 Contributors
 ============
@@ -42,10 +42,10 @@ for documentation on compiling and executing on these boards.
 License
 =======
 
-tamago | https://github.com/f-secure-foundry/tamago  
+tamago | https://github.com/f-secure-foundry/tamago
 Copyright (c) F-Secure Corporation
 
-bcm2835 | https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835  
+bcm2835 | https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835
 Copyright (c) the bcm2835 package authors
 
 This program is free software: you can redistribute it and/or modify it under

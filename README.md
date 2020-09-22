@@ -1,9 +1,9 @@
 TamaGo - bare metal Go for ARM SoCs
 ===================================
 
-tamago | https://github.com/f-secure-foundry/tamago  
+tamago | https://github.com/f-secure-foundry/tamago
 
-Copyright (c) F-Secure Corporation  
+Copyright (c) F-Secure Corporation
 https://foundry.f-secure.com
 
 ![TamaGo gopher](https://github.com/f-secure-foundry/tamago/wiki/images/tamago.svg?sanitize=true)
@@ -11,11 +11,11 @@ https://foundry.f-secure.com
 Authors
 =======
 
-Andrea Barisani  
-andrea.barisani@f-secure.com | andrea@inversepath.com  
+Andrea Barisani
+andrea.barisani@f-secure.com | andrea@inversepath.com
 
-Andrej Rosano  
-andrej.rosano@f-secure.com   | andrej@inversepath.com  
+Andrej Rosano
+andrej.rosano@f-secure.com   | andrej@inversepath.com
 
 Introduction
 ============
@@ -76,8 +76,8 @@ The following table summarizes currently supported SoCs and boards.
 |---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
 | NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki)                                                                                                               | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6)       | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory)  |
 | NXP i.MX6ULL  | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6)       | [mx6ullevk](https://github.com/f-secure-foundry/tamago/tree/master/board/nxp/mx6ullevk)                |
-| BCM2835       | [Raspberry Pi Zero](https://www.raspberrypi.org/products/raspberry-pi-zero)                                                                                                          | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi)                       |
-| BCM2836       | [Raspberry Pi 2](https://www.raspberrypi.org/products/raspberry-pi-2-model-b)                                                                                                        | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi)                          |
+| BCM2835       | [Raspberry Pi Zero](https://www.raspberrypi.org/products/raspberry-pi-zero)                                                                                                          | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi)                  |
+| BCM2836       | [Raspberry Pi 2](https://www.raspberrypi.org/products/raspberry-pi-2-model-b)                                                                                                        | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi)                     |
 
 Compiling
 =========
@@ -126,7 +126,7 @@ execution.
 License
 =======
 
-tamago | https://github.com/f-secure-foundry/tamago  
+tamago | https://github.com/f-secure-foundry/tamago
 Copyright (c) F-Secure Corporation
 
 This program is free software: you can redistribute it and/or modify it under
