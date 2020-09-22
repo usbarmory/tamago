@@ -72,10 +72,12 @@ Supported hardware
 
 The following table summarizes currently supported SoCs and boards.
 
-| SoC           | Board                                                                                                                                                                                | SoC package                                                         | Board package                                                                           |
-|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki)                                                                                                               | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6) | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory)  |
-| NXP i.MX6ULL  | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6) | [mx6ullevk](https://github.com/f-secure-foundry/tamago/tree/master/board/nxp/mx6ullevk) |
+| SoC           | Board                                                                                                                                                                                | SoC package                                                                   | Board package                                                                                          |
+|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki)                                                                                                               | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6)       | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory)  |
+| NXP i.MX6ULL  | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6)       | [mx6ullevk](https://github.com/f-secure-foundry/tamago/tree/master/board/nxp/mx6ullevk)                |
+| BCM2835       | [Raspberry Pi Zero](https://www.raspberrypi.org/products/raspberry-pi-zero)                                                                                                          | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pizero](https://github.com/abarisani/tamago/tree/development/board/raspberrypi)                       |
+| BCM2836       | [Raspberry Pi 2](https://www.raspberrypi.org/products/raspberry-pi-2-model-b)                                                                                                        | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi2](https://github.com/abarisani/tamago/tree/development/board/raspberrypi)                          |
 
 Compiling
 =========
@@ -85,6 +87,7 @@ ensure that hardware initialization and runtime support takes place:
 
 ```golang
 import (
+	// Example for USB armory Mk II
 	_ "github.com/f-secure-foundry/tamago/board/f-secure/usbarmory/mark-two"
 )
 ```
@@ -98,14 +101,17 @@ cd tamago-go/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
 
-Go applications can be compiled with the compiler built in the previous step
-but with the addition of the following flags/variables, also make sure that the
-required SoC and board packages are available in your `GOPATH`:
+Go applications can be compiled with the compiler built in the previous step,
+with the addition of a few flags/variables:
 
 ```
+# Example for USB armory Mk II
 GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm \
   ${TAMAGO} build -ldflags "-T 0x80010000  -E _rt0_arm_tamago -R 0x1000"
 ```
+
+See the respective board package README file for compilation information for
+each specific target.
 
 Executing and debugging
 =======================
