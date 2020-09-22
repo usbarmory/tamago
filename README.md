@@ -31,7 +31,7 @@ The TamaGo framework consists of the following components:
 
  - A modified [Go distribution](https://github.com/f-secure-foundry/tamago-go)
    which extends `GOOS` support to the `tamago` target, allowing bare metal
-   execution for ARMv7 architecture.
+   execution.
 
  - Go packages for SoC driver support.
 
