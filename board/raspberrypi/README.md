@@ -38,10 +38,10 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC     | Board               | SoC package                                                                   | Board package                                                                    |
-|---------|---------------------|-------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| BCM2835 | Pi Zero             | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/f-secure-foundry/tamago/tree/master/pi/pizero)    |
-| BCM2836 | Pi 2 Model B (v1.1) | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/f-secure-foundry/tamago/tree/master/pi/pi2)          |
+| SoC     | Board               | SoC package                                                                   | Board package                                                                          |
+|---------|---------------------|-------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| BCM2835 | Pi Zero             | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/f-secure-foundry/tamago/tree/master/raspberrypi/pizero) |
+| BCM2836 | Pi 2 Model B (v1.1) | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/f-secure-foundry/tamago/tree/master/raspberrypi/pi2)       |
 
 Compiling
 =========
