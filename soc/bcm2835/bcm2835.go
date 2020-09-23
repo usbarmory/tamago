@@ -28,6 +28,9 @@ const (
 //go:linkname ramStackOffset runtime.ramStackOffset
 var ramStackOffset uint32 = 0x100000 // 1 MB
 
+// DRAM_FLAG_NOCACHE disables caching by setting to high bits
+const DRAM_FLAG_NOCACHE = 0xC0000000
+
 // peripheralBase represents the (remapped) peripheral base address, it varies
 // by model and it is therefore initialized (see Init) by individual board
 // packages.
