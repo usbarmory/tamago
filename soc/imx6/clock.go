@@ -242,9 +242,9 @@ func GetPFD(pll int, pfd int) (div uint32, hz uint32) {
 		return
 	}
 
-	div = reg.Get(register, div_pos, 0b111111)
 	// Output frequency has a static multiplicator of 18
 	// p646, 18.5.1.4 Phase Fractional Dividers (PFD)
+	div = reg.Get(register, div_pos, 0b111111)
 	hz = uint32((freq * 18) / float64(div))
 
 	return
