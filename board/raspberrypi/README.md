@@ -97,7 +97,7 @@ generates with `GOARM=6`.  Using `GOARM=5` causes Go to include a software float
 Executing
 =========
 
-There are two options for executing compiled binaries.  The bare-bones approach is to convert Go binaries
+There are two options for executing compiled binaries.  The direct approach is to convert Go binaries
 to emulate the Linux boot protocol and have the Pi firmware load and execute the binary as a Linux kernel.
 The U-boot method enables ELF binaries to be loaded and executed directly.  
 
@@ -110,14 +110,14 @@ Raspberry Pi using the VideoCore GPU.  The following minimum files are required:
 
 These files are avilable from <https://github.com/raspberrypi/firmware/tree/master/boot>
 
-Bare-Bones
-----------
+Direct
+------
 
 Linux kernels are expected to have executable code as the first bytes of the binary.  The Go compiler
 does not natively support creating such binaries, so a stub is generated and pre-pended that will jump
 to the Go entrypoint.  In this way, the Linux boot protocol is satisfied.
 
-The example projects (linked above) use the bare-bones approach.  The GNU cross-compiler toolchain is
+The example projects (linked above) use the direct approach.  The GNU cross-compiler toolchain is
 required.  This method is in some ways more complex, but the Makefile code from the examples can be
 used as an example implementation.
 
@@ -158,6 +158,9 @@ addr:
     .word ENTRY_POINT
 ```
 
+Direct: Configuring the firmware
+--------------------------------
+
 An example config.txt is:
 
 ```txt
@@ -175,13 +178,19 @@ See <http://rpf.io/configtxt> for more configuration options.
 NOTE: Do not be tempted to set the kernel address to 0x0:
 
 1. Tamago places critical data-structures at RAMSTART
-2. The Pi firmware parks all but 1 CPU core in wait-loops, controlled by bytes starting at 0x000000CC (see <https://github.com/raspberrypi/tools/blob/master/armstubs/armstub7.S>)
+2. The Pi firmware parks all but 1 CPU core in wait-loops, controlled by bytes starting at 0x000000CC
+(see <https://github.com/raspberrypi/tools/blob/master/armstubs/armstub7.S>)
+
+Direct: Executing
+-----------------
+
+Copy the binary and config.txt to an SD card alongside the Pi firmware binaries and power-up the Pi.
 
 U-Boot
 ------
 
-For the U-Boot method, configure, compile and copy [U-Boot](https://www.denx.de/wiki/U-Boot) onto an existing
-Raspberry Pi bootable SD card (see above for minimum context of the card).
+For the U-Boot method, configure, compile and copy [U-Boot](https://www.denx.de/wiki/U-Boot) onto an
+existing Raspberry Pi bootable SD card (see above for minimum context of the card).
 
 ```sh
     cd u-boot
