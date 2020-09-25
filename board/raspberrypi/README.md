@@ -108,17 +108,17 @@ Raspberry Pi using the VideoCore GPU.  The following minimum files are required:
 * fixup.dat
 * start.elf
 
-These files are avilable from <https://github.com/raspberrypi/firmware/tree/master/boot>
+These files are available [here](https://github.com/raspberrypi/firmware/tree/master/boot).
 
 Direct
 ------
 
-Linux kernels are expected to have executable code as the first bytes of the binary.  The Go compiler
+Linux kernels are expected to have executable code as the first bytes of the binary. The Go compiler
 does not natively support creating such binaries, so a stub is generated and pre-pended that will jump
-to the Go entrypoint.  In this way, the Linux boot protocol is satisfied.
+to the Go entrypoint. In this way, the Linux boot protocol is satisfied.
 
-The example projects (linked above) use the direct approach.  The GNU cross-compiler toolchain is
-required.  This method is in some ways more complex, but the Makefile code from the examples can be
+The example projects (linked above) use the direct approach. The GNU cross-compiler toolchain is
+required. This method is in some ways more complex, but the Makefile code from the examples can be
 used as an example implementation.
 
 1. Build the Go ELF binary as normal
