@@ -71,6 +71,7 @@ const (
 	DCP_CTRL0_CIPHER_INIT     = 9
 	DCP_CTRL0_CIPHER_ENCRYPT  = 8
 	DCP_CTRL0_ENABLE_CIPHER   = 5
+	DCP_CTRL0_CHAIN           = 2
 	DCP_CTRL0_DECR_SEMAPHORE  = 1
 	DCP_CTRL0_INTERRUPT_ENABL = 0
 	// p1070, 13.2.6.4.3 Control1 Field, MCIMX28RM
@@ -83,6 +84,8 @@ const (
 	UNIQUE_KEY = 0xfe
 )
 
+const WorkPacketLength = 32
+
 // WorkPacket represents a DCP work packet
 // (p1067, 13.2.6.4 Work Packet Structure, MCIMX28RM).
 type WorkPacket struct {
@@ -94,12 +97,10 @@ type WorkPacket struct {
 	BufferSize               uint32
 	PayloadPointer           uint32
 	Status                   uint32
-	Pad_cgo_0                [4]byte
 }
 
 // SetDefaults initializes default values for the DCP work packet.
 func (pkt *WorkPacket) SetDefaults() {
-	pkt.Control0 |= 1 << DCP_CTRL0_INTERRUPT_ENABL
 	pkt.Control0 |= 1 << DCP_CTRL0_DECR_SEMAPHORE
 	pkt.Control0 |= 1 << DCP_CTRL0_ENABLE_CIPHER
 	pkt.Control0 |= 1 << DCP_CTRL0_CIPHER_INIT
@@ -160,21 +161,7 @@ func (hw *Dcp) SNVS() bool {
 	}
 }
 
-func (hw *Dcp) cmd(payload []byte, pkt *WorkPacket, region *dma.Region) (err error) {
-	if pkt.BufferSize%aes.BlockSize != 0 {
-		return fmt.Errorf("input must be %d-bytes aligned", aes.BlockSize)
-	}
-
-	// encrypt/decrypt in-place
-	pkt.DestinationBufferAddress = pkt.SourceBufferAddress
-
-	// p1073, Table 13-12. DCP Payload Field, MCIMX28RM
-	pkt.PayloadPointer = region.Alloc(payload, 0)
-	defer region.Free(pkt.PayloadPointer)
-
-	cmd := region.Alloc(pkt.Bytes(), 0)
-	defer region.Free(cmd)
-
+func (hw *Dcp) cmd(ptr uint32, count int) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
@@ -182,11 +169,11 @@ func (hw *Dcp) cmd(payload []byte, pkt *WorkPacket, region *dma.Region) (err err
 	reg.Write(DCP_CH0STAT_CLR, 0xffffffff)
 
 	// set command address
-	reg.Write(DCP_CH0CMDPTR, cmd)
+	reg.Write(DCP_CH0CMDPTR, ptr)
 	// activate channel
-	reg.Set(DCP_CH0SEMA, 0)
+	reg.SetN(DCP_CH0SEMA, 0, 0xff, uint32(count))
 	// wait for completion
-	reg.Wait(DCP_STAT, DCP_STAT_IRQ, 1, DCP_CHANNEL_0)
+	reg.Wait(DCP_STAT, DCP_STAT_IRQ, DCP_CHANNEL_0, 1)
 	// clear interrupt register
 	reg.Set(DCP_STAT_CLR, DCP_CHANNEL_0)
 
@@ -195,13 +182,14 @@ func (hw *Dcp) cmd(payload []byte, pkt *WorkPacket, region *dma.Region) (err err
 	// check for errors
 	if bits.Get(&chstatus, 0, CHxSTAT_ERROR_MASK) != 0 {
 		code := bits.Get(&chstatus, CHxSTAT_ERROR_CODE, 0xff)
-		err = fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x", chstatus, code)
+		sema := reg.Read(DCP_CH0SEMA)
+		err = fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x sema:%#x", chstatus, code, sema)
 	}
 
 	return
 }
 
-func (hw *Dcp) cipher(buf []byte, index int, iv []byte, encrypt bool) (err error) {
+func (hw *Dcp) cipher(buf []byte, index int, iv []byte, enc bool) (err error) {
 	if len(buf)%aes.BlockSize != 0 {
 		return errors.New("invalid input size")
 	}
@@ -216,9 +204,10 @@ func (hw *Dcp) cipher(buf []byte, index int, iv []byte, encrypt bool) (err error
 
 	pkt := &WorkPacket{}
 	pkt.SetDefaults()
+	pkt.Control0 |= 1 << DCP_CTRL0_INTERRUPT_ENABL
 
-	if encrypt {
-		pkt.Control0 |= (1 << DCP_CTRL0_CIPHER_ENCRYPT)
+	if enc {
+		pkt.Control0 |= 1 << DCP_CTRL0_CIPHER_ENCRYPT
 	}
 
 	// use key RAM slot
@@ -226,9 +215,17 @@ func (hw *Dcp) cipher(buf []byte, index int, iv []byte, encrypt bool) (err error
 
 	pkt.BufferSize = uint32(len(buf))
 	pkt.SourceBufferAddress = dma.Alloc(buf, aes.BlockSize)
+
+	pkt.DestinationBufferAddress = pkt.SourceBufferAddress
 	defer dma.Free(pkt.SourceBufferAddress)
 
-	err = hw.cmd(iv, pkt, dma.Default())
+	pkt.PayloadPointer = dma.Alloc(iv, 0)
+	defer dma.Free(pkt.PayloadPointer)
+
+	ptr := dma.Alloc(pkt.Bytes(), 0)
+	defer dma.Free(ptr)
+
+	err = hw.cmd(ptr, 1)
 
 	if err != nil {
 		return
@@ -281,17 +278,26 @@ func (hw *Dcp) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, 
 
 	pkt := &WorkPacket{}
 	pkt.SetDefaults()
+	pkt.Control0 |= 1 << DCP_CTRL0_INTERRUPT_ENABL
 
 	// Use device-specific hardware key for encryption.
-	pkt.Control0 |= (1 << DCP_CTRL0_CIPHER_ENCRYPT)
-	pkt.Control0 |= (1 << DCP_CTRL0_OTP_KEY)
+	pkt.Control0 |= 1 << DCP_CTRL0_CIPHER_ENCRYPT
+	pkt.Control0 |= 1 << DCP_CTRL0_OTP_KEY
 	pkt.Control1 |= UNIQUE_KEY << DCP_CTRL1_KEY_SELECT
 
 	pkt.BufferSize = uint32(len(key))
 	pkt.SourceBufferAddress = region.Alloc(key, aes.BlockSize)
+
+	pkt.DestinationBufferAddress = pkt.SourceBufferAddress
 	defer region.Free(pkt.SourceBufferAddress)
 
-	err = hw.cmd(iv, pkt, region)
+	pkt.PayloadPointer = region.Alloc(iv, 0)
+	defer region.Free(pkt.PayloadPointer)
+
+	ptr := region.Alloc(pkt.Bytes(), 0)
+	defer region.Free(ptr)
+
+	err = hw.cmd(ptr, 1)
 
 	if err != nil {
 		return
@@ -358,6 +364,74 @@ func (hw *Dcp) Encrypt(buf []byte, index int, iv []byte) (err error) {
 // be selected with the index argument from one previously set with SetKey().
 func (hw *Dcp) Decrypt(buf []byte, index int, iv []byte) (err error) {
 	return hw.cipher(buf, index, iv, false)
+}
+
+// CipherChain performs chained in-place buffer encryption/decryption using
+// AES-128-CBC, the key can be selected with the index argument from one
+// previously set with SetKey().
+//
+// The function expects a byte array with concatenated input data and a byte
+// array with concatenated initialization vectors, the count and size arguments
+// should reflect the number of slices, each to be ciphered and with the
+// corresponding initialization vector slice.
+func (hw *Dcp) CipherChain(buf []byte, ivs []byte, count int, size int, index int, enc bool) (err error) {
+	if len(buf) != size*count || len(buf)%aes.BlockSize != 0 {
+		return errors.New("invalid input size")
+	}
+
+	if len(ivs) != aes.BlockSize*count {
+		return errors.New("invalid IV size")
+	}
+
+	if index < 0 || index > 3 {
+		return errors.New("key index must be between 0 and 3")
+	}
+
+	src := dma.Alloc(buf, aes.BlockSize)
+	defer dma.Free(src)
+
+	payloads := dma.Alloc(ivs, 0)
+	defer dma.Free(payloads)
+
+	pkts, pktBuf := dma.Reserve(WorkPacketLength*count, 0)
+	defer dma.Release(pkts)
+
+	pkt := &WorkPacket{}
+	pkt.SetDefaults()
+	pkt.Control0 |= 1 << DCP_CTRL0_CHAIN
+	pkt.BufferSize = uint32(size)
+
+	if enc {
+		pkt.Control0 |= 1 << DCP_CTRL0_CIPHER_ENCRYPT
+	}
+
+	// use key RAM slot
+	pkt.Control1 |= (uint32(index) & 0xff) << DCP_CTRL1_KEY_SELECT
+
+	for i := 0; i < count; i++ {
+		pkt.SourceBufferAddress = src + uint32(i*size)
+		pkt.DestinationBufferAddress = pkt.SourceBufferAddress
+		pkt.PayloadPointer = payloads + uint32(i*aes.BlockSize)
+
+		if i < count-1 {
+			pkt.NextCmdAddr = pkts + uint32((i+1)*WorkPacketLength)
+		} else {
+			bits.Clear(&pkt.Control0, DCP_CTRL0_CHAIN)
+			bits.Set(&pkt.Control0, DCP_CTRL0_INTERRUPT_ENABL)
+		}
+
+		copy(pktBuf[i*WorkPacketLength:], pkt.Bytes())
+	}
+
+	err = hw.cmd(pkts, count)
+
+	if err != nil {
+		return
+	}
+
+	dma.Read(src, 0, buf)
+
+	return
 }
 
 func pad(buf []byte, extraBlock bool) []byte {
