@@ -253,7 +253,7 @@ func GetPFD(pll int, pfd int) (div uint32, hz uint32) {
 // SetPFD sets the fractional divider of a PPL PFD
 // (p734, 18.7.15 480MHz Clock (PLL3) Phase Fractional Divider Control Register, IMX6ULLRM)
 // (p736, 18.7.16 480MHz Clock (PLL2) Phase Fractional Divider Control Register, IMX6ULLRM).
-func SetPFD(pll uint32, pfd uint32, div uint32) (error) {
+func SetPFD(pll uint32, pfd uint32, div uint32) error {
 	var register uint32
 	var div_pos int
 
