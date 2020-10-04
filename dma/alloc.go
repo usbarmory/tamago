@@ -58,15 +58,20 @@ func (dma *Region) defrag() {
 func (dma *Region) alloc(size int, align int) *block {
 	var e *list.Element
 	var freeBlock *block
+	var pad int
 
-	// make room for alignment buffer
-	if align > 0 {
-		size += align
+	if align == 0 {
+		// force word alignment
+		align = 4
 	}
 
 	// find suitable block
 	for e = dma.freeBlocks.Front(); e != nil; e = e.Next() {
 		b := e.Value.(*block)
+
+		// pad to required alignment
+		pad = -int(b.addr) & (align - 1)
+		size += pad
 
 		if b.size >= size {
 			freeBlock = b
@@ -78,48 +83,30 @@ func (dma *Region) alloc(size int, align int) *block {
 		panic("out of memory")
 	}
 
-	// when we are done remove block from free linked list
+	// allocate block from free linked list
 	defer dma.freeBlocks.Remove(e)
 
-	// adjust block to desired size, add new block to leave remainder
-	if size < freeBlock.size {
+	// adjust block to desired size, add new block for remainder
+	if r := freeBlock.size - size; r != 0 {
 		newBlockAfter := &block{
 			addr: freeBlock.addr + uint32(size),
-			size: freeBlock.size - size,
+			size: r,
 		}
 
 		freeBlock.size = size
 		dma.freeBlocks.InsertAfter(newBlockAfter, e)
 	}
 
-	if align > 0 {
-		if r := int(freeBlock.addr) & (align - 1); r != 0 {
-			offset := align - r
-
-			// claim space between block address and alignment offset
-			newBlockBefore := &block{
-				addr: freeBlock.addr,
-				size: offset,
-			}
-
-			freeBlock.addr += uint32(offset)
-			freeBlock.size -= offset
-			dma.freeBlocks.InsertBefore(newBlockBefore, e)
+	if pad != 0 {
+		// claim padding space
+		newBlockBefore := &block{
+			addr: freeBlock.addr,
+			size: pad,
 		}
 
-		// original requested size
-		size -= align
-
-		// claim back leftover from alignment buffer
-		if freeBlock.size > size {
-			newBlockAfter := &block{
-				addr: freeBlock.addr + uint32(size),
-				size: freeBlock.size - size,
-			}
-
-			freeBlock.size = size
-			dma.freeBlocks.InsertAfter(newBlockAfter, e)
-		}
+		freeBlock.addr += uint32(pad)
+		freeBlock.size -= pad
+		dma.freeBlocks.InsertBefore(newBlockBefore, e)
 	}
 
 	return freeBlock

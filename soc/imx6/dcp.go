@@ -219,10 +219,10 @@ func (hw *Dcp) cipher(buf []byte, index int, iv []byte, enc bool) (err error) {
 	pkt.DestinationBufferAddress = pkt.SourceBufferAddress
 	defer dma.Free(pkt.SourceBufferAddress)
 
-	pkt.PayloadPointer = dma.Alloc(iv, 0)
+	pkt.PayloadPointer = dma.Alloc(iv, 4)
 	defer dma.Free(pkt.PayloadPointer)
 
-	ptr := dma.Alloc(pkt.Bytes(), 0)
+	ptr := dma.Alloc(pkt.Bytes(), 4)
 	defer dma.Free(ptr)
 
 	err = hw.cmd(ptr, 1)
@@ -390,10 +390,10 @@ func (hw *Dcp) CipherChain(buf []byte, ivs []byte, count int, size int, index in
 	src := dma.Alloc(buf, aes.BlockSize)
 	defer dma.Free(src)
 
-	payloads := dma.Alloc(ivs, 0)
+	payloads := dma.Alloc(ivs, 4)
 	defer dma.Free(payloads)
 
-	pkts, pktBuf := dma.Reserve(WorkPacketLength*count, 0)
+	pkts, pktBuf := dma.Reserve(WorkPacketLength*count, 4)
 	defer dma.Release(pkts)
 
 	pkt := &WorkPacket{}

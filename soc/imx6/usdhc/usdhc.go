@@ -560,7 +560,7 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 	bd := &ADMABufferDescriptor{}
 	bd.Init(bufAddress, len(buf))
 
-	bdAddress := dma.Alloc(bd.Bytes(), 0)
+	bdAddress := dma.Alloc(bd.Bytes(), 4)
 	defer dma.Free(bdAddress)
 
 	reg.Write(hw.adma_sys_addr, bdAddress)
