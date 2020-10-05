@@ -78,6 +78,9 @@ func (dma *Region) Init() {
 //   * buf contents are uninitialized (unlike when using Alloc())
 //   * buf slices remain in reserved space but only the original buf
 //     can be subject of Release()
+//
+// The optional alignment must be a power of 2 and word alignment is always
+// enforced (0 == 4).
 func (dma *Region) Reserve(size int, align int) (addr uint32, buf []byte) {
 	if size == 0 {
 		return
@@ -115,6 +118,9 @@ func (dma *Region) Reserved(buf []byte) (res bool, addr uint32) {
 //
 // If the argument is a buffer previously created with Reserve(), then its
 // address is return without any re-allocation.
+//
+// The optional alignment must be a power of 2 and word alignment is always
+// enforced (0 == 4).
 func (dma *Region) Alloc(buf []byte, align int) (addr uint32) {
 	size := len(buf)
 
