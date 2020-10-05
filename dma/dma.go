@@ -50,14 +50,14 @@ var dma *Region
 // must guarantee that the passed memory range is never used by the Go
 // runtime (defining runtime.ramStart and runtime.ramSize accordingly).
 func (dma *Region) Init() {
-	dma.Lock()
-	defer dma.Unlock()
-
 	// initialize a single block to fit all available memory
 	b := &block{
 		addr: dma.Start,
 		size: dma.Size,
 	}
+
+	dma.Lock()
+	defer dma.Unlock()
 
 	dma.freeBlocks = list.New()
 	dma.freeBlocks.PushFront(b)
@@ -79,12 +79,12 @@ func (dma *Region) Init() {
 //   * buf slices remain in reserved space but only the original buf
 //     can be subject of Release()
 func (dma *Region) Reserve(size int, align int) (addr uint32, buf []byte) {
-	dma.Lock()
-	defer dma.Unlock()
-
 	if size == 0 {
 		return
 	}
+
+	dma.Lock()
+	defer dma.Unlock()
 
 	b := dma.alloc(size, align)
 	b.res = true
@@ -116,9 +116,6 @@ func (dma *Region) Reserved(buf []byte) (res bool, addr uint32) {
 // If the argument is a buffer previously created with Reserve(), then its
 // address is return without any re-allocation.
 func (dma *Region) Alloc(buf []byte, align int) (addr uint32) {
-	dma.Lock()
-	defer dma.Unlock()
-
 	size := len(buf)
 
 	if size == 0 {
@@ -128,6 +125,9 @@ func (dma *Region) Alloc(buf []byte, align int) (addr uint32) {
 	if res, addr := Reserved(buf); res {
 		return addr
 	}
+
+	dma.Lock()
+	defer dma.Unlock()
 
 	b := dma.alloc(len(buf), align)
 	b.write(buf, 0)
@@ -148,9 +148,6 @@ func (dma *Region) Alloc(buf []byte, align int) (addr uint32) {
 // function returns without modifying it, as it is assumed for the buffer to be
 // already updated.
 func (dma *Region) Read(addr uint32, offset int, buf []byte) {
-	dma.Lock()
-	defer dma.Unlock()
-
 	size := len(buf)
 
 	if addr == 0 || size == 0 {
@@ -160,6 +157,9 @@ func (dma *Region) Read(addr uint32, offset int, buf []byte) {
 	if res, _ := Reserved(buf); res {
 		return
 	}
+
+	dma.Lock()
+	defer dma.Unlock()
 
 	b, ok := dma.usedBlocks[addr]
 
@@ -181,14 +181,14 @@ func (dma *Region) Read(addr uint32, offset int, buf []byte) {
 // occurs if the offset is not compatible with the initial allocation for the
 // address.
 func (dma *Region) Write(addr uint32, data []byte, offset int) {
-	dma.Lock()
-	defer dma.Unlock()
-
 	size := len(data)
 
 	if addr == 0 || size == 0 {
 		return
 	}
+
+	dma.Lock()
+	defer dma.Unlock()
 
 	b, ok := dma.usedBlocks[addr]
 
@@ -216,12 +216,12 @@ func (dma *Region) Release(addr uint32) {
 }
 
 func (dma *Region) freeBlock(addr uint32, res bool) {
-	dma.Lock()
-	defer dma.Unlock()
-
 	if addr == 0 {
 		return
 	}
+
+	dma.Lock()
+	defer dma.Unlock()
 
 	b, ok := dma.usedBlocks[addr]
 
