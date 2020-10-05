@@ -625,7 +625,7 @@ func (hw *USDHC) ReadBlocks(lba int, blocks int, buf []byte) (err error) {
 func (hw *USDHC) Read(offset int64, size int64) (buf []byte, err error) {
 	blockSize := int64(hw.card.BlockSize)
 
-	if size == 0 {
+	if size == 0 || blockSize == 0 {
 		return
 	}
 
