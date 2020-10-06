@@ -136,11 +136,8 @@ func (hw *Dcp) Init() {
 	// enable clocks
 	reg.Clear(DCP_CTRL, CTRL_CLKGATE)
 
-	// enable all channels with merged IRQs
-	reg.Write(DCP_CHANNELCTRL, 0x000100ff)
-
-	// enable all channel interrupts
-	reg.SetN(DCP_CHANNELCTRL, 0, 0xff, 0xff)
+	// enable channel 0
+	reg.Write(DCP_CHANNELCTRL, DCP_CHANNEL_0)
 }
 
 // SNVS verifies whether the Secure Non Volatile Storage (SNVS) is available in
