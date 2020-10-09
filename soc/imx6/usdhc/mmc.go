@@ -127,7 +127,7 @@ func (hw *USDHC) writeCardRegisterMMC(reg uint32, val uint32) (err error) {
 	bits.SetN(&arg, MMC_SWITCH_VALUE, 0xff, val)
 
 	// CMD6 - SWITCH - switch mode of operation
-	err = hw.cmd(6, READ, arg, RSP_48, true, true, false, 0)
+	err = hw.cmd(6, READ, arg, RSP_48_CHECK_BUSY, true, true, false, 0)
 
 	if err != nil {
 		return
