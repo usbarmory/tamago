@@ -135,8 +135,22 @@ func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
 		log.Printf("imx6_usb: sending device qualifier")
 		err = hw.tx(0, false, dev.Qualifier.Bytes())
 	default:
-		hw.stall(0, IN)
-		err = fmt.Errorf("unsupported descriptor type %#x", bDescriptorType)
+		var in []byte
+
+		if dev.DescriptorSetup == nil {
+			hw.stall(0, IN)
+			return fmt.Errorf("unsupported descriptor type: %#x", bDescriptorType)
+		}
+
+		in, err = dev.DescriptorSetup(setup)
+
+		if err != nil {
+			hw.stall(0, IN)
+		} else if len(in) != 0 {
+			err = hw.tx(0, false, in)
+		} else {
+			err = hw.ack(0)
+		}
 	}
 
 	return
@@ -144,6 +158,11 @@ func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
 
 func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 	if setup == nil {
+		return
+	}
+	
+	if dev.Conditional != nil && dev.Conditional(setup) {
+		err = hw.doHandleViaSetup(dev, setup)
 		return
 	}
 
@@ -196,22 +215,28 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 		// no meaningful action for now
 		err = hw.ack(0)
 	default:
-		var in []byte
+		err = hw.doHandleViaSetup(dev, setup)
+	}
 
-		if dev.Setup == nil {
-			hw.stall(0, IN)
-			return fmt.Errorf("unsupported request code: %#x", setup.Request)
-		}
+	return
+}
 
-		in, err = dev.Setup(setup)
+func (hw *USB) doHandleViaSetup(dev *Device, setup *SetupData) (err error) {
+	var in []byte
 
-		if err != nil {
-			hw.stall(0, IN)
-		} else if len(in) != 0 {
-			err = hw.tx(0, false, in)
-		} else {
-			err = hw.ack(0)
-		}
+	if dev.Setup == nil {
+		hw.stall(0, IN)
+		return fmt.Errorf("unsupported request code: %#x", setup.Request)
+	}
+
+	in, err = dev.Setup(setup)
+
+	if err != nil {
+		hw.stall(0, IN)
+	} else if len(in) != 0 {
+		err = hw.tx(0, false, in)
+	} else {
+		err = hw.ack(0)
 	}
 
 	return
