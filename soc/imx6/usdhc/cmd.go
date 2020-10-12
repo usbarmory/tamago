@@ -30,6 +30,7 @@ const (
 	// p131, Table 4-42 : Card Status, SD-PL-7.10
 	// p160, Table 68 - Device Status, JESD84-B51
 	STATUS_CURRENT_STATE = 9
+	STATUS_SWITCH_ERROR  = 7
 	STATUS_APP_CMD       = 5
 	CURRENT_STATE_IDENT  = 2
 	CURRENT_STATE_TRAN   = 4

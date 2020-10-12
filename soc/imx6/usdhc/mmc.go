@@ -136,7 +136,17 @@ func (hw *USDHC) writeCardRegisterMMC(reg uint32, val uint32) (err error) {
 	// We could use EXT_CSD[GENERIC_CMD6_TIME] for a better tran state
 	// timeout, we rather choose to apply a generic timeout for now (as
 	// most drivers do).
-	return hw.waitState(CURRENT_STATE_TRAN, 500*time.Millisecond)
+	err = hw.waitState(CURRENT_STATE_TRAN, 500*time.Millisecond)
+
+	if err != nil {
+		return
+	}
+
+	if (hw.rsp(0)>>STATUS_SWITCH_ERROR)&1 != 0 {
+		err = errors.New("switch error")
+	}
+
+	return
 }
 
 func (hw *USDHC) detectCapabilitiesMMC(c_size_mult uint32, c_size uint32, read_bl_len uint32) (err error) {

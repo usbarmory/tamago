@@ -129,6 +129,14 @@ func (hw *USDHC) switchSD(mode uint32, group int, val uint32) (status []byte, er
 
 	err = hw.waitState(CURRENT_STATE_TRAN, 500*time.Millisecond)
 
+	if err != nil {
+		return
+	}
+
+	if (hw.rsp(0)>>STATUS_SWITCH_ERROR)&1 != 0 {
+		err = errors.New("switch error")
+	}
+
 	return
 }
 
