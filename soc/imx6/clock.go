@@ -56,9 +56,9 @@ const (
 	CORE_REG0_TARG = 0
 
 	CCM_CCGR6 = 0x020c4080
-	CCGR_CG2  = 4
-	CCGR_CG1  = 2
-	CCGR_CG0  = 0
+	CCGR6_CG2 = 4
+	CCGR6_CG1 = 2
+	CCGR6_CG0 = 0
 )
 
 // Oscillator frequencies

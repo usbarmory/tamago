@@ -154,7 +154,7 @@ func (hw *USB) Init() {
 	defer hw.Unlock()
 
 	// enable clock
-	reg.SetN(imx6.CCM_CCGR6, imx6.CCGR_CG0, 0b11, 0b11)
+	reg.SetN(imx6.CCM_CCGR6, imx6.CCGR6_CG0, 0b11, 0b11)
 
 	// power up PLL
 	reg.Set(hw.pll, imx6.PLL_POWER)
