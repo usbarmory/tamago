@@ -136,7 +136,8 @@ func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
 		err = hw.tx(0, false, dev.Qualifier.Bytes())
 	default:
 		hw.stall(0, IN)
-		err = fmt.Errorf("unsupported descriptor type %#x", bDescriptorType)
+		err =  fmt.Errorf("unsupported descriptor type: %#x", bDescriptorType)
+
 	}
 
 	return
@@ -145,6 +146,24 @@ func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
 func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 	if setup == nil {
 		return
+	}
+
+	if dev.Setup != nil {
+		in, done, ack, err := dev.Setup(setup)
+
+		if err != nil {
+			hw.stall(0, IN)
+			return err
+		} else if len(in) != 0 {
+			err = hw.tx(0, false, in)
+		} else if ack {
+			err = hw.ack(0)
+		}
+
+		if done {
+			return err
+		}
+
 	}
 
 	switch setup.Request {
@@ -196,22 +215,9 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 		// no meaningful action for now
 		err = hw.ack(0)
 	default:
-		var in []byte
+		hw.stall(0, IN)
+		err = fmt.Errorf("unsupported request code: %#x", setup.Request)
 
-		if dev.Setup == nil {
-			hw.stall(0, IN)
-			return fmt.Errorf("unsupported request code: %#x", setup.Request)
-		}
-
-		in, err = dev.Setup(setup)
-
-		if err != nil {
-			hw.stall(0, IN)
-		} else if len(in) != 0 {
-			err = hw.tx(0, false, in)
-		} else {
-			err = hw.ack(0)
-		}
 	}
 
 	return
