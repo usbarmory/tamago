@@ -136,7 +136,7 @@ func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
 		err = hw.tx(0, false, dev.Qualifier.Bytes())
 	default:
 		hw.stall(0, IN)
-		err =  fmt.Errorf("unsupported descriptor type: %#x", bDescriptorType)
+		err = fmt.Errorf("unsupported descriptor type: %#x", bDescriptorType)
 
 	}
 
@@ -149,7 +149,7 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 	}
 
 	if dev.Setup != nil {
-		in, done, ack, err := dev.Setup(setup)
+		in, ack, done, err := dev.Setup(setup)
 
 		if err != nil {
 			hw.stall(0, IN)
@@ -163,7 +163,6 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 		if done {
 			return err
 		}
-
 	}
 
 	switch setup.Request {

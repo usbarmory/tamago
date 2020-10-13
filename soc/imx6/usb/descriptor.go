@@ -343,7 +343,16 @@ func (d *DeviceQualifierDescriptor) Bytes() []byte {
 
 // SetupFunction represents the function to process class-specific setup
 // requests.
-type SetupFunction func(setup *SetupData) (in []byte, done bool, ack bool, err error)
+//
+// The function is invoked before standard setup handlers and is expected to
+// return an `in` buffer for transmission on IN endpoint 0, the `ack` boolean
+// can be used to signal whether a zero length packet should be sent (true) in
+// case the `in` buffer returned empty.
+//
+// A non-nil `err` results in a stall. The `done` flag can be used to signal
+// whether standard setup handlers should be invoked (false) or not (true)
+// if function returns with a non-nil error.
+type SetupFunction func(setup *SetupData) (in []byte, ack bool, done bool, err error)
 
 // Device is a collection of USB device descriptors and host driven settings
 // to represent a USB device.
