@@ -30,7 +30,7 @@ func Set16(addr uint32, pos int) {
 }
 
 func Clear16(addr uint32, pos int) {
-	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
+	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
 	*reg &= ^(1 << pos)
 }
 
