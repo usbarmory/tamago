@@ -149,13 +149,11 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 	}
 
 	if dev.Setup != nil {
-		var in []byte
-		var done, ack bool
-		
-		in, done, ack, err = dev.Setup(setup)
+		in, done, ack, err := dev.Setup(setup)
 
 		if err != nil {
 			hw.stall(0, IN)
+			return err
 		} else if len(in) != 0 {
 			err = hw.tx(0, false, in)
 		} else if ack {
@@ -163,7 +161,7 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 		}
 
 		if done {
-			return
+			return err
 		}
 
 	}
