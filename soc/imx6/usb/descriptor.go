@@ -343,11 +343,7 @@ func (d *DeviceQualifierDescriptor) Bytes() []byte {
 
 // SetupFunction represents the function to process class-specific setup
 // requests.
-type SetupFunction func(setup *SetupData) (in []byte, err error)
-
-// SetupConditionalFunc represents the function used to detect whether a class-specific setup request
-// should be handled by a custom request handler or not.
-type SetupConditionalFunc func(setup *SetupData) bool
+type SetupFunction func(setup *SetupData) (in []byte, done, ack bool, err error)
 
 // Device is a collection of USB device descriptors and host driven settings
 // to represent a USB device.
@@ -363,8 +359,6 @@ type Device struct {
 
 	// Optional class-specific setup handler
 	Setup SetupFunction
-	DescriptorSetup SetupFunction
-	Conditional SetupConditionalFunc
 }
 
 func (d *Device) setStringDescriptor(s []byte, zero bool) (uint8, error) {
