@@ -164,11 +164,11 @@ func (hw *I2C) enable() {
 func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, err error) {
 	hw.Lock()
 	defer hw.Unlock()
-	defer hw.stop()
 
 	if err = hw.start(false); err != nil {
 		return
 	}
+	defer hw.stop()
 
 	if err = hw.txAddress(slave, addr, alen); err != nil {
 		return
@@ -186,7 +186,6 @@ func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, e
 	}
 
 	buf = make([]byte, size)
-
 	err = hw.rx(buf)
 
 	return
@@ -198,7 +197,7 @@ func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, e
 // Set greater then 0 for ordinary I2C write (`SLAVE W|ADDR|DATA`),
 // set equal then 0 to not send register address (`SLAVE W|DATA`),
 // alen less then 0 is invalid.
-
+//
 // The address length (`alen`) parameter should be set greater then 0 for
 // ordinary I2C writes (`SLAVE W|ADDR|DATA`), equal to 0 when not sending a
 // register address (`SLAVE W|DATA`), values less than 0 are not valid.
@@ -209,19 +208,17 @@ func (hw *I2C) Write(buf []byte, slave uint8, addr uint32, alen int) (err error)
 
 	hw.Lock()
 	defer hw.Unlock()
-	defer hw.stop()
 
 	if err = hw.start(false); err != nil {
 		return
 	}
+	defer hw.stop()
 
 	if err = hw.txAddress(slave, addr, alen); err != nil {
 		return
 	}
 
-	err = hw.tx(buf)
-
-	return
+	return hw.tx(buf)
 }
 
 func (hw *I2C) txAddress(slave uint8, addr uint32, alen int) (err error) {
