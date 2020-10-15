@@ -40,7 +40,7 @@ Supported hardware
 
 | SoC                 | Related board packages                                                                                | Peripheral drivers                                                      |
 |---------------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| NXP i.MX 6UltraLite | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory) | DCP, RNGB, UART, USB, GPIO, USDHC                                       |
+| NXP i.MX 6UltraLite | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory) | DCP, GPIO, I2C, RNGB, UART, USB, USDHC                                  |
 | NXP i.MX 6Quad      | none, used under QEMU for testing                                                                     | UART                                                                    |
 
 License

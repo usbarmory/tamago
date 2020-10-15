@@ -7,10 +7,6 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package i2c implements a driver for Freescale i.MX I2C controller.
-// It currently supports master mode only.
-// I2C is a 16-bit block, only half-word accesses are allowed.
-
 package imx6
 
 import (
@@ -70,7 +66,8 @@ type I2C struct {
 	i2sr uint32
 	i2dr uint32
 
-	timeout time.Duration
+	// Timeout for I2C operations
+	Timeout time.Duration
 }
 
 // I2C1 instance
@@ -79,7 +76,8 @@ var I2C1 = &I2C{n: 1}
 // I2C2 instance
 var I2C2 = &I2C{n: 2}
 
-// Init initializes the I2C controller instance.
+// Init initializes the I2C controller instance. At this time only master mode
+// is supported by this driver.
 func (hw *I2C) Init() {
 	var base uint32
 
@@ -108,9 +106,9 @@ func (hw *I2C) Init() {
 	hw.i2sr = base + I2Cx_I2SR
 	hw.i2dr = base + I2Cx_I2DR
 
+	hw.Timeout = 1 * time.Millisecond
+
 	hw.enable()
-	// Define a timeout for WaitFor() operations.
-	hw.timeout = 1 * time.Millisecond
 
 	hw.Unlock()
 }
@@ -147,18 +145,22 @@ func (hw *I2C) enable() {
 
 	// Set SCL frequency
 	// 66 MHz / 768 = 85 kbps
-	// FIXME: allow Init() to set the baudrate.
+	// TODO: allow Init() to set the baudrate.
 	reg.Write16(hw.ifdr, 0x16)
 
 	reg.Set16(hw.i2cr, I2CR_IEN)
 }
 
-// Read reads a sequence fo bytes from a slave device
-// p167, 16.4.2 Programming the I2C controller for I2C Read, IMX6FG.
-// Read can return empty buf only on errors.
-// Set greater then 0 for ordinary I2C read (`SLAVE W|ADDR|SLAVE R|DATA`),
-// set equal to 0 to not send register address (`SLAVE W|SLAVE R|DATA`),
-// set less then 0 to not send slave write (`SLAVE R|DATA`).
+// Read reads a sequence of bytes from a slave device
+// (p167, 16.4.2 Programming the I2C controller for I2C Read, IMX6FG).
+//
+// The return data buffer always matches the requested size, otherwise an error
+// is returned.
+//
+// The address length (`alen`) parameter should be set greater then 0 for
+// ordinary I2C reads (`SLAVE W|ADDR|SLAVE R|DATA`), equal to 0 when not
+// sending a register address (`SLAVE W|SLAVE R|DATA`) and less than 0 only to
+// send a slave read (`SLAVE R|DATA`).
 func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, err error) {
 	hw.Lock()
 	defer hw.Unlock()
@@ -183,6 +185,7 @@ func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, e
 	}
 
 	buf = make([]byte, size)
+
 	if err = hw.rx(buf); err != nil {
 		return
 	}
@@ -193,10 +196,15 @@ func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, e
 }
 
 // Write writes a sequence of bytes to a slave device
-// p170, 16.4.4 Programming the I2C controller for I2C Write, IMX6FG.
+// (p170, 16.4.4 Programming the I2C controller for I2C Write, IMX6FG)
+//
 // Set greater then 0 for ordinary I2C write (`SLAVE W|ADDR|DATA`),
 // set equal then 0 to not send register address (`SLAVE W|DATA`),
 // alen less then 0 is invalid.
+
+// The address length (`alen`) parameter should be set greater then 0 for
+// ordinary I2C writes (`SLAVE W|ADDR|DATA`), equal to 0 when not sending a
+// register address (`SLAVE W|DATA`), values less than 0 are not valid.
 func (hw *I2C) Write(buf []byte, slave uint8, addr uint32, alen int) (err error) {
 	if alen < 0 {
 		return errors.New("invalid address length")
@@ -260,12 +268,13 @@ func (hw *I2C) rx(buf []byte) (err error) {
 	} else {
 		reg.Clear16(hw.i2cr, I2CR_TXAK)
 	}
+
 	reg.Clear16(hw.i2sr, I2SR_IIF)
 	// dummy read
 	reg.Read16(hw.i2dr)
 
 	for i := 0; i < size; i++ {
-		if !reg.WaitFor16(hw.timeout, hw.i2sr, I2SR_IIF, 1, 1) {
+		if !reg.WaitFor16(hw.Timeout, hw.i2sr, I2SR_IIF, 1, 1) {
 			return errors.New("timeout on byte reception")
 		}
 
@@ -291,7 +300,7 @@ func (hw *I2C) tx(buf []byte) (err error) {
 		reg.Clear16(hw.i2sr, I2SR_IIF)
 		reg.Write16(hw.i2dr, uint16(buf[i]))
 
-		if !reg.WaitFor16(hw.timeout, hw.i2sr, I2SR_IIF, 1, 1) {
+		if !reg.WaitFor16(hw.Timeout, hw.i2sr, I2SR_IIF, 1, 1) {
 			return errors.New("timeout on byte transmission")
 		}
 
@@ -306,7 +315,7 @@ func (hw *I2C) tx(buf []byte) (err error) {
 func (hw *I2C) start(repeat bool) (err error) {
 	if repeat == false {
 		// wait for bus to be free
-		if !reg.WaitFor16(hw.timeout, hw.i2sr, I2SR_IBB, 1, 0) {
+		if !reg.WaitFor16(hw.Timeout, hw.i2sr, I2SR_IBB, 1, 0) {
 			return errors.New("timeout waiting bus to be free")
 		}
 
@@ -317,7 +326,7 @@ func (hw *I2C) start(repeat bool) (err error) {
 	}
 
 	// wait for bus to be busy
-	if !reg.WaitFor16(hw.timeout, hw.i2sr, I2SR_IBB, 1, 1) {
+	if !reg.WaitFor16(hw.Timeout, hw.i2sr, I2SR_IBB, 1, 1) {
 		return errors.New("timeout waiting bus to be busy")
 	}
 
@@ -334,7 +343,7 @@ func (hw *I2C) stop() (err error) {
 	reg.Clear16(hw.i2cr, I2CR_MTX)
 
 	// wait for bus to be free
-	if !reg.WaitFor16(hw.timeout, hw.i2sr, I2SR_IBB, 1, 0) {
+	if !reg.WaitFor16(hw.Timeout, hw.i2sr, I2SR_IBB, 1, 0) {
 		err = errors.New("timeout waiting for free bus")
 	}
 
