@@ -164,6 +164,7 @@ func (hw *I2C) enable() {
 func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, err error) {
 	hw.Lock()
 	defer hw.Unlock()
+	defer hw.stop()
 
 	if err = hw.start(false); err != nil {
 		return
@@ -186,11 +187,7 @@ func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, e
 
 	buf = make([]byte, size)
 
-	if err = hw.rx(buf); err != nil {
-		return
-	}
-
-	err = hw.stop()
+	err = hw.rx(buf)
 
 	return
 }
@@ -212,6 +209,7 @@ func (hw *I2C) Write(buf []byte, slave uint8, addr uint32, alen int) (err error)
 
 	hw.Lock()
 	defer hw.Unlock()
+	defer hw.stop()
 
 	if err = hw.start(false); err != nil {
 		return
@@ -221,11 +219,7 @@ func (hw *I2C) Write(buf []byte, slave uint8, addr uint32, alen int) (err error)
 		return
 	}
 
-	if err = hw.tx(buf); err != nil {
-		return
-	}
-
-	err = hw.stop()
+	err = hw.tx(buf)
 
 	return
 }
@@ -278,14 +272,10 @@ func (hw *I2C) rx(buf []byte) (err error) {
 			return errors.New("timeout on byte reception")
 		}
 
-		if i == size-1 {
-			if err = hw.stop(); err != nil {
-				return
-			}
-		}
-
 		if i == size-2 {
 			reg.Set16(hw.i2cr, I2CR_TXAK)
+		} else if i == size-1 {
+			hw.stop()
 		}
 
 		buf[i] = byte(reg.Read16(hw.i2dr) & 0xff)
@@ -338,14 +328,7 @@ func (hw *I2C) start(repeat bool) (err error) {
 	return
 }
 
-func (hw *I2C) stop() (err error) {
+func (hw *I2C) stop() {
 	reg.Clear16(hw.i2cr, I2CR_MSTA)
 	reg.Clear16(hw.i2cr, I2CR_MTX)
-
-	// wait for bus to be free
-	if !reg.WaitFor16(hw.Timeout, hw.i2sr, I2SR_IBB, 1, 0) {
-		err = errors.New("timeout waiting for free bus")
-	}
-
-	return
 }
