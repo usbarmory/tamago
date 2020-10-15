@@ -40,6 +40,8 @@ func printk(c byte) {
 // This, among all other debug signals, enables use of the UART2 serial console
 // on the receptacle when a debug accessory is connected.
 func EnableDebugAccessory() (err error) {
+	imx6.I2C1.Init()
+
 	a, err := imx6.I2C1.Read(FUSB303_ADDR, FUSB303_CONTROL1, 1, 1)
 
 	if err != nil {
