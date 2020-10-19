@@ -56,6 +56,8 @@ type I2C struct {
 
 	// controller index
 	n int
+	// clock gate register
+	ccgr uint32
 	// clock gate
 	cg int
 
@@ -82,19 +84,23 @@ func (hw *I2C) Init() {
 	var base uint32
 
 	hw.Lock()
+	defer hw.Unlock()
 
 	switch hw.n {
 	case 1:
 		base = I2C1_BASE
+		hw.ccgr = CCM_CCGR6
 		hw.cg = CCGR2_CG3
 	case 2:
 		base = I2C2_BASE
 		hw.cg = CCGR2_CG4
 	case 3:
 		base = I2C3_BASE
+		hw.ccgr = CCM_CCGR6
 		hw.cg = CCGR2_CG5
 	case 4:
 		base = I2C4_BASE
+		hw.ccgr = CCM_CCGR2
 		hw.cg = CCGR6_CG12
 	default:
 		panic("invalid I2C controller instance")
@@ -109,8 +115,6 @@ func (hw *I2C) Init() {
 	hw.Timeout = 1 * time.Millisecond
 
 	hw.enable()
-
-	hw.Unlock()
 }
 
 // getRootClock returns the PERCLK_CLK_ROOT frequency,
@@ -133,15 +137,7 @@ func (hw *I2C) getRootClock() uint32 {
 
 // p1452, 31.5.1 Initialization sequence, IMX6ULLRM
 func (hw *I2C) enable() {
-	var register uint32
-
-	if hw.n == 4 {
-		register = CCM_CCGR2
-	} else {
-		register = CCM_CCGR6
-	}
-
-	reg.SetN(register, hw.cg, 0b11, 0b11)
+	reg.SetN(hw.ccgr, hw.cg, 0b11, 0b11)
 
 	// Set SCL frequency
 	// 66 MHz / 768 = 85 kbps
