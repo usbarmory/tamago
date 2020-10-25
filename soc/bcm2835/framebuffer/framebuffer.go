@@ -11,7 +11,6 @@ package framebuffer
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 
 	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 )
