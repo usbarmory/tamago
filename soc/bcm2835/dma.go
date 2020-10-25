@@ -1,6 +1,8 @@
 // BCM2835 SoC DMA support
 // https://github.com/f-secure-foundry/tamago
 //
+// Copyright (c) the bcm2835 package authors
+//
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
@@ -183,8 +185,8 @@ const (
 	DMA_DEBUG_LITE = 1 << 28
 )
 
-type dmaController struct {
-	lock     sync.Mutex
+type DMAController struct {
+	sync.Mutex
 	channels []*DMAChannel
 	region   *dma.Region
 }
@@ -194,11 +196,11 @@ type DMAChannel struct {
 	index     int
 	allocated bool
 
-	// regBase is the absolute base address of this channel's registers,
+	// base is the absolute base address of this channel's registers,
 	// already offset by the peripheral base address.
-	regBase uint32
+	base uint32
 
-	ctrlr *dmaController
+	ctrlr *DMAController
 }
 
 // Access to the debug flag bitfield
@@ -208,13 +210,13 @@ type DMADebugInfo uint32
 type DMAStatus uint32
 
 // DMA provides access to the DMA controller
-var DMA = dmaController{}
+var DMA = DMAController{}
 
 // Initialize the controller.
 //
 // The given region provides a memory region dedicated for
 // DMA transfer purposes
-func (c *dmaController) Init(rgn *dma.Region) {
+func (c *DMAController) Init(rgn *dma.Region) {
 	c.region = rgn
 	c.channels = make([]*DMAChannel, 16)
 
@@ -226,19 +228,19 @@ func (c *dmaController) Init(rgn *dma.Region) {
 		c.channels[i] = &DMAChannel{
 			index:     i,
 			allocated: (available & (1 << i)) != 0,
-			regBase:   peripheralBase + DMA_CH_BASE0 + uint32(i)*DMA_CH_SPAN,
+			base:      peripheralBase + DMA_CH_BASE0 + uint32(i)*DMA_CH_SPAN,
 			ctrlr:     c,
 		}
 	}
 
 	// Channel 15 is a special case
-	c.channels[15].regBase = peripheralBase + DMA_CH_BASE15
+	c.channels[15].base = peripheralBase + DMA_CH_BASE15
 }
 
 // AllocChannel provides exclusive use of a DMA channel
-func (c *dmaController) AllocChannel() (*DMAChannel, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (c *DMAController) AllocChannel() (*DMAChannel, error) {
+	c.Lock()
+	defer c.Unlock()
 
 	for _, ch := range c.channels {
 		if !ch.allocated {
@@ -251,9 +253,9 @@ func (c *dmaController) AllocChannel() (*DMAChannel, error) {
 }
 
 // FreeChannel surrenders exclusive use of a DMA channel
-func (c *dmaController) FreeChannel(ch *DMAChannel) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (c *DMAController) FreeChannel(ch *DMAChannel) error {
+	c.Lock()
+	defer c.Unlock()
 
 	if !ch.allocated {
 		return fmt.Errorf("attempt to free unallocated channel %d", ch.index)
@@ -265,19 +267,19 @@ func (c *dmaController) FreeChannel(ch *DMAChannel) error {
 
 // Debug state for the channel
 func (ch *DMAChannel) DebugInfo() DMADebugInfo {
-	return DMADebugInfo(reg.Read(ch.regBase + DMA_CH_REG_DEBUG))
+	return DMADebugInfo(reg.Read(ch.base + DMA_CH_REG_DEBUG))
 }
 
 // Status of the channel
 func (ch *DMAChannel) Status() DMAStatus {
-	return DMAStatus(reg.Read(ch.regBase + DMA_CH_REG_CS))
+	return DMAStatus(reg.Read(ch.base + DMA_CH_REG_CS))
 }
 
 // Do a RAM to RAM transfer.
 //
 // This method blocks until the transfer is complete, but does allow the
 // Go scheduler to schedule other Go routines.
-func (ch *DMAChannel) CopyRAMToRAM(from uint32, size int, to uint32) {
+func (ch *DMAChannel) Copy(from uint32, size int, to uint32) {
 	cbAddr, cb := ch.ctrlr.region.Reserve(8*4, 64)
 	defer ch.ctrlr.region.Release(cbAddr)
 
@@ -292,12 +294,12 @@ func (ch *DMAChannel) CopyRAMToRAM(from uint32, size int, to uint32) {
 	conv.PutUint32(cb[24:], 0)
 	conv.PutUint32(cb[28:], 0)
 
-	reg.Write(ch.regBase+DMA_CH_REG_CS, DMA_CS_RESET)
-	reg.Write(ch.regBase+DMA_CH_REG_DEBUG, 0x7) // Clear Errors
-	reg.Write(ch.regBase+DMA_CH_REG_CONBLK_AD, cbAddr)
-	reg.Write(ch.regBase+DMA_CH_REG_CS, DMA_CS_ACTIVE)
+	reg.Write(ch.base+DMA_CH_REG_CS, DMA_CS_RESET)
+	reg.Write(ch.base+DMA_CH_REG_DEBUG, 0x7) // Clear Errors
+	reg.Write(ch.base+DMA_CH_REG_CONBLK_AD, cbAddr)
+	reg.Write(ch.base+DMA_CH_REG_CS, DMA_CS_ACTIVE)
 
-	for (reg.Read(ch.regBase+DMA_CH_REG_CS) & DMA_CS_END) == 0 {
+	for (reg.Read(ch.base+DMA_CH_REG_CS) & DMA_CS_END) == 0 {
 		runtime.Gosched()
 	}
 }

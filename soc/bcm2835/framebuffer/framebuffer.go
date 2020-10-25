@@ -1,9 +1,17 @@
 // BCM2835 SoC FrameBuffer support
+// https://github.com/f-secure-foundry/tamago
+//
+// Copyright (c) the bcm2835 package authors
+//
+// Use of this source code is governed by the license
+// that can be found in the LICENSE file.
+
 package framebuffer
 
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 
 	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 )
@@ -13,7 +21,7 @@ func EDID() []byte {
 	outBuf := []byte{}
 
 	for block := uint32(0); true; block++ {
-		buf := make([]byte, 136)
+		buf := make([]byte, bcm2835.VC_MEM_GET_EDID_BLOCK_LEN)
 		binary.LittleEndian.PutUint32(buf[0:], block)
 
 		msg := &bcm2835.MailboxMessage{
@@ -29,7 +37,7 @@ func EDID() []byte {
 
 		tag := msg.Tag(bcm2835.VC_MEM_GET_EDID_BLOCK)
 
-		if tag == nil || len(tag.Buffer) < 136 {
+		if tag == nil || len(tag.Buffer) < 8 {
 			return outBuf
 		}
 
@@ -48,10 +56,9 @@ func EDID() []byte {
 	return outBuf
 }
 
-// PhysicalSize is hte dimensions of the current framebuffer in pixels
-//
-func PhysicalSize() (uint32, uint32) {
-	buf := make([]byte, 8)
+// PhysicalSize is the dimensions of the current framebuffer in pixels
+func PhysicalSize() (width uint32, height uint32) {
+	buf := make([]byte, bcm2835.VC_FB_GET_PHYSICAL_SIZE_LEN)
 
 	msg := &bcm2835.MailboxMessage{
 		Tags: []bcm2835.MailboxTag{
@@ -75,7 +82,7 @@ func PhysicalSize() (uint32, uint32) {
 
 // SetPhysicalSize changes the display resolution (in pixels)
 func SetPhysicalSize(width uint32, height uint32) error {
-	buf := make([]byte, 8)
+	buf := make([]byte, bcm2835.VC_FB_SET_PHYSICAL_SIZE_LEN)
 	binary.LittleEndian.PutUint32(buf[0:], width)
 	binary.LittleEndian.PutUint32(buf[4:], height)
 
