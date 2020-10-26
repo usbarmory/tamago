@@ -38,10 +38,12 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC     | Board               | SoC package                                                                   | Board package                                                                                |
-|---------|---------------------|-------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| BCM2835 | Pi Zero             | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pizero) |
-| BCM2836 | Pi 2 Model B (v1.1) | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pi2)       |
+| SoC     | Board                | SoC package                                                                   | Board package                                                                                |
+|---------|----------------------|-------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| BCM2835 | Pi Zero              | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pizero) |
+| BCM2835 | Pi 1 Model A+ (v1.2) | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pi1)       |
+| BCM2835 | Pi 1 Model B+ (v1.2) | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pi1)       |
+| BCM2836 | Pi 2 Model B (v1.1)  | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pi2)       |
 
 Compiling
 =========
@@ -52,6 +54,14 @@ ensure that hardware initialization and runtime support takes place:
 ```golang
 import (
     _ "github.com/f-secure-foundry/tamago/board/raspberrypi/pi2"
+)
+```
+
+OR
+
+```golang
+import (
+    _ "github.com/f-secure-foundry/tamago/board/raspberrypi/pi1"
 )
 ```
 
@@ -89,9 +99,11 @@ The GOARM environment variable must be set according to the Raspberry Pi model:
 | Model | GOARM | Example                                            |
 |-------|-------|----------------------------------------------------|
 | Zero  |   5   | <https://github.com/kenbell/tamago-example-pizero> |
+| 1A+   |   5   | <https://github.com/prusnak/tamago-example-pi1>    |
+| 1B+   |   5   | <https://github.com/prusnak/tamago-example-pi1>    |
 | 2B    |   7   | <https://github.com/kenbell/tamago-example-pi2>    |
 
-NOTE: The Pi Zero is ARMv6, but does not have support for all floating point instructions the Go compiler
+NOTE: The Pi Zero and Pi 1 are ARMv6, but do not have support for all floating point instructions the Go compiler
 generates with `GOARM=6`.  Using `GOARM=5` causes Go to include a software floating point implementation.
 
 Executing
@@ -195,7 +207,10 @@ existing Raspberry Pi bootable SD card (see above for minimum context of the car
 ```sh
     cd u-boot
 
-    # Config: This is for Pi Zero, use rpi_2_defconfig for Pi 2
+    # Config:
+    # - use rpi_0_w_defconfig for Pi Zero
+    # - use rpi_defconfig     for Pi 1
+    # - use rpi_2_defconfig   for Pi 2
     make rpi_0_w_defconfig
 
     # Build
