@@ -93,7 +93,7 @@ func (gpio *GPIO) GetFunction(line int) GPIOFunction {
 	val := reg.Read(PeripheralAddress(GPFSEL0 + 4*uint32(gpio.num/10)))
 	shift := uint32((gpio.num % 10) * 3)
 
-	return GPIOFunction(val >> shift) & 0x7
+	return GPIOFunction(val>>shift) & 0x7
 }
 
 // High configures a GPIO signal as high.

@@ -96,7 +96,6 @@ func CPUAvailableDMAChannels() (bitmask uint32) {
 //
 // The returned value is a handle, use LockMemory to convert
 // to an address.
-//
 func AllocateGPUMemory(size uint32, alignment uint32, flags uint32) (handle uint32) {
 	buf := make([]byte, VC_MEM_ALLOCATE_LEN)
 	binary.LittleEndian.PutUint32(buf[0:], size)
@@ -113,7 +112,6 @@ func AllocateGPUMemory(size uint32, alignment uint32, flags uint32) (handle uint
 }
 
 // LockGPUMemory provides the address of previously allocated memory
-//
 func LockGPUMemory(handle uint32) (addr uint32) {
 	buf := make([]byte, VC_MEM_LOCK_LEN)
 	binary.LittleEndian.PutUint32(buf[0:], handle)

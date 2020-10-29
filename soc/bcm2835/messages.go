@@ -11,7 +11,6 @@ package bcm2835
 //
 // Channels (see <https://github.com/raspberrypi/firmware/wiki/Mailboxes>)
 //
-
 const (
 	VC_CH_POWERMGMT            = 0
 	VC_CH_FRAMEBUFFER          = 1
@@ -31,7 +30,6 @@ const (
 // or response size, since response overwrites the request buffer and caller is
 // responsible for allocation.
 //
-
 const (
 	VC_FIRMWARE_GET_REV     = 0x00000001
 	VC_FIRMWARE_GET_REV_LEN = 4
