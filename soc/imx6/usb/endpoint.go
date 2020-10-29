@@ -75,10 +75,6 @@ type dTD struct {
 	_size uint32
 }
 
-func (dtd *dTD) free() {
-	dma.Free(dtd._dtd)
-}
-
 // dQH implements
 // p3784, 56.4.5.1 Endpoint Queue Head (dQH), IMX6ULLRM.
 type dQH struct {
@@ -100,25 +96,25 @@ type dQH struct {
 	_ [4]uint32
 }
 
-// EndpointList implements
+// endpointList implements
 // p3783, 56.4.5 Device Data Structures, IMX6ULLRM.
-type EndpointList [MAX_ENDPOINTS * 2]dQH
+type endpointList [MAX_ENDPOINTS * 2]dQH
 
-// initEP initializes the endpoint queue head list
-func (hw *USB) initEP() {
-	var epList EndpointList
+// initQH initializes the endpoint queue head list
+func (hw *USB) initQH() {
+	var epList endpointList
 	buf := new(bytes.Buffer)
 
 	binary.Write(buf, binary.LittleEndian, &epList)
-	epListAddr := dma.Alloc(buf.Bytes(), DQH_LIST_ALIGN)
+	hw.epListAddr = dma.Alloc(buf.Bytes(), DQH_LIST_ALIGN)
 
 	// set endpoint queue head
-	reg.Write(hw.eplist, epListAddr)
+	reg.Write(hw.eplist, hw.epListAddr)
 }
 
-// setEP configures a queue head as described in
+// set configures an endpoint queue head as described in
 // p3784, 56.4.5.1 Endpoint Queue Head, IMX6ULLRM.
-func (hw *USB) setEP(n int, dir int, max int, zlt bool, mult int) {
+func (hw *USB) set(n int, dir int, max int, zlt bool, mult int) {
 	dqh := dQH{}
 
 	// Maximum Packet Length
@@ -148,18 +144,59 @@ func (hw *USB) setEP(n int, dir int, max int, zlt bool, mult int) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, &dqh)
 
-	epListAddr := reg.Read(hw.eplist)
 	offset := (n*2 + dir) * DQH_SIZE
-	dma.Write(epListAddr, buf.Bytes(), offset)
+	dma.Write(hw.epListAddr, buf.Bytes(), offset)
+
+	hw.dQH[n][dir] = hw.epListAddr + uint32(offset)
 }
 
-// getEP returns an Endpoint Queue Head (dQH)
-func (hw *USB) getEP(n int, dir int) (dqh dQH) {
-	epListAddr := reg.Read(hw.eplist)
-	offset := (n*2 + dir) * DQH_SIZE
+// enable enables an endpoint
+func (hw *USB) enable(n int, dir int, transferType int) {
+	if n == 0 {
+		// EP0 does not need enabling (p3790, IMX6ULLRM)
+		return
+	}
 
+	log.Printf("imx6_usb: enabling EP%d.%d\n", n, dir)
+
+	ctrl := hw.epctrl + uint32(4*n)
+	c := reg.Read(ctrl)
+
+	if dir == IN {
+		bits.Set(&c, ENDPTCTRL_TXE)
+		bits.Set(&c, ENDPTCTRL_TXR)
+		bits.SetN(&c, ENDPTCTRL_TXT, 0b11, uint32(transferType))
+		bits.Clear(&c, ENDPTCTRL_TXS)
+
+		if reg.Get(ctrl, ENDPTCTRL_RXE, 1) == 0 {
+			// see note at p3879 of IMX6ULLRM
+			bits.SetN(&c, ENDPTCTRL_RXT, 0b11, BULK)
+		}
+	} else {
+		bits.Set(&c, ENDPTCTRL_RXE)
+		bits.Set(&c, ENDPTCTRL_RXR)
+		bits.SetN(&c, ENDPTCTRL_RXT, 0b11, uint32(transferType))
+		bits.Clear(&c, ENDPTCTRL_RXS)
+
+		if reg.Get(ctrl, ENDPTCTRL_TXE, 1) == 0 {
+			// see note at p3879 of IMX6ULLRM
+			bits.SetN(&c, ENDPTCTRL_TXT, 0b11, BULK)
+		}
+	}
+
+	reg.Write(ctrl, c)
+}
+
+// clear resets the endpoint status (active and halt bits)
+func (hw *USB) clear(n int, dir int) {
+	token := hw.dQH[n][dir] + uint32(DQH_TOKEN)
+	reg.SetN(token, 6, 0b11, 0b00)
+}
+
+// qh returns the Endpoint Queue Head (dQH)
+func (hw *USB) qh(n int, dir int) (dqh dQH) {
 	buf := make([]byte, DQH_SIZE)
-	dma.Read(epListAddr, offset, buf)
+	dma.Read(hw.dQH[n][dir], 0, buf)
 
 	err := binary.Read(bytes.NewReader(buf), binary.LittleEndian, &dqh)
 
@@ -170,15 +207,15 @@ func (hw *USB) getEP(n int, dir int) (dqh dQH) {
 	return
 }
 
-// next sets the next endpoint transfer pointer
-func (hw *USB) nextDTD(n int, dir int, next uint32) {
-	offset := (n*2 + dir) * DQH_SIZE
-	dqh := reg.Read(hw.eplist) + uint32(offset)
+// nextDTD sets the next endpoint transfer pointer
+func (hw *USB) nextDTD(n int, dir int, dtd uint32) {
+	dqh := hw.dQH[n][dir]
+	next := dqh + uint32(DQH_NEXT)
 
+	// wait for endpoint status to be cleared
+	reg.Wait(dqh+uint32(DQH_TOKEN), 6, 0b11, 0b00)
 	// set next dTD
-	reg.Write(dqh+uint32(DQH_NEXT), next)
-	// reset endpoint status (active and halt bits)
-	reg.SetN(dqh+uint32(DQH_TOKEN), 6, 0b11, 0b00)
+	reg.Write(next, dtd)
 }
 
 // buildDTD configures an endpoint transfer descriptor as described in
@@ -219,66 +256,10 @@ func buildDTD(n int, dir int, ioc bool, addr uint32, size int) (dtd *dTD) {
 	return
 }
 
-// transfer initates a transfer using transfer descriptors (dTDs) as described
-// in p3809, 56.4.6.6 Managing Transfers with Transfer Descriptors, IMX6ULLRM.
-func (hw *USB) transfer(n int, dir int, ioc bool, buf []byte) (out []byte, err error) {
-	var dtds []*dTD
-	dtdLength := DTD_PAGES * DTD_PAGE_SIZE
-
-	if dir == OUT && buf == nil {
-		buf = make([]byte, dtdLength)
-	}
-
-	transferSize := len(buf)
-
-	if transferSize < dtdLength {
-		dtdLength = transferSize
-	}
-
-	pages := dma.Alloc(buf, DTD_PAGE_SIZE)
-	defer dma.Free(pages)
-
-	dtd := buildDTD(n, dir, ioc, pages, dtdLength)
-	defer dtd.free()
-
-	dtds = append(dtds, dtd)
-
-	for i := dtdLength; i < transferSize; i += dtdLength {
-		size := dtdLength
-
-		if i+size > transferSize {
-			size = transferSize - i
-		}
-
-		next := buildDTD(n, dir, ioc, pages+uint32(i), size)
-		defer next.free()
-
-		// treat dtd.next as a register within the dtd DMA buffer
-		reg.Write(dtd._dtd+DTD_NEXT, next._dtd)
-
-		dtd = next
-		dtds = append(dtds, next)
-	}
-
-	// set dQH head pointer
-	hw.nextDTD(n, dir, dtds[0]._dtd)
-
-	// hw.prime IN:ENDPTPRIME_PETB+n    OUT:ENDPTPRIME_PERB+n
-	// hw.pos   IN:ENDPTCOMPLETE_ETCE+n OUT:ENDPTCOMPLETE_ERCE+n
-	pos := (dir * 16) + n
-
-	// prime endpoint
-	reg.Set(hw.prime, pos)
-	// wait for priming completion
-	reg.Wait(hw.prime, pos, 1, 0)
-
-	// wait for completion
-	reg.Wait(hw.complete, pos, 1, 1)
-	// clear completion
-	reg.Write(hw.complete, 1<<pos)
-
-	size := 0
-
+// checkDTD verifies transfer descriptor completion as describe in
+// p3800, 56.4.6.4.1 Interrupt/Bulk Endpoint Operational Model, IMX6ULLRM
+// p3811, 56.4.6.6.4 Transfer Completion, IMX6ULLRM.
+func checkDTD(n int, dir int, dtds []*dTD) (size int, err error) {
 	for i, dtd := range dtds {
 		// treat dtd.token as a register within the dtd DMA buffer
 		token := dtd._dtd + DTD_TOKEN
@@ -296,7 +277,7 @@ func (hw *USB) transfer(n int, dir int, ioc bool, buf []byte) (out []byte, err e
 		dtdToken := reg.Read(token)
 
 		if (dtdToken & 0xff) != 0 {
-			return nil, fmt.Errorf("dTD[%d] error status, token:%#x", i, dtdToken)
+			return 0, fmt.Errorf("dTD[%d] error status, token:%#x", i, dtdToken)
 		}
 
 		// p3787 "This field is decremented by the number of bytes
@@ -305,44 +286,114 @@ func (hw *USB) transfer(n int, dir int, ioc bool, buf []byte) (out []byte, err e
 		n := int(dtd._size - rest)
 
 		if dir == IN && rest > 0 {
-			return nil, fmt.Errorf("dTD[%d] partial transfer (%d/%d bytes)", i, n, dtd._size)
+			return 0, fmt.Errorf("dTD[%d] partial transfer (%d/%d bytes)", i, n, dtd._size)
 		}
 
 		size += n
 	}
 
-	if n != 0 && dir == OUT {
-		dma.Read(pages, 0, buf)
+	return
+}
+
+// transfer initates a transfer using transfer descriptors (dTDs) as described in
+// p3810, 56.4.6.6.3 Executing A Transfer Descriptor, IMX6ULLRM.
+func (hw *USB) transfer(n int, dir int, ioc bool, buf []byte) (out []byte, err error) {
+	var dtds []*dTD
+	var prev *dTD
+	var i int
+
+	// hw.prime IN:ENDPTPRIME_PETB+n    OUT:ENDPTPRIME_PERB+n
+	// hw.pos   IN:ENDPTCOMPLETE_ETCE+n OUT:ENDPTCOMPLETE_ERCE+n
+	pos := (dir * 16) + n
+
+	dtdLength := DTD_PAGES * DTD_PAGE_SIZE
+
+	if dir == OUT && buf == nil {
+		buf = make([]byte, dtdLength)
+	}
+
+	transferSize := len(buf)
+
+	pages := dma.Alloc(buf, DTD_PAGE_SIZE)
+	defer dma.Free(pages)
+
+	// loop condition to account for zero transferSize
+	for add := true; add; add = i < transferSize {
+		prime := false
+		size := dtdLength
+
+		if i+size > transferSize {
+			size = transferSize - i
+		}
+
+		dtd := buildDTD(n, dir, ioc, pages+uint32(i), size)
+		defer dma.Free(dtd._dtd)
+
+		if i == 0 {
+			prime = true
+		} else {
+			// treat dtd.next as a register within the dtd DMA buffer
+			reg.Write(prev._dtd+DTD_NEXT, dtd._dtd)
+			prime = reg.Get(hw.prime, pos, 1) == 0 && reg.Get(hw.stat, pos, 1) == 0
+		}
+
+		if prime {
+			// reset endpoint status
+			hw.clear(n, dir)
+			// set dQH head pointer
+			hw.nextDTD(n, dir, dtd._dtd)
+			// prime endpoint
+			reg.Set(hw.prime, pos)
+		}
+
+		prev = dtd
+		dtds = append(dtds, dtd)
+
+		i += dtdLength
+	}
+
+	// wait for priming completion
+	reg.Wait(hw.prime, pos, 1, 0)
+
+	// wait for completion
+	reg.Wait(hw.complete, pos, 1, 1)
+	// clear completion
+	reg.Write(hw.complete, 1<<pos)
+
+	size, err := checkDTD(n, dir, dtds)
+
+	if n != 0 && dir == OUT && buf != nil {
 		out = buf[0:size]
+		dma.Read(pages, 0, out)
 	}
 
 	return
 }
 
+// ack transmits a zero length packet to the host through an IN endpoint
+func (hw *USB) ack(n int) (err error) {
+	_, err = hw.transfer(n, IN, false, nil)
+	return
+}
+
+// tx transmits a data buffer to the host through an IN endpoint
 func (hw *USB) tx(n int, ioc bool, in []byte) (err error) {
 	_, err = hw.transfer(n, IN, ioc, in)
 
-	if err != nil {
-		return
-	}
-
 	// p3803, 56.4.6.4.2.3 Status Phase, IMX6ULLRM
-	if n == 0 {
+	if err == nil && n == 0 {
 		_, err = hw.transfer(n, OUT, false, nil)
 	}
 
 	return
 }
 
+// tx receives a data buffer from the host through an OUT endpoint
 func (hw *USB) rx(n int, ioc bool, buf []byte) (out []byte, err error) {
 	return hw.transfer(n, OUT, ioc, buf)
 }
 
-func (hw *USB) ack(n int) (err error) {
-	_, err = hw.transfer(n, IN, false, nil)
-	return
-}
-
+// stall forces the endpoint to return a STALL handshake to the host
 func (hw *USB) stall(n int, dir int) {
 	ctrl := hw.epctrl + uint32(4*n)
 
@@ -353,7 +404,13 @@ func (hw *USB) stall(n int, dir int) {
 	}
 }
 
+// reset forces data PID synchronization between host and device
 func (hw *USB) reset(n int, dir int) {
+	if n == 0 {
+		// EP0 does not have data toggle reset
+		return
+	}
+
 	ctrl := hw.epctrl + uint32(4*n)
 
 	if dir == IN {
@@ -361,40 +418,4 @@ func (hw *USB) reset(n int, dir int) {
 	} else {
 		reg.Set(ctrl, ENDPTCTRL_RXR)
 	}
-}
-
-func (hw *USB) enable(n int, dir int, transferType int) {
-	if n == 0 {
-		// EP0 does not need enabling (p3790, IMX6ULLRM)
-		return
-	}
-
-	log.Printf("imx6_usb: enabling EP%d.%d\n", n, dir)
-
-	ctrl := hw.epctrl + uint32(4*n)
-	c := reg.Read(ctrl)
-
-	if dir == IN {
-		bits.Set(&c, ENDPTCTRL_TXE)
-		bits.Set(&c, ENDPTCTRL_TXR)
-		bits.SetN(&c, ENDPTCTRL_TXT, 0b11, uint32(transferType))
-		bits.Clear(&c, ENDPTCTRL_TXS)
-
-		if reg.Get(ctrl, ENDPTCTRL_RXE, 1) == 0 {
-			// see note at p3879 of IMX6ULLRM
-			bits.SetN(&c, ENDPTCTRL_RXT, 0b11, BULK)
-		}
-	} else {
-		bits.Set(&c, ENDPTCTRL_RXE)
-		bits.Set(&c, ENDPTCTRL_RXR)
-		bits.SetN(&c, ENDPTCTRL_RXT, 0b11, uint32(transferType))
-		bits.Clear(&c, ENDPTCTRL_RXS)
-
-		if reg.Get(ctrl, ENDPTCTRL_TXE, 1) == 0 {
-			// see note at p3879 of IMX6ULLRM
-			bits.SetN(&c, ENDPTCTRL_TXT, 0b11, BULK)
-		}
-	}
-
-	reg.Write(ctrl, c)
 }

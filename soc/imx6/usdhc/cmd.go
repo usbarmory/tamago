@@ -171,8 +171,8 @@ func (hw *USDHC) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 		err = fmt.Errorf("CMD%d:timeout pres_state:%#x int_status:%#x", index,
 			reg.Read(hw.pres_state),
 			reg.Read(hw.int_status))
-		// according to the IMX6FG flow chart we shouldn't return in
-		// case of error, but still go ahead and check status
+		// According to the IMX6FG flow chart we shouldn't return in
+		// case of error, but still go ahead and check status.
 	}
 
 	// mask all interrupts
