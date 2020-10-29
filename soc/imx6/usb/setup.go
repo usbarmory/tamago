@@ -82,23 +82,12 @@ func (hw *USB) getSetup() (setup *SetupData) {
 
 	// clear setup status
 	reg.Set(hw.setup, 0)
-	// set tripwire
-	reg.Set(hw.cmd, USBCMD_SUTW)
-
-	// repeat if necessary
-	for reg.Get(hw.cmd, USBCMD_SUTW, 1) == 0 {
-		log.Printf("imx6_usb: retrying setup")
-		reg.Set(hw.cmd, USBCMD_SUTW)
-	}
-
-	// clear tripwire
-	reg.Clear(hw.cmd, USBCMD_SUTW)
 	// flush EP0 IN
 	reg.Set(hw.flush, ENDPTFLUSH_FETB+0)
 	// flush EP0 OUT
 	reg.Set(hw.flush, ENDPTFLUSH_FERB+0)
 
-	*setup = hw.getEP(0, OUT).Setup
+	*setup = hw.qh(0, OUT).Setup
 	setup.swap()
 
 	return

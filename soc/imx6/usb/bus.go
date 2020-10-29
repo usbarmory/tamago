@@ -44,8 +44,6 @@ const (
 	// p3823, 56.6 USB Core Memory Map/Register Definition, IMX6ULLRM
 
 	USB_UOG1_USBCMD = 0x02184140
-	USBCMD_SUTW     = 13
-	USBCMD_ATDTW    = 12
 	USBCMD_RST      = 1
 	USBCMD_RS       = 0
 
@@ -125,6 +123,11 @@ type USB struct {
 	stat     uint32
 	complete uint32
 	epctrl   uint32
+
+	// cache for endpoint list pointer
+	epListAddr uint32
+	// cache for endpoint queue heads pointers
+	dQH [MAX_ENDPOINTS][2]uint32
 }
 
 // USB1 instance
