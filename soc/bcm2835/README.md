@@ -36,7 +36,7 @@ Supported hardware
 | BCM2835 | [pizero](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pizero) | RNG, UART, GPIO    |
 | BCM2836 | [pi2](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pi2)       | RNG, UART, GPIO    |
 
-See the [pi](https://github.com/f-secure-foundry/tamago/tree/master/pi) package
+See the [pi](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi) package
 for documentation on compiling and executing on these boards.
 
 License
