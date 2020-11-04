@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/f-secure-foundry/tamago/bits"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
 // MMC registers
@@ -65,9 +66,17 @@ const (
 	HSDDR_MBPS = 104
 	HS200_MBPS = 150 // instead of 200 due to NXP ERR010450
 
-	// Base clock divided by 1 (Single Data Rate mode)
-	SDCLKFS_HS200 = 0x00
-	// SDR104 frequency: 200 / (1 * 1) == 200 MHz
+	// PLL2 PFD2 clock divided by 2
+	ROOTCLK_HS_DDR = 1
+	// Root clock frequency: 396 MHz / (1 + 1) = 198 MHz
+
+	// PLL2 PFD2 clock divided by 3
+	ROOTCLK_HS200 = 2 // instead of 1 due to NXP ERR010450
+	// Root clock frequency: 396 MHz / (1 + 2) = 132 MHz
+
+	// Root clock divided by 1 (Single Data Rate mode)
+	SDCLKFS_HS200 = 0
+	// HS200 frequency: 132 / (1 * 1) == 132 MHz
 
 )
 
@@ -183,14 +192,21 @@ func (hw *USDHC) detectCapabilitiesMMC(c_size_mult uint32, c_size uint32, read_b
 	return
 }
 
+func (hw *USDHC) executeTuningMMC() error {
+	reg.SetN(hw.vend_spec2, VEND_SPEC2_TUNING_8bit_EN, 0b1, 1)
+	return hw.executeTuning(21, 128)
+}
+
 // p352, 35.4.7 MMC card initialization flow chart, IMX6FG
 // p58, 6.4.4 Device identification process, JESD84-B51
 func (hw *USDHC) initMMC() (err error) {
 	var arg uint32
 	var bus_width uint32
 	var timing uint32
+	var root_clk uint32
 	var clk int
 	var ddr bool
+	var tune bool
 
 	// CMD2 - ALL_SEND_CID - get unique card identification
 	if err = hw.cmd(2, READ, arg, RSP_136, false, true, false, 0); err != nil {
@@ -277,6 +293,7 @@ func (hw *USDHC) initMMC() (err error) {
 	switch hw.card.Rate {
 	case HSDDR_MBPS:
 		timing = HS_TIMING_HS
+		root_clk = ROOTCLK_HS_DDR
 		clk = SDCLKFS_HS_DDR
 		ddr = true
 
@@ -289,7 +306,9 @@ func (hw *USDHC) initMMC() (err error) {
 		}
 	case HS200_MBPS:
 		timing = HS_TIMING_HS200
+		root_clk = ROOTCLK_HS200
 		clk = SDCLKFS_HS200
+		tune = true
 	default:
 		return
 	}
@@ -307,10 +326,13 @@ func (hw *USDHC) initMMC() (err error) {
 		return
 	}
 
-	// clear clock
 	hw.setClock(-1, -1)
-	// set high speed frequency
+	hw.setRootClock(root_clk, 0)
 	hw.setClock(DVS_HS, clk)
+
+	if tune {
+		err = hw.executeTuningMMC()
+	}
 
 	hw.card.DDR = ddr
 	hw.card.HS = true

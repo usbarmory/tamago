@@ -151,6 +151,10 @@ const (
 	VEND_SPEC_FRC_SDCLK_ON = 8
 	VEND_SPEC_VSELECT      = 1
 
+	USDHCx_VEND_SPEC2         = 0xc8
+	VEND_SPEC2_TUNING_1bit_EN = 5
+	VEND_SPEC2_TUNING_8bit_EN = 4
+
 	USDHCx_TUNING_CTRL           = 0xcc
 	TUNING_CTRL_STD_TUNING_EN    = 24
 	TUNING_CTRL_TUNING_STEP      = 16
@@ -253,6 +257,7 @@ type USDHC struct {
 	adma_err_status uint32
 	ac12_err_status uint32
 	vend_spec       uint32
+	vend_spec2      uint32
 	tuning_ctrl     uint32
 
 	// detected card properties
@@ -363,6 +368,43 @@ func (hw *USDHC) setClock(dvs int, sdclkfs int) {
 	}
 }
 
+// executeTuning performs the bus tuning, `cmd` should be set to the relevant
+// send tuning block command index, `blocks` represents the number of tuning
+// blocks.
+func (hw *USDHC) executeTuning(index uint32, blocks uint32) error {
+	reg.SetN(hw.tuning_ctrl, TUNING_CTRL_TUNING_STEP, 0b111, TUNING_STEP)
+	reg.SetN(hw.tuning_ctrl, TUNING_CTRL_TUNING_START_TAP, 0xff, TUNING_START_TAP)
+	reg.Set(hw.tuning_ctrl, TUNING_CTRL_STD_TUNING_EN)
+
+	reg.Clear(hw.ac12_err_status, AUTOCMD12_ERR_STATUS_SMP_CLK_SEL)
+	reg.Set(hw.ac12_err_status, AUTOCMD12_ERR_STATUS_EXE_TUNE)
+
+	reg.Set(hw.mix_ctrl, MIX_CTRL_FBCLK_SEL)
+	reg.Set(hw.mix_ctrl, MIX_CTRL_AUTO_TUNE_EN)
+
+	// Temporarly disable interrupts other than Buffer Read Ready
+	defer reg.Write(hw.int_signal_en, reg.Read(hw.int_signal_en))
+	defer reg.Write(hw.int_status_en, reg.Read(hw.int_status_en))
+	reg.Write(hw.int_signal_en, INT_SIGNAL_EN_BWRIEN)
+	reg.Write(hw.int_status_en, INT_STATUS_EN_BWRSEN)
+
+	tuning_block := make([]byte, blocks)
+
+	for i := 0; i < TUNING_MAX_LOOP_COUNT; i++ {
+		// send tuning block command, ignore responses
+		hw.transfer(index, READ, 0, 1, blocks, tuning_block)
+
+		ac12_err_status := reg.Read(hw.ac12_err_status)
+
+		if bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_EXE_TUNE, 0b1) == 0 &&
+			bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_SMP_CLK_SEL, 0b1) == 1 {
+			return nil
+		}
+	}
+
+	return errors.New("tuning failed")
+}
+
 func (hw *USDHC) detect() (sd bool, mmc bool, hc bool, err error) {
 	sd, hc = hw.voltageValidationSD()
 
@@ -414,6 +456,7 @@ func (hw *USDHC) Init(width int) {
 	hw.adma_err_status = base + USDHCx_ADMA_ERR_STATUS
 	hw.ac12_err_status = base + USDHCx_AUTOCMD12_ERR_STATUS
 	hw.vend_spec = base + USDHCx_VEND_SPEC
+	hw.vend_spec2 = base + USDHCx_VEND_SPEC2
 	hw.tuning_ctrl = base + USDHCx_TUNING_CTRL
 
 	// Generic SD specs read/write timeout rules (applied also to MMC by
@@ -541,8 +584,8 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 		return errors.New("transfer size cannot exceed 65535 blocks")
 	}
 
-	// State polling cannot be issued while tuning (CMD19).
-	if index != 19 {
+	// State polling cannot be issued while tuning (CMD19 and CMD21).
+	if !(index == 19 || index == 21) {
 		if err = hw.waitState(CURRENT_STATE_TRAN, 1*time.Millisecond); err != nil {
 			return
 		}

@@ -140,38 +140,8 @@ func (hw *USDHC) switchSD(mode uint32, group int, val uint32) (status []byte, er
 	return
 }
 
-func (hw *USDHC) executeTuning() error {
-	reg.SetN(hw.tuning_ctrl, TUNING_CTRL_TUNING_STEP, 0b111, TUNING_STEP)
-	reg.SetN(hw.tuning_ctrl, TUNING_CTRL_TUNING_START_TAP, 0xff, TUNING_START_TAP)
-	reg.Set(hw.tuning_ctrl, TUNING_CTRL_STD_TUNING_EN)
-
-	reg.Clear(hw.ac12_err_status, AUTOCMD12_ERR_STATUS_SMP_CLK_SEL)
-	reg.Set(hw.ac12_err_status, AUTOCMD12_ERR_STATUS_EXE_TUNE)
-
-	reg.Set(hw.mix_ctrl, MIX_CTRL_FBCLK_SEL)
-	reg.Set(hw.mix_ctrl, MIX_CTRL_AUTO_TUNE_EN)
-
-	// Temporarly disable interrupts other than Buffer Read Ready
-	defer reg.Write(hw.int_signal_en, reg.Read(hw.int_signal_en))
-	defer reg.Write(hw.int_status_en, reg.Read(hw.int_status_en))
-	reg.Write(hw.int_signal_en, INT_SIGNAL_EN_BWRIEN)
-	reg.Write(hw.int_status_en, INT_STATUS_EN_BWRSEN)
-
-	tuning_block := make([]byte, 64)
-
-	for i := 0; i < TUNING_MAX_LOOP_COUNT; i++ {
-		// CMD19 - send tuning block command, ignore responses
-		hw.transfer(19, READ, 0, 1, 64, tuning_block)
-
-		ac12_err_status := reg.Read(hw.ac12_err_status)
-
-		if bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_EXE_TUNE, 0b1) == 0 &&
-			bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_SMP_CLK_SEL, 0b1) == 1 {
-			return nil
-		}
-	}
-
-	return errors.New("tuning failed")
+func (hw *USDHC) executeTuningSD() error {
+	return hw.executeTuning(19, 64)
 }
 
 // p350, 35.4.4 SD voltage validation flow chart, IMX6FG
@@ -458,7 +428,7 @@ func (hw *USDHC) initSD() (err error) {
 	hw.setClock(DVS_HS, clk)
 
 	if tune {
-		err = hw.executeTuning()
+		err = hw.executeTuningSD()
 	}
 
 	hw.card.HS = true
