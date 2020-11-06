@@ -16,9 +16,6 @@ import (
 )
 
 const (
-	// I2C address of FUSB303
-	FUSB303_ADDR = 0x31
-
 	FUSB303_CONTROL1 = 0x05
 	CONTROL1_ENABLE  = 3
 )
