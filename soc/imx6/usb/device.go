@@ -22,7 +22,6 @@ func (hw *USB) DeviceMode() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	log.Printf("imx6_usb: resetting")
 	reg.Set(hw.cmd, USBCMD_RST)
 	reg.Wait(hw.cmd, USBCMD_RST, 1, 0)
 

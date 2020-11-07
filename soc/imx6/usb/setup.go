@@ -12,7 +12,6 @@ package usb
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
@@ -99,12 +98,10 @@ func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
 
 	switch bDescriptorType {
 	case DEVICE:
-		log.Printf("imx6_usb: sending device descriptor")
 		err = hw.tx(0, false, trim(dev.Descriptor.Bytes(), setup.Length))
 	case CONFIGURATION:
 		var conf []byte
 		if conf, err = dev.Configuration(index); err == nil {
-			log.Printf("imx6_usb: sending configuration descriptor %d (%d bytes)", index, setup.Length)
 			err = hw.tx(0, false, trim(conf, setup.Length))
 		}
 	case STRING:
@@ -112,21 +109,13 @@ func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
 			hw.stall(0, IN)
 			err = fmt.Errorf("invalid string descriptor index %d", index)
 		} else {
-			if index == 0 {
-				log.Printf("imx6_usb: sending string descriptor zero")
-			} else {
-				log.Printf("imx6_usb: sending string descriptor %d: \"%s\"", index, dev.Strings[index][2:])
-			}
-
 			err = hw.tx(0, false, trim(dev.Strings[index], setup.Length))
 		}
 	case DEVICE_QUALIFIER:
-		log.Printf("imx6_usb: sending device qualifier")
 		err = hw.tx(0, false, dev.Qualifier.Bytes())
 	default:
 		hw.stall(0, IN)
 		err = fmt.Errorf("unsupported descriptor type: %#x", bDescriptorType)
-
 	}
 
 	return
@@ -157,14 +146,12 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 	switch setup.Request {
 	case GET_STATUS:
 		// no meaningful status to report for now
-		log.Printf("imx6_usb: sending device status")
 		err = hw.tx(0, false, []byte{0x00, 0x00})
 	case CLEAR_FEATURE:
 		switch setup.Value {
 		case ENDPOINT_HALT:
 			n := int(setup.Index & 0b1111)
 			dir := int(setup.Index&0b10000000) / 0b10000000
-			log.Printf("imx6_usb: EP%d.%d resetting PID", n, dir)
 
 			hw.reset(n, dir)
 			err = hw.ack(0)
@@ -173,7 +160,6 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 		}
 	case SET_ADDRESS:
 		addr := uint32((setup.Value<<8)&0xff00 | (setup.Value >> 8))
-		log.Printf("imx6_usb: setting address %d", addr)
 
 		reg.Set(hw.addr, DEVICEADDR_USBADRA)
 		reg.SetN(hw.addr, DEVICEADDR_USBADR, 0x7f, addr)
@@ -182,22 +168,14 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 	case GET_DESCRIPTOR:
 		err = hw.getDescriptor(dev, setup)
 	case GET_CONFIGURATION:
-		log.Printf("imx6_usb: sending configuration value %d", dev.ConfigurationValue)
 		err = hw.tx(0, false, []byte{dev.ConfigurationValue})
 	case SET_CONFIGURATION:
-		value := uint8(setup.Value >> 8)
-		log.Printf("imx6_usb: setting configuration value %d", value)
-
-		dev.ConfigurationValue = value
+		dev.ConfigurationValue = uint8(setup.Value >> 8)
 		err = hw.ack(0)
 	case GET_INTERFACE:
-		log.Printf("imx6_usb: sending interface alternate setting value %d", dev.AlternateSetting)
 		err = hw.tx(0, false, []byte{dev.AlternateSetting})
 	case SET_INTERFACE:
-		value := uint8(setup.Value >> 8)
-		log.Printf("imx6_usb: setting interface alternate setting value %d", value)
-
-		dev.AlternateSetting = value
+		dev.AlternateSetting = uint8(setup.Value >> 8)
 		err = hw.ack(0)
 	case SET_ETHERNET_PACKET_FILTER:
 		// no meaningful action for now
@@ -205,7 +183,6 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 	default:
 		hw.stall(0, IN)
 		err = fmt.Errorf("unsupported request code: %#x", setup.Request)
-
 	}
 
 	return
