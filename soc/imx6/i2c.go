@@ -112,7 +112,7 @@ func (hw *I2C) Init() {
 	hw.i2sr = base + I2Cx_I2SR
 	hw.i2dr = base + I2Cx_I2DR
 
-	hw.Timeout = 10 * time.Millisecond
+	hw.Timeout = 100 * time.Millisecond
 
 	hw.enable()
 }
