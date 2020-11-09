@@ -296,6 +296,8 @@ func (hw *I2C) tx(buf []byte) (err error) {
 }
 
 func (hw *I2C) start(repeat bool) (err error) {
+	var pos int
+
 	if repeat == false {
 		// wait for bus to be free
 		if !reg.WaitFor16(hw.Timeout, hw.i2sr, I2SR_IBB, 1, 0) {
@@ -303,13 +305,16 @@ func (hw *I2C) start(repeat bool) (err error) {
 		}
 
 		// enable master mode, generates START signal
-		reg.Set16(hw.i2cr, I2CR_MSTA)
+		pos = I2CR_MSTA
 	} else {
-		reg.Set16(hw.i2cr, I2CR_RSTA)
+		pos = I2CR_RSTA
 	}
+
+	reg.Set16(hw.i2cr, pos)
 
 	// wait for bus to be busy
 	if !reg.WaitFor16(hw.Timeout, hw.i2sr, I2SR_IBB, 1, 1) {
+		reg.Clear16(hw.i2cr, pos)
 		return errors.New("timeout waiting bus to be busy")
 	}
 
