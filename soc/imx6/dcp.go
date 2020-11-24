@@ -50,8 +50,11 @@ const (
 
 	DCP_CH0STAT_CLR = DCP_BASE + 0x0128
 
-	SNVS_HPSR_REG     = 0x020cc014
-	SSM_STATE         = 8
+	SNVS_HPSR_REG       = 0x020cc014
+	HPSR_OTPMK_ZERO     = 27
+	HPSR_OTPMK_SYNDROME = 16
+
+	HPSR_SSM_STATE    = 8
 	SSM_STATE_TRUSTED = 0b1101
 	SSM_STATE_SECURE  = 0b1111
 )
@@ -148,9 +151,14 @@ func (hw *Dcp) Init() {
 // is used. The secure operation of the DCP and SNVS, in production
 // deployments, should always be paired with Secure Boot activation.
 func (hw *Dcp) SNVS() bool {
-	ssm := reg.Get(SNVS_HPSR_REG, SSM_STATE, 0b1111)
+	hpsr := reg.Read(SNVS_HPSR_REG)
 
-	switch ssm {
+	// ensure that the OTPMK has been correctly programmed
+	if bits.Get(&hpsr, HPSR_OTPMK_ZERO, 1) != 0 || bits.Get(&hpsr, HPSR_OTPMK_SYNDROME, 0x1ff) != 0 {
+		return false
+	}
+
+	switch bits.Get(&hpsr, HPSR_SSM_STATE, 0b1111) {
 	case SSM_STATE_TRUSTED, SSM_STATE_SECURE:
 		return true
 	default:
