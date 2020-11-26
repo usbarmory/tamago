@@ -59,18 +59,18 @@ type digest struct {
 //
 // The digest instance starts with New256() and terminates when when Sum() is
 // invoked, after which the digest state can no longer be changed.
-func New256() (d *digest, err error) {
+func New256() (Hash, error) {
 	if !sem.TryAcquire(1) {
 		return nil, errors.New("another digest instance is already in use")
 	}
 
-	d = &digest{
+	d := &digest{
 		mode: HASH_SELECT_SHA256,
 		bs:   64,
 		init: true,
 	}
 
-	return
+	return d, nil
 }
 
 // Write adds more data to the running hash. It returns an error if Sum has
