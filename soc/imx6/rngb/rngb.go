@@ -7,11 +7,10 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package imx6
+package rngb
 
 import (
 	"sync"
-	_ "unsafe"
 
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
@@ -40,62 +39,21 @@ const (
 	RNG_OUT = RNG_BASE + 0x14
 )
 
-// Rng represents a Random number generator instance
-type Rng struct {
-	sync.Mutex
-}
-
-// RNGB (Random Number Generator) module instance
-var RNGB = &Rng{}
-
-var lcg uint32
-var getRandomDataFn func([]byte)
-
-//go:linkname initRNG runtime.initRNG
-func initRNG() {
-	if Family == IMX6ULL && Native {
-		RNGB.Init()
-		getRandomDataFn = RNGB.getRandomData
-	} else {
-		getRandomDataFn = getLCGData
-	}
-}
-
-//go:linkname getRandomData runtime.getRandomData
-func getRandomData(b []byte) {
-	getRandomDataFn(b)
-}
-
-// getLCGData implements a Linear Congruential Generator
-// (https://en.wikipedia.org/wiki/Linear_congruential_generator).
-func getLCGData(b []byte) {
-	if lcg == 0 {
-		lcg = uint32(ARM.TimerFn())
-	}
-
-	read := 0
-	need := len(b)
-
-	for read < need {
-		lcg = (1103515245*lcg + 12345) % (1 << 31)
-		read = fill(b, read, lcg)
-	}
-}
+var mux sync.Mutex
 
 // Reset resets the RNGB module.
-func (hw *Rng) Reset() {
-	hw.Lock()
+func Reset() {
+	mux.Lock()
+	defer mux.Unlock()
 
 	// soft reset RNGB
 	reg.Set(RNG_CMD, RNG_CMD_SR)
-
-	hw.Unlock()
 }
 
-// Init initializes the RNGB module.
-func (hw *Rng) Init() {
-	hw.Lock()
-	defer hw.Unlock()
+// Init initializes the RNGB module with automatic seeding.
+func Init() {
+	mux.Lock()
+	defer mux.Unlock()
 
 	// p3105, 44.5.2 Automatic seeding, IMX6ULLRM
 
@@ -108,25 +66,24 @@ func (hw *Rng) Init() {
 	// perform self-test
 	reg.Set(RNG_CMD, RNG_CMD_ST)
 
-	print("imx6_rng: self-test\n")
 	for reg.Get(RNG_SR, RNG_SR_STDN, 1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
 
 	if reg.Get(RNG_SR, RNG_SR_ERR, 1) != 0 || reg.Get(RNG_SR, RNG_SR_ST_PF, 1) != 0 {
-		panic("imx6_rng: self-test FAIL\n")
+		panic("imx6_rng: self-test failure\n")
 	}
 
 	// enable auto-reseed
 	reg.Set(RNG_CR, RNG_CR_AR)
 
-	print("imx6_rng: seeding\n")
 	for reg.Get(RNG_SR, RNG_SR_SDN, 1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
 }
 
-func (hw *Rng) getRandomData(b []byte) {
+// GetRandomData returns len(b) random bytes gathered from the RNGB module.
+func GetRandomData(b []byte) {
 	read := 0
 	need := len(b)
 
@@ -136,12 +93,12 @@ func (hw *Rng) getRandomData(b []byte) {
 		}
 
 		if reg.Get(RNG_SR, RNG_SR_FIFO_LVL, 0b1111) > 0 {
-			read = fill(b, read, reg.Read(RNG_OUT))
+			read = Fill(b, read, reg.Read(RNG_OUT))
 		}
 	}
 }
 
-func fill(b []byte, index int, val uint32) int {
+func Fill(b []byte, index int, val uint32) int {
 	shift := 0
 	limit := len(b)
 
