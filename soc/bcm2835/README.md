@@ -48,12 +48,5 @@ Copyright (c) F-Secure Corporation
 bcm2835 | https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835  
 Copyright (c) the bcm2835 package authors
 
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation under version 3 of the License.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-See accompanying LICENSE file for full details.
+These source files are distributed under the BSD-style license found in the
+[LICENSE](https://github.com/f-secure-foundry/tamago/blob/master/soc/bcm2835/LICENSE) file.

@@ -52,9 +52,9 @@ Current release level
 =====================
 
 The current release for the [TamaGo modified Go distribution](https://github.com/f-secure-foundry/tamago-go) is
-[tamago1.15.3](https://github.com/f-secure-foundry/tamago-go/tree/tamago1.15.3),
-which [adds](https://github.com/golang/go/compare/go1.15.3...f-secure-foundry:tamago1.15.3)
-`GOOS=tamago` support to go1.15.3.
+[tamago1.15.5](https://github.com/f-secure-foundry/tamago-go/tree/tamago1.15.5),
+which [adds](https://github.com/golang/go/compare/go1.15.5...f-secure-foundry:tamago1.15.5)
+`GOOS=tamago` support to go1.15.5.
 
 Binary releases for amd64 and armv7l Linux hosts [are available](https://github.com/f-secure-foundry/tamago-go/releases/latest).
 
@@ -74,7 +74,7 @@ The following table summarizes currently supported SoCs and boards.
 
 | SoC           | Board                                                                                                                                                                                | SoC package                                                                   | Board package                                                                                          |
 |---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
-| NXP i.MX6ULL  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki)                                                                                                               | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6)       | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory)  |
+| NXP i.MX6ULZ  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki)                                                                                                               | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6)       | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory)  |
 | NXP i.MX6ULL  | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6)       | [mx6ullevk](https://github.com/f-secure-foundry/tamago/tree/master/board/nxp/mx6ullevk)                |
 | BCM2835       | [Raspberry Pi Zero](https://www.raspberrypi.org/products/raspberry-pi-zero)                                                                                                          | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi)                  |
 | BCM2835       | [Raspberry Pi 1 Model A+](https://www.raspberrypi.org/products/raspberry-pi-1-model-a-plus/)                                                                                         | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi)                     |
@@ -131,15 +131,8 @@ License
 tamago | https://github.com/f-secure-foundry/tamago  
 Copyright (c) F-Secure Corporation
 
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation under version 3 of the License.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-See accompanying LICENSE file for full details.
+These source files are distributed under the BSD-style license found in the
+[LICENSE](https://github.com/f-secure-foundry/tamago/blob/master/LICENSE) file.
 
 The TamaGo logo is adapted from the Go gopher designed by Renee French and
 licensed under the Creative Commons 3.0 Attributions license. Go Gopher vector

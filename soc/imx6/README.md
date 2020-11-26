@@ -49,12 +49,9 @@ License
 tamago | https://github.com/f-secure-foundry/tamago  
 Copyright (c) F-Secure Corporation
 
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation under version 3 of the License.
+These source files are distributed under the BSD-style license found in the
+[LICENSE](https://github.com/f-secure-foundry/tamago/blob/master/LICENSE) file.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-See accompanying LICENSE file for full details.
+The TamaGo logo is adapted from the Go gopher designed by Renee French and
+licensed under the Creative Commons 3.0 Attributions license. Go Gopher vector
+illustration by Hugo Arganda.
