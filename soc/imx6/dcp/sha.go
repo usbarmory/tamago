@@ -27,7 +27,7 @@ var sem = semaphore.NewWeighted(1)
 // state.
 type Hash interface {
 	// Write (via the embedded io.Writer interface) adds more data to the running hash.
-	// It can return an error.
+	// It can return an error. It returns an error if Sum has been already invoked.
 	io.Writer
 
 	// Sum appends the current hash to b and returns the resulting slice.
@@ -73,6 +73,11 @@ func New256() (d *digest, err error) {
 	return
 }
 
+// Write adds more data to the running hash. It returns an error if Sum has
+// been already invoked or in case of hardware errors.
+//
+// There must be sufficient DMA memory allocated to hold the data, otherwise
+// the function will panic.
 func (d *digest) Write(p []byte) (n int, err error) {
 	if len(d.sum) != 0 {
 		return 0, errors.New("digest instance can no longer be used")
@@ -95,6 +100,9 @@ func (d *digest) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+// Sum appends the current hash to in and returns the resulting slice.  Its
+// invocation terminates the digest instance, for this reason Write will return
+// errors after Sum is invoked.
 func (d *digest) Sum(in []byte) (sum []byte, err error) {
 	if len(d.sum) != 0 {
 		return append(in, d.sum[:]...), nil
@@ -114,11 +122,15 @@ func (d *digest) Sum(in []byte) (sum []byte, err error) {
 	return append(in, d.sum[:]...), nil
 }
 
+// BlockSize returns the hash's underlying block size.
 func (d *digest) BlockSize() int {
 	return d.bs
 }
 
 // Sum256 returns the SHA256 checksum of the data.
+//
+// There must be sufficient DMA memory allocated to hold the data, otherwise
+// the function will panic.
 func Sum256(data []byte) (sum [32]byte, err error) {
 	s, err := hash(data, HASH_SELECT_SHA256, true, true)
 
