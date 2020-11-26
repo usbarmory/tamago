@@ -7,6 +7,12 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+// Package rngb implements a driver for the NXP True Random Number Generator
+// (RNGB) included in i.MX6ULL/i.MX6ULZ SoCs.
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/f-secure-foundry/tamago.
 package rngb
 
 import (
