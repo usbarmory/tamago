@@ -89,13 +89,6 @@ const (
 	CIPHER_SELECT_AES128    = 0x00
 )
 
-// The i.MX6 On-Chip RAM (OCRAM/iRAM) is used for secure key passing between
-// SoC components.
-const (
-	iramStart = 0x00900000
-	iramSize  = 0x20000
-)
-
 const WorkPacketLength = 32
 
 // WorkPacket represents a DCP work packet

@@ -16,10 +16,11 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+// A single DCP channel is used for all operations, this entails that only one
+// digest state can be kept at any given time.
 var sem = semaphore.NewWeighted(1)
 
 // Hash is the common interface to DCP hardware backed hash functions.
-//
 //
 // While similar to Go native hash.Hash, this interface is not fully compatible
 // with it as hardware errors must be checked and checksum computation affects
@@ -30,7 +31,8 @@ type Hash interface {
 	io.Writer
 
 	// Sum appends the current hash to b and returns the resulting slice.
-	// It does change the underlying hash state and can only be invoked once.
+	// Its invocation terminates the digest instance, for this reason Write
+	// will return errors after Sum is invoked.
 	Sum(b []byte) ([]byte, error)
 
 	// BlockSize returns the hash's underlying block size.
@@ -46,15 +48,17 @@ type digest struct {
 	init bool
 	term bool
 	buf  []byte
+	sum  []byte
 }
 
 // New256 returns a new Digest computing the SHA256 checksum.
 //
-// A single DCP channel is used for all operations, this entails that hash
-// instances must be used exclusively, otherwise an error is returned.
+// A single DCP channel is used for all operations, this entails that only one
+// digest instance can be kept at any given time, if this condition is not met
+// an error is returned.
 //
-// This exclusive access begins with New256() and ends when Sum() is invoked,
-// after which the digest state can no longer be changed.
+// The digest instance starts with New256() and terminates when when Sum() is
+// invoked, after which the digest state can no longer be changed.
 func New256() (d *digest, err error) {
 	if !sem.TryAcquire(1) {
 		return nil, errors.New("another digest instance is already in use")
@@ -70,6 +74,10 @@ func New256() (d *digest, err error) {
 }
 
 func (d *digest) Write(p []byte) (n int, err error) {
+	if len(d.sum) != 0 {
+		return 0, errors.New("digest instance can no longer be used")
+	}
+
 	if len(d.buf) != 0 {
 		_, err = hash(d.buf, d.mode, d.init, d.term)
 
@@ -88,8 +96,8 @@ func (d *digest) Write(p []byte) (n int, err error) {
 }
 
 func (d *digest) Sum(in []byte) (sum []byte, err error) {
-	if d.term {
-		return nil, errors.New("digest instance can no longer be used")
+	if len(d.sum) != 0 {
+		return append(in, d.sum[:]...), nil
 	}
 
 	defer sem.Release(1)
@@ -101,7 +109,9 @@ func (d *digest) Sum(in []byte) (sum []byte, err error) {
 		return
 	}
 
-	return append(in, s[:]...), nil
+	d.sum = s
+
+	return append(in, d.sum[:]...), nil
 }
 
 func (d *digest) BlockSize() int {

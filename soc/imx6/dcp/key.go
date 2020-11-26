@@ -19,6 +19,13 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
+// The i.MX6 On-Chip RAM (OCRAM/iRAM) is used for passing DCP derived keys to
+// its internal key RAM without touching external RAM.
+const (
+	iramStart = 0x00900000
+	iramSize  = 0x20000
+)
+
 // DeriveKey derives a hardware unique key in a manner equivalent to PKCS#11
 // C_DeriveKey with CKM_AES_CBC_ENCRYPT_DATA.
 //
