@@ -36,6 +36,10 @@ func printk(c byte) {
 //
 // This, among all other debug signals, enables use of the UART2 serial console
 // on the receptacle when a debug accessory is connected.
+//
+// Note that there is a delay between the return of this call and the actual
+// enabling of the debug accessory, for this reason serial activity right after
+// this call might not actually reach the accessory.
 func EnableDebugAccessory() (err error) {
 	imx6.I2C1.Init()
 
