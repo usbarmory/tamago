@@ -32,7 +32,9 @@ func hash(buf []byte, mode uint32, init bool, term bool) (sum []byte, err error)
 	pkt.SetHashDefaults()
 
 	pkt.BufferSize = uint32(len(buf))
+
 	pkt.SourceBufferAddress = dma.Alloc(buf, 4)
+	defer dma.Free(pkt.SourceBufferAddress)
 
 	switch mode {
 	case HASH_SELECT_CRC32:
