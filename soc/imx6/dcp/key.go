@@ -71,10 +71,11 @@ func DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, err error)
 	pkt.Control1 |= KEY_SELECT_UNIQUE_KEY << DCP_CTRL1_KEY_SELECT
 
 	pkt.BufferSize = uint32(len(key))
+
 	pkt.SourceBufferAddress = region.Alloc(key, aes.BlockSize)
+	defer region.Free(pkt.SourceBufferAddress)
 
 	pkt.DestinationBufferAddress = pkt.SourceBufferAddress
-	defer region.Free(pkt.SourceBufferAddress)
 
 	pkt.PayloadPointer = region.Alloc(iv, 0)
 	defer region.Free(pkt.PayloadPointer)

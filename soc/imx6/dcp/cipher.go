@@ -54,10 +54,11 @@ func cipher(buf []byte, index int, iv []byte, enc bool) (err error) {
 	pkt.Control1 |= (uint32(index) & 0xff) << DCP_CTRL1_KEY_SELECT
 
 	pkt.BufferSize = uint32(len(buf))
+
 	pkt.SourceBufferAddress = dma.Alloc(buf, aes.BlockSize)
+	defer dma.Free(pkt.SourceBufferAddress)
 
 	pkt.DestinationBufferAddress = pkt.SourceBufferAddress
-	defer dma.Free(pkt.SourceBufferAddress)
 
 	pkt.PayloadPointer = dma.Alloc(iv, 4)
 	defer dma.Free(pkt.PayloadPointer)
