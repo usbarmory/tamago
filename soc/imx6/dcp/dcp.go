@@ -120,7 +120,7 @@ func (pkt *WorkPacket) Bytes() []byte {
 var mux sync.Mutex
 
 // Init initializes the DCP module.
-func init() {
+func Init() {
 	mux.Lock()
 	mux.Unlock()
 
