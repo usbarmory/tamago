@@ -33,6 +33,7 @@ const (
 
 	RNG_CR    = RNG_BASE + 0x08
 	RNG_CR_AR = 4
+	RNG_CR_GS = 1
 
 	RNG_SR          = RNG_BASE + 0x0c
 	RNG_SR_ST_PF    = 21
@@ -82,6 +83,8 @@ func Init() {
 
 	// enable auto-reseed
 	reg.Set(RNG_CR, RNG_CR_AR)
+	// generate a seed
+	reg.Set(RNG_CMD, RNG_CR_GS)
 
 	for reg.Get(RNG_SR, RNG_SR_SDN, 1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
