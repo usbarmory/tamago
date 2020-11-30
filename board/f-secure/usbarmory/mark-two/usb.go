@@ -15,6 +15,7 @@ import (
 	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
 
+// Receptacle USB port controller constants
 const (
 	FUSB303_CONTROL1 = 0x05
 	CONTROL1_ENABLE  = 3
@@ -22,7 +23,7 @@ const (
 	FUSB303_TYPE = 0x13
 )
 
-// Receptacle modes
+// Receptacle USB port controller modes
 const (
 	TYPE_DEBUGSRC    = 1 << 6
 	TYPE_DEBUGSNK    = 1 << 5
