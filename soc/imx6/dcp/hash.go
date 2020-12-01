@@ -10,8 +10,6 @@
 package dcp
 
 import (
-	"errors"
-
 	"github.com/f-secure-foundry/tamago/dma"
 )
 
@@ -26,8 +24,6 @@ func (pkt *WorkPacket) SetHashDefaults() {
 }
 
 func hash(buf []byte, mode uint32, init bool, term bool) (sum []byte, err error) {
-	var size int
-
 	pkt := &WorkPacket{}
 	pkt.SetHashDefaults()
 
@@ -36,23 +32,13 @@ func hash(buf []byte, mode uint32, init bool, term bool) (sum []byte, err error)
 	pkt.SourceBufferAddress = dma.Alloc(buf, 4)
 	defer dma.Free(pkt.SourceBufferAddress)
 
-	switch mode {
-	case HASH_SELECT_CRC32:
-		size = 4
-	case HASH_SELECT_SHA1:
-		size = 20
-	case HASH_SELECT_SHA256:
-		size = 32
-	default:
-		return nil, errors.New("invalid hash mode")
-	}
-
 	if init {
 		pkt.Control0 |= 1 << DCP_CTRL0_HASH_INIT
 	}
 
 	if term {
-		sum = make([]byte, size)
+		// output is always 32 bytes, regardless of mode
+		sum = make([]byte, 32)
 
 		pkt.PayloadPointer = dma.Alloc(sum, 4)
 		defer dma.Free(pkt.PayloadPointer)

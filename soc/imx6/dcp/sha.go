@@ -10,6 +10,7 @@
 package dcp
 
 import (
+	"crypto/sha256"
 	"errors"
 	"io"
 
@@ -46,7 +47,6 @@ type digest struct {
 	mode uint32
 	bs   int
 	init bool
-	term bool
 	buf  []byte
 	sum  []byte
 }
@@ -83,8 +83,16 @@ func (d *digest) Write(p []byte) (n int, err error) {
 		return 0, errors.New("digest instance can no longer be used")
 	}
 
-	if len(d.buf) != 0 {
-		_, err = hash(d.buf, d.mode, d.init, d.term)
+	d.buf = append(d.buf, p...)
+
+	if len(d.buf) < d.bs {
+		return len(p), nil
+	}
+
+	blocks := len(d.buf) / d.bs
+
+	for i := 0; i < blocks; i++ {
+		_, err = hash(d.buf[i:i+d.bs], d.mode, d.init, false)
 
 		if err != nil {
 			return
@@ -95,7 +103,9 @@ func (d *digest) Write(p []byte) (n int, err error) {
 		}
 	}
 
-	d.buf = p
+	if len(d.buf)%d.bs != 0 {
+		d.buf = d.buf[blocks*d.bs:]
+	}
 
 	return len(p), nil
 }
@@ -109,15 +119,18 @@ func (d *digest) Sum(in []byte) (sum []byte, err error) {
 	}
 
 	defer sem.Release(1)
-	d.term = true
 
-	s, err := hash(d.buf, HASH_SELECT_SHA256, d.init, d.term)
+	if d.init && len(d.buf) == 0 {
+		d.sum = sha256.New().Sum(nil)
+	} else {
+		s, err := hash(d.buf, HASH_SELECT_SHA256, d.init, true)
 
-	if err != nil {
-		return
+		if err != nil {
+			return
+		}
+
+		d.sum = s
 	}
-
-	d.sum = s
 
 	return append(in, d.sum[:]...), nil
 }
