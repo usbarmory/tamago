@@ -70,7 +70,7 @@ func New256() (Hash, error) {
 		mode: HASH_SELECT_SHA256,
 		bs:   blockSize,
 		init: true,
-		buf: make([]byte, 0, blockSize),
+		buf:  make([]byte, 0, blockSize),
 	}
 
 	return d, nil
@@ -86,19 +86,22 @@ func (d *digest) Write(p []byte) (n int, err error) {
 		return 0, errors.New("digest instance can no longer be used")
 	}
 
-	// If we still don't have enough data for a block, accumulate and early out.
-	if len(d.buf) + len(p) < d.bs {
+	// If we still don't have enough data for a block, accumulate and early
+	// out.
+	if len(d.buf)+len(p) < d.bs {
 		d.buf = append(d.buf, p...)
 		return len(p), nil
 	}
 
 	pl := len(p)
 
-	// top up partial block buffer, and process that.
-	cut := d.bs-len(d.buf)
+	// top up partial block buffer, and process that
+	cut := d.bs - len(d.buf)
 	d.buf = append(d.buf, p[:cut]...)
 	p = p[cut:]
+
 	_, err = hash(d.buf, d.mode, d.init, false)
+
 	if err != nil {
 		return
 	}
@@ -107,14 +110,15 @@ func (d *digest) Write(p []byte) (n int, err error) {
 		d.init = false
 	}
 
-
 	// work through any more full blocks in p
 	if l := len(p); l > d.bs {
 		r := l % d.bs
 		_, err = hash(p[:l-r], d.mode, d.init, false)
+
 		if err != nil {
 			return
 		}
+
 		p = p[l-r:]
 	}
 
