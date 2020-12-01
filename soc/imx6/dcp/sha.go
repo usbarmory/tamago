@@ -91,8 +91,8 @@ func (d *digest) Write(p []byte) (n int, err error) {
 
 	blocks := len(d.buf) / d.bs
 
-	for i := 0; i < blocks; i++ {
-		_, err = hash(d.buf[i:i+d.bs], d.mode, d.init, false)
+	if blocks > 0 {
+		_, err = hash(d.buf[0:blocks*d.bs], d.mode, d.init, false)
 
 		if err != nil {
 			return
@@ -101,11 +101,15 @@ func (d *digest) Write(p []byte) (n int, err error) {
 		if d.init {
 			d.init = false
 		}
+	} else {
+		return len(p), nil
 	}
 
-	if r := len(d.buf) % d.bs; r != 0 && blocks > 0 {
+	if r := len(d.buf) % d.bs; r != 0 {
 		// reclaim some space at the cost of a copy
 		d.buf = append(make([]byte, 0, r), d.buf[blocks*d.bs:]...)
+	} else {
+		d.buf = []byte{}
 	}
 
 	return len(p), nil
