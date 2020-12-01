@@ -17,6 +17,8 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+const blockSize = 64
+
 // A single DCP channel is used for all operations, this entails that only one
 // digest state can be kept at any given time.
 var sem = semaphore.NewWeighted(1)
@@ -66,8 +68,9 @@ func New256() (Hash, error) {
 
 	d := &digest{
 		mode: HASH_SELECT_SHA256,
-		bs:   64,
+		bs:   blockSize,
 		init: true,
+		buf: make([]byte, 0, blockSize),
 	}
 
 	return d, nil
@@ -83,36 +86,42 @@ func (d *digest) Write(p []byte) (n int, err error) {
 		return 0, errors.New("digest instance can no longer be used")
 	}
 
-	d.buf = append(d.buf, p...)
-
-	if len(d.buf) < d.bs {
+	// If we still don't have enough data for a block, accumulate and early out.
+	if len(d.buf) + len(p) < d.bs {
+		d.buf = append(d.buf, p...)
 		return len(p), nil
 	}
 
-	blocks := len(d.buf) / d.bs
+	pl := len(p)
 
-	if blocks > 0 {
-		_, err = hash(d.buf[0:blocks*d.bs], d.mode, d.init, false)
+	// top up partial block buffer, and process that.
+	cut := d.bs-len(d.buf)
+	d.buf = append(d.buf, p[:cut]...)
+	p = p[cut:]
+	_, err = hash(d.buf, d.mode, d.init, false)
+	if err != nil {
+		return
+	}
 
+	if d.init {
+		d.init = false
+	}
+
+
+	// work through any more full blocks in p
+	if l := len(p); l > d.bs {
+		r := l % d.bs
+		_, err = hash(p[:l-r], d.mode, d.init, false)
 		if err != nil {
 			return
 		}
-
-		if d.init {
-			d.init = false
-		}
-	} else {
-		return len(p), nil
+		p = p[l-r:]
 	}
 
-	if r := len(d.buf) % d.bs; r != 0 {
-		// reclaim some space at the cost of a copy
-		d.buf = append(make([]byte, 0, r), d.buf[blocks*d.bs:]...)
-	} else {
-		d.buf = []byte{}
-	}
+	// save off any partial block remaining
+	d.buf = append(d.buf[0:0], p...)
 
-	return len(p), nil
+	return pl, nil
 }
 
 // Sum appends the current hash to in and returns the resulting slice.  Its
