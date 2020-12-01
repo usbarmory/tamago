@@ -103,8 +103,9 @@ func (d *digest) Write(p []byte) (n int, err error) {
 		}
 	}
 
-	if len(d.buf)%d.bs != 0 {
-		d.buf = d.buf[blocks*d.bs:]
+	if r := len(d.buf) % d.bs; r != 0 && blocks > 0 {
+		// reclaim some space at the cost of a copy
+		d.buf = append(make([]byte, 0, r), d.buf[blocks*d.bs:]...)
 	}
 
 	return len(p), nil
@@ -126,7 +127,7 @@ func (d *digest) Sum(in []byte) (sum []byte, err error) {
 		s, err := hash(d.buf, HASH_SELECT_SHA256, d.init, true)
 
 		if err != nil {
-			return
+			return nil, err
 		}
 
 		d.sum = s
