@@ -207,7 +207,10 @@ func (d *InterfaceDescriptor) Bytes() []byte {
 // On OUT endpoints the function is expected to receive data from the host in
 // the input buffer. The expected size, or a reserved DMA buffer (see
 // `dma.Reserve`), for the next OUT transfer can be passed as a result buffer,
-// otherwise a short or single packet is assumed.
+// otherwise a short or single packet is assumed. In case a reserved DMA buffer
+// is returned the next OUT transfer `buf` argument represents a slice of it,
+// care must be taken not to use such slice (without a copy) after the reserved
+// buffer is released.
 //
 // On IN endpoints the function is expected to return data, or reserved and
 // filled DMA buffer, for transmission to the host, such data is used to fill
@@ -225,7 +228,7 @@ type EndpointDescriptor struct {
 	MaxPacketSize   uint16
 	Interval        uint8
 
-	// automatic Zero Length Termination
+	// Automatic Zero Length Termination
 	Zero bool
 
 	Function EndpointFunction

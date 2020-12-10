@@ -61,9 +61,9 @@ func ReceptacleMode() (mode int, err error) {
 // A debug accessory allows access, among all other debug signals, to the UART2
 // serial console.
 //
-// Note that there is a delay between the return of this call and the actual
-// enabling of the debug accessory, for this reason the serial console is not
-// immediately available.
+// Note that there is a delay (typically up to 200ms) between the return of
+// this call and the actual enabling of the debug accessory, for this reason
+// the serial console is not immediately available.
 //
 // To wait detection of a debug accessory use DetectDebugAccessory() instead.
 func EnableDebugAccessory() (err error) {
@@ -92,7 +92,8 @@ func waitDebugAccessory(timeout time.Duration, ch chan<- bool) {
 }
 
 // DetectDebugAccessory enables debug accessory detection on the receptacle USB
-// port controller and polls (every 10ms) successful detection.
+// port controller and polls successful detection (typically done in up to
+// 200ms).
 //
 // An error is returned if no debug accessory is detected within the timeout.
 //
