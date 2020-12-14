@@ -641,27 +641,37 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 	return
 }
 
-// ReadBlocks transfers full blocks of data from the card.
-func (hw *USDHC) ReadBlocks(lba int, blocks int, buf []byte) (err error) {
+func (hw *USDHC) transferBlocks(index uint32, dtd uint32, lba int, buf []byte) (err error) {
 	blockSize := hw.card.BlockSize
-	bufSize := blocks * blockSize
 	offset := uint64(lba) * uint64(blockSize)
+	size := len(buf)
 
-	if bufSize == 0 || blockSize == 0 {
+	if size == 0 || blockSize == 0 {
 		return
 	}
 
-	if len(buf) < bufSize {
-		return errors.New("invalid buffer size")
+	if size%blockSize != 0 {
+		return fmt.Errorf("write size must be %d bytes aligned", blockSize)
 	}
+
+	blocks := size / blockSize
 
 	hw.Lock()
 	defer hw.Unlock()
 
-	// CMD18 - READ_MULTIPLE_BLOCK - read consecutive blocks
-	err = hw.transfer(18, READ, offset, uint32(blocks), uint32(blockSize), buf)
+	return hw.transfer(index, dtd, offset, uint32(blocks), uint32(blockSize), buf)
+}
 
-	return
+// WriteBlocks transfers full blocks of data to the card.
+func (hw *USDHC) WriteBlocks(lba int, buf []byte) (err error) {
+	// CMD25 - WRITE_MULTIPLE_BLOCK - write consecutive blocks
+	return hw.transferBlocks(25, WRITE, lba, buf)
+}
+
+// ReadBlocks transfers full blocks of data from the card.
+func (hw *USDHC) ReadBlocks(lba int, buf []byte) (err error) {
+	// CMD18 - READ_MULTIPLE_BLOCK - read consecutive blocks
+	return hw.transferBlocks(18, READ, lba, buf)
 }
 
 // Read transfers data from the card.
@@ -707,40 +717,4 @@ func (hw *USDHC) Read(offset int64, size int64) (buf []byte, err error) {
 	}
 
 	return
-}
-
-// WriteBlocks transfers full blocks of data to the card.
-func (hw *USDHC) WriteBlocks(lba int, buf []byte) (err error) {
-	blockSize := hw.card.BlockSize
-	offset := int64(lba) * int64(blockSize)
-
-	return hw.Write(offset, buf)
-}
-
-// Write transfers data to the card.
-func (hw *USDHC) Write(offset int64, buf []byte) (err error) {
-	blockSize := uint32(hw.card.BlockSize)
-	size := len(buf)
-
-	if size == 0 || blockSize == 0 {
-		return
-	}
-
-	// TODO: support arbitrary write
-
-	if uint32(offset)%blockSize != 0 {
-		return fmt.Errorf("write offset must be %d bytes aligned", blockSize)
-	}
-
-	if uint32(size)%blockSize != 0 {
-		return fmt.Errorf("write size must be %d bytes aligned", blockSize)
-	}
-
-	blocks := uint32(size) / blockSize
-
-	hw.Lock()
-	defer hw.Unlock()
-
-	// CMD25 - WRITE_MULTIPLE_BLOCK - write consecutive blocks
-	return hw.transfer(25, WRITE, uint64(offset), blocks, blockSize, buf)
 }
