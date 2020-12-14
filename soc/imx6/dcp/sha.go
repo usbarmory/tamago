@@ -10,11 +10,14 @@
 package dcp
 
 import (
+	"crypto/sha256"
 	"errors"
 	"io"
 
 	"golang.org/x/sync/semaphore"
 )
+
+const blockSize = 64
 
 // A single DCP channel is used for all operations, this entails that only one
 // digest state can be kept at any given time.
@@ -46,7 +49,6 @@ type digest struct {
 	mode uint32
 	bs   int
 	init bool
-	term bool
 	buf  []byte
 	sum  []byte
 }
@@ -59,18 +61,19 @@ type digest struct {
 //
 // The digest instance starts with New256() and terminates when when Sum() is
 // invoked, after which the digest state can no longer be changed.
-func New256() (d *digest, err error) {
+func New256() (Hash, error) {
 	if !sem.TryAcquire(1) {
 		return nil, errors.New("another digest instance is already in use")
 	}
 
-	d = &digest{
+	d := &digest{
 		mode: HASH_SELECT_SHA256,
-		bs:   64,
+		bs:   blockSize,
 		init: true,
+		buf:  make([]byte, 0, blockSize),
 	}
 
-	return
+	return d, nil
 }
 
 // Write adds more data to the running hash. It returns an error if Sum has
@@ -83,21 +86,46 @@ func (d *digest) Write(p []byte) (n int, err error) {
 		return 0, errors.New("digest instance can no longer be used")
 	}
 
-	if len(d.buf) != 0 {
-		_, err = hash(d.buf, d.mode, d.init, d.term)
+	// If we still don't have enough data for a block, accumulate and early
+	// out.
+	if len(d.buf)+len(p) < d.bs {
+		d.buf = append(d.buf, p...)
+		return len(p), nil
+	}
+
+	pl := len(p)
+
+	// top up partial block buffer, and process that
+	cut := d.bs - len(d.buf)
+	d.buf = append(d.buf, p[:cut]...)
+	p = p[cut:]
+
+	_, err = hash(d.buf, d.mode, d.init, false)
+
+	if err != nil {
+		return
+	}
+
+	if d.init {
+		d.init = false
+	}
+
+	// work through any more full blocks in p
+	if l := len(p); l > d.bs {
+		r := l % d.bs
+		_, err = hash(p[:l-r], d.mode, d.init, false)
 
 		if err != nil {
 			return
 		}
 
-		if d.init {
-			d.init = false
-		}
+		p = p[l-r:]
 	}
 
-	d.buf = p
+	// save off any partial block remaining
+	d.buf = append(d.buf[0:0], p...)
 
-	return len(p), nil
+	return pl, nil
 }
 
 // Sum appends the current hash to in and returns the resulting slice.  Its
@@ -109,15 +137,18 @@ func (d *digest) Sum(in []byte) (sum []byte, err error) {
 	}
 
 	defer sem.Release(1)
-	d.term = true
 
-	s, err := hash(d.buf, HASH_SELECT_SHA256, d.init, d.term)
+	if d.init && len(d.buf) == 0 {
+		d.sum = sha256.New().Sum(nil)
+	} else {
+		s, err := hash(d.buf, HASH_SELECT_SHA256, d.init, true)
 
-	if err != nil {
-		return
+		if err != nil {
+			return nil, err
+		}
+
+		d.sum = s
 	}
-
-	d.sum = s
 
 	return append(in, d.sum[:]...), nil
 }

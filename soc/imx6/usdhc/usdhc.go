@@ -647,7 +647,7 @@ func (hw *USDHC) ReadBlocks(lba int, blocks int, buf []byte) (err error) {
 	bufSize := blocks * blockSize
 	offset := uint64(lba) * uint64(blockSize)
 
-	if bufSize == 0 {
+	if bufSize == 0 || blockSize == 0 {
 		return
 	}
 
@@ -722,7 +722,7 @@ func (hw *USDHC) Write(offset int64, buf []byte) (err error) {
 	blockSize := uint32(hw.card.BlockSize)
 	size := len(buf)
 
-	if size == 0 {
+	if size == 0 || blockSize == 0 {
 		return
 	}
 
