@@ -124,11 +124,6 @@ func (hw *USDHC) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 		bits.Clear(&xfr, CMD_XFR_TYP_CCCEN)
 	}
 
-	// set response type
-	bits.SetN(&xfr, CMD_XFR_TYP_RSPTYP, 0b11, res)
-	// set data transfer direction
-	bits.SetN(&mix, MIX_CTRL_DTDSEL, 1, dtd)
-
 	if hw.card.DDR {
 		// enable dual data rate
 		bits.Set(&mix, MIX_CTRL_DDR_EN)
@@ -154,6 +149,15 @@ func (hw *USDHC) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 		bits.Clear(&mix, MIX_CTRL_BCEN)
 		bits.Clear(&mix, MIX_CTRL_DMAEN)
 	}
+
+	if hw.rpmb {
+		bits.Clear(&mix, MIX_CTRL_MSBSEL)
+	}
+
+	// set response type
+	bits.SetN(&xfr, CMD_XFR_TYP_RSPTYP, 0b11, res)
+	// set data transfer direction
+	bits.SetN(&mix, MIX_CTRL_DTDSEL, 1, dtd)
 
 	reg.Write(hw.mix_ctrl, mix)
 	reg.Write(hw.cmd_xfr, xfr)
@@ -184,7 +188,7 @@ func (hw *USDHC) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	// p3997, 58.5.3.5.4 Auto CMD12 Error, IMX6ULLRM
 	if (status >> 16) == ((1 << INT_STATUS_AC12E) >> 16) {
 		// retry once CMD12 if the Auto one fails
-		if err := hw.cmd(12, WRITE, 0, RSP_NONE, true, true, false, hw.writeTimeout); err == nil {
+		if err := hw.cmd(12, READ, 0, RSP_NONE, true, true, false, hw.writeTimeout); err == nil {
 			bits.Clear(&status, INT_STATUS_AC12E)
 		}
 	}

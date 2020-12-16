@@ -41,20 +41,25 @@ const (
 	ACCESS_WRITE_BYTE = 0b11
 
 	// p184 7.3 CSD register, JESD84-B51
-	MMC_CSD_C_SIZE_MULT = 47 + CSD_RSP_OFF
-	MMC_CSD_C_SIZE      = 62 + CSD_RSP_OFF
-	MMC_CSD_READ_BL_LEN = 80 + CSD_RSP_OFF
-	MMC_CSD_TRAN_SPEED  = 96 + CSD_RSP_OFF
 	MMC_CSD_SPEC_VERS   = 122 + CSD_RSP_OFF
+	MMC_CSD_TRAN_SPEED  = 96 + CSD_RSP_OFF
+	MMC_CSD_READ_BL_LEN = 80 + CSD_RSP_OFF
+	MMC_CSD_C_SIZE      = 62 + CSD_RSP_OFF
+	MMC_CSD_C_SIZE_MULT = 47 + CSD_RSP_OFF
 
 	// p186 TRAN_SPEED [103:96], JESD84-B51
 	TRAN_SPEED_26MHZ = 0x32
 
 	// p193, 7.4 Extended CSD register, JESD84-B51
-	EXT_CSD_BUS_WIDTH   = 183
-	EXT_CSD_HS_TIMING   = 185
-	EXT_CSD_DEVICE_TYPE = 196
-	EXT_CSD_SEC_COUNT   = 212
+	EXT_CSD_SEC_COUNT        = 212
+	EXT_CSD_DEVICE_TYPE      = 196
+	EXT_CSD_HS_TIMING        = 185
+	EXT_CSD_BUS_WIDTH        = 183
+	EXT_CSD_PARTITION_CONFIG = 179
+
+	// p224, PARTITION_CONFIG, JESD84-B51
+	PARTITION_ACCESS_NONE = 0x0
+	PARTITION_ACCESS_RPMB = 0x3
 
 	// p222, 7.4.65 HS_TIMING [185], JESD84-B51
 	HS_TIMING_HS    = 0x1
@@ -316,4 +321,51 @@ func (hw *USDHC) initMMC() (err error) {
 	hw.card.HS = true
 
 	return
+}
+
+// p224, 7.4.69 PARTITION_CONFIG [179], JESD84-B51
+func (hw *USDHC) partitionAccessMMC(access uint32) (err error) {
+	return hw.writeCardRegisterMMC(EXT_CSD_PARTITION_CONFIG, access)
+}
+
+// p106, 6.6.22.4.3 Authenticated Data Write, JESD84-B51
+// p108, 6.6.22.4.4 Authenticated Data Read,  JESD84-B51
+func (hw *USDHC) transferRPMB(dtd int, buf []byte) (err error) {
+	if !hw.card.MMC {
+		return fmt.Errorf("no MMC card detected on uSDHC%d", hw.n)
+	}
+
+	if len(buf) != 512 {
+		return errors.New("transfer size must be 512")
+	}
+
+	hw.Lock()
+	hw.rpmb = true
+
+	defer func() {
+		hw.rpmb = false
+		hw.Unlock()
+	}()
+
+	if dtd == WRITE {
+		// CMD25 - WRITE_MULTIPLE_BLOCK - write consecutive blocks
+		err = hw.transfer(25, WRITE, 0, 1, 512, buf)
+	} else {
+		// CMD18 - READ_MULTIPLE_BLOCK - read consecutive blocks
+		err = hw.transfer(18, READ, 0, 1, 512, buf)
+	}
+
+	return
+}
+
+// WriteRPMB transfers a single Replay Protected Memory Block (RPMB) data
+// frame to the card.
+func (hw *USDHC) WriteRPMB(buf []byte) (err error) {
+	return hw.transferRPMB(WRITE, buf)
+}
+
+// ReadRPMB transfers a single Replay Protected Memory Block (RPMB) data
+// frame from the card.
+func (hw *USDHC) ReadRPMB(buf []byte) (err error) {
+	return hw.transferRPMB(READ, buf)
 }
