@@ -13,7 +13,6 @@ package usdhc
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/f-secure-foundry/tamago/bits"
