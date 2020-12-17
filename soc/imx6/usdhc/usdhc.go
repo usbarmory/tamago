@@ -263,6 +263,9 @@ type USDHC struct {
 	// detected card properties
 	card CardInfo
 
+	// eMMC Replay Protected Memory Block (RPMB) operation
+	rpmb bool
+
 	readTimeout  time.Duration
 	writeTimeout time.Duration
 }
@@ -535,7 +538,7 @@ func (hw *USDHC) Detect() (err error) {
 	reg.Wait(hw.sys_ctrl, SYS_CTRL_INITA, 1, 0)
 
 	// CMD0 - GO_IDLE_STATE - reset card
-	if err = hw.cmd(0, READ, GO_IDLE_STATE, RSP_NONE, false, false, false, 0); err != nil {
+	if err = hw.cmd(0, GO_IDLE_STATE, 0, 0); err != nil {
 		return
 	}
 
@@ -560,13 +563,13 @@ func (hw *USDHC) Detect() (err error) {
 	if !hw.card.DDR {
 		// CMD16 - SET_BLOCKLEN - define the block length,
 		// only legal In single data rate mode.
-		err = hw.cmd(16, READ, uint32(hw.card.BlockSize), RSP_48, true, true, false, 0)
+		err = hw.cmd(16, uint32(hw.card.BlockSize), 0, 0)
 	}
 
 	return
 }
 
-// Transfer data from/to the card as specified in:
+// transfer data from/to the card as specified in:
 //   p347, 35.5.1 Reading data from the card, IMX6FG,
 //   p354, 35.5.2 Writing data to the card, IMX6FG.
 func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32, blockSize uint32, buf []byte) (err error) {
@@ -613,17 +616,38 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 		offset = offset / uint64(blockSize)
 	}
 
-	if dtd == WRITE {
+	if hw.rpmb {
+		err = hw.partitionAccessMMC(PARTITION_ACCESS_RPMB)
+
+		if err != nil {
+			return
+		}
+
+		if dtd == WRITE {
+			// reliable write request
+			bits.Set(&blocks, 31)
+		}
+
+		// CMD23 - SET_BLOCK_COUNT - define read/write block count
+		if err = hw.cmd(23, blocks, 0, 0); err != nil {
+			return
+		}
+
+		defer hw.partitionAccessMMC(PARTITION_ACCESS_NONE)
+	}
+
+	switch dtd {
+	case WRITE:
 		timeout = hw.writeTimeout * time.Duration(blocks)
 		// set write watermark level
 		reg.SetN(hw.wtmk_lvl, WTMK_LVL_WR_WML, 0xff, blockSize/4)
-	} else {
+	case READ:
 		timeout = hw.readTimeout * time.Duration(blocks)
 		// set read watermark level
 		reg.SetN(hw.wtmk_lvl, WTMK_LVL_RD_WML, 0xff, blockSize/4)
 	}
 
-	err = hw.cmd(index, dtd, uint32(offset), RSP_48, true, true, true, timeout)
+	err = hw.cmd(index, uint32(offset), blocks, timeout)
 	adma_err := reg.Read(hw.adma_err_status)
 
 	if err != nil {

@@ -25,71 +25,77 @@ import (
 
 // USB registers
 const (
-	CCM_ANALOG_PLL_USB1 = 0x020c8010
-	PLL_EN_USB_CLKS     = 6
+	USB_ANALOG1_BASE = 0x020c81a0
+	USB_ANALOG2_BASE = 0x020c8200
 
-	USB_ANALOG_USB1_CHRG_DETECT = 0x020c81b0
+	USB_ANALOG_USBx_CHRG_DETECT = 0x10
 	CHRG_DETECT_EN_B            = 20
 	CHRG_DETECT_CHK_CHRG_B      = 19
 
-	USBPHY1_PWD = 0x020c9000
+	USBPHY1_BASE = 0x020c9000
+	USBPHY2_BASE = 0x020ca000
 
-	USBPHY1_CTRL            = 0x020c9030
+	USBPHYx_PWD = 0x00
+
+	USBPHYx_CTRL            = 0x30
 	CTRL_SFTRST             = 31
 	CTRL_CLKGATE            = 30
 	CTRL_ENUTMILEVEL3       = 15
 	CTRL_ENUTMILEVEL2       = 15
 	CTRL_ENHOSTDISCONDETECT = 1
 
+	USB1_BASE = 0x02184000
+	USB2_BASE = 0x02184200
+
 	// p3823, 56.6 USB Core Memory Map/Register Definition, IMX6ULLRM
 
-	USB_UOG1_USBCMD = 0x02184140
+	USB_UOGx_USBCMD = 0x140
 	USBCMD_RST      = 1
 	USBCMD_RS       = 0
 
-	USB_UOG1_USBSTS = 0x02184144
+	USB_UOGx_USBSTS = 0x144
 	USBSTS_URI      = 6
 	USBSTS_UI       = 0
 
-	USB_UOG1_DEVICEADDR = 0x02184154
+	USB_UOGx_DEVICEADDR = 0x154
 	DEVICEADDR_USBADR   = 25
 	DEVICEADDR_USBADRA  = 24
 
-	USB_UOG1_ENDPTLISTADDR = 0x02184158
+	USB_UOGx_ENDPTLISTADDR = 0x158
 	ENDPTLISTADDR_EPBASE   = 11
 
-	USB_UOG1_PORTSC1 = 0x02184184
+	USB_UOGx_PORTSC1 = 0x184
 	PORTSC_PTS_1     = 30
 	PORTSC_PSPD      = 26
 	PORTSC_PR        = 8
 
-	USB_UOG1_OTGSC = 0x021841a4
+	USB_UOGx_OTGSC = 0x1a4
 	OTGSC_OT       = 3
 
-	USB_UOG1_USBMODE  = 0x021841a8
+	USB_UOGx_USBMODE  = 0x1a8
 	USBMODE_SDIS      = 4
 	USBMODE_SLOM      = 3
 	USBMODE_CM        = 0
 	USBMODE_CM_DEVICE = 0b10
 	USBMODE_CM_HOST   = 0b11
 
-	USB_UOG1_ENDPTSETUPSTAT = 0x021841ac
+	USB_UOGx_ENDPTSETUPSTAT = 0x1ac
 
-	USB_UOG1_ENDPTPRIME = 0x021841b0
+	USB_UOGx_ENDPTPRIME = 0x1b0
 	ENDPTPRIME_PETB     = 16
 	ENDPTPRIME_PERB     = 0
 
-	USB_UOG1_ENDPTFLUSH = 0x021841b4
+	USB_UOGx_ENDPTFLUSH = 0x1b4
 	ENDPTFLUSH_FETB     = 16
 	ENDPTFLUSH_FERB     = 0
 
-	USB_UOG1_ENDPTSTAT = 0x021841b8
+	USB_UOGx_ENDPTSTAT = 0x1b8
 
-	USB_UOG1_ENDPTCOMPLETE = 0x021841bc
+	USB_UOGx_ENDPTCOMPLETE = 0x1bc
 	ENDPTCOMPLETE_ETBR     = 16
 	ENDPTCOMPLETE_ERBR     = 0
 
-	USB_UOG1_ENDPTCTRL = 0x021841c0
+	USB_UOGx_ENDPTCTRL = 0x1c0
 	ENDPTCTRL_TXE      = 23
 	ENDPTCTRL_TXR      = 22
 	ENDPTCTRL_TXI      = 21
@@ -105,6 +111,9 @@ const (
 // USB represents a controller instance.
 type USB struct {
 	sync.Mutex
+
+	// controller index
+	n int
 
 	pll      uint32
 	ctrl     uint32
@@ -131,37 +140,58 @@ type USB struct {
 }
 
 // USB1 instance
-var USB1 = &USB{
-	pll:      CCM_ANALOG_PLL_USB1,
-	ctrl:     USBPHY1_CTRL,
-	pwd:      USBPHY1_PWD,
-	chrg:     USB_ANALOG_USB1_CHRG_DETECT,
-	mode:     USB_UOG1_USBMODE,
-	otg:      USB_UOG1_OTGSC,
-	cmd:      USB_UOG1_USBCMD,
-	addr:     USB_UOG1_DEVICEADDR,
-	sts:      USB_UOG1_USBSTS,
-	sc:       USB_UOG1_PORTSC1,
-	eplist:   USB_UOG1_ENDPTLISTADDR,
-	setup:    USB_UOG1_ENDPTSETUPSTAT,
-	flush:    USB_UOG1_ENDPTFLUSH,
-	prime:    USB_UOG1_ENDPTPRIME,
-	stat:     USB_UOG1_ENDPTSTAT,
-	complete: USB_UOG1_ENDPTCOMPLETE,
-	epctrl:   USB_UOG1_ENDPTCTRL,
-}
+var USB1 = &USB{n: 1}
+
+// USB2 instance
+var USB2 = &USB{n: 2}
 
 // Init initializes the USB controller.
 func (hw *USB) Init() {
+	var base uint32
+	var analogBase uint32
+	var phyBase uint32
+
 	hw.Lock()
 	defer hw.Unlock()
+
+	switch hw.n {
+	case 1:
+		base = USB1_BASE
+		analogBase = USB_ANALOG1_BASE
+		phyBase = USBPHY1_BASE
+		hw.pll = imx6.CCM_ANALOG_PLL_USB1
+	case 2:
+		base = USB2_BASE
+		analogBase = USB_ANALOG2_BASE
+		phyBase = USBPHY2_BASE
+		hw.pll = imx6.CCM_ANALOG_PLL_USB2
+	default:
+		panic("invalid USB controller instance")
+	}
+
+	hw.ctrl = phyBase + USBPHYx_CTRL
+	hw.pwd = phyBase + USBPHYx_PWD
+	hw.chrg = analogBase + USB_ANALOG_USBx_CHRG_DETECT
+	hw.mode = base + USB_UOGx_USBMODE
+	hw.otg = base + USB_UOGx_OTGSC
+	hw.cmd = base + USB_UOGx_USBCMD
+	hw.addr = base + USB_UOGx_DEVICEADDR
+	hw.sts = base + USB_UOGx_USBSTS
+	hw.sc = base + USB_UOGx_PORTSC1
+	hw.eplist = base + USB_UOGx_ENDPTLISTADDR
+	hw.setup = base + USB_UOGx_ENDPTSETUPSTAT
+	hw.flush = base + USB_UOGx_ENDPTFLUSH
+	hw.prime = base + USB_UOGx_ENDPTPRIME
+	hw.stat = base + USB_UOGx_ENDPTSTAT
+	hw.complete = base + USB_UOGx_ENDPTCOMPLETE
+	hw.epctrl = base + USB_UOGx_ENDPTCTRL
 
 	// enable clock
 	reg.SetN(imx6.CCM_CCGR6, imx6.CCGR6_CG0, 0b11, 0b11)
 
 	// power up PLL
 	reg.Set(hw.pll, imx6.PLL_POWER)
-	reg.Set(hw.pll, PLL_EN_USB_CLKS)
+	reg.Set(hw.pll, imx6.PLL_EN_USB_CLKS)
 
 	// wait for lock
 	log.Printf("imx6_usb: waiting for PLL lock")
