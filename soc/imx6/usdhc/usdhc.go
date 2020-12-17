@@ -495,7 +495,7 @@ func (hw *USDHC) Detect() (err error) {
 	reg.Wait(hw.sys_ctrl, SYS_CTRL_INITA, 1, 0)
 
 	// CMD0 - GO_IDLE_STATE - reset card
-	if err = hw.cmd(0, READ, GO_IDLE_STATE, RSP_NONE, false, false, false, 0); err != nil {
+	if err = hw.cmd(0, GO_IDLE_STATE, 0, 0); err != nil {
 		return
 	}
 
@@ -520,7 +520,7 @@ func (hw *USDHC) Detect() (err error) {
 	if !hw.card.DDR {
 		// CMD16 - SET_BLOCKLEN - define the block length,
 		// only legal In single data rate mode.
-		err = hw.cmd(16, READ, uint32(hw.card.BlockSize), RSP_48, true, true, false, 0)
+		err = hw.cmd(16, uint32(hw.card.BlockSize), 0, 0)
 	}
 
 	return
@@ -586,7 +586,7 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 		}
 
 		// CMD23 - SET_BLOCK_COUNT - define read/write block count
-		if err = hw.cmd(23, READ, blocks, RSP_48, true, true, false, 0); err != nil {
+		if err = hw.cmd(23, blocks, 0, 0); err != nil {
 			return
 		}
 
@@ -604,7 +604,7 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 		reg.SetN(hw.wtmk_lvl, WTMK_LVL_RD_WML, 0xff, blockSize/4)
 	}
 
-	err = hw.cmd(index, dtd, uint32(offset), RSP_48, true, true, true, timeout)
+	err = hw.cmd(index, uint32(offset), blocks, timeout)
 	adma_err := reg.Read(hw.adma_err_status)
 
 	if err != nil {

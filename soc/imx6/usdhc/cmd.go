@@ -13,6 +13,7 @@ package usdhc
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/f-secure-foundry/tamago/bits"
@@ -35,9 +36,11 @@ const (
 	CURRENT_STATE_IDENT  = 2
 	CURRENT_STATE_TRAN   = 4
 
+	// data transfer direction
 	WRITE = 0
 	READ  = 1
 
+	// response types
 	RSP_NONE          = 0b00
 	RSP_136           = 0b01
 	RSP_48            = 0b10
@@ -49,9 +52,67 @@ const (
 	DEFAULT_CMD_TIMEOUT = 10 * time.Millisecond
 )
 
+type cmdParams struct {
+	// data transfer direction
+	dtd uint32
+	// response type
+	res uint32
+	// command index verification
+	cic bool
+	// CRC verification
+	ccc bool
+}
+
+var cmds = map[uint32]cmdParams{
+	// CMD0 - GO_IDLE_STATE - reset card
+	0: {READ, RSP_NONE, false, false},
+	// MMC: CMD1 - SEND_OP_COND - send operating conditions
+	1: {READ, RSP_48, false, false},
+	// CMD2 - ALL_SEND_CID - get unique card identification
+	2: {READ, RSP_136, false, true},
+	//  SD: CMD3 - SEND_RELATIVE_ADDR - get relative card address (RCA)
+	// MMC: CMD3 -  SET_RELATIVE_ADDR - set relative card address (RCA
+	3: {READ, RSP_48, true, true},
+	// CMD6 - SWITCH - switch mode of operation
+	6: {READ, RSP_48_CHECK_BUSY, true, true},
+	// CMD7 - SELECT/DESELECT CARD - enter transfer state
+	7: {READ, RSP_48_CHECK_BUSY, true, true},
+	//  SD: CMD8 - SEND_IF_COND - read device data
+	// MMC: CMD8 - SEND_EXT_CSD - read extended device data
+	8: {READ, RSP_48, true, true},
+	// CMD9 - SEND_CSD - read device data
+	9: {READ, RSP_136, false, true},
+	// SD: CMD11 - VOLTAGE_SWITCH - switch to 1.8V signaling
+	11: {READ, RSP_48, true, true},
+	// CMD12 - STOP_TRANSMISSION - stop transmission
+	12: {READ, RSP_NONE, true, true},
+	// CMD13 - SEND_STATUS - poll card status
+	13: {READ, RSP_48, true, true},
+	// CMD16 - SET_BLOCKLEN - define the block length
+	16: {READ, RSP_48, true, true},
+	// CMD18 - READ_MULTIPLE_BLOCK - read consecutive blocks
+	18: {READ, RSP_48, true, true},
+	// CMD19 - send tuning block command, ignore responses
+	19: {READ, RSP_48, true, true},
+	// CMD23 - SET_BLOCK_COUNT - define read/write block count
+	23: {READ, RSP_48, true, true},
+	// CMD25 - WRITE_MULTIPLE_BLOCK - write consecutive blocks
+	25: {WRITE, RSP_48, true, true},
+	// SD: ACMD41 - SD_SEND_OP_COND - read capacity information
+	41: {READ, RSP_48, false, false},
+	// SD: CMD55 - APP_CMD - next command is application specific
+	55: {READ, RSP_48, true, true},
+}
+
 // cmd sends an SD / MMC command as described in
 // p349, 35.4.3 Send command to card flow chart, IMX6FG
-func (hw *USDHC) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool, ccc bool, dma bool, timeout time.Duration) (err error) {
+func (hw *USDHC) cmd(index uint32, arg uint32, blocks uint32, timeout time.Duration) (err error) {
+	params, ok := cmds[index]
+
+	if !ok {
+		return fmt.Errorf("CMD%d unsupported", index)
+	}
+
 	if timeout == 0 {
 		timeout = DEFAULT_CMD_TIMEOUT
 	}
@@ -68,14 +129,14 @@ func (hw *USDHC) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	}
 
 	// wait for data inhibit to be clear
-	if dma && !reg.WaitFor(timeout, hw.pres_state, PRES_STATE_CDIHB, 1, 0) {
+	if blocks > 0 && !reg.WaitFor(timeout, hw.pres_state, PRES_STATE_CDIHB, 1, 0) {
 		return fmt.Errorf("CMD%d data inhibit", index)
 	}
 
 	// clear interrupts status
 	reg.Write(hw.int_status, 0xffffffff)
 
-	if dtd == WRITE && reg.Get(hw.pres_state, PRES_STATE_WPSPL, 1) == 0 {
+	if params.dtd == WRITE && reg.Get(hw.pres_state, PRES_STATE_WPSPL, 1) == 0 {
 		// The uSDHC merely reports on WP, it doesn't really act on it
 		// despite IMX6ULLRM suggesting otherwise (e.g. p4017).
 		return fmt.Errorf("card is write protected")
@@ -91,7 +152,7 @@ func (hw *USDHC) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 
 	dmasel := uint32(DMASEL_NONE)
 
-	if dma {
+	if blocks > 0 {
 		dmasel = DMASEL_ADMA2
 		reg.Write(hw.int_signal_en, 0xffffffff)
 	}
@@ -111,14 +172,14 @@ func (hw *USDHC) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	bits.SetN(&xfr, CMD_XFR_TYP_CMDTYP, 0b11, 0)
 
 	// command index verification
-	if cic {
+	if params.cic {
 		bits.Set(&xfr, CMD_XFR_TYP_CICEN)
 	} else {
 		bits.Clear(&xfr, CMD_XFR_TYP_CICEN)
 	}
 
 	// CRC verification
-	if ccc {
+	if params.ccc {
 		bits.Set(&xfr, CMD_XFR_TYP_CCCEN)
 	} else {
 		bits.Clear(&xfr, CMD_XFR_TYP_CCCEN)
@@ -131,44 +192,43 @@ func (hw *USDHC) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 		bits.Clear(&mix, MIX_CTRL_DDR_EN)
 	}
 
-	if dma {
+	// command completion
+	int_status := INT_STATUS_CC
+
+	if blocks > 0 {
+		// transfer completion
+		int_status = INT_STATUS_TC
+
 		// enable data presence
 		bits.Set(&xfr, CMD_XFR_TYP_DPSEL)
-		// enable multiple blocks
-		bits.Set(&mix, MIX_CTRL_MSBSEL)
-		// enable automatic CMD12 to stop transactions
-		bits.Set(&mix, MIX_CTRL_AC12EN)
-		// enable block count
-		bits.Set(&mix, MIX_CTRL_BCEN)
 		// enable DMA
 		bits.Set(&mix, MIX_CTRL_DMAEN)
+		// enable automatic CMD12 to stop transactions
+		bits.Set(&mix, MIX_CTRL_AC12EN)
+
+		if blocks > 1 {
+			// multiple blocks
+			bits.Set(&mix, MIX_CTRL_MSBSEL)
+			// enable block count
+			bits.Set(&mix, MIX_CTRL_BCEN)
+		} else {
+			bits.Clear(&mix, MIX_CTRL_MSBSEL)
+		}
 	} else {
 		bits.Clear(&xfr, CMD_XFR_TYP_DPSEL)
-		bits.Clear(&mix, MIX_CTRL_MSBSEL)
 		bits.Clear(&mix, MIX_CTRL_AC12EN)
 		bits.Clear(&mix, MIX_CTRL_BCEN)
 		bits.Clear(&mix, MIX_CTRL_DMAEN)
-	}
-
-	if hw.rpmb {
 		bits.Clear(&mix, MIX_CTRL_MSBSEL)
 	}
 
 	// set response type
-	bits.SetN(&xfr, CMD_XFR_TYP_RSPTYP, 0b11, res)
+	bits.SetN(&xfr, CMD_XFR_TYP_RSPTYP, 0b11, params.res)
 	// set data transfer direction
-	bits.SetN(&mix, MIX_CTRL_DTDSEL, 1, dtd)
+	bits.SetN(&mix, MIX_CTRL_DTDSEL, 1, params.dtd)
 
 	reg.Write(hw.mix_ctrl, mix)
 	reg.Write(hw.cmd_xfr, xfr)
-
-	// command completion
-	int_status := INT_STATUS_CC
-
-	if dma {
-		// transfer completion
-		int_status = INT_STATUS_TC
-	}
 
 	// wait for completion
 	if !reg.WaitFor(timeout, hw.int_status, int_status, 1, 1) {
@@ -188,7 +248,7 @@ func (hw *USDHC) cmd(index uint32, dtd uint32, arg uint32, res uint32, cic bool,
 	// p3997, 58.5.3.5.4 Auto CMD12 Error, IMX6ULLRM
 	if (status >> 16) == ((1 << INT_STATUS_AC12E) >> 16) {
 		// retry once CMD12 if the Auto one fails
-		if err := hw.cmd(12, READ, 0, RSP_NONE, true, true, false, hw.writeTimeout); err == nil {
+		if err := hw.cmd(12, 0, 0, hw.writeTimeout); err == nil {
 			bits.Clear(&status, INT_STATUS_AC12E)
 		}
 	}
@@ -225,7 +285,7 @@ func (hw *USDHC) waitState(state int, timeout time.Duration) (err error) {
 
 	for {
 		// CMD13 - SEND_STATUS - poll card status
-		if err = hw.cmd(13, READ, hw.rca, RSP_48, true, true, false, hw.writeTimeout); err != nil {
+		if err = hw.cmd(13, hw.rca, 0, hw.writeTimeout); err != nil {
 			if time.Since(start) >= timeout {
 				return fmt.Errorf("error polling card status, %v", err)
 			}

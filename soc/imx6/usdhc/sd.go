@@ -185,14 +185,14 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 	bits.SetN(&arg, CMD8_ARG_VHS, 0b1111, VHS_HIGH)
 	bits.SetN(&arg, CMD8_ARG_CHECK_PATTERN, 0xff, CHECK_PATTERN)
 
-	if hw.cmd(8, READ, arg, RSP_48, true, true, false, 0) == nil && hw.rsp(0) == arg {
+	if hw.cmd(8, arg, 0, 0) == nil && hw.rsp(0) == arg {
 		// HC/LC HV SD 2.x
 		hc = true
 		hv = true
 	} else {
 		arg = VHS_LOW<<CMD8_ARG_VHS | CHECK_PATTERN
 
-		if hw.cmd(8, READ, arg, RSP_48, true, true, false, 0) == nil && hw.rsp(0) == arg {
+		if hw.cmd(8, arg, 0, 0) == nil && hw.rsp(0) == arg {
 			// LC SD 1.x
 			hc = true
 		} else {
@@ -229,12 +229,12 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 
 	for time.Since(start) <= SD_DETECT_TIMEOUT {
 		// CMD55 - APP_CMD - next command is application specific
-		if hw.cmd(55, READ, 0, RSP_48, true, true, false, 0) != nil {
+		if hw.cmd(55, 0, 0, 0) != nil {
 			return false, false
 		}
 
 		// ACMD41 - SD_SEND_OP_COND - send operating conditions
-		if err := hw.cmd(41, READ, arg, RSP_48, false, false, false, 0); err != nil {
+		if err := hw.cmd(41, arg, 0, 0); err != nil {
 			return false, false
 		}
 
@@ -270,7 +270,7 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 
 func (hw *USDHC) detectCapabilitiesSD() (err error) {
 	// CMD9 - SEND_CSD - read device data
-	if err = hw.cmd(9, READ, hw.rca, RSP_136, false, true, false, 0); err != nil {
+	if err = hw.cmd(9, hw.rca, 0, 0); err != nil {
 		return
 	}
 
@@ -312,7 +312,7 @@ func (hw *USDHC) detectCapabilitiesSD() (err error) {
 // p60, 4.2.4 Bus Signal Voltage Switch Sequence, SD-PL-7.10
 func (hw *USDHC) voltageSwitchSD() (err error) {
 	// CMD11 - VOLTAGE_SWITCH - switch to 1.8V signaling
-	if err = hw.cmd(11, READ, 0, RSP_48, true, true, false, 0); err != nil {
+	if err = hw.cmd(11, 0, 0, 0); err != nil {
 		return
 	}
 
@@ -360,12 +360,12 @@ func (hw *USDHC) initSD() (err error) {
 	}
 
 	// CMD2 - ALL_SEND_CID - get unique card identification
-	if err = hw.cmd(2, READ, arg, RSP_136, false, true, false, 0); err != nil {
+	if err = hw.cmd(2, arg, 0, 0); err != nil {
 		return
 	}
 
 	// CMD3 - SEND_RELATIVE_ADDR - get relative card address (RCA)
-	if err = hw.cmd(3, READ, arg, RSP_48, true, true, false, 0); err != nil {
+	if err = hw.cmd(3, arg, 0, 0); err != nil {
 		return
 	}
 
@@ -386,7 +386,7 @@ func (hw *USDHC) initSD() (err error) {
 	}
 
 	// CMD7 - SELECT/DESELECT CARD - enter transfer state
-	if err = hw.cmd(7, READ, hw.rca, RSP_48_CHECK_BUSY, true, true, false, 0); err != nil {
+	if err = hw.cmd(7, hw.rca, 0, 0); err != nil {
 		return
 	}
 
@@ -395,7 +395,7 @@ func (hw *USDHC) initSD() (err error) {
 	}
 
 	// CMD55 - APP_CMD - next command is application specific
-	if err = hw.cmd(55, READ, hw.rca, RSP_48, true, true, false, 0); err != nil {
+	if err = hw.cmd(55, hw.rca, 0, 0); err != nil {
 		return
 	}
 
@@ -414,7 +414,7 @@ func (hw *USDHC) initSD() (err error) {
 	}
 
 	// ACMD6 - SET_BUS_WIDTH - define the card data bus width
-	if err = hw.cmd(6, READ, uint32(bus_width), RSP_48, true, true, false, 0); err != nil {
+	if err = hw.cmd(6, uint32(bus_width), 0, 0); err != nil {
 		return
 	}
 

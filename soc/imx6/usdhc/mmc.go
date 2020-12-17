@@ -101,7 +101,7 @@ func (hw *USDHC) voltageValidationMMC() (mmc bool, hc bool) {
 
 	for time.Since(start) <= MMC_DETECT_TIMEOUT {
 		// CMD1 - SEND_OP_COND - send operating conditions
-		if err := hw.cmd(1, READ, arg, RSP_48, false, false, false, 0); err != nil {
+		if err := hw.cmd(1, arg, 0, 0); err != nil {
 			return false, false
 		}
 
@@ -132,7 +132,7 @@ func (hw *USDHC) writeCardRegisterMMC(reg uint32, val uint32) (err error) {
 	bits.SetN(&arg, MMC_SWITCH_VALUE, 0xff, val)
 
 	// CMD6 - SWITCH - switch mode of operation
-	err = hw.cmd(6, READ, arg, RSP_48_CHECK_BUSY, true, true, false, 0)
+	err = hw.cmd(6, arg, 0, 0)
 
 	if err != nil {
 		return
@@ -198,7 +198,7 @@ func (hw *USDHC) initMMC() (err error) {
 	var ddr bool
 
 	// CMD2 - ALL_SEND_CID - get unique card identification
-	if err = hw.cmd(2, READ, arg, RSP_136, false, true, false, 0); err != nil {
+	if err = hw.cmd(2, arg, 0, 0); err != nil {
 		return
 	}
 
@@ -207,7 +207,7 @@ func (hw *USDHC) initMMC() (err error) {
 	hw.rca = (uint32(hw.n) + 1) << RCA_ADDR
 
 	// CMD3 - SET_RELATIVE_ADDR - set relative card address (RCA),
-	if err = hw.cmd(3, READ, hw.rca, RSP_48, true, true, false, 0); err != nil {
+	if err = hw.cmd(3, hw.rca, 0, 0); err != nil {
 		return
 	}
 
@@ -216,7 +216,7 @@ func (hw *USDHC) initMMC() (err error) {
 	}
 
 	// CMD9 - SEND_CSD - read device data
-	if err = hw.cmd(9, READ, hw.rca, RSP_136, false, true, false, 0); err != nil {
+	if err = hw.cmd(9, hw.rca, 0, 0); err != nil {
 		return
 	}
 
@@ -241,7 +241,7 @@ func (hw *USDHC) initMMC() (err error) {
 	}
 
 	// CMD7 - SELECT/DESELECT CARD - enter transfer state
-	if err = hw.cmd(7, READ, hw.rca, RSP_48_CHECK_BUSY, true, true, false, 0); err != nil {
+	if err = hw.cmd(7, hw.rca, 0, 0); err != nil {
 		return
 	}
 
