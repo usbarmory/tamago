@@ -164,7 +164,7 @@ var UART2 = &UART{
 	Baudrate: UART_DEFAULT_BAUDRATE,
 }
 
-// Init initializes the UART for RS-232 mode,
+// Init initializes and enables the UART for RS-232 mode,
 // p3605, 55.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
 func (hw *UART) Init() {
 	var base uint32
@@ -198,7 +198,7 @@ func (hw *UART) Init() {
 	hw.ubmr = base + UARTx_UBMR
 	hw.uts = base + UARTx_UTS
 
-	hw.enable()
+	hw.setup()
 
 	hw.Unlock()
 }
@@ -225,7 +225,7 @@ func (hw *UART) rxReady() bool {
 	return reg.Get(hw.usr2, USR2_RDR, 1) == 1
 }
 
-func (hw *UART) enable() {
+func (hw *UART) setup() {
 	// disable UART
 	reg.Write(hw.ucr1, 0)
 	reg.Write(hw.ucr2, 0)
@@ -315,6 +315,17 @@ func (hw *UART) enable() {
 	reg.Write(hw.ucr2, ucr2)
 	// Enable the UART
 	reg.Set(hw.ucr1, UCR1_UARTEN)
+}
+
+// Enable enables the UART, this is only required after an explicit disable
+// (see Disable()) as initialized interfaces (see Init()) are enabled by default.
+func (hw *UART) Enable() {
+	reg.Set(hw.ucr1, UCR1_UARTEN)
+}
+
+// Disable disables the UART.
+func (hw *UART) Disable() {
+	reg.Clear(hw.ucr1, UCR1_UARTEN)
 }
 
 // Tx transmits a single character to the serial port.
