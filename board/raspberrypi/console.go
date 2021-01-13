@@ -1,20 +1,22 @@
-// BCM2835 mini-UART driver
+// Raspberry Pi support for tamago/arm
 // https://github.com/f-secure-foundry/tamago
 //
-// Copyright (c) the bcm2835 package authors
+// Copyright (c) the pi package authors
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
 // +build !linkprintk
 
-package bcm2835
+package pi
 
 import (
 	_ "unsafe"
+
+	"github.com/f-secure-foundry/tamago/soc/bcm2835"
 )
 
 //go:linkname printk runtime.printk
 func printk(c byte) {
-	MiniUART.Tx(c)
+	bcm2835.MiniUART.Tx(c)
 }
