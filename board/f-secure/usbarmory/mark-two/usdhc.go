@@ -49,7 +49,7 @@ const (
 	MMC_BUS_WIDTH = 8
 
 	PF1510_LDO3_VOLT = 0x52
-	LDO3_VOLT_1V8 = 0x10
+	LDO3_VOLT_1V8    = 0x10
 )
 
 func init() {
@@ -93,7 +93,7 @@ func init() {
 	SD.Init(SD_BUS_WIDTH)
 	MMC.Init(MMC_BUS_WIDTH)
 
-	// UA-MKII-β does not support SR104
+	// β revisions does not support SDR104
 	if Model() == "UA-MKII-β" {
 		return
 	}
@@ -101,12 +101,13 @@ func init() {
 	SD.LowVoltage = func() bool {
 		a := make([]byte, 1)
 
-		// Set LDO3 regulator to 1.8V
 		a[0] = LDO3_VOLT_1V8
-		if err := imx6.I2C1.Write(a, PF1510_ADDR, PF1510_LDO3_VOLT, 1); err != nil {
-			return false
-		}
+		err := imx6.I2C1.Write(a, PF1510_ADDR, PF1510_LDO3_VOLT, 1)
 
+		return err == nil
+	}
+
+	MMC.LowVoltage = func() bool {
 		return true
 	}
 }

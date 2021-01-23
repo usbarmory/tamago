@@ -19,7 +19,6 @@ import (
 	_ "unsafe"
 
 	"github.com/f-secure-foundry/tamago/internal/reg"
-
 	"github.com/f-secure-foundry/tamago/soc/imx6"
 	_ "github.com/f-secure-foundry/tamago/soc/imx6/imx6ul"
 )
@@ -27,7 +26,7 @@ import (
 const (
 	OCOTP_MAC0 = 0x021bc620
 
-	REV_BETA = 0x00
+	REV_BETA  = 0x00
 	REV_GAMMA = 0x01
 )
 
@@ -36,9 +35,9 @@ const (
 func Model() (model string) {
 
 	// F-Secure burns model information in the MSB of OTP fuses bank 4 word 2.
-	m := reg.Read(OCOTP_MAC0) >> 24
+	r := reg.Read(OCOTP_MAC0) >> 24
 
-	switch m {
+	switch r {
 	case REV_GAMMA:
 		return "UA-MKII-γ"
 	default:
