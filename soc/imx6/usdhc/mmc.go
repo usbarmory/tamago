@@ -336,7 +336,8 @@ func (hw *USDHC) initMMC() (err error) {
 	hw.setClock(DVS_HS, clk)
 
 	if tune {
-		err = hw.executeTuningMMC()
+		// FIXME: Use fixed sampling clock as eMMC tuning fails for unknown reasons.
+		// err = hw.executeTuningMMC()
 	}
 
 	hw.card.DDR = ddr
