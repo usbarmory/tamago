@@ -12,8 +12,10 @@ package usbarmory
 // The USB armory Mk II has the following components accessible as I²C slaves.
 const (
 	// Power management controller
-	F1510_ADDR = 0x08
-	// Cryptographic co-processor
+	PF1510_ADDR = 0x08
+	// Cryptographic co-processor (rev. γ)
+	SE050_ADDR = 0x48
+	// Cryptographic co-processor (rev. β)
 	A71CH_ADDR = 0x48
 	// Cryptographic co-processor
 	ATECC_ADDR = 0x60

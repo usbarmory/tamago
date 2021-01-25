@@ -212,6 +212,7 @@ func (hw *USDHC) cmd(index uint32, arg uint32, blocks uint32, timeout time.Durat
 			bits.Set(&mix, MIX_CTRL_BCEN)
 		} else {
 			bits.Clear(&mix, MIX_CTRL_MSBSEL)
+			bits.Clear(&mix, MIX_CTRL_BCEN)
 		}
 	} else {
 		bits.Clear(&xfr, CMD_XFR_TYP_DPSEL)

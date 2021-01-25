@@ -14,8 +14,6 @@
 package bcm2835
 
 import (
-	_ "unsafe"
-
 	"github.com/f-secure-foundry/tamago/arm"
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
@@ -76,11 +74,6 @@ func (hw *miniUART) Init() {
 
 	hw.lsr = PeripheralAddress(AUX_MU_LSR_REG)
 	hw.io = PeripheralAddress(AUX_MU_IO_REG)
-}
-
-//go:linkname printk runtime.printk
-func printk(c byte) {
-	MiniUART.Tx(c)
 }
 
 // TX transmits a single character to the serial port.
