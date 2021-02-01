@@ -115,10 +115,11 @@ func (eth *NIC) ECMRx(out []byte, lastErr error) (_ []byte, err error) {
 	proto := tcpip.NetworkProtocolNumber(binary.BigEndian.Uint16(eth.buf[12:14]))
 	payload := buffer.NewViewFromBytes(eth.buf[14:])
 
-	pkt := &stack.PacketBuffer{
-		LinkHeader: hdr,
-		Data:       payload.ToVectorisedView(),
-	}
+	pkt := stack.NewPacketBuffer(stack.PacketBufferOptions{
+		Data: payload.ToVectorisedView(),
+	})
+
+	copy(pkt.LinkHeader().Push(len(hdr)), hdr)
 
 	eth.Link.InjectInbound(proto, pkt)
 	eth.buf = []byte{}
@@ -135,9 +136,6 @@ func (eth *NIC) ECMTx(_ []byte, lastErr error) (in []byte, err error) {
 		return
 	}
 
-	hdr := info.Pkt.Header.View()
-	payload := info.Pkt.Data.ToView()
-
 	proto := make([]byte, 2)
 	binary.BigEndian.PutUint16(proto, uint16(info.Proto))
 
@@ -145,10 +143,10 @@ func (eth *NIC) ECMTx(_ []byte, lastErr error) (in []byte, err error) {
 	in = append(in, eth.Host...)
 	in = append(in, eth.Device...)
 	in = append(in, proto...)
-	// packet header
-	in = append(in, hdr...)
-	// payload
-	in = append(in, payload...)
+
+	for _, v := range info.Pkt.Views() {
+		in = append(in, v...)
+	}
 
 	return
 }
