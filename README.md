@@ -50,6 +50,7 @@ secure Go firmware development on embedded systems.
 
 Current release level
 =====================
+[![GitHub release](https://img.shields.io/github/v/release/f-secure-foundry/tamago-go)](https://github.com/f-secure-foundry/tamago-go/tree/latest) [![Build Status](https://github.com/f-secure-foundry/tamago-go/workflows/Build%20Go%20compiler/badge.svg)](https://github.com/f-secure-foundry/tamago-go/actions)
 
 The current release for the [TamaGo modified Go distribution](https://github.com/f-secure-foundry/tamago-go) is
 [tamago1.15.7](https://github.com/f-secure-foundry/tamago-go/tree/tamago1.15.7),
