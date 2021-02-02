@@ -83,6 +83,18 @@ const (
 	PLL3_FREQ = 480000000
 )
 
+// Operating ARM core frequencies in MHz
+// (p24, Table 10. Operating Ranges, IMX6ULLCEC).
+const (
+	FreqMax = Freq900
+	Freq900 = 900
+	Freq792 = 792
+	Freq528 = 528
+	Freq396 = 396
+	Freq198 = 198
+	FreqLow = Freq198
+)
+
 // ARMCoreDiv returns the ARM core divider value
 // (p665, 18.6.5 CCM Arm Clock Root Register, IMX6ULLRM).
 func ARMCoreDiv() (div float32) {
@@ -138,7 +150,7 @@ func setOperatingPointIMX6ULL(uV uint32) {
 	arm.Busyloop(10000)
 }
 
-func setARMFreqIMX6ULL(hz uint32) (err error) {
+func setARMFreqIMX6ULL(mhz uint32) (err error) {
 	var div_select uint32
 	var arm_podf uint32
 	var uV uint32
@@ -151,23 +163,23 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 
 	// p24, Table 10. Operating Ranges, IMX6ULLCEC
 	switch hz {
-	case 900000000:
+	case Freq900:
 		div_select = 75
 		arm_podf = 0
 		uV = 1275000
-	case 792000000:
+	case Freq792:
 		div_select = 66
 		arm_podf = 0
 		uV = 1225000
-	case 528000000:
+	case Freq528:
 		div_select = 88
 		arm_podf = 1
 		uV = 1175000
-	case 396000000:
+	case Freq396:
 		div_select = 66
 		arm_podf = 1
 		uV = 1025000
-	case 198000000:
+	case Freq198:
 		div_select = 66
 		arm_podf = 3
 		uV = 950000
@@ -204,11 +216,12 @@ func setARMFreqIMX6ULL(hz uint32) (err error) {
 	return
 }
 
-// SetARMFreq changes the ARM core frequency to the desired setting (in MHz).
+// SetARMFreq changes the ARM core frequency, see `Freq*` constants for
+// supported values.
 func SetARMFreq(mhz uint32) (err error) {
 	switch Family {
 	case IMX6ULL:
-		err = setARMFreqIMX6ULL(mhz * 1000000)
+		err = setARMFreqIMX6ULL(mhz)
 	default:
 		err = errors.New("unsupported")
 	}
