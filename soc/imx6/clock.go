@@ -155,14 +155,14 @@ func setARMFreqIMX6ULL(mhz uint32) (err error) {
 	var arm_podf uint32
 	var uV uint32
 
-	curHz := ARMFreq()
+	curMHz := ARMFreq() / 1000000
 
-	if hz == curHz {
+	if mhz == curMHz {
 		return
 	}
 
 	// p24, Table 10. Operating Ranges, IMX6ULLCEC
-	switch hz {
+	switch mhz {
 	case Freq900:
 		div_select = 75
 		arm_podf = 0
@@ -187,7 +187,7 @@ func setARMFreqIMX6ULL(mhz uint32) (err error) {
 		return errors.New("unsupported")
 	}
 
-	if hz > curHz {
+	if mhz > curMHz {
 		setOperatingPointIMX6ULL(uV)
 	}
 
@@ -209,7 +209,7 @@ func setARMFreqIMX6ULL(mhz uint32) (err error) {
 	// set core divisor
 	reg.SetN(CCM_CACRR, CACRR_ARM_PODF, 0b111, arm_podf)
 
-	if hz < curHz {
+	if mhz < curMHz {
 		setOperatingPointIMX6ULL(uV)
 	}
 
