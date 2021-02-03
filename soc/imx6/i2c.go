@@ -89,18 +89,19 @@ func (hw *I2C) Init() {
 	switch hw.n {
 	case 1:
 		base = I2C1_BASE
-		hw.ccgr = CCM_CCGR6
+		hw.ccgr = CCM_CCGR2
 		hw.cg = CCGR2_CG3
 	case 2:
 		base = I2C2_BASE
+		hw.ccgr = CCM_CCGR2
 		hw.cg = CCGR2_CG4
 	case 3:
 		base = I2C3_BASE
-		hw.ccgr = CCM_CCGR6
+		hw.ccgr = CCM_CCGR2
 		hw.cg = CCGR2_CG5
 	case 4:
 		base = I2C4_BASE
-		hw.ccgr = CCM_CCGR2
+		hw.ccgr = CCM_CCGR6
 		hw.cg = CCGR6_CG12
 	default:
 		panic("invalid I2C controller instance")
