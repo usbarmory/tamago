@@ -138,7 +138,7 @@ func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
 			err = hw.ack(0)
 		}
 
-		if done {
+		if done || err != nil {
 			return err
 		}
 	}
