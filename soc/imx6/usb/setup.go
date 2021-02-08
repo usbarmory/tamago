@@ -121,7 +121,7 @@ func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
 	return
 }
 
-func (hw *USB) doSetup(dev *Device, setup *SetupData) (err error) {
+func (hw *USB) handleSetup(dev *Device, setup *SetupData) (err error) {
 	if setup == nil {
 		return
 	}

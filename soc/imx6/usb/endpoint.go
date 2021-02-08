@@ -13,7 +13,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"log"
 
 	"github.com/f-secure-foundry/tamago/bits"
 	"github.com/f-secure-foundry/tamago/dma"
@@ -150,14 +149,12 @@ func (hw *USB) set(n int, dir int, max int, zlt bool, mult int) {
 	hw.dQH[n][dir] = hw.epListAddr + uint32(offset)
 }
 
-// enable enables an endpoint
+// enable enables an endpoint.
 func (hw *USB) enable(n int, dir int, transferType int) {
 	if n == 0 {
 		// EP0 does not need enabling (p3790, IMX6ULLRM)
 		return
 	}
-
-	log.Printf("imx6_usb: enabling EP%d.%d\n", n, dir)
 
 	ctrl := hw.epctrl + uint32(4*n)
 	c := reg.Read(ctrl)
@@ -259,20 +256,17 @@ func buildDTD(n int, dir int, ioc bool, addr uint32, size int) (dtd *dTD) {
 // checkDTD verifies transfer descriptor completion as describe in
 // p3800, 56.4.6.4.1 Interrupt/Bulk Endpoint Operational Model, IMX6ULLRM
 // p3811, 56.4.6.6.4 Transfer Completion, IMX6ULLRM.
-func checkDTD(n int, dir int, dtds []*dTD) (size int, err error) {
+func checkDTD(n int, dir int, dtds []*dTD, done chan bool) (size int, err error) {
 	for i, dtd := range dtds {
 		// treat dtd.token as a register within the dtd DMA buffer
 		token := dtd._dtd + DTD_TOKEN
 
-		// The hardware might delay status update after completion, up
-		// to 10ms of waiting for the active bit is clear are found to
-		// be conservative.
-		//
-		// On macOS however OUT endpoints complete prematurely (e.g.
-		// before the transfer takes place). This doesn't reflect any
-		// known errata and the root cause remains unknown.  To work
-		// this around we wait indefinitely.
-		reg.Wait(token, TOKEN_ACTIVE, 1, 0)
+		// Wait indefinitely for active bit to be cleared.
+		if n == 0 {
+			reg.Wait(token, TOKEN_ACTIVE, 1, 0)
+		} else {
+			reg.WaitSignal(done, token, TOKEN_ACTIVE, 1, 0)
+		}
 
 		dtdToken := reg.Read(token)
 
@@ -356,11 +350,16 @@ func (hw *USB) transfer(n int, dir int, ioc bool, buf []byte) (out []byte, err e
 	reg.Wait(hw.prime, pos, 1, 0)
 
 	// wait for completion
-	reg.Wait(hw.complete, pos, 1, 1)
+	if n == 0 {
+		reg.Wait(hw.complete, pos, 1, 1)
+	} else {
+		reg.WaitSignal(hw.done, hw.complete, pos, 1, 1)
+	}
+
 	// clear completion
 	reg.Write(hw.complete, 1<<pos)
 
-	size, err := checkDTD(n, dir, dtds)
+	size, err := checkDTD(n, dir, dtds, hw.done)
 
 	if n != 0 && dir == OUT && buf != nil {
 		out = buf[0:size]

@@ -11,7 +11,7 @@ package usb
 
 import (
 	"log"
-	"runtime"
+	"sync"
 	"time"
 
 	"github.com/f-secure-foundry/tamago/internal/reg"
@@ -54,89 +54,47 @@ func (hw *USB) DeviceMode() {
 	reg.Set(hw.cmd, USBCMD_RS)
 }
 
-// Start waits and handles configured USB endpoints, it should never return.
-//
-// Current limitations:
-//   * bus reset after initial setup are not handled
-//   * only control/bulk/interrupt endpoints are supported (e.g. no isochronous support)
+// Start waits and handles configured USB endpoints in device mode, it should
+// never return. Note that isochronous endpoints are not supported.
 func (hw *USB) Start(dev *Device) {
-	for _, conf := range dev.Configurations {
-		for _, iface := range conf.Interfaces {
-			for _, ep := range iface.Endpoints {
-				go func(ep *EndpointDescriptor, conf uint8) {
-					hw.endpointHandler(dev, ep, conf)
-				}(ep, conf.ConfigurationValue)
-			}
-		}
-	}
+	var conf uint8
+	var wg sync.WaitGroup
 
-	hw.setupHandler(dev)
-}
-
-func (hw *USB) setupHandler(dev *Device) {
 	for {
+		// wait for a setup packet
 		if !reg.WaitFor(10*time.Millisecond, hw.setup, 0, 1, 1) {
 			continue
 		}
 
-		setup := hw.getSetup()
-
-		if err := hw.doSetup(dev, setup); err != nil {
+		// handle setup packet
+		if err := hw.handleSetup(dev, hw.getSetup()); err != nil {
 			log.Printf("imx6_usb: setup error, %v", err)
 		}
-	}
-}
 
-func (hw *USB) endpointHandler(dev *Device, ep *EndpointDescriptor, conf uint8) {
-	var err error
-	var buf []byte
-	var res []byte
+		// check for bus reset
+		if reg.Get(hw.sts, USBSTS_URI, 1) == 1 {
+			// set inactive configuration
+			conf = 0
+			dev.ConfigurationValue = 0
 
-	if ep.Function == nil {
-		return
-	}
+			// perform controller reset procedure
+			hw.Reset()
+		}
 
-	ep.Lock()
-	defer ep.Unlock()
-
-	n := ep.Number()
-	dir := ep.Direction()
-
-	for {
-		runtime.Gosched()
-
-		if dev.ConfigurationValue != conf {
-			if ep.enabled {
-				reg.Set(hw.flush, (dir*16)+n)
-				ep.enabled = false
-			}
-
+		// check if configuration reload is required
+		if dev.ConfigurationValue == conf {
 			continue
-		}
-
-		if !ep.enabled {
-			hw.set(n, dir, int(ep.MaxPacketSize), ep.Zero, 0)
-			hw.enable(n, dir, ep.TransferType())
-			ep.enabled = true
-		}
-
-		if dir == OUT {
-			buf, err = hw.rx(n, false, res)
-
-			if err == nil && len(buf) != 0 {
-				res, err = ep.Function(buf, err)
-			}
 		} else {
-			res, err = ep.Function(nil, err)
-
-			if err == nil && len(res) != 0 {
-				err = hw.tx(n, false, res)
-			}
+			conf = dev.ConfigurationValue
 		}
 
-		if err != nil {
-			reg.Set(hw.flush, (dir*16)+n)
-			log.Printf("imx6_usb: EP%d.%d transfer error, %v", n, dir, err)
+		// stop configuration endpoints
+		if hw.done != nil {
+			close(hw.done)
+			wg.Wait()
 		}
+
+		// start configuration endpoints
+		hw.startEndpoints(&wg, dev, conf)
 	}
 }

@@ -14,7 +14,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"sync"
 	"unicode/utf16"
 )
 
@@ -232,9 +231,6 @@ type EndpointDescriptor struct {
 	Zero bool
 
 	Function EndpointFunction
-
-	enabled bool
-	sync.Mutex
 }
 
 // SetDefaults initializes default values for the USB endpoint descriptor.

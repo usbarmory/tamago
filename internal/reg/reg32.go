@@ -105,7 +105,7 @@ func Wait(addr uint32, pos int, mask int, val uint32) {
 // WaitFor waits, until a timeout expires, for a specific register bit to match
 // a value. The return boolean indicates whether the wait condition was checked
 // (true) or if it timed out (false). This function cannot be used before
-// runtime initialization with `GOOS=tamago`.
+// runtime initialization.
 func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) bool {
 	start := time.Now()
 
@@ -115,6 +115,25 @@ func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) 
 
 		if time.Since(start) >= timeout {
 			return false
+		}
+	}
+
+	return true
+}
+
+// WaitSignal waits, until a channel is closed, for a specific register bit to
+// match a value. The return boolean indicates whether the wait condition was
+// checked (true) or cancelled (false). This function cannot be used before
+// runtime initialization.
+func WaitSignal(done chan bool, addr uint32, pos int, mask int, val uint32) bool {
+	for Get(addr, pos, mask) != val {
+		// tamago is single-threaded, give other goroutines a chance
+		runtime.Gosched()
+
+		select {
+		case <-done:
+			return false
+		default:
 		}
 	}
 

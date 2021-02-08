@@ -112,9 +112,12 @@ const (
 type USB struct {
 	sync.Mutex
 
+	// signal for EP1-N cancellation
+	done chan bool
 	// controller index
 	n int
 
+	// control registers
 	pll      uint32
 	ctrl     uint32
 	pwd      uint32
