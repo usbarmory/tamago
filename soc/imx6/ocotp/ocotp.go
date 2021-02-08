@@ -6,7 +6,20 @@
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
-
+// Package ocotp implements a driver for the NXP On-Chip OTP Controller
+// (OCOTP_CTRL), included in i.MX6 series SoCs to interface with on-chip fuses,
+// including write operation.
+//
+// WARNING: Fusing SoC OTPs is an **irreversible** action that permanently
+// fuses values on the device. This means that any errors in the process, or
+// lost fused data such as cryptographic key material, might result in a
+// **bricked** device.
+//
+// The use of this package is therefore **at your own risk**.
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/f-secure-foundry/tamago.
 package ocotp
 
 import (
@@ -105,6 +118,13 @@ func Read(bank int, word int) (value uint32, err error) {
 
 // Blow fuses a value in the argument bank and word location.
 // (p2384, 37.3.1.3 Fuse and Shadow Register Writes, IMX6ULLRM).
+//
+// WARNING: Fusing SoC OTPs is an **irreversible** action that permanently
+// fuses values on the device. This means that any errors in the process, or
+// lost fused data such as cryptographic key material, might result in a
+// **bricked** device.
+//
+// The use of this function is therefore **at your own risk**.
 func Blow(bank int, word int, value uint32) (err error) {
 	mux.Lock()
 	defer mux.Unlock()
