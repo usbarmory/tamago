@@ -6,6 +6,7 @@
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
+
 // Package ocotp implements a driver for the NXP On-Chip OTP Controller
 // (OCOTP_CTRL), included in i.MX6 series SoCs to interface with on-chip fuses,
 // including write operation.
@@ -56,15 +57,10 @@ const (
 
 // Configuration constants
 const (
-	// Value required to unlock OCOTP_DATA register
-	// (p2393, OCOTP_CTRLn field descriptions, IMX6ULLRM).
-	OCOTP_WRUNLOCK_MAGIC = 0x3e77
-
-	// number of words in each bank
-	OCOTP_WORDS_PER_BANK = 8
-
-	// shadow registers address map gap between bank 5 and bank 6
-	OCOTP_BANK5_GAP = 0x100
+	// WordSize represents the number of bytes per OTP word.
+	WordSize = 4
+	// BankSize represents the number of words per OTP bank.
+	BankSize = 8
 )
 
 var mux sync.Mutex
@@ -94,18 +90,18 @@ func Read(bank int, word int) (value uint32, err error) {
 		banks = 8
 	}
 
-	if bank > banks || word > OCOTP_WORDS_PER_BANK {
+	if bank > banks || word > BankSize {
 		return 0, errors.New("invalid argument")
 	}
 
 	// Within the shadow register address map the addresses are spaced 0x10
 	// apart.
-	offset := 0x10 * uint32(OCOTP_WORDS_PER_BANK*bank+word)
+	offset := 0x10 * uint32(BankSize*bank+word)
 
 	// Account for the gap in shadow registers address map between bank 5
 	// and bank 6.
 	if bank > 5 {
-		offset += OCOTP_BANK5_GAP
+		offset += 0x100
 	}
 
 	mux.Lock()
@@ -137,12 +133,14 @@ func Blow(bank int, word int, value uint32) (err error) {
 	// IPG_CLK_ROOT frequency. Default values work for default frequency of
 	// 66 MHz.
 
+	// p2393, OCOTP_CTRLn field descriptions, IMX6ULLRM
+
 	// clear error bit
 	reg.Set(OCOTP_CTRL_CLR, CTRL_ERROR)
 	// set OTP write register
-	reg.SetN(OCOTP_CTRL, CTRL_ADDR, 0x7f, uint32(OCOTP_WORDS_PER_BANK*bank+word))
+	reg.SetN(OCOTP_CTRL, CTRL_ADDR, 0x7f, uint32(BankSize*bank+word))
 	// enable OTP write access
-	reg.SetN(OCOTP_CTRL, CTRL_WRUNLOCK, 0xffff, OCOTP_WRUNLOCK_MAGIC)
+	reg.SetN(OCOTP_CTRL, CTRL_WRUNLOCK, 0xffff, 0x3e77)
 
 	// blow the fuse
 	reg.Write(OCOTP_DATA, value)
