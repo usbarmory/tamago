@@ -61,16 +61,6 @@ func (hw *USB) Start(dev *Device) {
 	var wg sync.WaitGroup
 
 	for {
-		// wait for a setup packet
-		if !reg.WaitFor(10*time.Millisecond, hw.setup, 0, 1, 1) {
-			continue
-		}
-
-		// handle setup packet
-		if err := hw.handleSetup(dev, hw.getSetup()); err != nil {
-			log.Printf("imx6_usb: setup error, %v", err)
-		}
-
 		// check for bus reset
 		if reg.Get(hw.sts, USBSTS_URI, 1) == 1 {
 			// set inactive configuration
@@ -79,6 +69,16 @@ func (hw *USB) Start(dev *Device) {
 
 			// perform controller reset procedure
 			hw.Reset()
+		}
+
+		// wait for a setup packet
+		if !reg.WaitFor(10*time.Millisecond, hw.setup, 0, 1, 1) {
+			continue
+		}
+
+		// handle setup packet
+		if err := hw.handleSetup(dev, hw.getSetup()); err != nil {
+			log.Printf("imx6_usb: setup error, %v", err)
 		}
 
 		// check if configuration reload is required
