@@ -32,6 +32,9 @@ const (
 // The diversifier is AES-CBC encrypted using the internal OTPMK key (when SNVS
 // is enabled).
 //
+// *WARNING*: when SNVS is not enabled a default non-unique test vector is used
+// and therefore key derivation is *unsafe*, see imx6.SNVS().
+//
 // A negative index argument results in the derived key being computed and
 // returned.
 //
