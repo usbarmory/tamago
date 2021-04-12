@@ -94,6 +94,8 @@ func (cpu *CPU) InitMMU() {
 	end = end >> 20
 
 	// skip page zero to trap null pointers
+	reg.Write(l1pageTableStart, 0)
+
 	for i := uint32(1); i < l1pageTableSize/4; i++ {
 		page := l1pageTableStart + 4*i
 		pa := i << 20
