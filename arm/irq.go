@@ -13,12 +13,12 @@ package arm
 func irq_enable()
 func irq_disable()
 
-// InterruptsEnable enables IRQ and FIQ interrupts.
+// EnableInterrupts enables IRQ and FIQ interrupts.
 func (cpu *CPU) InterruptsEnable() {
 	irq_enable()
 }
 
-// InterruptsDisable disables IRQ and FIQ interrupts.
-func (cpu *CPU) InterruptsDisable() {
+// DisableInterrupts disables IRQ and FIQ interrupts.
+func (cpu *CPU) DisableInterrupts() {
 	irq_disable()
 }
