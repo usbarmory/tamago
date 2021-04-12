@@ -56,10 +56,10 @@ type CPU struct {
 func read_cpsr() uint32
 func read_scr() uint32
 
-// Init performs ARM processor instance initialization by detecting its
-// available features.
+// Init performs initialization of an ARM core instance.
 func (cpu *CPU) Init() {
 	cpu.initFeatures()
+	cpu.initVectorTable()
 }
 
 // Mode returns the processor mode.

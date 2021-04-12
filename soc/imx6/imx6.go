@@ -77,13 +77,20 @@ func nanotime1() int64 {
 // Init takes care of the lower level SoC initialization triggered early in
 // runtime setup.
 func Init() {
+	if ARM.Mode() != arm.SYS_MODE {
+		// initialization required only when in PL1
+		return
+	}
+
 	ARM.Init()
 	ARM.EnableVFP()
 
 	// required when booting in SDP mode
 	ARM.EnableSMP()
 
-	ARM.CacheEnable()
+	// MMU initialization is required to take advantage of data cache
+	ARM.InitMMU()
+	ARM.EnableCache()
 
 	_, fam, revMajor, revMinor := SiliconVersion()
 	Family = fam

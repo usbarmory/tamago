@@ -28,26 +28,26 @@ func cache_flush_instruction()
 // performed (p115, Cortex™-A7 MPCore® Technical Reference Manual r0p5).
 func (cpu *CPU) EnableSMP() {
 	aux := read_actlr()
-	aux |= (1 << ACTLR_SMP)
+	aux |= 1 << ACTLR_SMP
 	write_actlr(aux)
 }
 
-// CacheEnable activates the ARM instruction and data caches.
-func (cpu *CPU) CacheEnable() {
+// EnableCache activates the ARM instruction and data caches.
+func (cpu *CPU) EnableCache() {
 	cache_enable()
 }
 
-// CacheDisable disables the ARM instruction and data caches.
-func (cpu *CPU) CacheDisable() {
+// DisableCache disables the ARM instruction and data caches.
+func (cpu *CPU) DisableCache() {
 	cache_disable()
 }
 
-// CacheFlushData flushes the ARM data cache.
-func (cpu *CPU) CacheFlushData() {
+// FlushDataCache flushes the ARM data cache.
+func (cpu *CPU) FlushDataCache() {
 	cache_flush_data()
 }
 
-// CacheFlushInstruction flushes the ARM instruction cache.
-func (cpu *CPU) CacheFlushInstruction() {
+// FlushInstructionCache flushes the ARM instruction cache.
+func (cpu *CPU) FlushInstructionCache() {
 	cache_flush_instruction()
 }

@@ -20,13 +20,8 @@ import (
 	"github.com/f-secure-foundry/tamago/arm"
 )
 
-const (
-	// nanos - should be same value as arm/timer.go refFreq
-	refFreq int64 = 1000000000
-)
-
-//go:linkname ramStackOffset runtime.ramStackOffset
-var ramStackOffset uint32 = 0x100000 // 1 MB
+// nanos - should be same value as arm/timer.go refFreq
+const refFreq int64 = 1000000000
 
 // DRAM_FLAG_NOCACHE disables caching by setting to high bits
 const DRAM_FLAG_NOCACHE = 0xC0000000
@@ -38,6 +33,9 @@ var peripheralBase uint32
 
 // ARM processor instance
 var ARM = &arm.CPU{}
+
+//go:linkname ramStackOffset runtime.ramStackOffset
+var ramStackOffset uint32 = 0x100000 // 1 MB
 
 //go:linkname nanotime1 runtime.nanotime1
 func nanotime1() int64 {
@@ -55,6 +53,8 @@ func Init(base uint32) {
 	// required when booting in SDP mode
 	ARM.EnableSMP()
 
+	// MMU initialization is required to take advantage of data cache
+	ARM.InitMMU()
 	ARM.CacheEnable()
 
 	ARM.TimerMultiplier = refFreq / SysTimerFreq

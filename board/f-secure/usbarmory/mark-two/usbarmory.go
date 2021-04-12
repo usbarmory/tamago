@@ -34,6 +34,7 @@ func Model() (model string) {
 //
 //go:linkname Init runtime.hwinit
 func Init() {
+	// initialize SoC
 	imx6.Init()
 
 	// initialize serial console
