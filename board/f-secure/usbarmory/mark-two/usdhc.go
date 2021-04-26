@@ -30,6 +30,11 @@ var MMC = usdhc.USDHC2
 // modes are:
 //   * uSD:  High Speed (HS)      25MB/s, 50MHz, 3.3V, 4-bit data bus
 //   * eMMC: High Speed (HS) DDR 104MB/s, 52MHz, 3.3V, 8-bit data bus
+//
+// On the USB armory Mk II γ revision the maximum achievable theoretical speed
+// modes are:
+//   * uSD:  SDR104  75MB/s, 150MHz, 1.8V, 4-bit data bus
+//   * eMMC: HS200  150MB/s, 150MHz, 1.8V, 8-bit data bus
 const (
 	IOMUXC_SW_MUX_CTL_PAD_CSI_DATA04 = 0x020e01f4
 	IOMUXC_SW_PAD_CTL_PAD_CSI_DATA04 = 0x020e0480
@@ -50,11 +55,10 @@ const (
 
 	PF1510_LDO3_VOLT = 0x52
 	LDO3_VOLT_1V8    = 0x10
+	LDO3_VOLT_3V3    = 0x1f
 )
 
 func init() {
-	var err error
-
 	// There are no write-protect lines on uSD or eMMC cards, therefore the
 	// respective SoC pads must be selected on pulled down unconnected pads
 	// to ensure the driver never see write protection enabled.
@@ -93,21 +97,30 @@ func init() {
 	SD.Init(SD_BUS_WIDTH)
 	MMC.Init(MMC_BUS_WIDTH)
 
-	// β revisions does not support SDR104
-	if Model() == "UA-MKII-β" {
+	switch Model() {
+	case "UA-MKII-β":
+		// β revisions do not support SDR104 (SD) or HS200 (MMC)
 		return
+	case "UA-MKII-γ":
+		SD.LowVoltage = lowVoltageSD
+		MMC.LowVoltage = lowVoltageMMC
 	}
+}
 
-	SD.LowVoltage = func() bool {
-		a := make([]byte, 1)
+func lowVoltageSD(lv bool) bool {
+	a := make([]byte, 1)
 
+	if lv {
 		a[0] = LDO3_VOLT_1V8
-		err := imx6.I2C1.Write(a, PF1510_ADDR, PF1510_LDO3_VOLT, 1)
-
-		return err == nil
+	} else {
+		a[0] = LDO3_VOLT_3V3
 	}
 
-	MMC.LowVoltage = func() bool {
-		return true
-	}
+	err := imx6.I2C1.Write(a, PF1510_ADDR, PF1510_LDO3_VOLT, 1)
+
+	return err == nil
+}
+
+func lowVoltageMMC(lv bool) bool {
+	return true
 }

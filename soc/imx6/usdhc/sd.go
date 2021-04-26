@@ -149,6 +149,9 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 	var arg uint32
 	var hv bool
 
+	// ensure 3.3V signaling
+	hw.LowVoltage(false)
+
 	// CMD8 - SEND_IF_COND - read device data
 	// p101, 4.3.13 Send Interface Condition Command (CMD8), SD-PL-7.10
 
@@ -296,7 +299,7 @@ func (hw *USDHC) voltageSwitchSD() (err error) {
 	reg.Set(hw.vend_spec, VEND_SPEC_VSELECT)
 
 	// board specific low voltage selection/indication function
-	if hw.LowVoltage != nil && !hw.LowVoltage() {
+	if hw.LowVoltage != nil && !hw.LowVoltage(true) {
 		return errors.New("voltage switch failed, not at LV")
 	}
 

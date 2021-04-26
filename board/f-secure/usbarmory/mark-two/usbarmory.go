@@ -16,28 +16,27 @@
 package usbarmory
 
 import (
-	_ "unsafe"
-
 	"github.com/f-secure-foundry/tamago/internal/reg"
 	"github.com/f-secure-foundry/tamago/soc/imx6"
 	_ "github.com/f-secure-foundry/tamago/soc/imx6/imx6ul"
+
+	_ "unsafe"
 )
 
-const (
-	OCOTP_MAC0 = 0x021bc620
+const OCOTP_MAC0 = 0x021bc620
 
-	REV_BETA  = 0x00
-	REV_GAMMA = 0x01
+const (
+	REV_BETA = iota
+	REV_GAMMA
 )
 
 // Model returns the USB armory model name, to further detect SoC variants
 // imx6.Model() can be used.
 func Model() (model string) {
-
 	// F-Secure burns model information in the MSB of OTP fuses bank 4 word 2.
-	r := reg.Read(OCOTP_MAC0) >> 24
+	mac0 := reg.Read(OCOTP_MAC0)
 
-	switch r {
+	switch mac0 >> 24 {
 	case REV_GAMMA:
 		return "UA-MKII-γ"
 	default:

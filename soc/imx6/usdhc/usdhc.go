@@ -37,7 +37,7 @@
 // board package by defining LowVoltage() on the relevant USDHC instance.
 //
 // Note that due to NXP errata ERR010450 the following maximum values apply:
-//  * eMMC  HS200: 150MB/s - 150MHz (instead of 200MB/s - 200MHz), unimplemented
+//  * eMMC  HS200: 150MB/s - 150MHz (instead of 200MB/s - 200MHz), supported
 //  * eMMC  DDR52:  90MB/s -  45MHz (instead of 104MB/s -  52MHz), supported
 //  *   SD SDR104:  75MB/s - 150MHz (instead of 104MB/s - 208MHz), supported
 //  *   SD  DDR50:  45MB/s -  45MHz (instead of  50MB/s -  50MHz), unsupported
@@ -113,6 +113,7 @@ const (
 	INT_STATUS_CEBE   = 18
 	INT_STATUS_CCE    = 17
 	INT_STATUS_CTOE   = 16
+	INT_STATUS_CRM    = 7
 	INT_STATUS_BRR    = 5
 	INT_STATUS_TC     = 1
 	INT_STATUS_CC     = 0
@@ -229,7 +230,7 @@ type USDHC struct {
 	// LowVoltage is the board specific function responsible for low
 	// voltage switching (SD) or indication (eMMC). The return value
 	// reflects whether LV I/O signaling is present.
-	LowVoltage func() bool
+	LowVoltage func(lv bool) bool
 
 	// controller index
 	n int
@@ -483,6 +484,11 @@ func (hw *USDHC) Detect() (err error) {
 
 	if hw.cg == 0 {
 		return errors.New("controller is not initialized")
+	}
+
+	// check if a card has already been detected and not removed since
+	if reg.Get(hw.int_status, INT_STATUS_CRM, 1) == 0 && (hw.card.MMC || hw.card.SD) {
+		return
 	}
 
 	// clear card information
