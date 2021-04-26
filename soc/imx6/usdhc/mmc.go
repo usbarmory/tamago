@@ -353,7 +353,7 @@ func (hw *USDHC) partitionAccessMMC(access uint32) (err error) {
 
 // p106, 6.6.22.4.3 Authenticated Data Write, JESD84-B51
 // p108, 6.6.22.4.4 Authenticated Data Read,  JESD84-B51
-func (hw *USDHC) transferRPMB(dtd int, buf []byte) (err error) {
+func (hw *USDHC) transferRPMB(dtd int, buf []byte, rel bool) (err error) {
 	if !hw.card.MMC {
 		return fmt.Errorf("no MMC card detected on uSDHC%d", hw.n)
 	}
@@ -361,6 +361,8 @@ func (hw *USDHC) transferRPMB(dtd int, buf []byte) (err error) {
 	if len(buf) != 512 {
 		return errors.New("transfer size must be 512")
 	}
+
+	blocks := uint32(1)
 
 	hw.Lock()
 	hw.rpmb = true
@@ -371,24 +373,30 @@ func (hw *USDHC) transferRPMB(dtd int, buf []byte) (err error) {
 	}()
 
 	if dtd == WRITE {
+		if rel {
+			// reliable write request
+			bits.Set(&blocks, 31)
+		}
+
 		// CMD25 - WRITE_MULTIPLE_BLOCK - write consecutive blocks
-		err = hw.transfer(25, WRITE, 0, 1, 512, buf)
+		err = hw.transfer(25, WRITE, 0, blocks, 512, buf)
 	} else {
 		// CMD18 - READ_MULTIPLE_BLOCK - read consecutive blocks
-		err = hw.transfer(18, READ, 0, 1, 512, buf)
+		err = hw.transfer(18, READ, 0, blocks, 512, buf)
 	}
 
 	return
 }
 
-// WriteRPMB transfers a single Replay Protected Memory Block (RPMB) data
-// frame to the card.
-func (hw *USDHC) WriteRPMB(buf []byte) (err error) {
-	return hw.transferRPMB(WRITE, buf)
+// WriteRPMB transfers a single Replay Protected Memory Block (RPMB) data frame
+// to the card. The `rel` boolean indicates whether a reliable write should be
+// requested (required for some RPMB transfer).
+func (hw *USDHC) WriteRPMB(buf []byte, rel bool) (err error) {
+	return hw.transferRPMB(WRITE, buf, rel)
 }
 
 // ReadRPMB transfers a single Replay Protected Memory Block (RPMB) data
 // frame from the card.
 func (hw *USDHC) ReadRPMB(buf []byte) (err error) {
-	return hw.transferRPMB(READ, buf)
+	return hw.transferRPMB(READ, buf, false)
 }

@@ -583,7 +583,7 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 		return
 	}
 
-	if blocks > 0xffff {
+	if (blocks & 0xffff) > 0xffff {
 		return errors.New("transfer size cannot exceed 65535 blocks")
 	}
 
@@ -621,11 +621,6 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 
 		if err != nil {
 			return
-		}
-
-		if dtd == WRITE {
-			// reliable write request
-			bits.Set(&blocks, 31)
 		}
 
 		// CMD23 - SET_BLOCK_COUNT - define read/write block count
