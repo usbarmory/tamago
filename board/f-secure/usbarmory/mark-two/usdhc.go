@@ -107,10 +107,10 @@ func init() {
 	}
 }
 
-func lowVoltageSD(lv bool) bool {
+func lowVoltageSD(enable bool) bool {
 	a := make([]byte, 1)
 
-	if lv {
+	if enable {
 		a[0] = LDO3_VOLT_1V8
 	} else {
 		a[0] = LDO3_VOLT_3V3
@@ -121,6 +121,6 @@ func lowVoltageSD(lv bool) bool {
 	return err == nil
 }
 
-func lowVoltageMMC(lv bool) bool {
+func lowVoltageMMC(enable bool) bool {
 	return true
 }

@@ -227,10 +227,12 @@ type CardInfo struct {
 type USDHC struct {
 	sync.Mutex
 
-	// LowVoltage is the board specific function responsible for low
-	// voltage switching (SD) or indication (eMMC). The return value
-	// reflects whether LV I/O signaling is present.
-	LowVoltage func(lv bool) bool
+	// LowVoltage is the board specific function responsible for voltage
+	// switching (SD) or low voltage indication (eMMC).
+	//
+	// The return value reflects whether the voltage switch (SD) or
+	// low voltage indication (MMC) is successful.
+	LowVoltage func(enable bool) bool
 
 	// controller index
 	n int
@@ -386,11 +388,17 @@ func (hw *USDHC) executeTuning(index uint32, blocks uint32) error {
 	reg.Set(hw.mix_ctrl, MIX_CTRL_FBCLK_SEL)
 	reg.Set(hw.mix_ctrl, MIX_CTRL_AUTO_TUNE_EN)
 
-	// Temporarly disable interrupts other than Buffer Read Ready
+	// temporarily disable all interrupts other than Buffer Read Ready
 	defer reg.Write(hw.int_signal_en, reg.Read(hw.int_signal_en))
 	defer reg.Write(hw.int_status_en, reg.Read(hw.int_status_en))
 	reg.Write(hw.int_signal_en, INT_SIGNAL_EN_BWRIEN)
 	reg.Write(hw.int_status_en, INT_STATUS_EN_BWRSEN)
+
+	// temporarily lower read timeout for faster tuning
+	defer func(d time.Duration) {
+		hw.readTimeout = d
+	}(hw.readTimeout)
+	hw.readTimeout = 1 * time.Millisecond
 
 	tuning_block := make([]byte, blocks)
 

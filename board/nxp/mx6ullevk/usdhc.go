@@ -87,7 +87,7 @@ func init() {
 	SD2.Init(SD2_BUS_WIDTH)
 
 	// Only SD1 supports 1.8V switching on this board.
-	SD1.LowVoltage = func(lv bool) bool {
+	SD1.LowVoltage = func(enable bool) bool {
 		// No actual function is required as VEND_SPEC_VSELECT, already
 		// set by the usdhc driver, is used on this board circuitry to
 		// switch to LV.
