@@ -150,7 +150,9 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 	var hv bool
 
 	// ensure 3.3V signaling
-	hw.LowVoltage(false)
+	if hw.LowVoltage != nil {
+		hw.LowVoltage(false)
+	}
 
 	// CMD8 - SEND_IF_COND - read device data
 	// p101, 4.3.13 Send Interface Condition Command (CMD8), SD-PL-7.10
