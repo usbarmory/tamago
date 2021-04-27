@@ -9,8 +9,10 @@
 
 // func irq_enable()
 TEXT ·irq_enable(SB),$0
-	WORD	$0xc00108f1	// CPSIE iaf
+	WORD	$0xf10801c0	// CPSIE iaf
+	RET
 
 // func irq_disable()
 TEXT ·irq_disable(SB),$0
-	WORD	$0xc0010cf1	// CPSID iaf
+	WORD	$0xf10c01c0	// CPSID iaf
+	RET
