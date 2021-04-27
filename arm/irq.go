@@ -14,7 +14,7 @@ func irq_enable()
 func irq_disable()
 
 // EnableInterrupts enables IRQ and FIQ interrupts.
-func (cpu *CPU) InterruptsEnable() {
+func (cpu *CPU) EnableInterrupts() {
 	irq_enable()
 }
 
