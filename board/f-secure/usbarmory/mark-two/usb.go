@@ -36,8 +36,6 @@ const (
 
 // EnableReceptacleController activates the receptacle USB port controller.
 func EnableReceptacleController() (err error) {
-	imx6.I2C1.Init()
-
 	a, err := imx6.I2C1.Read(FUSB303_ADDR, FUSB303_CONTROL1, 1, 1)
 
 	if err != nil {
