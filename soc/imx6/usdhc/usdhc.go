@@ -36,7 +36,8 @@
 // I/O signaling to 1.8V, the switching procedure must be implemented by the
 // board package by defining LowVoltage() on the relevant USDHC instance.
 //
-// Note that due to NXP errata ERR010450 the following maximum values apply:
+// Note that due to NXP errata ERR010450 the following maximum theoretical
+// limits apply:
 //  * eMMC  HS200: 150MB/s - 150MHz (instead of 200MB/s - 200MHz), supported
 //  * eMMC  DDR52:  90MB/s -  45MHz (instead of 104MB/s -  52MHz), supported
 //  *   SD SDR104:  75MB/s - 150MHz (instead of 104MB/s - 208MHz), supported
@@ -199,7 +200,6 @@ const (
 	// Root clock divided by 4 (Dual Data Rate mode)
 	SDCLKFS_HS_DDR = 0x01
 	// High Speed frequency: 198 / (1 * 4) == 49.5 MHz
-
 )
 
 // CardInfo holds detected card information.
@@ -299,7 +299,7 @@ func (hw *USDHC) getRootClock() (podf uint32, sel uint32, clock uint32) {
 	}
 
 	podf = reg.Get(imx6.CCM_CSCDR1, podf_pos, 0b111)
-	sel = reg.Get(imx6.CCM_CSCMR1, clksel_pos, 0b1)
+	sel = reg.Get(imx6.CCM_CSCMR1, clksel_pos, 1)
 
 	if sel == 1 {
 		_, freq = imx6.GetPFD(2, 0)
@@ -339,7 +339,7 @@ func (hw *USDHC) setRootClock(podf uint32, sel uint32) (err error) {
 	}
 
 	reg.SetN(imx6.CCM_CSCDR1, podf_pos, 0b111, podf)
-	reg.SetN(imx6.CCM_CSCMR1, clksel_pos, 0b1, sel)
+	reg.SetN(imx6.CCM_CSCMR1, clksel_pos, 1, sel)
 
 	return
 }
@@ -408,8 +408,8 @@ func (hw *USDHC) executeTuning(index uint32, blocks uint32) error {
 
 		ac12_err_status := reg.Read(hw.ac12_err_status)
 
-		if bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_EXE_TUNE, 0b1) == 0 &&
-			bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_SMP_CLK_SEL, 0b1) == 1 {
+		if bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_EXE_TUNE, 1) == 0 &&
+			bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_SMP_CLK_SEL, 1) == 1 {
 			return nil
 		}
 	}
@@ -417,16 +417,14 @@ func (hw *USDHC) executeTuning(index uint32, blocks uint32) error {
 	return errors.New("tuning failed")
 }
 
-func (hw *USDHC) detect() (sd bool, mmc bool, hc bool, err error) {
-	sd, hc = hw.voltageValidationSD()
+func (hw *USDHC) detect() {
+	hw.voltageValidationSD()
 
-	if sd {
+	if hw.card.SD {
 		return
 	}
 
-	mmc, hc = hw.voltageValidationMMC()
-
-	return
+	hw.voltageValidationMMC()
 }
 
 // Info returns detected card information.
@@ -556,11 +554,7 @@ func (hw *USDHC) Detect() (err error) {
 		return
 	}
 
-	hw.card.SD, hw.card.MMC, hw.card.HC, err = hw.detect()
-
-	if err != nil {
-		return
-	}
+	hw.detect()
 
 	if hw.card.SD {
 		err = hw.initSD()

@@ -92,7 +92,7 @@ const (
 )
 
 // p352, 35.4.6 MMC voltage validation flow chart, IMX6FG
-func (hw *USDHC) voltageValidationMMC() (mmc bool, hc bool) {
+func (hw *USDHC) voltageValidationMMC() {
 	var arg uint32
 
 	// CMD1 - SEND_OP_COND
@@ -111,7 +111,7 @@ func (hw *USDHC) voltageValidationMMC() (mmc bool, hc bool) {
 	for time.Since(start) <= MMC_DETECT_TIMEOUT {
 		// CMD1 - SEND_OP_COND - send operating conditions
 		if err := hw.cmd(1, arg, 0, 0); err != nil {
-			return false, false
+			break
 		}
 
 		rsp := hw.rsp(0)
@@ -121,13 +121,13 @@ func (hw *USDHC) voltageValidationMMC() (mmc bool, hc bool) {
 		}
 
 		if bits.Get(&rsp, MMC_OCR_ACCESS_MODE, 0b11) == ACCESS_MODE_SECTOR {
-			hc = true
+			hw.card.HC = true
 		}
 
-		return true, hc
-	}
+		hw.card.MMC = true
 
-	return false, false
+		break
+	}
 }
 
 func (hw *USDHC) writeCardRegisterMMC(reg uint32, val uint32) (err error) {
@@ -198,7 +198,7 @@ func (hw *USDHC) detectCapabilitiesMMC(c_size_mult uint32, c_size uint32, read_b
 }
 
 func (hw *USDHC) executeTuningMMC() error {
-	reg.SetN(hw.vend_spec2, VEND_SPEC2_TUNING_8bit_EN, 0b1, 1)
+	reg.SetN(hw.vend_spec2, VEND_SPEC2_TUNING_8bit_EN, 1, 1)
 	return hw.executeTuning(21, 128)
 }
 

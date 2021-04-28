@@ -145,7 +145,7 @@ func (hw *USDHC) executeTuningSD() error {
 }
 
 // p350, 35.4.4 SD voltage validation flow chart, IMX6FG
-func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
+func (hw *USDHC) voltageValidationSD() {
 	var arg uint32
 	var hv bool
 
@@ -162,14 +162,14 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 
 	if hw.cmd(8, arg, 0, 0) == nil && hw.rsp(0) == arg {
 		// HC/LC HV SD 2.x
-		hc = true
+		hw.card.HC = true
 		hv = true
 	} else {
 		arg = VHS_LOW<<CMD8_ARG_VHS | CHECK_PATTERN
 
 		if hw.cmd(8, arg, 0, 0) == nil && hw.rsp(0) == arg {
 			// LC SD 1.x
-			hc = true
+			hw.card.HC = true
 		} else {
 			// LC SD 2.x
 			hv = true
@@ -184,7 +184,7 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 	// represents part of OCR register voltage window).
 	arg = 0
 
-	if hc {
+	if hw.card.HC {
 		// SDHC or SDXC supported
 		bits.Set(&arg, SD_OCR_HCS)
 		// Maximum Performance
@@ -205,12 +205,12 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 	for time.Since(start) <= SD_DETECT_TIMEOUT {
 		// CMD55 - APP_CMD - next command is application specific
 		if hw.cmd(55, 0, 0, 0) != nil {
-			return false, false
+			break
 		}
 
 		// ACMD41 - SD_SEND_OP_COND - send operating conditions
 		if err := hw.cmd(41, arg, 0, 0); err != nil {
-			return false, false
+			break
 		}
 
 		rsp := hw.rsp(0)
@@ -220,7 +220,7 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 		}
 
 		if bits.Get(&rsp, SD_OCR_HCS, 1) == 1 {
-			hc = true
+			hw.card.HC = true
 		}
 
 		// Select the fastest mandatory speed mode, supported by this
@@ -237,10 +237,10 @@ func (hw *USDHC) voltageValidationSD() (sd bool, hc bool) {
 			hw.card.Rate = HS_MBPS
 		}
 
-		return true, hc
-	}
+		hw.card.SD = true
 
-	return false, false
+		break
+	}
 }
 
 func (hw *USDHC) detectCapabilitiesSD() (err error) {
