@@ -36,16 +36,9 @@ import (
 
 // Identification registers
 const (
-	WDOG1_WCR          = 0x020bc000
 	OCOTP_CFG0         = 0x021bc410
 	OCOTP_CFG1         = 0x021bc420
 	USB_ANALOG_DIGPROG = 0x020c8260
-)
-
-// Reset registers
-const (
-	SRC_SCR               = 0x020d8000
-	SCR_WARM_RESET_ENABLE = 0
 )
 
 // Timer registers (p178, Table 2-3, IMX6ULLRM)
@@ -152,11 +145,4 @@ func Model() (model string) {
 	}
 
 	return
-}
-
-// Reboot resets the watchdog timer causing the SoC to restart.
-func Reboot() {
-	reg.Clear(SRC_SCR, SCR_WARM_RESET_ENABLE)
-	// WDOG1_WCR is a 16-bit register, 32-bit access should be avoided
-	reg.Write16(WDOG1_WCR, 0)
 }
