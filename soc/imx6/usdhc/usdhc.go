@@ -477,6 +477,9 @@ func (hw *USDHC) Init(width int) {
 	// p106, 4.6.2.2 Write, SD-PL-7.10
 	hw.writeTimeout = 500 * time.Millisecond
 
+	// enable clock
+	reg.SetN(imx6.CCM_CCGR6, hw.cg, 0b11, 0b11)
+
 	hw.Unlock()
 }
 
@@ -499,9 +502,6 @@ func (hw *USDHC) Detect() (err error) {
 
 	// clear card information
 	hw.card = CardInfo{}
-
-	// enable clock
-	reg.SetN(imx6.CCM_CCGR6, hw.cg, 0b11, 0b11)
 
 	// soft reset uSDHC
 	reg.Set(hw.sys_ctrl, SYS_CTRL_RSTA)
