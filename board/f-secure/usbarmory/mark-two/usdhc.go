@@ -61,7 +61,7 @@ const (
 func init() {
 	// There are no write-protect lines on uSD or eMMC cards, therefore the
 	// respective SoC pads must be selected on pulled down unconnected pads
-	// to ensure the driver never see write protection enabled.
+	// to ensure the driver never sees write protection enabled.
 	ctl := uint32((1 << imx6.SW_PAD_CTL_PUE) | (1 << imx6.SW_PAD_CTL_PKE))
 
 	// SD write protect (USDHC1_WP)
