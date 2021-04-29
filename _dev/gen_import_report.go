@@ -46,10 +46,6 @@ func nanotime1() (ns int64) {
 	return
 }
 
-//go:linkname read_tls_fallback runtime.read_tls_fallback
-func read_tls_fallback() {
-}
-
 //go:linkname stackOffset runtime.stackOffset
 var stackOffset uint32
 
