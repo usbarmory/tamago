@@ -11,6 +11,7 @@ package mx6ullevk
 
 import (
 	"github.com/f-secure-foundry/tamago/bits"
+	"github.com/f-secure-foundry/tamago/internal/reg"
 	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
 
@@ -50,5 +51,5 @@ func init() {
 // Reset deasserts the global watchdog signal which causes the MCIMX6ULL-EVK
 // board to power cycle (cold reset).
 func Reset() {
-	imx6.Reset()
+	reg.Clear16(imx6.WDOG1_WCR, imx6.WCR_WDA)
 }

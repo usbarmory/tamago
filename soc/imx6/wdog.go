@@ -26,6 +26,7 @@ const (
 	WDOG3_WMCR = 0x021e4008
 
 	WCR_SRE  = 6
+	WCR_WDA  = 5
 	WCR_SRS  = 4
 	WMCR_PDE = 0
 )
