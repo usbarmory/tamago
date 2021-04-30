@@ -17,11 +17,10 @@ import (
 
 // On the USB armory Mk II the PMIC watchdog input (WDI) is connected to the
 // SoC external reset source (WDOG2_WDOG_RST_B_DEB) through
-// ENET1_TX_EN/KPP_COL2.
+// ENET1_TX_EN/KPP_COL2 (p4081, Table 59-1. WDOG External Signals, IMX6ULLRM).
 const (
 	IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_EN = 0x020e00d8
 	IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_EN = 0x020e0364
-	IOMUXC_ENET1_TX_EN_SELECT_INPUT   = 0x020e066c
 
 	WDOG2_WDOG_RST_B_DEB_MODE = 8
 )
@@ -39,7 +38,7 @@ func init() {
 
 	p, err := imx6.NewPad(IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_EN,
 		IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_EN,
-		IOMUXC_ENET1_TX_EN_SELECT_INPUT)
+		0)
 
 	if err != nil {
 		panic(err)
