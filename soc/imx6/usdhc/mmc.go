@@ -92,7 +92,7 @@ const (
 )
 
 // p352, 35.4.6 MMC voltage validation flow chart, IMX6FG
-func (hw *USDHC) voltageValidationMMC() {
+func (hw *USDHC) voltageValidationMMC() bool {
 	var arg uint32
 
 	// CMD1 - SEND_OP_COND
@@ -128,6 +128,8 @@ func (hw *USDHC) voltageValidationMMC() {
 
 		break
 	}
+
+	return hw.card.MMC
 }
 
 func (hw *USDHC) writeCardRegisterMMC(reg uint32, val uint32) (err error) {

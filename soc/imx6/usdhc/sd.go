@@ -145,7 +145,7 @@ func (hw *USDHC) executeTuningSD() error {
 }
 
 // p350, 35.4.4 SD voltage validation flow chart, IMX6FG
-func (hw *USDHC) voltageValidationSD() {
+func (hw *USDHC) voltageValidationSD() bool {
 	var arg uint32
 	var hv bool
 
@@ -241,6 +241,8 @@ func (hw *USDHC) voltageValidationSD() {
 
 		break
 	}
+
+	return hw.card.SD
 }
 
 func (hw *USDHC) detectCapabilitiesSD() (err error) {

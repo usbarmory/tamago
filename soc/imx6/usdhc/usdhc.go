@@ -417,16 +417,6 @@ func (hw *USDHC) executeTuning(index uint32, blocks uint32) error {
 	return errors.New("tuning failed")
 }
 
-func (hw *USDHC) detect() {
-	hw.voltageValidationSD()
-
-	if hw.card.SD {
-		return
-	}
-
-	hw.voltageValidationMMC()
-}
-
 // Info returns detected card information.
 func (hw *USDHC) Info() CardInfo {
 	return hw.card
@@ -554,14 +544,12 @@ func (hw *USDHC) Detect() (err error) {
 		return
 	}
 
-	hw.detect()
-
-	if hw.card.SD {
+	if hw.voltageValidationSD() {
 		err = hw.initSD()
-	} else if hw.card.MMC {
+	} else if hw.voltageValidationMMC() {
 		err = hw.initMMC()
 	} else {
-		err = fmt.Errorf("no card detected on uSDHC%d", hw.n)
+		return fmt.Errorf("no card detected on uSDHC%d", hw.n)
 	}
 
 	if err != nil {
