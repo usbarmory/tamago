@@ -18,7 +18,7 @@ import (
 // IOMUX registers
 const (
 	IOMUXC_START = 0x020e0000
-	IOMUXC_END   = 0x0203ffff
+	IOMUXC_END   = 0x020e3fff
 
 	SW_PAD_CTL_HYS = 16
 
@@ -65,7 +65,7 @@ type Pad struct {
 // NewPad initializes a pad.
 func NewPad(mux uint32, pad uint32, daisy uint32) (*Pad, error) {
 	for _, r := range []uint32{mux, pad, daisy} {
-		if !(r >= IOMUXC_START || r <= IOMUXC_END) {
+		if !(r >= IOMUXC_START && r <= IOMUXC_END) {
 			return nil, fmt.Errorf("invalid IOMUXC register %#x", r)
 		}
 	}
