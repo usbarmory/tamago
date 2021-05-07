@@ -64,10 +64,16 @@ type Pad struct {
 
 // NewPad initializes a pad.
 func NewPad(mux uint32, pad uint32, daisy uint32) (*Pad, error) {
-	for _, r := range []uint32{mux, pad, daisy} {
-		if !(r >= IOMUXC_START && r <= IOMUXC_END) {
-			return nil, fmt.Errorf("invalid IOMUXC register %#x", r)
-		}
+	if mux < IOMUXC_START || mux > IOMUXC_END {
+		return nil, fmt.Errorf("invalid mux register %#x", pad)
+	}
+
+	if pad < IOMUXC_START || pad > IOMUXC_END {
+		return nil, fmt.Errorf("invalid pad register %#x", pad)
+	}
+
+	if daisy > 0 && (daisy < IOMUXC_START || daisy > IOMUXC_END) {
+		return nil, fmt.Errorf("invalid daisy register %#x", daisy)
 	}
 
 	return &Pad{
@@ -98,5 +104,9 @@ func (pad *Pad) Ctl(ctl uint32) {
 
 // Select configures the pad daisy chain register.
 func (pad *Pad) Select(input uint32) {
+	if pad.daisy == 0 {
+		return
+	}
+
 	reg.Write(pad.daisy, input)
 }
