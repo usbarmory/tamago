@@ -38,59 +38,64 @@ const (
 	excStackSize   = 0x4000 // 16 kB
 )
 
-var (
-	// ExceptionHandler defines the global exception handler, the function
-	// is executed at any exception, in system mode on the Go runtime stack
-	// within goroutine g0.
-	ExceptionHandler = DefaultExceptionHandler
-
-	// ResetHandler defines the reset exception handler, executed within
-	// supervisor mode and its stack. SetExceptionHandlers() must be
-	// invoked to update the vector table when changed.
-	ResetHandler = resetHandler
-
-	// UndefinedHandler defines the undefined exception handler, executed
-	// within undefined mode and its stack. SetExceptionHandlers() must be
-	// invoked to update the vector table when changed.
-	UndefinedHandler = undefinedHandler
-
-	// SupervisorHandler defines the supervisor call exception handler,
-	// executed within supervisor mode and its stack.
-	// SetExceptionHandlers() must be invoked to update the vector table
-	// when changed.
-	SupervisorHandler = svcHandler
-
-	// PrefetchAbortHandler defines the prefetch abort exception handler,
-	// executed within abort mode and its stack. SetExceptionHandlers()
-	// must be invoked to update the vector table when changed.
-	PrefetchAbortHandler = prefetchAbortHandler
-
-	// DataAbortHandler defines the data abort exception handler, executed
-	// within abort mode and its stack. SetExceptionHandlers() must be
-	// invoked to update the vector table when changed.
-	DataAbortHandler = dataAbortHandler
-
-	// IRQHandler defines the IRQ interrupt exception handler, executed
-	// within IRQ mode and its stack. SetExceptionHandlers() must be
-	// invoked to update the vector table when changed.
-	IRQHandler = irqHandler
-
-	// FIQHandler defines the FIQ interrupt exception handler, executed
-	// within FIQ mode and its stack. SetExceptionHandlers() must be
-	// invoked to update the vector table when changed.
-	FIQHandler = fiqHandler
-)
-
 // defined in exception.s
 func set_exc_stack(addr uint32)
 func set_vbar(addr uint32)
 func resetHandler()
 func undefinedHandler()
-func svcHandler()
+func supervisorHandler()
 func prefetchAbortHandler()
 func dataAbortHandler()
 func irqHandler()
 func fiqHandler()
+
+type ExceptionHandler func()
+
+func vector(fn ExceptionHandler) uint32 {
+	return **((**uint32)(unsafe.Pointer(&fn)))
+}
+
+type VectorTable struct {
+	Reset         ExceptionHandler
+	Undefined     ExceptionHandler
+	Supervisor    ExceptionHandler
+	PrefetchAbort ExceptionHandler
+	DataAbort     ExceptionHandler
+	IRQ           ExceptionHandler
+	FIQ           ExceptionHandler
+}
+
+// DefaultExceptionHandler handles an exception by printing its vector and
+// processor mode before panicking.
+func DefaultExceptionHandler(off int) {
+	print("exception: vector ", off, " mode ", int(read_cpsr()&0x1f), "\n")
+	panic("unhandled exception")
+}
+
+// SystemExceptionHandler allows to override the default exception handler
+// executed at any exception by the table returned by SystemVectorTable(),
+// which is used by default when initializing the CPU instance (e.g.
+// CPU.Init()).
+var SystemExceptionHandler = DefaultExceptionHandler
+
+func systemException(off int) {
+	SystemExceptionHandler(off)
+}
+
+// SystemVectorTable returns a vector table that, for all exceptions, switches
+// to system mode and calls the SystemExceptionHandler on the Go runtime stack
+// within goroutine g0.
+func SystemVectorTable() VectorTable {
+	return VectorTable{
+		Reset:         resetHandler,
+		Undefined:     undefinedHandler,
+		Supervisor:    supervisorHandler,
+		PrefetchAbort: prefetchAbortHandler,
+		DataAbort:     dataAbortHandler,
+		IRQ:           irqHandler,
+		FIQ:           fiqHandler,
+	}
+}
 
 // VectorName returns the exception vector offset name.
 func VectorName(off int) string {
@@ -114,23 +119,9 @@ func VectorName(off int) string {
 	return "Unknown"
 }
 
-func DefaultExceptionHandler(off int) {
-	print("exception: vector ", off, " mode ", int(read_cpsr()&0x1f), "\n")
-	panic("unhandled exception")
-}
-
-func systemException(off int) {
-	ExceptionHandler(off)
-}
-
-func fnAddress(fn func()) uint32 {
-	return **((**uint32)(unsafe.Pointer(&fn)))
-}
-
-// SetExceptionHandlers updates the exception handling vector table with the
-// functions defined in the related global variables. It must be invoked
-// whenever handling functions are changed.
-func SetExceptionHandlers() {
+// SetVectorTable updates the CPU exception handling vector table with the
+// addresses of the functions defined in the passed structure.
+func SetVectorTable(t VectorTable) {
 	ramStart, _ := runtime.MemRegion()
 	vecTableStart := ramStart + vecTableOffset
 
@@ -140,13 +131,13 @@ func SetExceptionHandlers() {
 	// set handler pointers
 	// Table 11-1 ARM® Cortex™ -A Series Programmer’s Guide
 
-	reg.Write(off+0*4, fnAddress(ResetHandler))
-	reg.Write(off+1*4, fnAddress(UndefinedHandler))
-	reg.Write(off+2*4, fnAddress(SupervisorHandler))
-	reg.Write(off+3*4, fnAddress(PrefetchAbortHandler))
-	reg.Write(off+4*4, fnAddress(DataAbortHandler))
-	reg.Write(off+5*4, fnAddress(IRQHandler))
-	reg.Write(off+6*4, fnAddress(FIQHandler))
+	reg.Write(off+0*4, vector(t.Reset))
+	reg.Write(off+1*4, vector(t.Undefined))
+	reg.Write(off+2*4, vector(t.Supervisor))
+	reg.Write(off+3*4, vector(t.PrefetchAbort))
+	reg.Write(off+4*4, vector(t.DataAbort))
+	reg.Write(off+5*4, vector(t.IRQ))
+	reg.Write(off+6*4, vector(t.FIQ))
 }
 
 //go:nosplit
@@ -161,7 +152,7 @@ func (cpu *CPU) initVectorTable() {
 	}
 
 	// set exception handlers
-	SetExceptionHandlers()
+	SetVectorTable(SystemVectorTable())
 
 	// set vector base address register
 	set_vbar(vecTableStart)

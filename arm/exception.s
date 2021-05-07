@@ -70,7 +70,7 @@ TEXT ·resetHandler(SB),NOSPLIT|NOFRAME,$0
 TEXT ·undefinedHandler(SB),NOSPLIT|NOFRAME,$0
 	EXCEPTION(0x4, ·systemException, 4, R12, 56)
 
-TEXT ·svcHandler(SB),NOSPLIT|NOFRAME,$0
+TEXT ·supervisorHandler(SB),NOSPLIT|NOFRAME,$0
 	EXCEPTION(0x8, ·systemException, 0, R12, 56)
 
 TEXT ·prefetchAbortHandler(SB),NOSPLIT|NOFRAME,$0
