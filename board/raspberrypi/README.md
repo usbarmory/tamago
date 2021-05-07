@@ -78,6 +78,7 @@ Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go)
 
 ```sh
 wget https://github.com/f-secure-foundry/tamago-go/archive/refs/tags/latest.zip
+unzip latest.zip
 cd tamago-go-latest/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
