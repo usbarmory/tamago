@@ -30,8 +30,6 @@ read:
 // func read_cntfrq() int32
 TEXT ·read_cntfrq(SB),$0-4
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
-	// https://wiki.osdev.org/ARMv7_Generic_Timers
-	//
 	// B4.1.21 CNTFRQ, Counter Frequency register, VMSA
 	WORD	$0xf57ff06f // isb sy
 	MRC	15, 0, R0, C14, C0, 0
@@ -43,8 +41,6 @@ TEXT ·read_cntfrq(SB),$0-4
 // func write_cntfrq(freq int32)
 TEXT ·write_cntfrq(SB),$0-4
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
-	// https://wiki.osdev.org/ARMv7_Generic_Timers
-	//
 	// B4.1.21 CNTFRQ, Counter Frequency register, VMSA
 	MOVW	freq+0(FP), R0
 	WORD	$0xf57ff06f // isb sy
@@ -52,11 +48,19 @@ TEXT ·write_cntfrq(SB),$0-4
 
 	RET
 
+// func write_cntkctl(val uint32)
+TEXT ·write_cntkctl(SB),$0-4
+	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
+	// B4.1.26 CNTKCTL, Timer PL1 Control register, VMSA
+	MOVW	freq+0(FP), R0
+	WORD	$0xf57ff06f // isb sy
+	MCR	15, 0, R0, C14, C1, 0
+
+	RET
+
 // func read_cntpct() int64
 TEXT ·read_cntpct(SB),$0-8
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
-	// https://wiki.osdev.org/ARMv7_Generic_Timers
-	//
 	// B4.1.30 CNTPCT, Physical Count register, VMSA
 	WORD	$0xf57ff06f // isb sy
 	WORD	$0xec510f0e // mrrc p15, 0, r0, r1, c14

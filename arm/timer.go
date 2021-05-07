@@ -34,6 +34,8 @@ const (
 	CNTCR_HDBG   = 1
 	CNTCR_EN     = 0
 
+	CNTKCTL_PL0PCTEN = 0
+
 	// nanoseconds
 	refFreq int64 = 1000000000
 )
@@ -42,6 +44,7 @@ const (
 func read_gtc() int64
 func read_cntfrq() int32
 func write_cntfrq(freq int32)
+func write_cntkctl(val uint32)
 func read_cntpct() int64
 
 // Busyloop spins the processor for busy waiting purposes, taking a counter
@@ -59,15 +62,19 @@ func (cpu *CPU) InitGenericTimers(base uint32, freq int32) {
 	var timerFreq int64
 
 	if freq != 0 {
+		// set base frequency
 		write_cntfrq(freq)
-		// Set base frequency
 		reg.Write(base+CNTFID0, uint32(freq))
-		// Set system counter to base frequency
+
+		// set system counter to base frequency
 		reg.Set(base+CNTCR, CNTCR_FCREQ0)
-		// Stop system counter on debug
+		// stop system counter on debug
 		reg.Set(base+CNTCR, CNTCR_HDBG)
-		// Start system counter
+		// start system counter
 		reg.Set(base+CNTCR, CNTCR_EN)
+
+		// grant PL0 access
+		write_cntkctl(1 << CNTKCTL_PL0PCTEN)
 	}
 
 	timerFreq = int64(read_cntfrq())
