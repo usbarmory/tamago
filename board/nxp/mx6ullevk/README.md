@@ -165,9 +165,9 @@ The target can be executed under emulation as follows:
 
 ```
 qemu-system-arm \
-	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M
-	\ -nographic -monitor none -serial null -serial stdio -net none
-	\ -kernel example -semihosting -d unimp
+	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M \
+	  -nographic -monitor none -serial null -serial stdio -net none \
+	  -kernel example -semihosting -d unimp
 ```
 
 The emulated target can be debugged with GDB by adding the `-S -s` flags to the
