@@ -65,7 +65,7 @@ func (dma *Region) Init() {
 	dma.usedBlocks = make(map[uint32]*block)
 }
 
-// Reserve allocated a slice of bytes for DMA purposes, by placing its data
+// Reserve allocates a slice of bytes for DMA purposes, by placing its data
 // within the DMA region, with optional alignment. It returns the slice along
 // with its data allocation address. The buffer can be freed up with Release().
 //
