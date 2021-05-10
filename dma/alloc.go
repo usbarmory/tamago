@@ -15,22 +15,22 @@ import (
 	"unsafe"
 )
 
-func (b *block) read(offset int, buf []byte) {
+func (b *block) read(off int, buf []byte) {
 	var mem []byte
 
 	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&mem))
-	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr + uint32(offset))))
+	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr + uint32(off))))
 	hdr.Len = len(buf)
 	hdr.Cap = hdr.Len
 
 	copy(buf, mem)
 }
 
-func (b *block) write(buf []byte, offset int) {
+func (b *block) write(off int, buf []byte) {
 	var mem []byte
 
 	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&mem))
-	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr + uint32(offset))))
+	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr + uint32(off))))
 	hdr.Len = len(buf)
 
 	copy(mem, buf)

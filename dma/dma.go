@@ -136,7 +136,7 @@ func (dma *Region) Alloc(buf []byte, align int) (addr uint32) {
 	defer dma.Unlock()
 
 	b := dma.alloc(len(buf), align)
-	b.write(buf, 0)
+	b.write(0, buf)
 
 	dma.usedBlocks[b.addr] = b
 
@@ -153,7 +153,7 @@ func (dma *Region) Alloc(buf []byte, align int) (addr uint32) {
 // If the argument is a buffer previously created with Reserve(), then the
 // function returns without modifying it, as it is assumed for the buffer to be
 // already updated.
-func (dma *Region) Read(addr uint32, offset int, buf []byte) {
+func (dma *Region) Read(addr uint32, off int, buf []byte) {
 	size := len(buf)
 
 	if addr == 0 || size == 0 {
@@ -173,11 +173,11 @@ func (dma *Region) Read(addr uint32, offset int, buf []byte) {
 		panic("read of unallocated pointer")
 	}
 
-	if offset+size > b.size {
+	if off+size > b.size {
 		panic("invalid read parameters")
 	}
 
-	b.read(offset, buf)
+	b.read(off, buf)
 }
 
 // Write writes buffer contents to a memory region address, the region must
@@ -186,8 +186,8 @@ func (dma *Region) Read(addr uint32, offset int, buf []byte) {
 // An offset can be passed to write a slice of the memory region, a panic
 // occurs if the offset is not compatible with the initial allocation for the
 // address.
-func (dma *Region) Write(addr uint32, data []byte, offset int) {
-	size := len(data)
+func (dma *Region) Write(addr uint32, off int, buf []byte) {
+	size := len(buf)
 
 	if addr == 0 || size == 0 {
 		return
@@ -202,11 +202,11 @@ func (dma *Region) Write(addr uint32, data []byte, offset int) {
 		return
 	}
 
-	if offset+size > b.size {
+	if off+size > b.size {
 		panic("invalid write parameters")
 	}
 
-	b.write(data, offset)
+	b.write(off, buf)
 }
 
 // Free frees the memory region stored at the passed address, the region must
@@ -282,13 +282,13 @@ func Alloc(buf []byte, align int) (addr uint32) {
 }
 
 // Read is the equivalent of Region.Read() on the global DMA region.
-func Read(addr uint32, offset int, buf []byte) {
-	dma.Read(addr, offset, buf)
+func Read(addr uint32, off int, buf []byte) {
+	dma.Read(addr, off, buf)
 }
 
 // Write is the equivalent of Region.Write() on the global DMA region.
-func Write(addr uint32, data []byte, offset int) {
-	dma.Write(addr, data, offset)
+func Write(addr uint32, off int, buf []byte) {
+	dma.Write(addr, off, buf)
 }
 
 // Free is the equivalent of Region.Free() on the global DMA region.
