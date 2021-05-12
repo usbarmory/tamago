@@ -144,7 +144,7 @@ func (hw *USB) set(n int, dir int, max int, zlt bool, mult int) {
 	binary.Write(buf, binary.LittleEndian, &dqh)
 
 	offset := (n*2 + dir) * DQH_SIZE
-	dma.Write(hw.epListAddr, buf.Bytes(), offset)
+	dma.Write(hw.epListAddr, offset, buf.Bytes())
 
 	hw.dQH[n][dir] = hw.epListAddr + uint32(offset)
 }
