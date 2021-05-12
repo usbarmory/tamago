@@ -63,7 +63,7 @@ func (cpu *CPU) ConfigureMMU(start uint32, end uint32, flags uint32) {
 	start = start >> 20
 	end = end >> 20
 
-	for i := uint32(1); i < l1pageTableSize/4; i++ {
+	for i := uint32(0); i < l1pageTableSize/4; i++ {
 		page := l1pageTableStart + 4*i
 		pa := i << 20
 
