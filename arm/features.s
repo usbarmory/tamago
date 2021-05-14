@@ -14,7 +14,7 @@ TEXT ·read_idpfr0(SB),$0-4
 	//
 	// B4.1.93 ID_PFR0, Processor Feature Register 0, VMSA
 
-	// Invalidate Entire Instruction Cache
+	// Invalidate Instruction Cache
 	MOVW	$0, R0
 	MCR	15, 0, R0, C7, C5, 0
 
@@ -30,7 +30,7 @@ TEXT ·read_idpfr1(SB),$0-4
 	//
 	// B4.1.94 ID_PFR1, Processor Feature Register 1, VMSA
 
-	// Invalidate Entire Instruction Cache
+	// Invalidate Instruction Cache
 	MOVW	$0, R0
 	MCR	15, 0, R0, C7, C5, 0
 
