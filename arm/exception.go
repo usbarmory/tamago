@@ -48,6 +48,7 @@ func prefetchAbortHandler()
 func dataAbortHandler()
 func irqHandler()
 func fiqHandler()
+func nullHandler()
 
 type ExceptionHandler func()
 
@@ -123,21 +124,18 @@ func VectorName(off int) string {
 // addresses of the functions defined in the passed structure.
 func SetVectorTable(t VectorTable) {
 	ramStart, _ := runtime.MemRegion()
-	vecTableStart := ramStart + vecTableOffset
-
-	// end of jump entries
-	off := vecTableStart + 8*4
+	vecTable := ramStart + vecTableOffset + 8*4
 
 	// set handler pointers
 	// Table 11-1 ARM® Cortex™ -A Series Programmer’s Guide
 
-	reg.Write(off+0*4, vector(t.Reset))
-	reg.Write(off+1*4, vector(t.Undefined))
-	reg.Write(off+2*4, vector(t.Supervisor))
-	reg.Write(off+3*4, vector(t.PrefetchAbort))
-	reg.Write(off+4*4, vector(t.DataAbort))
-	reg.Write(off+5*4, vector(t.IRQ))
-	reg.Write(off+6*4, vector(t.FIQ))
+	reg.Write(vecTable+RESET, vector(t.Reset))
+	reg.Write(vecTable+UNDEFINED, vector(t.Undefined))
+	reg.Write(vecTable+SUPERVISOR, vector(t.Supervisor))
+	reg.Write(vecTable+PREFETCH_ABORT, vector(t.PrefetchAbort))
+	reg.Write(vecTable+DATA_ABORT, vector(t.DataAbort))
+	reg.Write(vecTable+IRQ, vector(t.IRQ))
+	reg.Write(vecTable+FIQ, vector(t.FIQ))
 }
 
 //go:nosplit
