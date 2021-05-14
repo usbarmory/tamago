@@ -84,3 +84,6 @@ TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
 
 TEXT ·fiqHandler(SB),NOSPLIT|NOFRAME,$0
 	EXCEPTION(0x1c, ·systemException, 4, R7, 36)
+
+TEXT ·nullHandler(SB),NOSPLIT|NOFRAME,$0
+	MOVW.S	R14, R15
