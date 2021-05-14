@@ -61,24 +61,26 @@ func (cpu *CPU) InitGlobalTimers() {
 func (cpu *CPU) InitGenericTimers(base uint32, freq int32) {
 	var timerFreq int64
 
-	if freq != 0 {
-		// set base frequency
-		write_cntfrq(freq)
-		reg.Write(base+CNTFID0, uint32(freq))
-
-		// set system counter to base frequency
-		reg.Set(base+CNTCR, CNTCR_FCREQ0)
-		// stop system counter on debug
-		reg.Set(base+CNTCR, CNTCR_HDBG)
-		// start system counter
-		reg.Set(base+CNTCR, CNTCR_EN)
-
-		// grant PL0 access
-		write_cntkctl(1 << CNTKCTL_PL0PCTEN)
-	}
-
 	timerFreq = int64(read_cntfrq())
 
 	cpu.TimerMultiplier = int64(refFreq / timerFreq)
 	cpu.TimerFn = read_cntpct
+
+	if freq == 0 || cpu.NonSecure() {
+		return
+	}
+
+	// set base frequency
+	write_cntfrq(freq)
+	reg.Write(base+CNTFID0, uint32(freq))
+
+	// set system counter to base frequency
+	reg.Set(base+CNTCR, CNTCR_FCREQ0)
+	// stop system counter on debug
+	reg.Set(base+CNTCR, CNTCR_HDBG)
+	// start system counter
+	reg.Set(base+CNTCR, CNTCR_EN)
+
+	// grant PL0 access
+	write_cntkctl(1 << CNTKCTL_PL0PCTEN)
 }
