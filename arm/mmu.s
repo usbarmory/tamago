@@ -11,39 +11,35 @@
 
 // func set_ttbr0(addr uint32)
 TEXT ·set_ttbr0(SB),NOSPLIT,$0-4
-	// Data Memory Barrier
 	MOVW	$0, R0
+
+	// Data Memory Barrier
 	MCR	15, 0, R0, C7, C10, 5
 
-	// Invalidate Instruction Cache + DSB
-	MOVW	$0, R1
-	MCR	15, 0, R1, C7, C5, 0
-	MCR	15, 0, R1, C7, C10, 4
+	// Invalidate Instruction Cache
+	MCR	15, 0, R0, C7, C5, 0
 
-	MOVW	addr+0(FP), R0
+	// Data Synchronization Barrier
+	MCR	15, 0, R0, C7, C10, 4
 
 	// Invalidate unified TLB
-	MCR	15, 0, R0, C8, C7, 0	// TLBIALL
+	MCR	15, 0, R0, C8, C7, 0
 
 	// Set TTBR0
+	MOVW	addr+0(FP), R0
 	MCR	15, 0, R0, C2, C0, 0
 
 	// Use TTBR0 for translation table walks
-	MOVW	$0x0, R0
+	MOVW	$0, R0
 	MCR	15, 0, R0, C2, C0, 2
 
 	// Set Domain Access
-	MOVW	$0x1, R0
+	MOVW	$1, R0
 	MCR	15, 0, R0, C3, C0, 0
-
-	// Invalidate Instruction Cache + DSB
-	MOVW	$0, R0
-	MCR	15, 0, R0, C7, C5, 0
-	MCR	15, 0, R0, C7, C10, 4
 
 	// Enable MMU
 	MRC	15, 0, R0, C1, C0, 0
-	ORR	$0x1, R0
+	ORR	$1, R0
 	MCR	15, 0, R0, C1, C0, 0
 
 	RET
