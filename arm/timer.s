@@ -43,6 +43,7 @@ TEXT ·write_cntfrq(SB),$0-4
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// B4.1.21 CNTFRQ, Counter Frequency register, VMSA
 	MOVW	freq+0(FP), R0
+
 	WORD	$0xf57ff06f // isb sy
 	MCR	15, 0, R0, C14, C0, 0
 
@@ -53,6 +54,7 @@ TEXT ·write_cntkctl(SB),$0-4
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// B4.1.26 CNTKCTL, Timer PL1 Control register, VMSA
 	MOVW	freq+0(FP), R0
+
 	WORD	$0xf57ff06f // isb sy
 	MCR	15, 0, R0, C14, C1, 0
 
