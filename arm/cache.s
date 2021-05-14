@@ -18,7 +18,6 @@ TEXT ·read_actlr(SB),$0-4
 	MCR	15, 0, R0, C7, C5, 0
 
 	MRC	15, 0, R0, C1, C0, 1
-
 	MOVW	R0, ret+0(FP)
 
 	RET
@@ -28,12 +27,12 @@ TEXT ·write_actlr(SB),$0-4
 	// Cortex™-A7 MPCore® Technical Reference Manual r0p5
 	//
 	// 4.3.31 Auxiliary Control Register
-	MOVW aux+0(FP), R0
 
-	// Invalidate Entire Instruction Cache
+	// Invalidate Instruction Cache
 	MOVW	$0, R1
 	MCR	15, 0, R1, C7, C5, 0
 
+	MOVW	aux+0(FP), R0
 	MCR	15, 0, R0, C1, C0, 1
 
 	RET
@@ -41,16 +40,16 @@ TEXT ·write_actlr(SB),$0-4
 // func cache_disable()
 TEXT ·cache_disable(SB),$0
 	MRC	15, 0, R1, C1, C0, 0
-	BIC	$0x1000, R1	// Disable I-cache
-	BIC	$0x4, R1	// Disable D-cache
+	BIC	$1<<12, R1			// Disable I-cache
+	BIC	$1<<2, R1			// Disable D-cache
 	MCR	15, 0, R1, C1, C0, 0
 	RET
 
 // func cache_enable()
 TEXT ·cache_enable(SB),$0
 	MRC	15, 0, R1, C1, C0, 0
-	ORR	$1<<12, R1	// Enable I-cache
-	ORR	$1<<2, R1	// Enable D-cache
+	ORR	$1<<12, R1			// Enable I-cache
+	ORR	$1<<2, R1			// Enable D-cache
 	MCR	15, 0, R1, C1, C0, 0
 	RET
 
