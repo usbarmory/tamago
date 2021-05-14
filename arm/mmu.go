@@ -78,6 +78,7 @@ func (cpu *CPU) ConfigureMMU(start uint32, end uint32, flags uint32) {
 		reg.Write(page, pa|flags)
 	}
 
+	cpu.FlushDataCache()
 	set_ttbr0(l1pageTableStart)
 }
 
