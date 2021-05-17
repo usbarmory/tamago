@@ -41,6 +41,7 @@ const (
 // defined in exception.s
 func set_exc_stack(addr uint32)
 func set_vbar(addr uint32)
+func set_mvbar(addr uint32)
 func resetHandler()
 func undefinedHandler()
 func supervisorHandler()
@@ -154,6 +155,11 @@ func (cpu *CPU) initVectorTable() {
 
 	// set vector base address register
 	set_vbar(vecTableStart)
+
+	if cpu.Secure() {
+		// set monitor vector base address register
+		set_mvbar(vecTableStart)
+	}
 
 	// Set the stack pointer for exception modes to provide a stack when
 	// summoned by exception vectors.

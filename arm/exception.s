@@ -17,16 +17,20 @@ TEXT ·set_exc_stack(SB),NOSPLIT,$0-4
 	WORD	$0xe321f0d2	// msr CPSR_c, 0xd2
 	MOVW R0, R13
 
+	// Set Supervisor mode SP
+	WORD	$0xe321f0d3	// msr CPSR_c, 0xd3
+	MOVW R0, R13
+
+	// Set Monitor mode SP
+	WORD	$0xe321f0d6	// msr CPSR_c, 0xd6
+	MOVW R0, R13
+
 	// Set Abort mode SP
 	WORD	$0xe321f0d7	// msr CPSR_c, 0xd7
 	MOVW R0, R13
 
 	// Set Undefined mode SP
 	WORD	$0xe321f0db	// msr CPSR_c, 0xdb
-	MOVW R0, R13
-
-	// Set Supervisor mode SP
-	WORD	$0xe321f0d3	// msr CPSR_c, 0xd3
 	MOVW R0, R13
 
 	// Return to System mode
@@ -38,6 +42,12 @@ TEXT ·set_exc_stack(SB),NOSPLIT,$0-4
 TEXT ·set_vbar(SB),NOSPLIT,$0-4
 	MOVW	addr+0(FP), R0
 	MCR	15, 0, R0, C12, C0, 0
+	RET
+
+// func set_mvbar(addr uint32)
+TEXT ·set_mvbar(SB),NOSPLIT,$0-4
+	MOVW	addr+0(FP), R0
+	MCR	15, 0, R0, C12, C0, 1
 	RET
 
 #define EXCEPTION(OFFSET, FN, LROFFSET, RN, SAVE_SIZE)			\
