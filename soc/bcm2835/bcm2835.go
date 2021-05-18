@@ -39,7 +39,7 @@ var ramStackOffset uint32 = 0x100000 // 1 MB
 
 //go:linkname nanotime1 runtime.nanotime1
 func nanotime1() int64 {
-	return int64(read_systimer() * ARM.TimerMultiplier)
+	return read_systimer() * ARM.TimerMultiplier
 }
 
 // Init takes care of the lower level SoC initialization triggered early in

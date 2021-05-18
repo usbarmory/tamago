@@ -7,7 +7,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// func read_actlr() int32
+// func read_actlr() uint32
 TEXT ·read_actlr(SB),$0-4
 	// Cortex™-A7 MPCore® Technical Reference Manual r0p5
 	//
@@ -22,7 +22,7 @@ TEXT ·read_actlr(SB),$0-4
 
 	RET
 
-// func write_actlr(aux int32)
+// func write_actlr(aux uint32)
 TEXT ·write_actlr(SB),$0-4
 	// Cortex™-A7 MPCore® Technical Reference Manual r0p5
 	//
