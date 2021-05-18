@@ -55,7 +55,7 @@ func Init(base uint32) {
 
 	// MMU initialization is required to take advantage of data cache
 	ARM.InitMMU()
-	ARM.CacheEnable()
+	ARM.EnableCache()
 
 	ARM.TimerMultiplier = refFreq / SysTimerFreq
 	ARM.TimerFn = read_systimer
