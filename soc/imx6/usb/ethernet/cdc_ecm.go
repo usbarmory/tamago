@@ -116,6 +116,7 @@ func (eth *NIC) ECMRx(out []byte, lastErr error) (_ []byte, err error) {
 	payload := buffer.NewViewFromBytes(eth.buf[14:])
 
 	pkt := stack.NewPacketBuffer(stack.PacketBufferOptions{
+		ReserveHeaderBytes: len(hdr),
 		Data: payload.ToVectorisedView(),
 	})
 
