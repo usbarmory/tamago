@@ -190,7 +190,7 @@ See <http://rpf.io/configtxt> for more configuration options.
 
 NOTE: Do not be tempted to set the kernel address to 0x0:
 
-1. Tamago places critical data-structures at RAMSTART
+1. TamaGo places critical data-structures at RAMSTART
 2. The Pi firmware parks all but 1 CPU core in wait-loops, controlled by bytes starting at 0x000000CC
 (see <https://github.com/raspberrypi/tools/blob/master/armstubs/armstub7.S>)
 
