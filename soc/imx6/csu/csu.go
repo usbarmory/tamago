@@ -39,10 +39,10 @@ func Init() {
 	reg.SetN(imx6.CCM_CCGR1, imx6.CCGR1_CG14, 0b11, 0b11)
 }
 
-// SetMasterPrivilege configures the access policy for one of the 16 bus
-// masters IDs. The lock argument controls whether the CSL is locked for
-// changes until the next power cycle.
-func SetMasterPrivilege(master int, secure bool, lock bool) (err error) {
+// SetAccess configures the access policy for one of the 16 bus masters IDs.
+// The lock argument controls whether the CSL is locked for changes until the
+// next power cycle.
+func SetAccess(master int, secure bool, lock bool) (err error) {
 	if master < SA_MIN || master > SA_MAX {
 		return errors.New("index out of range")
 	}
