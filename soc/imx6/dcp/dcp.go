@@ -18,6 +18,7 @@ package dcp
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -139,6 +140,10 @@ func cmd(ptr uint32, count int) (err error) {
 	mux.Lock()
 	defer mux.Unlock()
 
+	if reg.Get(DCP_CTRL, CTRL_CLKGATE, 1) != 0 {
+		return errors.New("co-processor is not initialized")
+	}
+
 	// clear channel status
 	reg.Write(DCP_CH0STAT_CLR, 0xffffffff)
 
@@ -157,7 +162,7 @@ func cmd(ptr uint32, count int) (err error) {
 	if bits.Get(&chstatus, 0, CHxSTAT_ERROR_MASK) != 0 {
 		code := bits.Get(&chstatus, CHxSTAT_ERROR_CODE, 0xff)
 		sema := reg.Read(DCP_CH0SEMA)
-		err = fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x sema:%#x", chstatus, code, sema)
+		return fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x sema:%#x", chstatus, code, sema)
 	}
 
 	return
