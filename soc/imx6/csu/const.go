@@ -47,10 +47,10 @@ const (
 )
 
 // The following peripheral, slave identifiers can be used to set the CSL using
-// SetSecurityLevel on i.MX6 P/Ns. Note that periperhals presence depends on
+// SetSecurityLevel on i.MX6 P/Ns. Note that peripherals presence depends on
 // the specific P/Ns:
 //
-// | ID    | Blocks (all i.MX6 P/Ns unless otherwise indicated)                      |
+// |    ID | Blocks (all i.MX6 P/Ns unless otherwise indicated)                      |
 // |-------|-------------------------------------------------------------------------|
 // |  0, 0 | PWM                                                                     |
 // |  0, 1 | CAN1¹²⁴, DBGMON³                                                        |
@@ -139,4 +139,32 @@ const (
 	// First slave
 	CSL_S1_LOCK = 8
 	CSL_S1      = 0
+)
+
+// The following master identifiers can be used to set the SA using
+// SetAccess on i.MX6 P/Ns. Note that peripherals presence depends on
+// the specific P/Ns:
+//
+// |  ID | Blocks (all i.MX6 P/Ns unless otherwise indicated)               |
+// |-----|------------------------------------------------------------------|
+// |   0 | CA7¹, CP15⁴                                                      |
+// |   1 | M4², DCP³, SATA⁴                                                 |
+// |   2 | SDMA¹²³⁴                                                         |
+// |   3 | PXP, CSI²,  LCDIF²³⁴, GPU²³⁴, EPDC³⁴, TCON³, VDOA⁴, IPU⁴, VPU⁴   |
+// |   4 | USB¹²³⁴, MLB⁴                                                    |
+// |   5 | TEST¹³, PCIE_TEST²⁴                                              |
+// |   6 | MLB², CSI³                                                       |
+// |   7 | RAWNAND_BCH40_DMA¹, RAWNAND_BCH62_DMA², MSHC³, RAWNAND_APBH_DMA⁴ |
+// |   8 | RAWNAND_APBH_DMA¹², FEC³, ENET⁴                                  |
+// |   9 | ENET¹², DAP³⁴                                                    |
+// |  10 | USDHC1                                                           |
+// |  11 | USDHC2                                                           |
+// |  12 | USDHC3²³⁴                                                        |
+// |  13 | USDHC4²³⁴                                                        |
+// |  14 | DAP¹, HDMI⁴, HSI⁴                                                |
+//
+// ¹UL/ULL/ULZ, ²SX, ³SL, ⁴S/D/DL/Q
+const (
+	SA_MIN = 0
+	SA_MAX = 15
 )

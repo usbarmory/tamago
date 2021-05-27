@@ -28,9 +28,6 @@ const (
 
 	CSU_CSL0 = CSU_BASE
 	CSU_SA = CSU_BASE + 0x218
-
-	SA_MIN = 0
-	SA_MAX = 15
 )
 
 // Init initializes the Central Security Unit (CSU).
