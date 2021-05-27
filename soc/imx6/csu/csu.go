@@ -28,6 +28,9 @@ const (
 
 	CSU_CSL0 = CSU_BASE
 	CSU_SA = CSU_BASE + 0x218
+
+	SA_MIN = 0
+	SA_MAX = 15
 )
 
 // Init initializes the Central Security Unit (CSU).
@@ -40,7 +43,7 @@ func Init() {
 // masters IDs. The lock argument controls whether the CSL is locked for
 // changes until the next power cycle.
 func SetMasterPrivilege(master int, secure bool, lock bool) (err error) {
-	if master < 0 || master > 15 {
+	if master < SA_MIN || master > SA_MAX {
 		return errors.New("index out of range")
 	}
 
