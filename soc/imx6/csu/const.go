@@ -120,13 +120,14 @@ const (
 // | 33, 0 | SPBA¹², MIPI_CORE_CSI⁴                                                  |
 // | 33, 1 | TSC¹⁽ᵁᴸᴸ⁄ᵁᴸᶻ⁾, MIPI_CORE_HIS⁴                                           |
 // | 34, 0 | DCP¹⁽ᵁᴸᴸ⁄ᵁᴸᶻ⁾, VDOA⁴                                                    |
-// | 34, 1 | RNGB¹⁽ᵁᴸᴸ⁄ᵁᴸᶻ⁾, UART2⁴                                                  |
+// | 34, 1 | RNGB¹⁽ᵁᴸᴸ⁄ᵁᴸᶻ⁾, OCRAM², UART2⁴                                          |
 // | 35, 0 | UART3⁴                                                                  |
 // | 35, 1 | UART4⁴                                                                  |
 // | 36, 0 | UART5⁴⁽ˢ⁄ᴰᴸ⁾, I2C4⁴                                                     |
 // | 36, 1 | DTCP⁴                                                                   |
 // | 38, 1 | UART4³                                                                  |
 // | 39, 0 | SPBA³                                                                   |
+// | 39, 1 | OCRAM¹                                                                  |
 //
 // ¹UL/ULL/ULZ, ²SX, ³SL, ⁴S/D/DL/Q
 const (
