@@ -50,10 +50,10 @@ func SetSecurityLevel(peripheral int, slave int, csl uint8, lock bool) (err erro
 
 	addr := CSU_CSL0 + uint32(4*peripheral)
 
-	reg.SetN(addr, CSL_S2*slave, 0b1111, uint32(csl))
+	reg.SetN(addr, CSL_S2*slave, 0xff, uint32(csl))
 
 	if lock {
-		reg.Set(addr, CSL_S1_LOCK+CSL_S2_LOCK*slave)
+		reg.Set(addr, CSL_S1_LOCK+CSL_S2*slave)
 	}
 
 	return
