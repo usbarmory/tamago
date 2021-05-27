@@ -130,6 +130,9 @@ const (
 //
 // ¹UL/ULL/ULZ, ²SX, ³SL, ⁴S/D/DL/Q
 const (
+	CSL_MIN = 0
+	CSL_MAX = 39
+
 	// Second slave
 	CSL_S2_LOCK = 24
 	CSL_S2      = 16

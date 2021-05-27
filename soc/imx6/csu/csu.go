@@ -27,9 +27,6 @@ const (
 	CSU_BASE = 0x021c0000
 
 	CSU_CSL0 = CSU_BASE
-	CSL_MIN  = 0
-	CSL_MAX  = 39
-
 	CSU_SA = CSU_BASE + 0x218
 )
 
