@@ -89,7 +89,7 @@ func DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, err error)
 	err = cmd(ptr, 1)
 
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	if index >= 0 {

@@ -140,7 +140,7 @@ func cmd(ptr uint32, count int) (err error) {
 	mux.Lock()
 	defer mux.Unlock()
 
-	if reg.Get(DCP_CTRL, CTRL_CLKGATE, 1) != 0 {
+	if reg.Read(DCP_CHANNELCTRL) != DCP_CHANNEL_0 {
 		return errors.New("co-processor is not initialized")
 	}
 
