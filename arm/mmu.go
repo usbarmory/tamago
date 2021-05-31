@@ -38,21 +38,21 @@ const (
 // Table B3-8, ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
 const (
 	// PL1: no access   PL0: no access
-	TTE_AP_000 uint32 = 0b000000
+	TTE_AP_000 uint32 = 0b000
 	// PL1: read/write  PL0: no access
-	TTE_AP_001 uint32 = 0b000001
+	TTE_AP_001 uint32 = 0b001
 	// PL1: read/write  PL0: read only
-	TTE_AP_010 uint32 = 0b000010
+	TTE_AP_010 uint32 = 0b010
 	// PL1: read/write  PL0: read/write
-	TTE_AP_011 uint32 = 0b000011
+	TTE_AP_011 uint32 = 0b011
 	// Reserved
-	TTE_AP_100 uint32 = 0b100000
+	TTE_AP_100 uint32 = 0b100
 	// PL1: read only   PL0: no access
-	TTE_AP_101 uint32 = 0b100001
+	TTE_AP_101 uint32 = 0b101
 	// PL1: read only   PL0: read only
-	TTE_AP_110 uint32 = 0b100010
+	TTE_AP_110 uint32 = 0b110
 	// PL1: read only   PL0: read only
-	TTE_AP_111 uint32 = 0b100011
+	TTE_AP_111 uint32 = 0b111
 )
 
 // defined in mmu.s
@@ -101,8 +101,8 @@ func (cpu *CPU) InitMMU() {
 	// First level address translation
 	// 9.4, ARM® Cortex™ -A Series Programmer’s Guide
 
-	memAttr := (TTE_AP_001&0b100)<<15 | (TTE_AP_001&0b11)<<10 | TTE_CACHEABLE | TTE_BUFFERABLE | TTE_SECTION
-	devAttr := (TTE_AP_001&0b100)<<15 | (TTE_AP_001&0b11)<<10 | TTE_SECTION
+	memAttr := (TTE_AP_001&0b11)<<10 | TTE_CACHEABLE | TTE_BUFFERABLE | TTE_SECTION
+	devAttr := (TTE_AP_001&0b11)<<10 | TTE_SECTION
 
 	// The first section is mapped with an L2 entry as we need to map the
 	// smallest possible section starting from 0x0 as invalid to trap null
@@ -124,8 +124,8 @@ func (cpu *CPU) InitMMU() {
 	// Level 2 translation tables
 	// 9.5, ARM® Cortex™ -A Series Programmer’s Guide
 
-	memAttr = (TTE_AP_001&0b100)<<9 | (TTE_AP_001&0b11)<<4 | TTE_CACHEABLE | TTE_BUFFERABLE | TTE_SECTION
-	devAttr = (TTE_AP_001&0b100)<<9 | (TTE_AP_001&0b11)<<4 | TTE_SECTION
+	memAttr = (TTE_AP_001&0b11)<<4 | TTE_CACHEABLE | TTE_BUFFERABLE | TTE_SECTION
+	devAttr = (TTE_AP_001&0b11)<<4 | TTE_SECTION
 
 	// trap nil pointers by setting the first 4KB section as invalid
 	reg.Write(l2pageTableStart, 0)
