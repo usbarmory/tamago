@@ -27,7 +27,7 @@ const (
 	CSU_BASE = 0x021c0000
 
 	CSU_CSL0 = CSU_BASE
-	CSU_SA = CSU_BASE + 0x218
+	CSU_SA   = CSU_BASE + 0x218
 )
 
 // Init initializes the Central Security Unit (CSU).
@@ -36,22 +36,43 @@ func Init() {
 	reg.SetN(imx6.CCM_CCGR1, imx6.CCGR1_CG14, 0b11, 0b11)
 }
 
-// SetAccess configures the access policy for one of the 16 bus masters IDs.
-// The lock argument controls whether the CSL is locked for changes until the
+// GetAccess returns the security access (SA) for one of the 16 masters IDs.
+// The lock return value indicates whether the SA is locked for changes until
+// the next power cycle.
+func GetAccess(id int) (secure bool, lock bool, err error) {
+	if id < SA_MIN || id > SA_MAX {
+		return false, false, errors.New("index out of range")
+	}
+
+	val := reg.Get(CSU_SA, id*2, 0b11)
+
+	if val&0b01 == 0 {
+		secure = true
+	}
+
+	if val&0b10 != 0 {
+		lock = true
+	}
+
+	return
+}
+
+// SetAccess configures the security access (SA) for one of the 16 masters IDs.
+// The lock argument controls whether the SA is locked for changes until the
 // next power cycle.
-func SetAccess(master int, secure bool, lock bool) (err error) {
-	if master < SA_MIN || master > SA_MAX {
+func SetAccess(id int, secure bool, lock bool) (err error) {
+	if id < SA_MIN || id > SA_MAX {
 		return errors.New("index out of range")
 	}
 
 	if secure {
-		reg.Clear(CSU_SA, master*2)
+		reg.Clear(CSU_SA, id*2)
 	} else {
-		reg.Set(CSU_SA, master*2)
+		reg.Set(CSU_SA, id*2)
 	}
 
 	if lock {
-		reg.Set(CSU_SA, master*2+1)
+		reg.Set(CSU_SA, id*2+1)
 	}
 
 	return

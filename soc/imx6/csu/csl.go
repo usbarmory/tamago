@@ -28,16 +28,21 @@ func checkArgs(peripheral int, slave int) (err error) {
 }
 
 // GetSecurityLevel returns the config security level (CSL) registers for a
-// peripheral slave.
-func GetSecurityLevel(peripheral int, slave int) (csl uint8, err error) {
+// peripheral slave. The lock return value indicates whether the CSL is locked
+// for changes until the next power cycle.
+func GetSecurityLevel(peripheral int, slave int) (csl uint8, lock bool, err error) {
 	if err = checkArgs(peripheral, slave); err != nil {
 		return
 	}
 
 	val := reg.Read(CSU_CSL0 + uint32(4*peripheral))
-	shift := CSL_S2 * slave
+	csl = uint8((val >> (CSL_S2 * slave)) & 0xff)
 
-	return uint8((val >> shift) & 0xff), nil
+	if uint8((val>>(CSL_S1_LOCK+CSL_S2*slave))&0b1) == 1 {
+		lock = true
+	}
+
+	return
 }
 
 // SetSecurityLevel sets the config security level (CSL) registers for a
