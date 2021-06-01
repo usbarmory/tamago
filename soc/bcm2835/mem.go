@@ -15,4 +15,4 @@ import (
 )
 
 //go:linkname ramStart runtime.ramStart
-var ramStart uint32 = 0x00000000
+var ramStart uint32 = 0x00100000
