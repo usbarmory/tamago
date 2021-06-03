@@ -17,12 +17,6 @@
 // https://github.com/f-secure-foundry/tamago.
 package arm
 
-import (
-	"runtime"
-
-	"github.com/f-secure-foundry/tamago/internal/reg"
-)
-
 // ARM processor modes
 // Table B1-1 ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
 const (
@@ -60,7 +54,6 @@ type CPU struct {
 
 // defined in arm.s
 func read_cpsr() uint32
-func read_scr() uint32
 
 // Init performs initialization of an ARM core instance.
 func (cpu *CPU) Init() {
@@ -97,25 +90,4 @@ func ModeName(mode int) string {
 	}
 
 	return "Unknown"
-}
-
-// NonSecure returns whether the processor security mode is non-secure (e.g.
-// TrustZone Normal World.
-func (cpu *CPU) NonSecure() bool {
-	ramStart, _ := runtime.MemRegion()
-	vecTable := ramStart + vecTableOffset + 8*4
-	undefinedHandler := reg.Read(vecTable + UNDEFINED)
-
-	// NonSecure World cannot read the NS bit, the only way to infer it
-	// status is to trap the exception while attempting to read it.
-	reg.Write(vecTable+UNDEFINED, vector(nullHandler))
-	defer reg.Write(vecTable+UNDEFINED, undefinedHandler)
-
-	return read_scr()&1 == 1
-}
-
-// Secure returns whether the processor security mode is secure (e.g. TrustZone
-// Secure World).
-func (cpu *CPU) Secure() bool {
-	return !cpu.NonSecure()
 }
