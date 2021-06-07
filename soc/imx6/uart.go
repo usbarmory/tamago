@@ -118,8 +118,8 @@ const (
 	UARTx_UBIR = 0x00a4
 	UARTx_UBMR = 0x00a8
 
-	UARTx_UTS   = 0x00b4
-	UTS_TXEMPTY = 6
+	UARTx_UTS  = 0x00b4
+	UTS_TXFULL = 4
 )
 
 // UART represents a serial port instance
@@ -218,8 +218,8 @@ func uartclk() uint32 {
 	return freq / (podf + 1)
 }
 
-func (hw *UART) txEmpty() bool {
-	return reg.Get(hw.uts, UTS_TXEMPTY, 1) == 0
+func (hw *UART) txFull() bool {
+	return reg.Get(hw.uts, UTS_TXFULL, 1) == 1
 }
 
 func (hw *UART) rxReady() bool {
@@ -329,11 +329,10 @@ func (hw *UART) Disable() {
 
 // Tx transmits a single character to the serial port.
 func (hw *UART) Tx(c byte) {
-	reg.Write(hw.utxd, uint32(c))
-
-	for hw.txEmpty() {
-		// wait for TX FIFO to be empty
+	for hw.txFull() {
+		// wait for TX FIFO to have room for a character
 	}
+	reg.Write(hw.utxd, uint32(c))
 }
 
 // Rx receives a single character from the serial port.
