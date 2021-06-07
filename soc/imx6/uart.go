@@ -209,7 +209,8 @@ func uartclk() uint32 {
 	if reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, 0b1) == 1 {
 		freq = OSC_FREQ
 	} else {
-		freq = PLL3_FREQ
+		// match /6 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
+		freq = PLL3_FREQ / 6
 	}
 
 	podf := reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_PODF, 0b111111)
@@ -277,10 +278,8 @@ func (hw *UART) setup() {
 	//
 	// ref_clk_freq = module_clock
 
-	// match /6 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
-	clk := uartclk() / 6
 	// multiply to match UFCR_RFDIV divider value
-	ubmr := clk / (2 * hw.Baudrate)
+	ubmr := uartclk() / (2 * hw.Baudrate)
 	// neutralize denominator
 	reg.Write(hw.ubir, 15)
 	// set UBMR
