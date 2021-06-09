@@ -15,8 +15,8 @@ import (
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 
-func checkArgs(peripheral int, slave int) (err error) {
-	if peripheral < CSL_MIN || peripheral > CSL_MAX {
+func checkArgs(periph int, slave int) (err error) {
+	if periph < CSL_MIN || periph > CSL_MAX {
 		return errors.New("peripheral index out of range")
 	}
 
@@ -30,12 +30,12 @@ func checkArgs(peripheral int, slave int) (err error) {
 // GetSecurityLevel returns the config security level (CSL) registers for a
 // peripheral slave. The lock return value indicates whether the CSL is locked
 // for changes until the next power cycle.
-func GetSecurityLevel(peripheral int, slave int) (csl uint8, lock bool, err error) {
-	if err = checkArgs(peripheral, slave); err != nil {
+func GetSecurityLevel(periph int, slave int) (csl uint8, lock bool, err error) {
+	if err = checkArgs(periph, slave); err != nil {
 		return
 	}
 
-	val := reg.Read(CSU_CSL0 + uint32(4*peripheral))
+	val := reg.Read(CSU_CSL0 + uint32(4*periph))
 	csl = uint8((val >> (CSL_S2 * slave)) & 0xff)
 
 	if uint8((val>>(CSL_S1_LOCK+CSL_S2*slave))&0b1) == 1 {
@@ -48,12 +48,12 @@ func GetSecurityLevel(peripheral int, slave int) (csl uint8, lock bool, err erro
 // SetSecurityLevel sets the config security level (CSL) registers for a
 // peripheral slave. The lock argument controls whether the CSL is locked for
 // changes until the next power cycle.
-func SetSecurityLevel(peripheral int, slave int, csl uint8, lock bool) (err error) {
-	if err = checkArgs(peripheral, slave); err != nil {
+func SetSecurityLevel(periph int, slave int, csl uint8, lock bool) (err error) {
+	if err = checkArgs(periph, slave); err != nil {
 		return
 	}
 
-	addr := CSU_CSL0 + uint32(4*peripheral)
+	addr := CSU_CSL0 + uint32(4*periph)
 
 	reg.SetN(addr, CSL_S2*slave, 0xff, uint32(csl))
 
