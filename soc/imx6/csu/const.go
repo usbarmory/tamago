@@ -160,9 +160,9 @@ const (
 //   |  11 | USDHC2                                                         |
 //   |  12 | USDHC3²³⁴                                                      |
 //   |  13 | USDHC4²³⁴                                                      |
-//   |  14 | DCP¹ᕁ, DAP¹, HDMI⁴, HSI⁴                                       |
+//   |  14 | DCP¹^, DAP¹, HDMI⁴, HSI⁴                                       |
 //
-// ᕁUndocumented and found through testing, pending clarification from NXP.
+// ^ULL/ULZ only, undocumented and found through testing, confirmed by NXP R&D.
 const (
 	SA_MIN = 0
 	SA_MAX = 15
