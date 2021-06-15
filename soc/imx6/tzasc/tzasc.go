@@ -44,6 +44,8 @@ const (
 	// To do so the register can be written in the board DCD file (e.g.
 	// imximage.cfg in usbarmory package):
 	// 	`DATA 4 0x020e4024 0x00000001`
+	//
+	// This is a one time operation, until the next power-up cycle.
 	TZASC_BYPASS = 0x020e4024
 
 	TZASC_BASE = 0x021d0000
