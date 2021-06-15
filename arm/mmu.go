@@ -23,7 +23,7 @@ const (
 )
 
 // Memory region attributes
-// Table B3-10, ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
+// (Table B3-10, ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition).
 const (
 	TTE_PAGE_TABLE    uint32 = (1 << 0)
 	TTE_SECTION       uint32 = (1 << 1)
@@ -35,7 +35,7 @@ const (
 )
 
 // MMU access permissions
-// Table B3-8, ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
+// (Table B3-8, ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition).
 const (
 	// PL1: no access   PL0: no access
 	TTE_AP_000 uint32 = 0b000

@@ -9,10 +9,6 @@
 
 package arm
 
-import (
-	_ "unsafe"
-)
-
 // defined in vfp.s
 func vfp_enable()
 

@@ -17,7 +17,7 @@ import (
 )
 
 // ARM exception vector offsets
-// Table 11-1 ARM® Cortex™ -A Series Programmer’s Guide
+// (Table 11-1, ARM® Cortex™ -A Series Programmer’s Guide).
 const (
 	RESET          = 0x00
 	UNDEFINED      = 0x04

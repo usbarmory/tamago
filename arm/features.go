@@ -9,10 +9,6 @@
 
 package arm
 
-import (
-	_ "unsafe"
-)
-
 // ARM processor feature registers
 const (
 	ID_PFR0_ARM_MASK     = 0x000f
@@ -27,7 +23,7 @@ const (
 	ID_PFR1_GENERIC_TIMER_MASK     = 0xf0000
 )
 
-// defined in arm.s
+// defined in features.s
 func read_idpfr0() uint32
 func read_idpfr1() uint32
 

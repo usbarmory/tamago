@@ -10,8 +10,6 @@
 package arm
 
 import (
-	_ "unsafe"
-
 	"github.com/f-secure-foundry/tamago/internal/reg"
 )
 

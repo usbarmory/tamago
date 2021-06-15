@@ -1,4 +1,4 @@
-// NXP i.MX6UL/i.MX6ULL/i.MX6Q support
+// NXP i.MX6 UL/ULL/ULZ support
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
@@ -48,7 +48,6 @@ const (
 
 // i.MX processor families
 const (
-	IMX6Q   = 0x63
 	IMX6UL  = 0x64
 	IMX6ULL = 0x65
 )
@@ -93,8 +92,6 @@ func Init() {
 	}
 
 	switch Family {
-	case IMX6Q:
-		ARM.InitGlobalTimers()
 	case IMX6UL, IMX6ULL:
 		if !Native {
 			// use QEMU fixed CNTFRQ value (62.5MHz)
@@ -134,8 +131,6 @@ func UniqueID() (uid [8]byte) {
 // Model returns the SoC model name.
 func Model() (model string) {
 	switch Family {
-	case IMX6Q:
-		model = "i.MX6Q"
 	case IMX6UL:
 		model = "i.MX6UL"
 	case IMX6ULL:
