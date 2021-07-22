@@ -63,7 +63,7 @@ var ARM = &arm.CPU{}
 
 //go:linkname nanotime1 runtime.nanotime1
 func nanotime1() int64 {
-	return int64(ARM.TimerFn() * ARM.TimerMultiplier)
+	return int64(ARM.TimerFn() * ARM.TimerMultiplier + ARM.TimerOffset)
 }
 
 // Init takes care of the lower level SoC initialization triggered early in

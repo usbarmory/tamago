@@ -48,6 +48,8 @@ type CPU struct {
 
 	// timer multiplier
 	TimerMultiplier int64
+	// timer offset in nanoseconds
+	TimerOffset int64
 	// timer function
 	TimerFn func() int64
 }
