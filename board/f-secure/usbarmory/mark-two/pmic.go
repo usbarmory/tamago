@@ -51,9 +51,11 @@ func init() {
 // Reset deasserts the PMIC watchdog signal (through the SoC external reset
 // source) causing the USB armory Mk II board to power cycle (cold reset).
 func Reset() {
-	// enable software reset extension
-	reg.Set16(imx6.WDOG2_WCR, imx6.WCR_SRE)
+	for {
+		// enable software reset extension
+		reg.Set16(imx6.WDOG2_WCR, imx6.WCR_SRE)
 
-	// assert system reset signal
-	reg.Clear16(imx6.WDOG2_WCR, imx6.WCR_SRS)
+		// assert system reset signal
+		reg.Clear16(imx6.WDOG2_WCR, imx6.WCR_SRS)
+	}
 }
