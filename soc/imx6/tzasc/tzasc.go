@@ -124,6 +124,10 @@ func EnableRegion(n int, start uint32, size int, sp int) (err error) {
 		return errors.New("incompatible start address")
 	}
 
+	if start != 0 && (start%uint32(size)) != 0 {
+		return errors.New("start address must be a multiple of its region size")
+	}
+
 	if sp > 0b1111 {
 		return errors.New("invalid security permissions")
 	}
