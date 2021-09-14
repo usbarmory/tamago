@@ -11,27 +11,23 @@ package dma
 
 import (
 	"container/list"
-	"reflect"
 	"unsafe"
 )
 
 func (b *block) read(off int, buf []byte) {
-	var mem []byte
+	var ptr unsafe.Pointer
 
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&mem))
-	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr + uint32(off))))
-	hdr.Len = len(buf)
-	hdr.Cap = hdr.Len
+	ptr = unsafe.Add(ptr, int(b.addr) + off)
+	mem := unsafe.Slice((*byte)(ptr), len(buf))
 
 	copy(buf, mem)
 }
 
 func (b *block) write(off int, buf []byte) {
-	var mem []byte
+	var ptr unsafe.Pointer
 
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&mem))
-	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr + uint32(off))))
-	hdr.Len = len(buf)
+	ptr = unsafe.Add(ptr, int(b.addr) + off)
+	mem := unsafe.Slice((*byte)(ptr), len(buf))
 
 	copy(mem, buf)
 }
