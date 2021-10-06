@@ -221,6 +221,9 @@ type CardInfo struct {
 	BlockSize int
 	// Capacity
 	Blocks int
+
+	// device identification number
+	CID [16]byte
 }
 
 // USDHC represents a controller instance.

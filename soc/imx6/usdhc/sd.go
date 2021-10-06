@@ -12,6 +12,7 @@
 package usdhc
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"time"
@@ -339,6 +340,10 @@ func (hw *USDHC) initSD() (err error) {
 	// CMD2 - ALL_SEND_CID - get unique card identification
 	if err = hw.cmd(2, arg, 0, 0); err != nil {
 		return
+	}
+
+	for i := 0; i < len(hw.card.CID); i += 4 {
+		binary.LittleEndian.PutUint32(hw.card.CID[i:], hw.rsp(i/4))
 	}
 
 	// CMD3 - SEND_RELATIVE_ADDR - get relative card address (RCA)
