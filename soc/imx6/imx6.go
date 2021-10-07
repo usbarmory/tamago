@@ -41,8 +41,11 @@ const (
 	USB_ANALOG_DIGPROG = 0x020c8260
 )
 
-// Timer registers (p178, Table 2-3, IMX6ULLRM)
 const (
+	// GIC base address (p176, Table 2-1, IMX6ULLRM)
+	GIC_BASE = 0x00a00000
+
+	// Timer registers (p178, Table 2-3, IMX6ULLRM)
 	SYS_CNT_BASE = 0x021dc000
 )
 
@@ -63,7 +66,7 @@ var ARM = &arm.CPU{}
 
 //go:linkname nanotime1 runtime.nanotime1
 func nanotime1() int64 {
-	return int64(ARM.TimerFn() * ARM.TimerMultiplier + ARM.TimerOffset)
+	return int64(ARM.TimerFn()*ARM.TimerMultiplier + ARM.TimerOffset)
 }
 
 // Init takes care of the lower level SoC initialization triggered early in
