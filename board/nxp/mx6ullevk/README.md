@@ -136,13 +136,13 @@ picocom -b 115200 -eb /dev/ttyUSB0 --imap lfcrlf
 Debugging
 ---------
 
-The application can be debugged with GDB over JTAG using `openocd` and the
-`imx6ull.cfg` and `gdbinit` debugging helpers published
+The application can be debugged with GDB over JTAG using `openocd` (version >
+0.11.0) and the `gdbinit` debugging helper published
 [here](https://github.com/f-secure-foundry/tamago/tree/master/_dev).
 
 ```
 # start openocd daemon
-openocd -f interface/ftdi/jtagkey.cfg -f imx6ull.cfg
+openocd -f interface/ftdi/jtagkey.cfg -f target/imx6ul.cfg -c "adapter speed 1000"
 
 # connect to the OpenOCD command line
 telnet localhost 4444
