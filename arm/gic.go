@@ -64,7 +64,7 @@ func InitGIC(base uint32) {
 		reg.Write(addr, 0xffffffff)
 
 		// Assign all interrupts to Non-Secure
-		addr = GICD_IGROUPR + 4*i
+		addr = gicd + GICD_IGROUPR + 4*i
 		reg.Write(addr, 0xffffffff)
 	}
 
