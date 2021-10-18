@@ -174,7 +174,7 @@ func DisableRegion(n int) (err error) {
 
 // Lock enables TZASC secure boot lock register writing restrictions
 // (p30, 2.2.8 Preventing writes to registers and using secure_boot_lock, TZC-380 TRM).
-func Lock(n int) {
+func Lock() {
 	reg.Write(TZASC_LOCKDOWN_RANGE, 0xffffffff)
 	reg.Write(TZASC_LOCKDOWN_SELECT, 0xffffffff)
 	reg.Set(GPR1_TZASC1_BOOT_LOCK, 23)
