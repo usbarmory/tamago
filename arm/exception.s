@@ -7,6 +7,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+#include "go_asm.h"
 #include "textflag.h"
 
 // func set_exc_stack(addr uint32)
@@ -75,25 +76,25 @@ TEXT ·set_mvbar(SB),NOSPLIT,$0-4
 	MOVW.S	R14, R15
 
 TEXT ·resetHandler(SB),NOSPLIT|NOFRAME,$0
-	EXCEPTION(0x0, ·systemException, 0, R12, 56)
+	EXCEPTION(const_RESET, ·systemException, 0, R12, 56)
 
 TEXT ·undefinedHandler(SB),NOSPLIT|NOFRAME,$0
-	EXCEPTION(0x4, ·systemException, 4, R12, 56)
+	EXCEPTION(const_UNDEFINED, ·systemException, 4, R12, 56)
 
 TEXT ·supervisorHandler(SB),NOSPLIT|NOFRAME,$0
-	EXCEPTION(0x8, ·systemException, 0, R12, 56)
+	EXCEPTION(const_SUPERVISOR, ·systemException, 0, R12, 56)
 
 TEXT ·prefetchAbortHandler(SB),NOSPLIT|NOFRAME,$0
-	EXCEPTION(0xc, ·systemException, 4, R12, 56)
+	EXCEPTION(const_PREFETCH_ABORT, ·systemException, 4, R12, 56)
 
 TEXT ·dataAbortHandler(SB),NOSPLIT|NOFRAME,$0
-	EXCEPTION(0x10, ·systemException, 8, R12, 56)
+	EXCEPTION(const_DATA_ABORT, ·systemException, 8, R12, 56)
 
 TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
-	EXCEPTION(0x18, ·systemException, 4, R12, 56)
+	EXCEPTION(const_IRQ, ·systemException, 4, R12, 56)
 
 TEXT ·fiqHandler(SB),NOSPLIT|NOFRAME,$0
-	EXCEPTION(0x1c, ·systemException, 4, R7, 36)
+	EXCEPTION(const_FIQ, ·systemException, 4, R7, 36)
 
 TEXT ·nullHandler(SB),NOSPLIT|NOFRAME,$0
 	MOVW.S	R14, R15
