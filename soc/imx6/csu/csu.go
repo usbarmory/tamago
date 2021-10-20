@@ -33,7 +33,7 @@ const (
 // Init initializes the Central Security Unit (CSU).
 func Init() {
 	// enable clock
-	reg.SetN(imx6.CCM_CCGR1, imx6.CCGR1_CG14, 0b11, 0b11)
+	reg.SetN(imx6.CCM_CCGR1, imx6.CCGRx_CG14, 0b11, 0b11)
 }
 
 // GetAccess returns the security access (SA) for one of the 16 masters IDs.

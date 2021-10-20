@@ -220,6 +220,10 @@ func (hw *USDHC) initMMC() (err error) {
 		return
 	}
 
+	for i := 0; i < len(hw.card.CID); i += 4 {
+		binary.LittleEndian.PutUint32(hw.card.CID[i:], hw.rsp(i/4))
+	}
+
 	// Send CMD3 with a chosen RCA, with value greater than 1,
 	// p301, A.6.1 Bus initialization , JESD84-B51.
 	hw.rca = (uint32(hw.n) + 1) << RCA_ADDR

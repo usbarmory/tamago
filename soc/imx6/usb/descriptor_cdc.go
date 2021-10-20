@@ -53,7 +53,7 @@ func (d *CDCHeaderDescriptor) SetDefaults() {
 	d.DescriptorType = CS_INTERFACE
 	d.DescriptorSubType = HEADER
 	// CDC 1.10
-	d.bcdCDC = 0x1001
+	d.bcdCDC = 0x0110
 }
 
 // Bytes converts the descriptor structure to byte array format.

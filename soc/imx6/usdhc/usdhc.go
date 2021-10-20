@@ -221,6 +221,9 @@ type CardInfo struct {
 	BlockSize int
 	// Capacity
 	Blocks int
+
+	// device identification number
+	CID [16]byte
 }
 
 // USDHC represents a controller instance.
@@ -431,10 +434,10 @@ func (hw *USDHC) Init(width int) {
 	switch hw.n {
 	case 1:
 		base = USDHC1_BASE
-		hw.cg = imx6.CCGR6_CG1
+		hw.cg = imx6.CCGRx_CG1
 	case 2:
 		base = USDHC2_BASE
-		hw.cg = imx6.CCGR6_CG2
+		hw.cg = imx6.CCGRx_CG2
 	default:
 		panic("invalid uSDHC controller instance")
 	}
@@ -568,7 +571,7 @@ func (hw *USDHC) Detect() (err error) {
 // transfer data from/to the card as specified in:
 //   p347, 35.5.1 Reading data from the card, IMX6FG,
 //   p354, 35.5.2 Writing data to the card, IMX6FG.
-func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32, blockSize uint32, buf []byte) (err error) {
+func (hw *USDHC) transfer(index uint32, dtd uint32, arg uint64, blocks uint32, blockSize uint32, buf []byte) (err error) {
 	var timeout time.Duration
 
 	if hw.cg == 0 {
@@ -607,9 +610,9 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 
 	reg.Write(hw.adma_sys_addr, bdAddress)
 
-	if hw.card.HC && index != 6 {
+	if hw.card.HC && (index == 18 || index == 25) {
 		// p102, 4.3.14 Command Functional Difference in Card Capacity Types, SD-PL-7.10
-		offset = offset / uint64(blockSize)
+		arg = arg / uint64(blockSize)
 	}
 
 	if hw.rpmb {
@@ -638,15 +641,15 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, offset uint64, blocks uint32
 		reg.SetN(hw.wtmk_lvl, WTMK_LVL_RD_WML, 0xff, blockSize/4)
 	}
 
-	err = hw.cmd(index, uint32(offset), blocks, timeout)
+	err = hw.cmd(index, uint32(arg), blocks, timeout)
 	adma_err := reg.Read(hw.adma_err_status)
 
 	if err != nil {
-		return fmt.Errorf("len:%d offset:%#x timeout:%v ADMA:%#x, %v", len(buf), offset, timeout, adma_err, err)
+		return fmt.Errorf("len:%d arg:%#x timeout:%v ADMA:%#x, %v", len(buf), arg, timeout, adma_err, err)
 	}
 
 	if adma_err > 0 {
-		return fmt.Errorf("len:%d offset:%#x timeout:%v ADMA:%#x", len(buf), offset, timeout, adma_err)
+		return fmt.Errorf("len:%d arg:%#x timeout:%v ADMA:%#x", len(buf), arg, timeout, adma_err)
 	}
 
 	if dtd == READ {
