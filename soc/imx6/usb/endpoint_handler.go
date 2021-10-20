@@ -34,8 +34,6 @@ func (ep *Endpoint) Init() {
 	ep.n = ep.desc.Number()
 	ep.dir = ep.desc.Direction()
 
-	log.Printf("imx6_usb: starting EP%d.%d\n", ep.n, ep.dir)
-
 	ep.bus.set(ep.n, ep.dir, int(ep.desc.MaxPacketSize), ep.desc.Zero, 0)
 	ep.bus.enable(ep.n, ep.dir, ep.desc.TransferType())
 }
@@ -58,7 +56,6 @@ func (ep *Endpoint) Start() {
 	ep.Lock()
 
 	defer func() {
-		log.Printf("imx6_usb: stopping EP%d.%d\n", ep.n, ep.dir)
 		ep.Flush()
 		ep.wg.Done()
 		ep.Unlock()

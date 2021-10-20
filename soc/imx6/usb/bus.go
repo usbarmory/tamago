@@ -16,7 +16,6 @@
 package usb
 
 import (
-	"log"
 	"sync"
 
 	"github.com/f-secure-foundry/tamago/internal/reg"
@@ -197,7 +196,6 @@ func (hw *USB) Init() {
 	reg.Set(hw.pll, imx6.PLL_EN_USB_CLKS)
 
 	// wait for lock
-	log.Printf("imx6_usb: waiting for PLL lock")
 	reg.Wait(hw.pll, imx6.PLL_LOCK, 1, 1)
 
 	// remove bypass
@@ -266,7 +264,6 @@ func (hw *USB) Reset() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	log.Printf("imx6_usb: waiting for bus reset")
 	reg.Wait(hw.sts, USBSTS_URI, 1, 1)
 
 	// p3792, 56.4.6.2.1 Bus Reset, IMX6ULLRM
@@ -278,7 +275,6 @@ func (hw *USB) Reset() {
 	// flush endpoint buffers
 	reg.Write(hw.flush, 0xffffffff)
 
-	log.Printf("imx6_usb: waiting for port reset")
 	reg.Wait(hw.sc, PORTSC_PR, 1, 0)
 
 	// clear reset
