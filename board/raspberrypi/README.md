@@ -97,12 +97,12 @@ GOARM & Examples
 
 The GOARM environment variable must be set according to the Raspberry Pi model:
 
-| Model | GOARM | Example                                            |
-|-------|-------|----------------------------------------------------|
-| Zero  |   5   | <https://github.com/kenbell/tamago-example-pizero> |
-| 1A+   |   5   | <https://github.com/prusnak/tamago-example-pi1>    |
-| 1B+   |   5   | <https://github.com/prusnak/tamago-example-pi1>    |
-| 2B    |   7   | <https://github.com/kenbell/tamago-example-pi2>    |
+| Model | GOARM | Example                                                     |
+|-------|-------|-------------------------------------------------------------|
+| Zero  |   5   | <https://github.com/f-secure-foundry/tamago-example-pizero> |
+| 1A+   |   5   | <https://github.com/prusnak/tamago-example-pi1>             |
+| 1B+   |   5   | <https://github.com/prusnak/tamago-example-pi1>             |
+| 2B    |   7   | <https://github.com/kenbell/tamago-example-pi2>             |
 
 NOTE: The Pi Zero and Pi 1 are ARMv6, but do not have support for all floating point instructions the Go compiler
 generates with `GOARM=6`.  Using `GOARM=5` causes Go to include a software floating point implementation.
