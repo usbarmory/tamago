@@ -123,7 +123,7 @@ var mux sync.Mutex
 // Init initializes the DCP module.
 func Init() {
 	mux.Lock()
-	mux.Unlock()
+	defer mux.Unlock()
 
 	// soft reset DCP
 	reg.Set(DCP_CTRL, CTRL_SFTRST)
