@@ -7,6 +7,8 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+#include "go_asm.h"
+
 // func vfp_enable()
 TEXT ·vfp_enable(SB),$0
 	MRC	15, 0, R1, C1, C0, 2
@@ -16,7 +18,7 @@ TEXT ·vfp_enable(SB),$0
 	MOVW	$0, R1
 	MCR	15, 0, R1, C7, C5, 4
 
-	MOVW	$0x40000000, R3
+	MOVW	$(1<<const_FPEXC_EN), R3
 	WORD	$0xeee83a10		// vmsr fpexc, r3
 
 	RET
