@@ -10,13 +10,13 @@
 // func vfp_enable()
 TEXT ·vfp_enable(SB),$0
 	MRC	15, 0, R1, C1, C0, 2
-	ORR	$0xf<<20, R1, R1	// enable CP10 and CP11 access
-
+	ORR	$(0xf << 20), R1, R1	// enable CP10 and CP11 access
 	MCR	15, 0, R1, C1, C0, 2
-	MOVW	$0, R1
-	MCR	15, 0, R1, C7, C5, 4
 
-	MOVW	$0x40000000, R3
+	MOVW	$0, R1
+	MCR	15, 0, R1, C7, C5, 4	// CP15ISB
+
+	MOVW	$(1 << 30), R3
 	WORD	$0xeee83a10		// vmsr fpexc, r3
 
 	RET
