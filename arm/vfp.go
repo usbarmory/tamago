@@ -9,6 +9,10 @@
 
 package arm
 
+const (
+	FPEXC_EN = 30
+)
+
 // defined in vfp.s
 func vfp_enable()
 
