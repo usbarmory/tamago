@@ -48,3 +48,13 @@ func getLCGData(b []byte) {
 		read = rngb.Fill(b, read, lcg)
 	}
 }
+
+// SetRNG allows to override the random number generator function selected
+// internally by TamaGo as runtime.getRandomData.
+//
+// At runtime initialization the imx6 package selects either the NXP True
+// Random Number Generator (RNGB) driver or a timer seeded LCG, depending
+// whether a real or emulated SoC is detected.
+func SetRNG(getRandomData func([]byte)) {
+	getRandomDataFn = getRandomData
+}
