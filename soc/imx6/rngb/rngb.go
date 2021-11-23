@@ -28,6 +28,7 @@ const (
 	RNG_CMD    = RNG_BASE + 0x04
 	RNG_CMD_SR = 6
 	RNG_CMD_CE = 5
+	RNG_CMD_CI = 4
 	RNG_CMD_GS = 1
 	RNG_CMD_ST = 0
 
@@ -89,6 +90,9 @@ func Init() {
 	for reg.Get(RNG_SR, RNG_SR_SDN, 1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
+
+	// clear interrupts
+	reg.Set(RNG_CMD, RNG_CMD_CI)
 }
 
 // GetRandomData returns len(b) random bytes gathered from the RNGB module.
