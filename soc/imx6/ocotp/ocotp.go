@@ -74,7 +74,7 @@ func Init() (err error) {
 	defer mux.Unlock()
 
 	// enable clock
-	reg.SetN(imx6.CCM_CCGR2, imx6.CCGR2_CG6, 0b11, 0b11)
+	reg.SetN(imx6.CCM_CCGR2, imx6.CCGRx_CG6, 0b11, 0b11)
 
 	return
 }
