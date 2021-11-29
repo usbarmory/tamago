@@ -15,7 +15,22 @@ import (
 	"time"
 
 	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
+
+func init() {
+	if !imx6.Native {
+		return
+	}
+
+	// On i.MX6 the only way to detect if we are booting through Serial
+	// Download Mode over USB is to check whether the USB OTG1 controller
+	// was running in device mode prior to our own initialization.
+	if reg.Get(USB1_BASE+USB_UOGx_USBMODE, USBMODE_CM, 0b11) == USBMODE_CM_DEVICE &&
+		reg.Get(USB1_BASE+USB_UOGx_USBCMD, USBCMD_RS, 1) != 0 {
+		sdp = true
+	}
+}
 
 // DeviceMode sets the USB controller in device mode.
 func (hw *USB) DeviceMode() {

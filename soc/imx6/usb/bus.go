@@ -147,6 +147,14 @@ var USB1 = &USB{n: 1}
 // USB2 instance
 var USB2 = &USB{n: 2}
 
+var sdp bool
+
+// SDP returns whether Serial Download Protocol over USB has been used to boot
+// this runtime.
+func SDP() bool {
+	return sdp
+}
+
 // Init initializes the USB controller.
 func (hw *USB) Init() {
 	var base uint32
