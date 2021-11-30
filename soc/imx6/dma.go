@@ -13,10 +13,12 @@ import (
 	"github.com/f-secure-foundry/tamago/dma"
 )
 
-const iramStart uint32 = 0x00900000
-const iramSize = 0x20000
+const (
+	IRAMStart uint32 = 0x00900000
+	IRAMSize         = 0x20000
+)
 
 func init() {
 	// use internal OCRAM (iRAM) by default
-	dma.Init(iramStart, iramSize)
+	dma.Init(IRAMStart, IRAMSize)
 }

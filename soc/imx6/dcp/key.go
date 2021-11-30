@@ -17,14 +17,29 @@ import (
 	"github.com/f-secure-foundry/tamago/bits"
 	"github.com/f-secure-foundry/tamago/dma"
 	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
 
-// The i.MX6 On-Chip RAM (OCRAM/iRAM) is used for passing DCP derived keys to
-// its internal key RAM without touching external RAM.
-const (
-	iramStart = 0x00900000
-	iramSize  = 0x20000
-)
+// DeriveKeyMemory represents the DMA memory region used for exchanging DCP
+// derived keys when the derivation index points to an internal DCP key RAM
+// slot.
+//
+// The default value allocates a DMA region within the i.MX6 On-Chip RAM
+// (OCRAM/iRAM) to avoid passing through external RAM.
+//
+// The DeriveKey() function uses DeriveKeyMemory only when the default DMA
+// region is not already set within iRAM.
+//
+// Applications can override the region with an arbitrary one when the iRAM
+// needs to be avoided or is already used as non-default DMA region.
+var DeriveKeyMemory = &dma.Region{
+	Start: imx6.IRAMStart,
+	Size:  imx6.IRAMSize,
+}
+
+func init() {
+	DeriveKeyMemory.Init()
+}
 
 // DeriveKey derives a hardware unique key in a manner equivalent to PKCS#11
 // C_DeriveKey with CKM_AES_CBC_ENCRYPT_DATA.
@@ -55,13 +70,8 @@ func DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, err error)
 
 	if index >= 0 {
 		// force use of iRAM if not already set as default DMA region
-		if region.Start < iramStart || region.Start > iramStart+iramSize {
-			region = &dma.Region{
-				Start: iramStart,
-				Size:  iramSize,
-			}
-
-			region.Init()
+		if !(region.Start > imx6.IRAMStart && region.Start < imx6.IRAMStart+imx6.IRAMSize) {
+			region = DeriveKeyMemory
 		}
 	}
 
