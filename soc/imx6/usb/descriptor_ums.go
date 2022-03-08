@@ -1,3 +1,4 @@
+// USB descriptor support
 // https://github.com/f-secure-foundry/tamago
 //
 // Copyright (c) F-Secure Corporation
