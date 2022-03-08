@@ -105,6 +105,13 @@ const (
 	FreqLow = Freq198
 )
 
+// Clocks at boot time
+// (p261, Table 8-4. Normal frequency clocks configuration, IMX6ULLRM)
+const (
+	IPG_FREQ = 66000000
+	AHB_FREQ = 132000000
+)
+
 // ARMCoreDiv returns the ARM core divider value
 // (p665, 18.6.5 CCM Arm Clock Root Register, IMX6ULLRM).
 func ARMCoreDiv() (div float32) {
@@ -237,6 +244,30 @@ func SetARMFreq(mhz uint32) (err error) {
 	}
 
 	return
+}
+
+// GetPeripheralClock returns the IPG_CLK_ROOT frequency,
+// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM).
+func GetPeripheralClock() uint32 {
+	// IPG_CLK_ROOT derived from AHB_CLK_ROOT which is 132 MHz
+	ipg_podf := reg.Get(CCM_CBCDR, CBCDR_IPG_PODF, 0b11)
+	return AHB_FREQ / (ipg_podf + 1)
+}
+
+// GetHighFrequencyClock returns the PERCLK_CLK_ROOT frequency,
+// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM).
+func GetHighFrequencyClock() uint32 {
+	var freq uint32
+
+	if reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_SEL, 1) == 1 {
+		freq = OSC_FREQ
+	} else {
+		freq = GetPeripheralClock()
+	}
+
+	podf := reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_PODF, 0x3f)
+
+	return freq / (podf + 1)
 }
 
 // GetPFD returns the fractional divider and frequency in Hz of a PLL PFD

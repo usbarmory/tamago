@@ -129,9 +129,12 @@ func Blow(bank int, word int, value uint32) (err error) {
 		return errors.New("OCOTP controller busy")
 	}
 
-	// FIXME: configure OCOTP_TIMING register. Timings depend on
+	// We do not configure the OCOTP_TIMING register. Timings depend on
 	// IPG_CLK_ROOT frequency. Default values work for default frequency of
 	// 66 MHz.
+	if imx6.GetPeripheralClock() != imx6.IPG_FREQ {
+		return errors.New("IPG_CLK_ROOT must be set boot value")
+	}
 
 	// p2393, OCOTP_CTRLn field descriptions, IMX6ULLRM
 

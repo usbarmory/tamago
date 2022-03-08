@@ -282,39 +282,6 @@ var USDHC1 = &USDHC{n: 1}
 // USDHC2 instance
 var USDHC2 = &USDHC{n: 2}
 
-// getRootClock returns the USDHCx_CLK_ROOT clock by reading CSCMR1[USDHCx_CLK_SEL]
-// and CSCDR1[USDHCx_PODF]
-// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM)
-func (hw *USDHC) getRootClock() (podf uint32, sel uint32, clock uint32) {
-	var podf_pos int
-	var clksel_pos int
-	var freq uint32
-
-	switch hw.n {
-	case 1:
-		podf_pos = imx6.CSCDR1_USDHC1_CLK_PODF
-		clksel_pos = imx6.CSCMR1_USDHC1_CLK_SEL
-	case 2:
-		podf_pos = imx6.CSCDR1_USDHC2_CLK_PODF
-		clksel_pos = imx6.CSCMR1_USDHC2_CLK_SEL
-	default:
-		return
-	}
-
-	podf = reg.Get(imx6.CCM_CSCDR1, podf_pos, 0b111)
-	sel = reg.Get(imx6.CCM_CSCMR1, clksel_pos, 1)
-
-	if sel == 1 {
-		_, freq = imx6.GetPFD(2, 0)
-	} else {
-		_, freq = imx6.GetPFD(2, 2)
-	}
-
-	clock = freq / (podf + 1)
-
-	return
-}
-
 // setRootClock controls the USDHCx_CLK_ROOT clock by setting CSCMR1[USDHCx_CLK_SEL]
 // and CSCDR1[USDHCx_PODF]
 // (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM).

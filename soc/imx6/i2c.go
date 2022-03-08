@@ -118,24 +118,6 @@ func (hw *I2C) Init() {
 	hw.enable()
 }
 
-// getRootClock returns the PERCLK_CLK_ROOT frequency,
-// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM).
-func (hw *I2C) getRootClock() uint32 {
-	var freq uint32
-
-	if reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_SEL, 1) == 1 {
-		freq = OSC_FREQ
-	} else {
-		// IPG_CLK_ROOT derived from AHB_CLK_ROOT which is 132 MHz
-		ipg_podf := reg.Get(CCM_CBCDR, CBCDR_IPG_PODF, 0b11)
-		freq = 132000000 / (ipg_podf + 1)
-	}
-
-	podf := reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_PODF, 0x3f)
-
-	return freq / (podf + 1)
-}
-
 // p1452, 31.5.1 Initialization sequence, IMX6ULLRM
 func (hw *I2C) enable() {
 	reg.SetN(hw.ccgr, hw.cg, 0b11, 0b11)
