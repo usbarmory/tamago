@@ -19,6 +19,12 @@ import (
 
 // I2C registers
 const (
+	// The default IFDR value corresponds to a frequency divider of 768,
+	// assuming 66 MHz for PERCLK_CLK_ROOT (see GetHighFrequencyClock())
+	// this results in a baud rate of 85 kbps
+	// (p1464, 31.7.2 I2C Frequency Divider Register (I2Cx_IFDR), IMX6ULLRM).
+	I2C_DEFAULT_IFDR = 0x16
+
 	// p1462, 31.7 I2C Memory Map/Register Definition, IMX6ULLRM
 
 	// i.MX 6UltraLite (G0, G1, G2, G3, G4)
@@ -56,6 +62,11 @@ type I2C struct {
 
 	// controller index
 	n int
+
+	// Div sets the frequency divider to control the I2C clock rate
+	// (p1464, 31.7.2 I2C Frequency Divider Register (I2Cx_IFDR), IMX6ULLRM).
+	Div uint16
+
 	// clock gate register
 	ccgr uint32
 	// clock gate
@@ -73,10 +84,16 @@ type I2C struct {
 }
 
 // I2C1 instance
-var I2C1 = &I2C{n: 1}
+var I2C1 = &I2C{
+	n:   1,
+	Div: I2C_DEFAULT_IFDR,
+}
 
 // I2C2 instance
-var I2C2 = &I2C{n: 2}
+var I2C2 = &I2C{
+	n:   2,
+	Div: I2C_DEFAULT_IFDR,
+}
 
 // Init initializes the I2C controller instance. At this time only master mode
 // is supported by this driver.
@@ -123,9 +140,7 @@ func (hw *I2C) enable() {
 	reg.SetN(hw.ccgr, hw.cg, 0b11, 0b11)
 
 	// Set SCL frequency
-	// 66 MHz / 768 = 85 kbps
-	// TODO: allow Init() to set the baudrate.
-	reg.Write16(hw.ifdr, 0x16)
+	reg.Write16(hw.ifdr, hw.Div)
 
 	reg.Set16(hw.i2cr, I2CR_IEN)
 }
