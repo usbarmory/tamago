@@ -1,5 +1,5 @@
 // NXP Data Co-Processor (DCP) driver
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -14,8 +14,8 @@ import (
 	"crypto/aes"
 	"errors"
 
-	"github.com/f-secure-foundry/tamago/bits"
-	"github.com/f-secure-foundry/tamago/dma"
+	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/dma"
 )
 
 // SetCipherDefaults initializes default values for a DCP work packet that

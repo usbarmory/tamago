@@ -1,5 +1,5 @@
 // NXP i.MX6UL/i.MX6ULL/i.MX6Q support
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -10,7 +10,7 @@
 package imx6
 
 import (
-	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // Watchdog control registers, 32-bit access should be avoided as all registers

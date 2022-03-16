@@ -1,5 +1,5 @@
 // Raspberry Pi Zero LED support
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) the pizero package authors
 //
@@ -11,7 +11,7 @@ package pizero
 import (
 	"errors"
 
-	"github.com/f-secure-foundry/tamago/soc/bcm2835"
+	"github.com/usbarmory/tamago/soc/bcm2835"
 )
 
 // LED GPIO lines
