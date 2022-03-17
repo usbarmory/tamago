@@ -54,7 +54,7 @@ Current release level
 
 The current release for the [TamaGo modified Go distribution](https://github.com/usbarmory/tamago-go) is
 [tamago1.17.8](https://github.com/usbarmory/tamago-go/tree/tamago1.17.8),
-which [adds](https://github.com/golang/go/compare/go1.17.8...f-secure-foundry:tamago1.17.8)
+which [adds](https://github.com/golang/go/compare/go1.17.8...usbarmory:tamago1.17.8)
 `GOOS=tamago` support to go1.17.8.
 
 Binary releases for amd64 and armv7l Linux hosts [are available](https://github.com/usbarmory/tamago-go/releases/latest).
