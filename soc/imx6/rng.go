@@ -1,5 +1,5 @@
 // NXP Random Number Generator (RNGB) driver
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -12,7 +12,7 @@ package imx6
 import (
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/soc/imx6/rngb"
+	"github.com/usbarmory/tamago/soc/imx6/rngb"
 )
 
 var lcg uint32

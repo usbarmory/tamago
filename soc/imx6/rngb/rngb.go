@@ -1,5 +1,5 @@
 // NXP Random Number Generator (RNGB) driver
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -12,13 +12,13 @@
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
-// https://github.com/f-secure-foundry/tamago.
+// https://github.com/usbarmory/tamago.
 package rngb
 
 import (
 	"sync"
 
-	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // RNGB registers

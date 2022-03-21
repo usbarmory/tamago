@@ -1,12 +1,12 @@
 TamaGo - bare metal Go for ARM SoCs - USB armory support
 ========================================================
 
-tamago | https://github.com/f-secure-foundry/tamago  
+tamago | https://github.com/usbarmory/tamago  
 
 Copyright (c) F-Secure Corporation  
 https://foundry.f-secure.com
 
-![TamaGo gopher](https://github.com/f-secure-foundry/tamago/wiki/images/tamago.svg?sanitize=true)
+![TamaGo gopher](https://github.com/usbarmory/tamago/wiki/images/tamago.svg?sanitize=true)
 
 Authors
 =======
@@ -23,29 +23,29 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal ARM System-on-Chip (SoC) components.
 
-The [usbarmory](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory)
-package provides support for the [USB armory](https://github.com/f-secure-foundry/usbarmory/wiki)
+The [usbarmory](https://github.com/usbarmory/tamago/tree/master/board/f-secure/usbarmory)
+package provides support for the [USB armory](https://github.com/usbarmory/usbarmory/wiki)
 Single Board Computer.
 
 Documentation
 =============
 
 For more information about TamaGo see its
-[repository](https://github.com/f-secure-foundry/tamago) and
-[project wiki](https://github.com/f-secure-foundry/tamago/wiki).
+[repository](https://github.com/usbarmory/tamago) and
+[project wiki](https://github.com/usbarmory/tamago/wiki).
 
 For the underlying driver support for this board see package
-[imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6).
+[imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6).
 
 The package API documentation can be found on
-[pkg.go.dev](https://pkg.go.dev/github.com/f-secure-foundry/tamago).
+[pkg.go.dev](https://pkg.go.dev/github.com/usbarmory/tamago).
 
 Supported hardware
 ==================
 
-| SoC           | Board                                                                  | SoC package                                                             | Board package                                                                                                  |
-|---------------|------------------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| NXP i.MX6ULZ  | [USB armory Mk II](https://github.com/f-secure-foundry/usbarmory/wiki) | [imx6](https://github.com/f-secure-foundry/tamago/tree/master/soc/imx6) | [usbarmory/mark-two](https://github.com/f-secure-foundry/tamago/tree/master/board/f-secure/usbarmory/mark-two) |
+| SoC           | Board                                                                  | SoC package                                                      | Board package                                                                                           |
+|---------------|------------------------------------------------------------------------|------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| NXP i.MX6ULZ  | [USB armory Mk II](https://github.com/usbarmory/usbarmory/wiki)        | [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6) | [usbarmory/mark-two](https://github.com/usbarmory/tamago/tree/master/board/f-secure/usbarmory/mark-two) |
 
 Compiling
 =========
@@ -55,15 +55,15 @@ ensure that hardware initialization and runtime support takes place:
 
 ```golang
 import (
-	_ "github.com/f-secure-foundry/tamago/board/f-secure/usbarmory/mark-two"
+	_ "github.com/usbarmory/tamago/board/f-secure/usbarmory/mark-two"
 )
 ```
 
-Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go)
-(or use the [latest binary release](https://github.com/f-secure-foundry/tamago-go/releases/latest)):
+Build the [TamaGo compiler](https://github.com/usbarmory/tamago-go)
+(or use the [latest binary release](https://github.com/usbarmory/tamago-go/releases/latest)):
 
 ```
-wget https://github.com/f-secure-foundry/tamago-go/archive/refs/tags/latest.zip
+wget https://github.com/usbarmory/tamago-go/archive/refs/tags/latest.zip
 unzip latest.zip
 cd tamago-go-latest/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
@@ -79,19 +79,19 @@ GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm \
 ```
 
 An example application, targeting the USB armory Mk II platform,
-is [available](https://github.com/f-secure-foundry/tamago-example).
+is [available](https://github.com/usbarmory/tamago-example).
 
 Executing and debugging
 =======================
 
-The [example application](https://github.com/f-secure-foundry/tamago-example)
+The [example application](https://github.com/usbarmory/tamago-example)
 provides reference usage and a Makefile target for automatic creation of an ELF
 as well as `imx` image for flashing.
 
 Native hardware: imx image
 --------------------------
 
-Follow [these instructions](https://github.com/f-secure-foundry/usbarmory/wiki/Boot-Modes-(Mk-II)#flashing-bootable-images-on-externalinternal-media)
+Follow [these instructions](https://github.com/usbarmory/usbarmory/wiki/Boot-Modes-(Mk-II)#flashing-bootable-images-on-externalinternal-media)
 using built `imx` images.
 
 Native hardware: existing bootloader
@@ -112,7 +112,7 @@ Standard output
 ---------------
 
 The standard output can be accessed through the
-[debug accessory](https://github.com/f-secure-foundry/usbarmory/tree/master/hardware/mark-two-debug-accessory)
+[debug accessory](https://github.com/usbarmory/usbarmory/tree/master/hardware/mark-two-debug-accessory)
 and the following `picocom` configuration:
 
 ```
@@ -124,7 +124,7 @@ Debugging
 
 The application can be debugged with GDB over JTAG using `openocd` (version >
 0.11.0) and the `gdbinit` debugging helper published
-[here](https://github.com/f-secure-foundry/tamago/tree/master/_dev).
+[here](https://github.com/usbarmory/tamago/tree/master/_dev).
 
 ```
 # start openocd daemon
@@ -174,11 +174,11 @@ continue
 License
 =======
 
-tamago | https://github.com/f-secure-foundry/tamago  
+tamago | https://github.com/usbarmory/tamago  
 Copyright (c) F-Secure Corporation
 
 These source files are distributed under the BSD-style license found in the
-[LICENSE](https://github.com/f-secure-foundry/tamago/blob/master/LICENSE) file.
+[LICENSE](https://github.com/usbarmory/tamago/blob/master/LICENSE) file.
 
 The TamaGo logo is adapted from the Go gopher designed by Renee French and
 licensed under the Creative Commons 3.0 Attributions license. Go Gopher vector

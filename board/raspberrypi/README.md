@@ -1,11 +1,11 @@
 TamaGo - bare metal Go for ARM SoCs - Raspberry Pi Support
 ==========================================================
 
-tamago | https://github.com/f-secure-foundry/tamago  
+tamago | https://github.com/usbarmory/tamago  
 
 Copyright (c) the pi/pi2/pizero package authors  
 
-![TamaGo gopher](https://github.com/f-secure-foundry/tamago/wiki/images/tamago.svg?sanitize=true)
+![TamaGo gopher](https://github.com/usbarmory/tamago/wiki/images/tamago.svg?sanitize=true)
 
 Contributors
 ============
@@ -18,7 +18,7 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal ARM System-on-Chip (SoC) components.
 
-The [pi](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi)
+The [pi](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)
 package provides support for the [Raspberry Pi](https://www.raspberrypi.org/)
 series of Single Board Computer.
 
@@ -26,24 +26,24 @@ Documentation
 =============
 
 For more information about TamaGo see its
-[repository](https://github.com/f-secure-foundry/tamago) and
-[project wiki](https://github.com/f-secure-foundry/tamago/wiki).
+[repository](https://github.com/usbarmory/tamago) and
+[project wiki](https://github.com/usbarmory/tamago/wiki).
 
 For the underlying driver support for this board see package
-[bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/bcm2835).
+[bcm2835](https://github.com/usbarmory/tamago/tree/master/bcm2835).
 
 The package API documentation can be found on
-[pkg.go.dev](https://pkg.go.dev/github.com/f-secure-foundry/tamago).
+[pkg.go.dev](https://pkg.go.dev/github.com/usbarmory/tamago).
 
 Supported hardware
 ==================
 
-| SoC     | Board                | SoC package                                                                   | Board package                                                                                |
-|---------|----------------------|-------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| BCM2835 | Pi Zero              | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pizero) |
-| BCM2835 | Pi 1 Model A+ (v1.2) | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pi1)       |
-| BCM2835 | Pi 1 Model B+ (v1.2) | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pi1)       |
-| BCM2836 | Pi 2 Model B (v1.1)  | [bcm2835](https://github.com/f-secure-foundry/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi/pi2)       |
+| SoC     | Board                | SoC package                                                            | Board package                                                                         |
+|---------|----------------------|------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| BCM2835 | Pi Zero              | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pizero) |
+| BCM2835 | Pi 1 Model A+ (v1.2) | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi1)       |
+| BCM2835 | Pi 1 Model B+ (v1.2) | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi1)       |
+| BCM2836 | Pi 2 Model B (v1.1)  | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi2)       |
 
 Compiling
 =========
@@ -53,7 +53,7 @@ ensure that hardware initialization and runtime support takes place:
 
 ```golang
 import (
-    _ "github.com/f-secure-foundry/tamago/board/raspberrypi/pi2"
+    _ "github.com/usbarmory/tamago/board/raspberrypi/pi2"
 )
 ```
 
@@ -61,7 +61,7 @@ OR
 
 ```golang
 import (
-    _ "github.com/f-secure-foundry/tamago/board/raspberrypi/pi1"
+    _ "github.com/usbarmory/tamago/board/raspberrypi/pi1"
 )
 ```
 
@@ -69,15 +69,15 @@ OR
 
 ```golang
 import (
-    _ "github.com/f-secure-foundry/tamago/board/raspberrypi/pizero"
+    _ "github.com/usbarmory/tamago/board/raspberrypi/pizero"
 )
 ```
 
-Build the [TamaGo compiler](https://github.com/f-secure-foundry/tamago-go)
-(or use the [latest binary release](https://github.com/f-secure-foundry/tamago-go/releases/latest)):
+Build the [TamaGo compiler](https://github.com/usbarmory/tamago-go)
+(or use the [latest binary release](https://github.com/usbarmory/tamago-go/releases/latest)):
 
 ```sh
-wget https://github.com/f-secure-foundry/tamago-go/archive/refs/tags/latest.zip
+wget https://github.com/usbarmory/tamago-go/archive/refs/tags/latest.zip
 unzip latest.zip
 cd tamago-go-latest/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
@@ -99,7 +99,7 @@ The GOARM environment variable must be set according to the Raspberry Pi model:
 
 | Model | GOARM | Example                                                     |
 |-------|-------|-------------------------------------------------------------|
-| Zero  |   5   | <https://github.com/f-secure-foundry/tamago-example-pizero> |
+| Zero  |   5   | <https://github.com/usbarmory/tamago-example-pizero> |
 | 1A+   |   5   | <https://github.com/prusnak/tamago-example-pi1>             |
 | 1B+   |   5   | <https://github.com/prusnak/tamago-example-pi1>             |
 | 2B    |   7   | <https://github.com/kenbell/tamago-example-pi2>             |
@@ -268,14 +268,14 @@ of mapping 'LF' to 'CRLF' as-needed.
 License
 =======
 
-tamago | https://github.com/f-secure-foundry/tamago  
+tamago | https://github.com/usbarmory/tamago  
 Copyright (c) F-Secure Corporation
 
-raspberrypi | https://github.com/f-secure-foundry/tamago/tree/master/board/raspberrypi  
+raspberrypi | https://github.com/usbarmory/tamago/tree/master/board/raspberrypi  
 Copyright (c) the pi package authors
 
 These source files are distributed under the BSD-style license found in the
-[LICENSE](https://github.com/f-secure-foundry/tamago/blob/master/board/raspberrypi/LICENSE) file.
+[LICENSE](https://github.com/usbarmory/tamago/blob/master/board/raspberrypi/LICENSE) file.
 
 The TamaGo logo is adapted from the Go gopher designed by Renee French and
 licensed under the Creative Commons 3.0 Attributions license. Go Gopher vector

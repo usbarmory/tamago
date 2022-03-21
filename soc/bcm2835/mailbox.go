@@ -1,5 +1,5 @@
 // BCM2835 SoC Mailbox support
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -17,8 +17,8 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/f-secure-foundry/tamago/dma"
-	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/usbarmory/tamago/dma"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // We reserve the 'gap' above excStack and below TEXT segment start for

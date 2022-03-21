@@ -1,5 +1,5 @@
 // MCIMX6ULL-EVK support for tamago/arm
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -12,14 +12,14 @@
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
-// https://github.com/f-secure-foundry/tamago.
+// https://github.com/usbarmory/tamago.
 package mx6ullevk
 
 import (
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/soc/imx6"
-	_ "github.com/f-secure-foundry/tamago/soc/imx6/imx6ul"
+	"github.com/usbarmory/tamago/soc/imx6"
+	_ "github.com/usbarmory/tamago/soc/imx6/imx6ul"
 )
 
 // Init takes care of the lower level SoC initialization triggered early in

@@ -1,5 +1,5 @@
 // BCM2835 SoC FrameBuffer support
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) the bcm2835 package authors
 //
@@ -12,7 +12,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/f-secure-foundry/tamago/soc/bcm2835"
+	"github.com/usbarmory/tamago/soc/bcm2835"
 )
 
 // EDID gets the raw EDID information from the attached monitor

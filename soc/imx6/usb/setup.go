@@ -1,5 +1,5 @@
 // USB device mode support
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -13,7 +13,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // Standard request codes (p279, Table 9-4, USB2.0)

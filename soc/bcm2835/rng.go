@@ -1,5 +1,5 @@
 // BCM2835 SoC Random Number Generator (RNG) driver
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) the bcm2835 package authors
 //
@@ -12,7 +12,7 @@ import (
 	"sync"
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // RNG registers

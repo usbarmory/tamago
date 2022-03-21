@@ -1,5 +1,5 @@
 // NXP USBOH3USBO2 / USBPHY driver
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -14,9 +14,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/f-secure-foundry/tamago/bits"
-	"github.com/f-secure-foundry/tamago/dma"
-	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/dma"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // Endpoint constants

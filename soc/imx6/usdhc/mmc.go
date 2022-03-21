@@ -1,5 +1,5 @@
 // NXP Ultra Secured Digital Host Controller (uSDHC) driver
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // IP: https://www.mobiveil.com/esdhc/
 //
@@ -17,8 +17,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/f-secure-foundry/tamago/bits"
-	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // MMC registers

@@ -1,3 +1,3 @@
-module github.com/f-secure-foundry/tamago
+module github.com/usbarmory/tamago
 
 go 1.17

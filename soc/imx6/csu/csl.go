@@ -1,5 +1,5 @@
 // i.MX Central Security Unit (CSU) driver
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) F-Secure Corporation
 // https://foundry.f-secure.com
@@ -12,7 +12,7 @@ package csu
 import (
 	"errors"
 
-	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 func checkArgs(periph int, slave int) (err error) {

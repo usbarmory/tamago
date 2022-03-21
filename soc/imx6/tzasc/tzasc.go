@@ -1,5 +1,5 @@
 // TrustZone Address Space Controller (TZASC) driver
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // IP: ARM CoreLink™ TrustZone Address Space Controller TZC-380
 //
@@ -20,14 +20,14 @@
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
-// https://github.com/f-secure-foundry/tamago.
+// https://github.com/usbarmory/tamago.
 package tzasc
 
 import (
 	"errors"
 
-	"github.com/f-secure-foundry/tamago/bits"
-	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // TZASC imx6 specific registers

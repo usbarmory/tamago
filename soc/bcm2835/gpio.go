@@ -1,5 +1,5 @@
 // BCM2835 SoC GPIO support
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) the bcm2835 package authors
 //
@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/f-secure-foundry/tamago/arm"
-	"github.com/f-secure-foundry/tamago/internal/reg"
+	"github.com/usbarmory/tamago/arm"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // GPIO registers

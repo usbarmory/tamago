@@ -1,5 +1,5 @@
 // BCM2835 SoC support
-// https://github.com/f-secure-foundry/tamago
+// https://github.com/usbarmory/tamago
 //
 // Copyright (c) the bcm2835 package authors
 //
@@ -11,13 +11,13 @@
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
-// https://github.com/f-secure-foundry/tamago.
+// https://github.com/usbarmory/tamago.
 package bcm2835
 
 import (
 	_ "unsafe"
 
-	"github.com/f-secure-foundry/tamago/arm"
+	"github.com/usbarmory/tamago/arm"
 )
 
 // nanos - should be same value as arm/timer.go refFreq
