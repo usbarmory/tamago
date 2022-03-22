@@ -18,7 +18,9 @@ package dma
 
 import (
 	"container/list"
+	"fmt"
 	"reflect"
+	"runtime"
 	"sync"
 	"unsafe"
 )
@@ -37,8 +39,8 @@ type block struct {
 type Region struct {
 	sync.Mutex
 
-	Start uint32
-	Size  int
+	start uint32
+	size  int
 
 	freeBlocks *list.List
 	usedBlocks map[uint32]*block
@@ -46,23 +48,47 @@ type Region struct {
 
 var dma *Region
 
-// Init initializes a memory region for DMA buffer allocation, the application
-// must guarantee that the passed memory range is never used by the Go
-// runtime (defining runtime.ramStart and runtime.ramSize accordingly).
-func (dma *Region) Init() {
-	// initialize a single block to fit all available memory
-	b := &block{
-		addr: dma.Start,
-		size: dma.Size,
+// NewRegion initializes a memory region for DMA buffer allocation.
+//
+// To avoid unforseen consequences the caller must ensure that allocated
+// regions do not overlap among themselves or with the global one (see Init()).
+func NewRegion(start uint32, size int) (dma *Region, err error) {
+	ramStart, ramEnd := runtime.MemRegion()
+	end := start + uint32(size)
+
+	if ramStart >= start && ramStart <= end ||
+		ramEnd >= start && ramEnd <= end ||
+		start >= ramStart && end <= ramEnd {
+		return nil, fmt.Errorf("DMA within Go runtime memory (%#x-%#x) is not allowed", ramStart, ramEnd)
 	}
 
-	dma.Lock()
-	defer dma.Unlock()
+	dma = &Region{
+		start: start,
+		size:  size,
+	}
+
+	// initialize a single block to fit all available memory
+	b := &block{
+		addr: dma.start,
+		size: dma.size,
+	}
 
 	dma.freeBlocks = list.New()
 	dma.freeBlocks.PushFront(b)
 
 	dma.usedBlocks = make(map[uint32]*block)
+
+	return
+}
+
+// Start returns the DMA region start address.
+func (dma *Region) Start() uint32 {
+	return dma.start
+}
+
+// Size returns the DMA region size.
+func (dma *Region) Size() int {
+	return dma.size
 }
 
 // Reserve allocates a slice of bytes for DMA purposes, by placing its data
@@ -107,7 +133,7 @@ func (dma *Region) Reserve(size int, align int) (addr uint32, buf []byte) {
 // previously allocated by this package with Reserve().
 func (dma *Region) Reserved(buf []byte) (res bool, addr uint32) {
 	addr = uint32(uintptr(unsafe.Pointer(&buf[0])))
-	res = addr >= dma.Start && addr+uint32(len(buf)) <= dma.Start+uint32(dma.Size)
+	res = addr >= dma.start && addr+uint32(len(buf)) <= dma.start+uint32(dma.size)
 
 	return
 }
@@ -243,22 +269,14 @@ func (dma *Region) freeBlock(addr uint32, res bool) {
 	delete(dma.usedBlocks, addr)
 }
 
-// Init initializes the global memory region for DMA buffer allocation, the
-// application must guarantee that the passed memory range is never used by the
-// Go runtime (defining runtime.ramStart and runtime.ramSize accordingly).
+// Init initializes the global memory region for DMA buffer allocation, used
+// throughout the tamago package for all DMA allocations.
 //
-// The global region is used throughout the tamago package for all DMA
-// allocations.
-//
-// Separate DMA regions can be allocated in other areas (e.g. external RAM) by
-// the application using Region.Init().
-func Init(start uint32, size int) {
-	dma = &Region{
-		Start: start,
-		Size:  size,
-	}
-
-	dma.Init()
+// Additional DMA regions for application use can be allocated through
+// NewRegion().
+func Init(start uint32, size int) (err error) {
+	dma, err = NewRegion(start, size)
+	return
 }
 
 // Default returns the global DMA region instance.

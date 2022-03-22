@@ -32,13 +32,10 @@ import (
 //
 // Applications can override the region with an arbitrary one when the iRAM
 // needs to be avoided or is already used as non-default DMA region.
-var DeriveKeyMemory = &dma.Region{
-	Start: imx6.IRAMStart,
-	Size:  imx6.IRAMSize,
-}
+var DeriveKeyMemory *dma.Region
 
 func init() {
-	DeriveKeyMemory.Init()
+	DeriveKeyMemory, _ = dma.NewRegion(imx6.IRAMStart, imx6.IRAMSize)
 }
 
 // DeriveKey derives a hardware unique key in a manner equivalent to PKCS#11
@@ -70,7 +67,7 @@ func DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, err error)
 
 	if index >= 0 {
 		// force use of iRAM if not already set as default DMA region
-		if !(region.Start > imx6.IRAMStart && region.Start < imx6.IRAMStart+imx6.IRAMSize) {
+		if !(region.Start() > imx6.IRAMStart && region.Start() < imx6.IRAMStart+imx6.IRAMSize) {
 			region = DeriveKeyMemory
 		}
 	}
