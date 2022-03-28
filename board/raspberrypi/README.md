@@ -269,7 +269,7 @@ License
 =======
 
 tamago | https://github.com/usbarmory/tamago  
-Copyright (c) F-Secure Corporation
+Copyright (c) WithSecure Corporation
 
 raspberrypi | https://github.com/usbarmory/tamago/tree/master/board/raspberrypi  
 Copyright (c) the pi package authors

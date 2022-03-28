@@ -3,8 +3,8 @@ TamaGo - bare metal Go for ARM SoCs - i.MX 6 support
 
 tamago | https://github.com/usbarmory/tamago  
 
-Copyright (c) F-Secure Corporation  
-https://foundry.f-secure.com
+Copyright (c) WithSecure Corporation  
+https://foundry.withsecure.com
 
 ![TamaGo gopher](https://github.com/usbarmory/tamago/wiki/images/tamago.svg?sanitize=true)
 
@@ -12,10 +12,10 @@ Authors
 =======
 
 Andrea Barisani  
-andrea.barisani@f-secure.com | andrea@inversepath.com  
+andrea.barisani@withsecure.com | andrea@inversepath.com  
 
 Andrej Rosano  
-andrej.rosano@f-secure.com   | andrej@inversepath.com  
+andrej.rosano@withsecure.com   | andrej@inversepath.com  
 
 Introduction
 ============
@@ -46,7 +46,7 @@ License
 =======
 
 tamago | https://github.com/usbarmory/tamago  
-Copyright (c) F-Secure Corporation
+Copyright (c) WithSecure Corporation
 
 These source files are distributed under the BSD-style license found in the
 [LICENSE](https://github.com/usbarmory/tamago/blob/master/LICENSE) file.

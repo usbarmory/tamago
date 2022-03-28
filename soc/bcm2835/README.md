@@ -43,7 +43,7 @@ License
 =======
 
 tamago | https://github.com/usbarmory/tamago  
-Copyright (c) F-Secure Corporation
+Copyright (c) WithSecure Corporation
 
 bcm2835 | https://github.com/usbarmory/tamago/tree/master/soc/bcm2835  
 Copyright (c) the bcm2835 package authors
