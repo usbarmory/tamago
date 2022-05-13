@@ -15,16 +15,24 @@ import (
 	"github.com/usbarmory/tamago/soc/imx6"
 )
 
+// Plug USB port controller constants
+const (
+	TUSB320_CSR_2      = 0x09
+	CSR_ATTACHED_STATE = 6
+
+	STATE_NOT_ATTACHED = iota
+	STATE_ATTACHED_SRC
+	STATE_ATTACHED_SNK
+	STATE_ATTACHED_ACC
+)
+
 // Receptacle USB port controller constants
 const (
 	FUSB303_CONTROL1 = 0x05
 	CONTROL1_ENABLE  = 3
 
 	FUSB303_TYPE = 0x13
-)
 
-// Receptacle USB port controller modes
-const (
 	TYPE_DEBUGSRC    = 1 << 6
 	TYPE_DEBUGSNK    = 1 << 5
 	TYPE_SINK        = 1 << 4
@@ -33,6 +41,13 @@ const (
 	TYPE_AUDIOVBUS   = 1
 	TYPE_AUDIO       = 0
 )
+
+// PlugMode returns the type of attached device detected by the plug USB port
+// controller.
+func PlugMode() (mode int, err error) {
+	t, err := imx6.I2C1.Read(TUSB320_ADDR, TUSB320_CSR_2, 1, 1)
+	return int(t[0] >> CSR_ATTACHED_STATE), err
+}
 
 // EnableReceptacleController activates the receptacle USB port controller.
 func EnableReceptacleController() (err error) {
