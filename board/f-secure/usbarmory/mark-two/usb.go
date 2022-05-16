@@ -35,6 +35,7 @@ const (
 	CONTROL1_ENABLE  = 3
 
 	FUSB303_TYPE = 0x13
+)
 
 // Receptacle USB port controller modes
 const (
