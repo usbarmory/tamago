@@ -19,7 +19,10 @@ import (
 const (
 	TUSB320_CSR_2      = 0x09
 	CSR_ATTACHED_STATE = 6
+)
 
+// Plug USB port controller modes
+const (
 	STATE_NOT_ATTACHED = iota
 	STATE_ATTACHED_SRC
 	STATE_ATTACHED_SNK
@@ -33,6 +36,8 @@ const (
 
 	FUSB303_TYPE = 0x13
 
+// Receptacle USB port controller modes
+const (
 	TYPE_DEBUGSRC    = 1 << 6
 	TYPE_DEBUGSNK    = 1 << 5
 	TYPE_SINK        = 1 << 4
