@@ -9,7 +9,7 @@
 
 // +build !linkramsize
 
-package usbarmory
+package mk2
 
 import (
 	_ "unsafe"

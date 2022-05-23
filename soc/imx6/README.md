@@ -38,9 +38,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC                 | Related board packages                                                                                | Peripheral drivers                                        |
-|---------------------|-------------------------------------------------------------------------------------------------------|-----------------------------------------------------------|
-| NXP i.MX 6UltraLite | [usbarmory/mark-two](https://github.com/usbarmory/tamago/tree/master/board/f-secure/usbarmory) | DCP, GPIO, I2C, RNGB, UART, USB, USDHC, OCOTP, CSU, TZASC |
+| SoC                 | Related board packages                                                           | Peripheral drivers                                        |
+|---------------------|----------------------------------------------------------------------------------|-----------------------------------------------------------|
+| NXP i.MX 6UltraLite | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory) | DCP, GPIO, I2C, RNGB, UART, USB, USDHC, OCOTP, CSU, TZASC |
 
 License
 =======

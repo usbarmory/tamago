@@ -23,7 +23,7 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal ARM System-on-Chip (SoC) components.
 
-The [usbarmory](https://github.com/usbarmory/tamago/tree/master/board/f-secure/usbarmory)
+The [usbarmory](https://github.com/usbarmory/tamago/tree/master/board/usbarmory)
 package provides support for the [USB armory](https://github.com/usbarmory/usbarmory/wiki)
 Single Board Computer.
 
@@ -43,9 +43,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC           | Board                                                                  | SoC package                                                      | Board package                                                                                           |
-|---------------|------------------------------------------------------------------------|------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
-| NXP i.MX6ULZ  | [USB armory Mk II](https://github.com/usbarmory/usbarmory/wiki)        | [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6) | [usbarmory/mark-two](https://github.com/usbarmory/tamago/tree/master/board/f-secure/usbarmory/mark-two) |
+| SoC           | Board                                                                  | SoC package                                                      | Board package                                                                        |
+|---------------|------------------------------------------------------------------------|------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| NXP i.MX6ULZ  | [USB armory Mk II](https://github.com/usbarmory/usbarmory/wiki)        | [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6) | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory/mk2) |
 
 Compiling
 =========
@@ -55,7 +55,7 @@ ensure that hardware initialization and runtime support takes place:
 
 ```golang
 import (
-	_ "github.com/usbarmory/tamago/board/f-secure/usbarmory/mark-two"
+	_ "github.com/usbarmory/tamago/board/usbarmory/mk2"
 )
 ```
 
