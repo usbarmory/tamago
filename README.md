@@ -53,9 +53,9 @@ Current release level
 [![GitHub release](https://img.shields.io/github/v/release/usbarmory/tamago-go)](https://github.com/usbarmory/tamago-go/tree/latest) [![Build Status](https://github.com/usbarmory/tamago-go/workflows/Build%20Go%20compiler/badge.svg)](https://github.com/usbarmory/tamago-go/actions)
 
 The current release for the [TamaGo modified Go distribution](https://github.com/usbarmory/tamago-go) is
-[tamago1.18.2](https://github.com/usbarmory/tamago-go/tree/tamago1.18.2),
-which [adds](https://github.com/golang/go/compare/go1.18.2...usbarmory:tamago1.18.2)
-`GOOS=tamago` support to go1.18.2.
+[tamago1.18.3](https://github.com/usbarmory/tamago-go/tree/tamago1.18.3),
+which [adds](https://github.com/golang/go/compare/go1.18.3...usbarmory:tamago1.18.3)
+`GOOS=tamago` support to go1.18.3.
 
 Binary releases for amd64 and armv7l Linux hosts [are available](https://github.com/usbarmory/tamago-go/releases/latest).
 
