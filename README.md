@@ -111,7 +111,7 @@ with the addition of a few flags/variables:
 ```
 # Example for USB armory Mk II
 GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm \
-  ${TAMAGO} build -ldflags "-T 0x80010000  -E _rt0_arm_tamago -R 0x1000"
+  ${TAMAGO} build -ldflags "-T 0x80010000 -E _rt0_arm_tamago -R 0x1000"
 ```
 
 See the respective board package README file for compilation information for
