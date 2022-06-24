@@ -12,7 +12,6 @@ TEXT ·read_dbgauthstatus(SB),$0-4
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	//
 	// C11.11.1 DBGAUTHSTATUS, Authentication Status register
-
 	MRC	14, 0, R0, C7, C14, 6
 	MOVW	R0, ret+0(FP)
 
