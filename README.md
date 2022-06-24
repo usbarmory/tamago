@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for ARM SoCs
-===================================
+TamaGo - bare metal Go for ARM/RISC-V SoCs
+==========================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -8,20 +8,11 @@ https://foundry.withsecure.com
 
 ![TamaGo gopher](https://github.com/usbarmory/tamago/wiki/images/tamago.svg?sanitize=true)
 
-Authors
-=======
-
-Andrea Barisani  
-andrea.barisani@withsecure.com | andrea@inversepath.com  
-
-Andrej Rosano  
-andrej.rosano@withsecure.com   | andrej@inversepath.com  
-
 Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM System-on-Chip (SoC) components.
+applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
 
 The projects spawns from the desire of reducing the attack surface of embedded
 systems firmware by removing any runtime dependency on C code and Operating
@@ -68,19 +59,31 @@ The main documentation can be found on the
 The package API documentation can be found on
 [pkg.go.dev](https://pkg.go.dev/github.com/usbarmory/tamago).
 
-Supported hardware
-==================
 
-The following table summarizes currently supported SoCs and boards.
+Supported ARM hardware 
+=======================
 
-| SoC           | Board                                                                                                                                                                                | SoC package                                                            | Board package                                                                    |
-|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| NXP i.MX6ULZ  | [USB armory Mk II](https://github.com/usbarmory/usbarmory/wiki)                                                                                                                      | [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6)       | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory) |
-| NXP i.MX6ULL  | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6)       | [mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk) |
-| BCM2835       | [Raspberry Pi Zero](https://www.raspberrypi.org/products/raspberry-pi-zero)                                                                                                          | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)   |
-| BCM2835       | [Raspberry Pi 1 Model A+](https://www.raspberrypi.org/products/raspberry-pi-1-model-a-plus/)                                                                                         | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
-| BCM2835       | [Raspberry Pi 1 Model B+](https://www.raspberrypi.org/products/raspberry-pi-1-model-b-plus/)                                                                                         | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
-| BCM2836       | [Raspberry Pi 2 Model B](https://www.raspberrypi.org/products/raspberry-pi-2-model-b)                                                                                                | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
+The following table summarizes currently supported ARM SoCs and boards
+(`GOOS=tamago GOARCH=arm`).
+
+| SoC          | Board                                                                                                                                                                                | SoC package                                                            | Board package                                                                    |
+|--------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| NXP i.MX6ULZ | [USB armory Mk II](https://github.com/usbarmory/usbarmory/wiki)                                                                                                                      | [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6)       | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory) |
+| NXP i.MX6ULL | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6)       | [mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk) |
+| BCM2835      | [Raspberry Pi Zero](https://www.raspberrypi.org/products/raspberry-pi-zero)                                                                                                          | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)   |
+| BCM2835      | [Raspberry Pi 1 Model A+](https://www.raspberrypi.org/products/raspberry-pi-1-model-a-plus/)                                                                                         | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
+| BCM2835      | [Raspberry Pi 1 Model B+](https://www.raspberrypi.org/products/raspberry-pi-1-model-b-plus/)                                                                                         | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
+| BCM2836      | [Raspberry Pi 2 Model B](https://www.raspberrypi.org/products/raspberry-pi-2-model-b)                                                                                                | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
+
+Supported RISC-V hardware 
+==========================
+
+The following table summarizes currently supported RISC-V SoCs and boards
+(`GOOS=tamago GOARCH=riscv64`).
+
+| SoC          | Board                                                                                                                                                                                | SoC package                                                            | Board package                                                                    |
+|--------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| QEMU RV64GC  | [QEMU virt](https://www.qemu.org/docs/master/system/riscv/virt.html)                                                                                                                 | N/A (work in progress, only compiler support available)                | N/A (work in progress: only compiler support available)                          |
 
 Compiling
 =========
@@ -112,6 +115,10 @@ with the addition of a few flags/variables:
 # Example for USB armory Mk II
 GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm \
   ${TAMAGO} build -ldflags "-T 0x80010000 -E _rt0_arm_tamago -R 0x1000"
+
+# Example for QEMU RISC-V virt (RV64GC)
+GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARCH=riscv64 \
+  ${TAMAGO} build -ldflags "-T 0x90000000 -E _rt0_riscv64_tamago -R 0x1000"
 ```
 
 See the respective board package README file for compilation information for
@@ -127,13 +134,54 @@ The [example application](https://github.com/usbarmory/tamago-example)
 provides sample driver usage and instructions for native as well as emulated
 execution.
 
+An emulated run of the [example application](https://github.com/usbarmory/tamago-example)
+can be launched as follows:
+
+```
+git clone https://github.com/usbarmory/tamago-example
+cd tamago-example && make qemu
+```
+
+Applications using TamaGo
+=========================
+
+* [GoKey](https://github.com/usbarmory/GoKey) - the bare metal Go smartcard
+* [GoTEE](https://github.com/usbarmory/GoTEE) - Go Trusted Execution Environment
+* [armory-drive](https://github.com/usbarmory/armory-drive) - USB encrypted drive
+* [armory-ums](https://github.com/usbarmory/armory-ums) - USB Mass Storage firmware
+* [armory-boot](https://github.com/usbarmory/armory-boot) - primary bootloader
+* [tamago-example](https://github.com/usbarmory/tamago-example) - TamaGo example application
+
+External drivers using TamaGo
+=============================
+
+* [imx-usbnet](https://github.com/usbarmory/imx-usbnet) - i.MX Ethernet over USB driver
+
+Additional resources
+====================
+
+* [Package API](https://pkg.go.dev/github.com/usbarmory/tamago)
+* [Internals](https://github.com/usbarmory/tamago/wiki/Internals)
+* [Go stdlib support](https://github.com/usbarmory/tamago/wiki/Import-report)
+* [FAQ](https://github.com/usbarmory/tamago/wiki/Frequently-Asked-Questions-(FAQ))
+* [TamaGo presentation](https://github.com/abarisani/abarisani.github.io/tree/master/research/tamago)
+
+Maintainers
+===========
+
+Andrea Barisani  
+andrea.barisani@withsecure.com | andrea@inversepath.com  
+
+Andrej Rosano  
+andrej.rosano@withsecure.com   | andrej@inversepath.com  
+
 License
 =======
 
 tamago | https://github.com/usbarmory/tamago  
 Copyright (c) WithSecure Corporation
 
-These source files are distributed under the BSD-style license found in the
+This project is distributed under the BSD-style license found in the
 [LICENSE](https://github.com/usbarmory/tamago/blob/master/LICENSE) file.
 
 The TamaGo logo is adapted from the Go gopher designed by Renee French and
