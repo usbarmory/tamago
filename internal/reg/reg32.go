@@ -9,8 +9,8 @@
 // Package reg provides primitives for retrieving and modifying hardware
 // registers.
 //
-// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// This package is only meant to be used with `GOOS=tamago` as supported by the
+// TamaGo framework for bare metal Go on ARM/RISC-V SoCs, see
 // https://github.com/usbarmory/tamago.
 package reg
 

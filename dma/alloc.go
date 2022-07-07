@@ -17,7 +17,7 @@ import (
 func (b *block) read(off int, buf []byte) {
 	var ptr unsafe.Pointer
 
-	ptr = unsafe.Add(ptr, int(b.addr) + off)
+	ptr = unsafe.Add(ptr, int(b.addr)+off)
 	mem := unsafe.Slice((*byte)(ptr), len(buf))
 
 	copy(buf, mem)
@@ -26,7 +26,7 @@ func (b *block) read(off int, buf []byte) {
 func (b *block) write(off int, buf []byte) {
 	var ptr unsafe.Pointer
 
-	ptr = unsafe.Add(ptr, int(b.addr) + off)
+	ptr = unsafe.Add(ptr, int(b.addr)+off)
 	mem := unsafe.Slice((*byte)(ptr), len(buf))
 
 	copy(mem, buf)

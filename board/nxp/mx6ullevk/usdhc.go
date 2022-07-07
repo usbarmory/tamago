@@ -11,14 +11,13 @@ package mx6ullevk
 
 import (
 	"github.com/usbarmory/tamago/soc/imx6"
-	"github.com/usbarmory/tamago/soc/imx6/usdhc"
 )
 
 // SD1 is the base board full size SD instance
-var SD1 = usdhc.USDHC1
+var SD1 = USDHC1
 
 // SD2 is the CPU board microSD instance
-var SD2 = usdhc.USDHC2
+var SD2 = USDHC2
 
 // SD1/SD2 configuration constants.
 //

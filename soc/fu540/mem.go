@@ -1,4 +1,4 @@
-// NXP i.MX6UL initialization
+// SiFive FU540 initialization
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -10,11 +10,11 @@
 //go:build !linkramstart
 // +build !linkramstart
 
-package imx6ul
+package fu540
 
 import (
 	_ "unsafe"
 )
 
 //go:linkname ramStart runtime.ramStart
-var ramStart uint32 = 0x80000000
+var ramStart uint64 = 0x80000000

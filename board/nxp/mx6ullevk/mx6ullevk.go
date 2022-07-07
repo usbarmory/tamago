@@ -19,7 +19,23 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/soc/imx6"
-	_ "github.com/usbarmory/tamago/soc/imx6/imx6ul"
+	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
+)
+
+// Peripheral instances
+var (
+	I2C1 = imx6ul.I2C1
+	I2C2 = imx6ul.I2C2
+
+	UART1 = imx6ul.UART1
+	UART2 = imx6ul.UART2
+
+	USB1 = imx6ul.USB1
+	USB2 = imx6ul.USB2
+
+	// SD1 is the base board full size SD instance
+	USDHC1 = imx6ul.USDHC1
+	USDHC2 = imx6ul.USDHC2
 )
 
 // Init takes care of the lower level SoC initialization triggered early in
@@ -30,5 +46,5 @@ func Init() {
 	imx6.Init()
 
 	// initialize console
-	imx6.UART1.Init()
+	imx6ul.UART1.Init()
 }

@@ -21,7 +21,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM System-on-Chip (SoC) components.
+applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
 
 The [usbarmory](https://github.com/usbarmory/tamago/tree/master/board/usbarmory)
 package provides support for the [USB armory](https://github.com/usbarmory/usbarmory/wiki)
@@ -92,7 +92,7 @@ Native hardware: imx image
 --------------------------
 
 Follow [these instructions](https://github.com/usbarmory/usbarmory/wiki/Boot-Modes-(Mk-II)#flashing-bootable-images-on-externalinternal-media)
-using built `imx` images.
+using the built `imx` image.
 
 Native hardware: existing bootloader
 ------------------------------------
@@ -151,9 +151,9 @@ The target can be executed under emulation as follows:
 
 ```
 qemu-system-arm \
-	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M
-	\ -nographic -monitor none -serial null -serial stdio -net none
-	\ -kernel example -semihosting -d unimp
+	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M \
+	-nographic -monitor none -serial null -serial stdio -net none \
+	-kernel example -semihosting
 ```
 
 The emulated target can be debugged with GDB by adding the `-S -s` flags to the

@@ -11,14 +11,13 @@ package mk2
 
 import (
 	"github.com/usbarmory/tamago/soc/imx6"
-	"github.com/usbarmory/tamago/soc/imx6/usdhc"
 )
 
 // SD instance
-var SD = usdhc.USDHC1
+var SD = USDHC1
 
 // MMC instance
-var MMC = usdhc.USDHC2
+var MMC = USDHC2
 
 // SD/MMC configuration constants.
 //
@@ -116,7 +115,7 @@ func lowVoltageSD(enable bool) bool {
 		a[0] = LDO3_VOLT_3V3
 	}
 
-	err := imx6.I2C1.Write(a, PF1510_ADDR, PF1510_LDO3_VOLT, 1)
+	err := I2C1.Write(a, PF1510_ADDR, PF1510_LDO3_VOLT, 1)
 
 	return err == nil
 }

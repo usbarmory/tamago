@@ -19,6 +19,7 @@ import (
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
+	"github.com/usbarmory/tamago/soc/imx6"
 )
 
 // SD registers
@@ -436,7 +437,7 @@ func (hw *USDHC) initSD() (err error) {
 	}
 
 	hw.setClock(-1, -1)
-	hw.setRootClock(root_clk, 0)
+	imx6.SetUSDHCClock(hw.Index, root_clk, 0)
 	hw.setClock(DVS_HS, clk)
 
 	if tune {

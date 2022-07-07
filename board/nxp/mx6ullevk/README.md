@@ -21,7 +21,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM System-on-Chip (SoC) components.
+applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
 
 The [mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk)
 package provides support for the [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) development board.
@@ -86,6 +86,12 @@ Executing and debugging
 The [example application](https://github.com/usbarmory/tamago-example)
 provides reference usage and a Makefile target for automatic creation of an ELF
 as well as `imx` image for flashing.
+
+Native hardware: imx image over USB
+-----------------------------------
+
+Follow [the SDP procedure](https://github.com/usbarmory/usbarmory/wiki/Boot-Modes-(Mk-II)#serial-download-protocol-sdp)
+using the built `imx` image.
 
 Native hardware: imx image on microSD
 -------------------------------------
@@ -166,8 +172,8 @@ The target can be executed under emulation as follows:
 ```
 qemu-system-arm \
 	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M \
-	  -nographic -monitor none -serial null -serial stdio -net none \
-	  -kernel example -semihosting -d unimp
+	-nographic -monitor none -serial null -serial stdio -net none \
+	-kernel example -semihosting
 ```
 
 The emulated target can be debugged with GDB by adding the `-S -s` flags to the

@@ -16,6 +16,7 @@ import (
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/soc/imx6"
+	"github.com/usbarmory/tamago/soc/imx6/uart"
 )
 
 // BLE module configuration constants.
@@ -122,7 +123,7 @@ func configureBLEGPIO(num int, instance int, mux uint32, pad uint32, ctl uint32)
 type ANNA struct {
 	sync.Mutex
 
-	UART *imx6.UART
+	UART *uart.UART
 
 	reset   *imx6.GPIO
 	switch1 *imx6.GPIO
@@ -142,7 +143,7 @@ func (ble *ANNA) Init() (err error) {
 	ble.Lock()
 	defer ble.Unlock()
 
-	BLE.UART = imx6.UART1
+	BLE.UART = UART1
 
 	ctl := uint32(0)
 	bits.Set(&ctl, imx6.SW_PAD_CTL_HYS)

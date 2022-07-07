@@ -17,8 +17,8 @@ package mk2
 
 import (
 	"github.com/usbarmory/tamago/soc/imx6"
+	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
 	"github.com/usbarmory/tamago/soc/imx6/ocotp"
-	_ "github.com/usbarmory/tamago/soc/imx6/imx6ul"
 
 	_ "unsafe"
 )
@@ -26,6 +26,21 @@ import (
 const (
 	REV_BETA = iota
 	REV_GAMMA
+)
+
+// Peripheral instances
+var (
+	I2C1 = imx6ul.I2C1
+	I2C2 = imx6ul.I2C2
+
+	UART1 = imx6ul.UART1
+	UART2 = imx6ul.UART2
+
+	USB1 = imx6ul.USB1
+	USB2 = imx6ul.USB2
+
+	USDHC1 = imx6ul.USDHC1
+	USDHC2 = imx6ul.USDHC2
 )
 
 // Model returns the USB armory model name, to further detect SoC variants
@@ -52,5 +67,5 @@ func Init() {
 	imx6.Init()
 
 	// initialize serial console
-	imx6.UART2.Init()
+	imx6ul.UART2.Init()
 }

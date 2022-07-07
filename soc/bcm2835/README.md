@@ -14,7 +14,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM System-on-Chip (SoC) components.
+applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
 
 The [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)
 package provides support for the Broadcom BCM2835 series of SoC.
@@ -31,8 +31,8 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC     | Related board packages                                                                    | Peripheral drivers |
-|---------|-------------------------------------------------------------------------------------------|--------------------|
+| SoC     | Related board packages                                                             | Peripheral drivers |
+|---------|------------------------------------------------------------------------------------|--------------------|
 | BCM2835 | [pizero](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pizero) | RNG, UART, GPIO    |
 | BCM2836 | [pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi2)       | RNG, UART, GPIO    |
 

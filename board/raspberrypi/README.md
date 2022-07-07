@@ -16,7 +16,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM System-on-Chip (SoC) components.
+applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
 
 The [pi](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)
 package provides support for the [Raspberry Pi](https://www.raspberrypi.org/)
@@ -99,7 +99,7 @@ The GOARM environment variable must be set according to the Raspberry Pi model:
 
 | Model | GOARM | Example                                                     |
 |-------|-------|-------------------------------------------------------------|
-| Zero  |   5   | <https://github.com/usbarmory/tamago-example-pizero> |
+| Zero  |   5   | <https://github.com/usbarmory/tamago-example-pizero>        |
 | 1A+   |   5   | <https://github.com/prusnak/tamago-example-pi1>             |
 | 1B+   |   5   | <https://github.com/prusnak/tamago-example-pi1>             |
 | 2B    |   7   | <https://github.com/kenbell/tamago-example-pi2>             |
@@ -112,7 +112,7 @@ Executing
 
 There are two options for executing compiled binaries.  The direct approach is to convert Go binaries
 to emulate the Linux boot protocol and have the Pi firmware load and execute the binary as a Linux kernel.
-The U-boot method enables ELF binaries to be loaded and executed directly.  
+The U-boot method enables ELF binaries to be loaded and executed directly.
 
 In both cases a minimal set of Raspberry Pi firmware must be present on the SD card that initializes the
 Raspberry Pi using the VideoCore GPU.  The following minimum files are required:

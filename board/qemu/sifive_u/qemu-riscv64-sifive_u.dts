@@ -1,0 +1,228 @@
+/dts-v1/;
+
+/ {
+	#address-cells = <0x02>;
+	#size-cells = <0x02>;
+	compatible = "sifive,hifive-unleashed-a00";
+	model = "SiFive HiFive Unleashed A00";
+
+	chosen {
+		bootargs = [00];
+		stdout-path = "/soc/serial@10010000";
+	};
+
+	aliases {
+		serial0 = "/soc/serial@10010000";
+		serial1 = "/soc/serial@10011000";
+		ethernet0 = "/soc/ethernet@10090000";
+	};
+
+	gpio-restart {
+		compatible = "gpio-restart";
+		gpios = <0x07 0x0a 0x01>;
+	};
+
+	cpus {
+		#address-cells = <0x01>;
+		#size-cells = <0x00>;
+		timebase-frequency = <0xf4240>;
+
+		cpu@0 {
+			device_type = "cpu";
+			reg = <0x00>;
+			status = "okay";
+			compatible = "riscv";
+			riscv,isa = "rv64imafdcsu";
+			mmu-type = "riscv,sv48";
+
+			interrupt-controller {
+				#interrupt-cells = <0x01>;
+				interrupt-controller;
+				compatible = "riscv,cpu-intc";
+				phandle = <0x04>;
+			};
+		};
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x00 0x80000000 0x00 0x8000000>;
+	};
+
+	rtcclk {
+		#clock-cells = <0x00>;
+		compatible = "fixed-clock";
+		clock-frequency = <0xf4240>;
+		clock-output-names = "rtcclk";
+		phandle = <0x02>;
+	};
+
+	hfclk {
+		#clock-cells = <0x00>;
+		compatible = "fixed-clock";
+		clock-frequency = <0x1fca055>;
+		clock-output-names = "hfclk";
+		phandle = <0x01>;
+	};
+
+	soc {
+		#address-cells = <0x02>;
+		#size-cells = <0x02>;
+		compatible = "simple-bus";
+		ranges;
+
+		serial@10010000 {
+			interrupts = <0x04>;
+			interrupt-parent = <0x06>;
+			clocks = <0x05 0x03>;
+			reg = <0x00 0x10010000 0x00 0x1000>;
+			compatible = "sifive,uart0";
+		};
+
+		serial@10011000 {
+			interrupts = <0x05>;
+			interrupt-parent = <0x06>;
+			clocks = <0x05 0x03>;
+			reg = <0x00 0x10011000 0x00 0x1000>;
+			compatible = "sifive,uart0";
+		};
+
+		pwm@10021000 {
+			#pwm-cells = <0x00>;
+			clocks = <0x05 0x03>;
+			interrupts = <0x2e 0x2f 0x30 0x31>;
+			interrupt-parent = <0x06>;
+			reg = <0x00 0x10021000 0x00 0x1000>;
+			compatible = "sifive,pwm0";
+		};
+
+		pwm@10020000 {
+			#pwm-cells = <0x00>;
+			clocks = <0x05 0x03>;
+			interrupts = <0x2a 0x2b 0x2c 0x2d>;
+			interrupt-parent = <0x06>;
+			reg = <0x00 0x10020000 0x00 0x1000>;
+			compatible = "sifive,pwm0";
+		};
+
+		ethernet@10090000 {
+			#size-cells = <0x00>;
+			#address-cells = <0x01>;
+			local-mac-address = [52 54 00 12 34 56];
+			clock-names = "pclk\0hclk";
+			clocks = <0x05 0x02 0x05 0x02>;
+			interrupts = <0x35>;
+			interrupt-parent = <0x06>;
+			phy-handle = <0x08>;
+			phy-mode = "gmii";
+			reg-names = "control";
+			reg = <0x00 0x10090000 0x00 0x2000 0x00 0x100a0000 0x00 0x1000>;
+			compatible = "sifive,fu540-c000-gem";
+
+			ethernet-phy@0 {
+				reg = <0x00>;
+				phandle = <0x08>;
+			};
+		};
+
+		spi@10040000 {
+			compatible = "sifive,spi0";
+			reg = <0x00 0x10040000 0x00 0x1000>;
+			interrupt-parent = <0x06>;
+			interrupts = <0x33>;
+			clocks = <0x05 0x03>;
+			#address-cells = <0x01>;
+			#size-cells = <0x00>;
+
+			flash@0 {
+				compatible = "jedec,spi-nor";
+				reg = <0x00>;
+				spi-max-frequency = <0x2faf080>;
+				m25p,fast-read;
+				spi-tx-bus-width = <0x04>;
+				spi-rx-bus-width = <0x04>;
+			};
+		};
+
+		spi@10050000 {
+			compatible = "sifive,spi0";
+			reg = <0x00 0x10050000 0x00 0x1000>;
+			interrupt-parent = <0x06>;
+			interrupts = <0x06>;
+			clocks = <0x05 0x03>;
+			#address-cells = <0x01>;
+			#size-cells = <0x00>;
+
+			mmc@0 {
+				compatible = "mmc-spi-slot";
+				reg = <0x00>;
+				spi-max-frequency = <0x1312d00>;
+				voltage-ranges = <0xce4 0xce4>;
+				disable-wp;
+			};
+		};
+
+		cache-controller@2010000 {
+			compatible = "sifive,fu540-c000-ccache";
+			cache-block-size = <0x40>;
+			cache-level = <0x02>;
+			cache-sets = <0x400>;
+			cache-size = <0x200000>;
+			cache-unified;
+			interrupt-parent = <0x06>;
+			interrupts = <0x01 0x02 0x03>;
+			reg = <0x00 0x2010000 0x00 0x1000>;
+		};
+
+		dma@3000000 {
+			compatible = "sifive,fu540-c000-pdma";
+			reg = <0x00 0x3000000 0x00 0x100000>;
+			interrupt-parent = <0x06>;
+			interrupts = <0x17 0x18 0x19 0x1a 0x1b 0x1c 0x1d 0x1e>;
+			#dma-cells = <0x01>;
+		};
+
+		gpio@10060000 {
+			compatible = "sifive,gpio0";
+			interrupt-parent = <0x06>;
+			interrupts = <0x07 0x08 0x09 0x0a 0x0b 0x0c 0x0d 0x0e 0x0f 0x10 0x11 0x12 0x13 0x14 0x15 0x16>;
+			reg = <0x00 0x10060000 0x00 0x1000>;
+			gpio-controller;
+			#gpio-cells = <0x02>;
+			interrupt-controller;
+			#interrupt-cells = <0x02>;
+			clocks = <0x05 0x03>;
+			phandle = <0x07>;
+		};
+
+		interrupt-controller@c000000 {
+			phandle = <0x06>;
+			riscv,ndev = <0x35>;
+			reg = <0x00 0xc000000 0x00 0x4000000>;
+			interrupts-extended = <0x04 0x0b 0x03 0x0b 0x03 0x09>;
+			interrupt-controller;
+			compatible = "sifive,plic-1.0.0\0riscv,plic0";
+			#interrupt-cells = <0x01>;
+		};
+
+		clock-controller@10000000 {
+			compatible = "sifive,fu540-c000-prci";
+			reg = <0x00 0x10000000 0x00 0x1000>;
+			clocks = <0x01 0x02>;
+			#clock-cells = <0x01>;
+			phandle = <0x05>;
+		};
+
+		otp@10070000 {
+			compatible = "sifive,fu540-c000-otp";
+			reg = <0x00 0x10070000 0x00 0x1000>;
+			fuse-count = <0x1000>;
+		};
+
+		clint@2000000 {
+			interrupts-extended = <0x04 0x03 0x04 0x07 0x03 0x03 0x03 0x07>;
+			reg = <0x00 0x2000000 0x00 0x10000>;
+			compatible = "sifive,clint0\0riscv,clint0";
+		};
+	};
+};

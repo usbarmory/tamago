@@ -7,7 +7,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package imx6
+package i2c
 
 import (
 	"errors"
@@ -18,20 +18,8 @@ import (
 )
 
 // I2C registers
+// (p1462, 31.7 I2C Memory Map/Register Definition, IMX6ULLRM)
 const (
-	// p1462, 31.7 I2C Memory Map/Register Definition, IMX6ULLRM
-
-	// i.MX 6UltraLite (G0, G1, G2, G3, G4)
-	// i.MX 6ULL (Y0, Y1, Y2)
-	// i.MX 6ULZ (Z0)
-	I2C1_BASE = 0x021a0000
-	I2C2_BASE = 0x021a4000
-
-	// i.MX 6UltraLite (G1, G2, G3, G4)
-	// i.MX 6ULL (Y1, Y2)
-	I2C3_BASE = 0x021a8000
-	I2C4_BASE = 0x021f8000
-
 	I2Cx_IADR = 0x0000
 	I2Cx_IFDR = 0x0004
 
@@ -54,12 +42,14 @@ const (
 type I2C struct {
 	sync.Mutex
 
-	// controller index
-	n int
-	// clock gate register
-	ccgr uint32
-	// clock gate
-	cg int
+	// Controller index
+	Index int
+	// Base register
+	Base uint32
+	// Clock gate register
+	CCGR uint32
+	// Clock gate
+	CG int
 
 	// control registers
 	iadr uint32
@@ -72,73 +62,31 @@ type I2C struct {
 	Timeout time.Duration
 }
 
-// I2C1 instance
-var I2C1 = &I2C{n: 1}
-
-// I2C2 instance
-var I2C2 = &I2C{n: 2}
-
 // Init initializes the I2C controller instance. At this time only master mode
 // is supported by this driver.
 func (hw *I2C) Init() {
-	var base uint32
-
 	hw.Lock()
 	defer hw.Unlock()
 
-	switch hw.n {
-	case 1:
-		base = I2C1_BASE
-		hw.ccgr = CCM_CCGR2
-		hw.cg = CCGRx_CG3
-	case 2:
-		base = I2C2_BASE
-		hw.ccgr = CCM_CCGR2
-		hw.cg = CCGRx_CG4
-	case 3:
-		base = I2C3_BASE
-		hw.ccgr = CCM_CCGR2
-		hw.cg = CCGRx_CG5
-	case 4:
-		base = I2C4_BASE
-		hw.ccgr = CCM_CCGR6
-		hw.cg = CCGRx_CG12
-	default:
+	if hw.Base == 0 || hw.CCGR == 0 {
 		panic("invalid I2C controller instance")
 	}
 
-	hw.iadr = base + I2Cx_IADR
-	hw.ifdr = base + I2Cx_IFDR
-	hw.i2cr = base + I2Cx_I2CR
-	hw.i2sr = base + I2Cx_I2SR
-	hw.i2dr = base + I2Cx_I2DR
+	hw.iadr = hw.Base + I2Cx_IADR
+	hw.ifdr = hw.Base + I2Cx_IFDR
+	hw.i2cr = hw.Base + I2Cx_I2CR
+	hw.i2sr = hw.Base + I2Cx_I2SR
+	hw.i2dr = hw.Base + I2Cx_I2DR
 
 	hw.Timeout = 100 * time.Millisecond
 
 	hw.enable()
 }
 
-// getRootClock returns the PERCLK_CLK_ROOT frequency,
-// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM).
-func (hw *I2C) getRootClock() uint32 {
-	var freq uint32
-
-	if reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_SEL, 1) == 1 {
-		freq = OSC_FREQ
-	} else {
-		// IPG_CLK_ROOT derived from AHB_CLK_ROOT which is 132 MHz
-		ipg_podf := reg.Get(CCM_CBCDR, CBCDR_IPG_PODF, 0b11)
-		freq = 132000000 / (ipg_podf + 1)
-	}
-
-	podf := reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_PODF, 0x3f)
-
-	return freq / (podf + 1)
-}
-
 // p1452, 31.5.1 Initialization sequence, IMX6ULLRM
 func (hw *I2C) enable() {
-	reg.SetN(hw.ccgr, hw.cg, 0b11, 0b11)
+	// enable clock
+	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
 
 	// Set SCL frequency
 	// 66 MHz / 768 = 85 kbps
@@ -148,7 +96,7 @@ func (hw *I2C) enable() {
 	reg.Set16(hw.i2cr, I2CR_IEN)
 }
 
-// Read reads a sequence of bytes from a slave device
+// Read reads a sequence of bytes from a target device
 // (p167, 16.4.2 Programming the I2C controller for I2C Read, IMX6FG).
 //
 // The return data buffer always matches the requested size, otherwise an error
@@ -157,8 +105,8 @@ func (hw *I2C) enable() {
 // The address length (`alen`) parameter should be set greater then 0 for
 // ordinary I2C reads (`SLAVE W|ADDR|SLAVE R|DATA`), equal to 0 when not
 // sending a register address (`SLAVE W|SLAVE R|DATA`) and less than 0 only to
-// send a slave read (`SLAVE R|DATA`).
-func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, err error) {
+// send a target read (`SLAVE R|DATA`).
+func (hw *I2C) Read(target uint8, addr uint32, alen int, size int) (buf []byte, err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
@@ -167,7 +115,7 @@ func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, e
 	}
 	defer hw.stop()
 
-	if err = hw.txAddress(slave, addr, alen); err != nil {
+	if err = hw.txAddress(target, addr, alen); err != nil {
 		return
 	}
 
@@ -175,8 +123,8 @@ func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, e
 		return
 	}
 
-	// send slave address with R/W bit set
-	a := byte((slave << 1) | 1)
+	// send target address with R/W bit set
+	a := byte((target << 1) | 1)
 
 	if err = hw.tx([]byte{a}); err != nil {
 		return
@@ -188,7 +136,7 @@ func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, e
 	return
 }
 
-// Write writes a sequence of bytes to a slave device
+// Write writes a sequence of bytes to a target device
 // (p170, 16.4.4 Programming the I2C controller for I2C Write, IMX6FG)
 //
 // Set greater then 0 for ordinary I2C write (`SLAVE W|ADDR|DATA`),
@@ -198,7 +146,7 @@ func (hw *I2C) Read(slave uint8, addr uint32, alen int, size int) (buf []byte, e
 // The address length (`alen`) parameter should be set greater then 0 for
 // ordinary I2C writes (`SLAVE W|ADDR|DATA`), equal to 0 when not sending a
 // register address (`SLAVE W|DATA`), values less than 0 are not valid.
-func (hw *I2C) Write(buf []byte, slave uint8, addr uint32, alen int) (err error) {
+func (hw *I2C) Write(buf []byte, target uint8, addr uint32, alen int) (err error) {
 	if alen < 0 {
 		return errors.New("invalid address length")
 	}
@@ -211,21 +159,21 @@ func (hw *I2C) Write(buf []byte, slave uint8, addr uint32, alen int) (err error)
 	}
 	defer hw.stop()
 
-	if err = hw.txAddress(slave, addr, alen); err != nil {
+	if err = hw.txAddress(target, addr, alen); err != nil {
 		return
 	}
 
 	return hw.tx(buf)
 }
 
-func (hw *I2C) txAddress(slave uint8, addr uint32, alen int) (err error) {
-	if slave > 0x7f {
-		return errors.New("invalid slave address")
+func (hw *I2C) txAddress(target uint8, addr uint32, alen int) (err error) {
+	if target > 0x7f {
+		return errors.New("invalid target address")
 	}
 
 	if alen >= 0 {
-		// send slave slave address with R/W bit unset
-		a := byte(slave << 1)
+		// send target address with R/W bit unset
+		a := byte(target << 1)
 
 		if err = hw.tx([]byte{a}); err != nil {
 			return
@@ -248,7 +196,7 @@ func (hw *I2C) txAddress(slave uint8, addr uint32, alen int) (err error) {
 func (hw *I2C) rx(buf []byte) (err error) {
 	size := len(buf)
 
-	// set read from slave bit
+	// set read from target bit
 	reg.Clear16(hw.i2cr, I2CR_MTX)
 
 	if size == 1 {

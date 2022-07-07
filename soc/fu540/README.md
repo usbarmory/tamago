@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for ARM SoCs - i.MX 6 support
-====================================================
+TamaGo - bare metal Go for RISC-V SoCs - FU540 support
+======================================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -23,8 +23,8 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
 
-The [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6) package
-provides support for the NXP i.MX 6 series of System-on-Chip (SoCs) parts.
+The [fu540](https://github.com/usbarmory/tamago/tree/master/soc/fu540) package
+provides support for the SiFive FU540 System-on-Chip (SoCs).
 
 Documentation
 =============
@@ -38,10 +38,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC                 | Related board packages                                                               | Peripheral drivers                                        |
-|---------------------|--------------------------------------------------------------------------------------|-----------------------------------------------------------|
-| NXP i.MX 6UltraLite | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory)     | CSU, DCP, GPIO, I2C, OCOTP, RNGB, TZASC, UART, USB, USDHC |
-| NXP i.MX 6UltraLite | [nxp/mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk) | CSU, DCP, GPIO, I2C, OCOTP, RNGB, TZASC, UART, USB, USDHC |
+| SoC          | Related board packages                                                               | Peripheral drivers                                        |
+|--------------|--------------------------------------------------------------------------------------|-----------------------------------------------------------|
+| SiFive FU540 | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u) | UART                                                      |
 
 License
 =======

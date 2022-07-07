@@ -9,11 +9,7 @@
 
 package mk2
 
-import (
-	"github.com/usbarmory/tamago/soc/imx6"
-)
-
-// The USB armory Mk II has the following components accessible as I²C slaves.
+// The USB armory Mk II has the following components accessible as I²C targets.
 const (
 	// Power management controller
 	PF1510_ADDR = 0x08
@@ -32,5 +28,5 @@ const (
 func init() {
 	// I2C1 is used to enable the USB receptacle controller as well as low
 	// switch SD card signaling to low voltage.
-	imx6.I2C1.Init()
+	I2C1.Init()
 }

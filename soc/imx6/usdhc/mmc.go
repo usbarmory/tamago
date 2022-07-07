@@ -19,6 +19,7 @@ import (
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
+	"github.com/usbarmory/tamago/soc/imx6"
 )
 
 // MMC registers
@@ -226,7 +227,7 @@ func (hw *USDHC) initMMC() (err error) {
 
 	// Send CMD3 with a chosen RCA, with value greater than 1,
 	// p301, A.6.1 Bus initialization , JESD84-B51.
-	hw.rca = (uint32(hw.n) + 1) << RCA_ADDR
+	hw.rca = (uint32(hw.Index) + 1) << RCA_ADDR
 
 	// CMD3 - SET_RELATIVE_ADDR - set relative card address (RCA),
 	if err = hw.cmd(3, hw.rca, 0, 0); err != nil {
@@ -338,7 +339,7 @@ func (hw *USDHC) initMMC() (err error) {
 	}
 
 	hw.setClock(-1, -1)
-	hw.setRootClock(root_clk, 0)
+	imx6.SetUSDHCClock(hw.Index, root_clk, 0)
 	hw.setClock(DVS_HS, clk)
 
 	if tune {
@@ -361,7 +362,7 @@ func (hw *USDHC) partitionAccessMMC(access uint32) (err error) {
 // p108, 6.6.22.4.4 Authenticated Data Read,  JESD84-B51
 func (hw *USDHC) transferRPMB(dtd int, buf []byte, rel bool) (err error) {
 	if !hw.card.MMC {
-		return fmt.Errorf("no MMC card detected on uSDHC%d", hw.n)
+		return fmt.Errorf("no MMC card detected on uSDHC%d", hw.Index)
 	}
 
 	if len(buf) != 512 {

@@ -81,9 +81,9 @@ Supported RISC-V hardware
 The following table summarizes currently supported RISC-V SoCs and boards
 (`GOOS=tamago GOARCH=riscv64`).
 
-| SoC          | Board                                                                                                                                                                                | SoC package                                                            | Board package                                                                    |
-|--------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| QEMU RV64GC  | [QEMU virt](https://www.qemu.org/docs/master/system/riscv/virt.html)                                                                                                                 | N/A (work in progress, only compiler support available)                | N/A (work in progress: only compiler support available)                          |
+| SoC          | Board                                                                        | SoC package                                                        | Board package                                                                        |
+|--------------|------------------------------------------------------------------------------|--------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| SiFive FU540 | [QEMU sifive_u](https://www.qemu.org/docs/master/system/riscv/sifive_u.html) | [fu540](https://github.com/usbarmory/tamago/tree/master/soc/fu540) | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u) |
 
 Compiling
 =========
@@ -116,9 +116,9 @@ with the addition of a few flags/variables:
 GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm \
   ${TAMAGO} build -ldflags "-T 0x80010000 -E _rt0_arm_tamago -R 0x1000"
 
-# Example for QEMU RISC-V virt (RV64GC)
+# Example for QEMU RISC-V sifive_u
 GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARCH=riscv64 \
-  ${TAMAGO} build -ldflags "-T 0x90000000 -E _rt0_riscv64_tamago -R 0x1000"
+  ${TAMAGO} build -ldflags "-T 0x80010000 -E _rt0_riscv64_tamago -R 0x1000"
 ```
 
 See the respective board package README file for compilation information for
