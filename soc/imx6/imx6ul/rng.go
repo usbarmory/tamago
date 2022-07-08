@@ -25,5 +25,3 @@ func initRNG() {
 		rng.GetRandomDataFn = rng.GetLCGData
 	}
 }
-
-

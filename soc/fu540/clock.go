@@ -10,8 +10,6 @@
 package fu540
 
 import (
-	"math"
-
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 )
@@ -61,5 +59,5 @@ func Freq() (hz uint32) {
 	divf := bits.Get(&c, COREPLL_DIVF, 0x1ff)
 	divq := bits.Get(&c, COREPLL_DIVQ, 0b111)
 
-	return (COREPLL * 2 * (divf + 1)) / ((divr + 1) * uint32(math.Pow(2, float64(divq))))
+	return (COREPLL * 2 * (divf + 1)) / ((divr + 1) * 1 << divq)
 }

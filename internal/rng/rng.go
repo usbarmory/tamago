@@ -13,6 +13,12 @@ import (
 	_ "unsafe"
 )
 
+const (
+	m = 1 << 31
+	a = 1103515245
+	c = 12345
+)
+
 var lcg uint32
 var GetRandomDataFn func([]byte)
 
@@ -21,8 +27,15 @@ func getRandomData(b []byte) {
 	GetRandomDataFn(b)
 }
 
-// getLCGData implements a Linear Congruential Generator
-// (https://en.wikipedia.org/wiki/Linear_congruential_generator).
+// GetLCGData implements a Linear Congruential Generator
+// (https://en.wikipedia.org/wiki/Linear_congruential_generator)
+//
+// The LCG is used for random data on boards/SoCs which do not feature a valid
+// entropy source.
+//
+// The LCG is unsuitable for secure random number generation and must therefore
+// be overridden to ensure safe operation of Go `crypto/rand`. To this end a
+// SetRNG() function is provided on SoC packages which use this LCG by default.
 func GetLCGData(b []byte) {
 	if lcg == 0 {
 		lcg = uint32(time.Now().UnixNano())
@@ -32,7 +45,7 @@ func GetLCGData(b []byte) {
 	need := len(b)
 
 	for read < need {
-		lcg = (1103515245*lcg + 12345) % (1 << 31)
+		lcg = (a*lcg + c) % m
 		read = Fill(b, read, lcg)
 	}
 }
