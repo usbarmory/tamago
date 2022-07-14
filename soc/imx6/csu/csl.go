@@ -1,4 +1,4 @@
-// i.MX Central Security Unit (CSU) driver
+// NXP i.MX Central Security Unit (CSU) driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -30,12 +30,12 @@ func checkArgs(periph int, slave int) (err error) {
 // GetSecurityLevel returns the config security level (CSL) registers for a
 // peripheral slave. The lock return value indicates whether the CSL is locked
 // for changes until the next power cycle.
-func GetSecurityLevel(periph int, slave int) (csl uint8, lock bool, err error) {
+func (hw *CSU) GetSecurityLevel(periph int, slave int) (csl uint8, lock bool, err error) {
 	if err = checkArgs(periph, slave); err != nil {
 		return
 	}
 
-	val := reg.Read(CSU_CSL0 + uint32(4*periph))
+	val := reg.Read(hw.csl0 + uint32(4*periph))
 	csl = uint8((val >> (CSL_S2 * slave)) & 0xff)
 
 	if uint8((val>>(CSL_S1_LOCK+CSL_S2*slave))&0b1) == 1 {
@@ -48,12 +48,12 @@ func GetSecurityLevel(periph int, slave int) (csl uint8, lock bool, err error) {
 // SetSecurityLevel sets the config security level (CSL) registers for a
 // peripheral slave. The lock argument controls whether the CSL is locked for
 // changes until the next power cycle.
-func SetSecurityLevel(periph int, slave int, csl uint8, lock bool) (err error) {
+func (hw *CSU) SetSecurityLevel(periph int, slave int, csl uint8, lock bool) (err error) {
 	if err = checkArgs(periph, slave); err != nil {
 		return
 	}
 
-	addr := CSU_CSL0 + uint32(4*periph)
+	addr := hw.csl0 + uint32(4*periph)
 
 	reg.SetN(addr, CSL_S2*slave, 0xff, uint32(csl))
 

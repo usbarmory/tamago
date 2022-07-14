@@ -38,7 +38,13 @@ const (
 	I2Cx_I2DR = 0x0010
 )
 
-// I2C represents a I2C port instance.
+// Configuration constants
+const (
+	// Timeout is the default timeout for I2C operations.
+	Timeout = 100 * time.Millisecond
+)
+
+// I2C represents an I2C port instance.
 type I2C struct {
 	sync.Mutex
 
@@ -50,6 +56,8 @@ type I2C struct {
 	CCGR uint32
 	// Clock gate
 	CG int
+	// Timeout for I2C operations
+	Timeout time.Duration
 
 	// control registers
 	iadr uint32
@@ -57,9 +65,6 @@ type I2C struct {
 	i2cr uint32
 	i2sr uint32
 	i2dr uint32
-
-	// Timeout for I2C operations
-	Timeout time.Duration
 }
 
 // Init initializes the I2C controller instance. At this time only master mode
@@ -72,19 +77,18 @@ func (hw *I2C) Init() {
 		panic("invalid I2C controller instance")
 	}
 
+	if hw.Timeout == 0 {
+		hw.Timeout = Timeout
+	}
+
 	hw.iadr = hw.Base + I2Cx_IADR
 	hw.ifdr = hw.Base + I2Cx_IFDR
 	hw.i2cr = hw.Base + I2Cx_I2CR
 	hw.i2sr = hw.Base + I2Cx_I2SR
 	hw.i2dr = hw.Base + I2Cx_I2DR
 
-	hw.Timeout = 100 * time.Millisecond
+	// p1452, 31.5.1 Initialization sequence, IMX6ULLRM
 
-	hw.enable()
-}
-
-// p1452, 31.5.1 Initialization sequence, IMX6ULLRM
-func (hw *I2C) enable() {
 	// enable clock
 	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
 

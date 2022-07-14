@@ -46,34 +46,12 @@ type Hash interface {
 }
 
 type digest struct {
+	dcp  *DCP
 	mode uint32
 	bs   int
 	init bool
 	buf  []byte
 	sum  []byte
-}
-
-// New256 returns a new Digest computing the SHA256 checksum.
-//
-// A single DCP channel is used for all operations, this entails that only one
-// digest instance can be kept at any given time, if this condition is not met
-// an error is returned.
-//
-// The digest instance starts with New256() and terminates when when Sum() is
-// invoked, after which the digest state can no longer be changed.
-func New256() (Hash, error) {
-	if !sem.TryAcquire(1) {
-		return nil, errors.New("another digest instance is already in use")
-	}
-
-	d := &digest{
-		mode: HASH_SELECT_SHA256,
-		bs:   blockSize,
-		init: true,
-		buf:  make([]byte, 0, blockSize),
-	}
-
-	return d, nil
 }
 
 // Write adds more data to the running hash. It returns an error if Sum has
@@ -100,9 +78,7 @@ func (d *digest) Write(p []byte) (n int, err error) {
 	d.buf = append(d.buf, p[:cut]...)
 	p = p[cut:]
 
-	_, err = hash(d.buf, d.mode, d.init, false)
-
-	if err != nil {
+	if _, err = d.dcp.hash(d.buf, d.mode, d.init, false); err != nil {
 		return
 	}
 
@@ -113,9 +89,8 @@ func (d *digest) Write(p []byte) (n int, err error) {
 	// work through any more full blocks in p
 	if l := len(p); l > d.bs {
 		r := l % d.bs
-		_, err = hash(p[:l-r], d.mode, d.init, false)
 
-		if err != nil {
+		if _, err = d.dcp.hash(p[:l-r], d.mode, d.init, false); err != nil {
 			return
 		}
 
@@ -141,7 +116,7 @@ func (d *digest) Sum(in []byte) (sum []byte, err error) {
 	if d.init && len(d.buf) == 0 {
 		d.sum = sha256.New().Sum(nil)
 	} else {
-		s, err := hash(d.buf, HASH_SELECT_SHA256, d.init, true)
+		s, err := d.dcp.hash(d.buf, HASH_SELECT_SHA256, d.init, true)
 
 		if err != nil {
 			return nil, err
@@ -158,12 +133,36 @@ func (d *digest) BlockSize() int {
 	return d.bs
 }
 
+// New256 returns a new Digest computing the SHA256 checksum.
+//
+// A single DCP channel is used for all operations, this entails that only one
+// digest instance can be kept at any given time, if this condition is not met
+// an error is returned.
+//
+// The digest instance starts with New256() and terminates when when Sum() is
+// invoked, after which the digest state can no longer be changed.
+func (hw *DCP) New256() (Hash, error) {
+	if !sem.TryAcquire(1) {
+		return nil, errors.New("another digest instance is already in use")
+	}
+
+	d := &digest{
+		dcp:  hw,
+		mode: HASH_SELECT_SHA256,
+		bs:   blockSize,
+		init: true,
+		buf:  make([]byte, 0, blockSize),
+	}
+
+	return d, nil
+}
+
 // Sum256 returns the SHA256 checksum of the data.
 //
 // There must be sufficient DMA memory allocated to hold the data, otherwise
 // the function will panic.
-func Sum256(data []byte) (sum [32]byte, err error) {
-	s, err := hash(data, HASH_SELECT_SHA256, true, true)
+func (hw *DCP) Sum256(data []byte) (sum [32]byte, err error) {
+	s, err := hw.hash(data, HASH_SELECT_SHA256, true, true)
 
 	if err != nil {
 		return

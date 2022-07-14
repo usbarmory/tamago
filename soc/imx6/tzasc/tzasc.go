@@ -10,10 +10,10 @@
 // that can be found in the LICENSE file.
 
 // Package tzasc implements a driver for the TrustZone Address Space Controller
-// (TZASC) included in NXP i.MX6ULL/i.MX6ULZ SoCs.
+// (TZASC) TZC-380.
 //
 // Note that the TZASC must be initialized early in the boot process, see
-// TZASC_BYPASS for information.
+// TZASC.Bypass for information.
 //
 // The driver is based on the following reference specifications:
 //   * TZC-380 TRM - CoreLink™ TrustZone Address Space Controller TZC-380 - Revision: r0p1
@@ -30,42 +30,20 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
-// TZASC imx6 specific registers
-const (
-	IOMUXC_GPR_GPR1       = 0x020e4004
-	GPR1_TZASC1_BOOT_LOCK = 23
-
-	// TZASC_BYPASS represents the register that allows to enable the TZASC
-	// monitoring of DDR transactions.
-	//
-	// To use the TZASC the bypass must be disabled early in the boot
-	// process, before DDR use.
-	//
-	// To do so the register can be written in the board DCD file (e.g.
-	// imximage.cfg in usbarmory package):
-	// 	`DATA 4 0x020e4024 0x00000001`
-	//
-	// This is a one time operation, until the next power-up cycle.
-	TZASC_BYPASS = 0x020e4024
-
-	TZASC_BASE = 0x021d0000
-)
-
 // TZASC registers
 // (p37, Table 3-1 Register summary, TZC-380 TRM).
 const (
-	TZASC_CONF   = TZASC_BASE + 0x000
+	TZASC_CONF   = 0x000
 	CONF_REGIONS = 0
 
-	TZASC_ACTION          = TZASC_BASE + 0x004
-	TZASC_LOCKDOWN_RANGE  = TZASC_BASE + 0x008
-	TZASC_LOCKDOWN_SELECT = TZASC_BASE + 0x00c
-	TZASC_SEC_INV_EN      = TZASC_BASE + 0x034
+	TZASC_LOCKDOWN_RANGE  = 0x008
+	TZASC_LOCKDOWN_SELECT = 0x00c
+	TZASC_SEC_INV_EN      = 0x034
 
-	TZASC_REGION_SETUP_LOW_0  = TZASC_BASE + 0x100
-	TZASC_REGION_SETUP_HIGH_0 = TZASC_BASE + 0x104
+	TZASC_REGION_SETUP_LOW_0  = 0x100
+	TZASC_REGION_SETUP_HIGH_0 = 0x104
 
-	TZASC_REGION_ATTRS_0 = TZASC_BASE + 0x108
+	TZASC_REGION_ATTRS_0 = 0x108
 	REGION_ATTRS_SP      = 28
 	REGION_ATTRS_SIZE    = 1
 	REGION_ATTRS_EN      = 0
@@ -87,36 +65,85 @@ const (
 	SP_NW_WR = 0
 )
 
+// TZASC represents the TrustZone Address Space Controller instance.
+type TZASC struct {
+	// Base register
+	Base uint32
+
+	// The bypass register controls the TZASC monitoring of DDR
+	// transactions.
+	//
+	// To use the TZASC, the bypass must be disabled early in the boot
+	// process, before DDR use. This is a one time operation, until the
+	// next power-up cycle.
+	//
+	// To do so the register can be written in the board DCD file (e.g.
+	// imximage.cfg in usbarmory package):
+	// 	`DATA 4 0x020e4024 0x00000001`
+	//
+	// The register must be specified in the TZASC instance for
+	// verification purposes.
+	Bypass uint32
+
+	// Secure Boot Lock signal (see 2.2.8 TZC-380 TRM)
+	SecureBootLockReg uint32
+	SecureBootLockPos int
+
+	// control registers
+	conf                uint32
+	lockdown_range      uint32
+	lockdown_select     uint32
+	sec_inv_en          uint32
+	region_setup_low_0  uint32
+	region_setup_high_0 uint32
+	region_attrs_0      uint32
+}
+
+// Init initializes the TrustZone Address Space Controller (TZASC).
+func (hw *TZASC) Init() {
+	if hw.Base == 0 || hw.Bypass == 0 || hw.SecureBootLockReg == 0 {
+		panic("invalid TZASC instance")
+	}
+
+	hw.conf = hw.Base + TZASC_CONF
+	hw.lockdown_range = hw.Base + TZASC_LOCKDOWN_RANGE
+	hw.lockdown_select = hw.Base + TZASC_LOCKDOWN_SELECT
+	hw.sec_inv_en = hw.Base + TZASC_SEC_INV_EN
+	hw.region_setup_low_0 = hw.Base + TZASC_REGION_SETUP_LOW_0
+	hw.region_setup_high_0 = hw.Base + TZASC_REGION_SETUP_HIGH_0
+	hw.region_attrs_0 = hw.Base + TZASC_REGION_ATTRS_0
+}
+
 // Regions returns the number of regions that the TZASC provides.
-func Regions() int {
-	return int(reg.Get(TZASC_CONF, CONF_REGIONS, 0xf)) + 1
+func (hw *TZASC) Regions() int {
+	return int(reg.Get(hw.conf, CONF_REGIONS, 0xf)) + 1
 }
 
 // EnableSecurityInversion allows configuration of arbitrary security
 // permissions, disabling automatic enabling of secure access on non-secure
 // only permissions
 // (p49, 3.2.12 Security Inversion Enable Register, TZC-380 TRM).
-func EnableSecurityInversion() {
-	reg.Set(TZASC_SEC_INV_EN, 0)
+func (hw *TZASC) EnableSecurityInversion() {
+	reg.Set(hw.sec_inv_en, 0)
 }
 
 // EnableRegion configures a TZASC region with the argument start address, size
 // and security permissions, for region 0 only security permissions are
 // relevant.
-func EnableRegion(n int, start uint32, size int, sp int) (err error) {
+func (hw *TZASC) EnableRegion(n int, start uint32, size int, sp int) (err error) {
 	var attrs uint32
 	var s uint32
 
-	if n < 0 || n+1 > Regions() {
+	if n < 0 || n+1 > hw.Regions() {
 		return errors.New("invalid region index")
 	}
 
-	if reg.Read(TZASC_BYPASS) != 1 {
+	if reg.Read(hw.Bypass) != 1 {
 		return errors.New("TZASC inactive (bypass detected)")
 	}
 
 	if n == 0 {
-		reg.SetN(TZASC_REGION_ATTRS_0, REGION_ATTRS_SP, 0b1111, uint32(sp))
+		reg.SetN(hw.region_attrs_0, REGION_ATTRS_SP, 0b1111, uint32(sp))
 		return
 	}
 
@@ -150,32 +177,32 @@ func EnableRegion(n int, start uint32, size int, sp int) (err error) {
 
 	off := uint32(0x10 * n)
 
-	reg.Write(TZASC_REGION_SETUP_LOW_0+off, start&0xffff8000)
-	reg.Write(TZASC_REGION_SETUP_HIGH_0+off, 0)
-	reg.Write(TZASC_REGION_ATTRS_0+off, attrs)
+	reg.Write(hw.region_setup_low_0+off, start&0xffff8000)
+	reg.Write(hw.region_setup_high_0+off, 0)
+	reg.Write(hw.region_attrs_0+off, attrs)
 
 	return
 }
 
 // DisableRegion disables a TZASC region.
-func DisableRegion(n int) (err error) {
-	if n < 0 || n+1 > Regions() {
+func (hw *TZASC) DisableRegion(n int) (err error) {
+	if n < 0 || n+1 > hw.Regions() {
 		return errors.New("invalid region index")
 	}
 
-	if reg.Read(TZASC_BYPASS) != 1 {
+	if reg.Read(hw.Bypass) != 1 {
 		return errors.New("TZASC inactive (bypass detected)")
 	}
 
-	reg.Clear(TZASC_REGION_ATTRS_0+uint32(0x10*n), REGION_ATTRS_EN)
+	reg.Clear(hw.region_attrs_0+uint32(0x10*n), REGION_ATTRS_EN)
 
 	return
 }
 
 // Lock enables TZASC secure boot lock register writing restrictions
 // (p30, 2.2.8 Preventing writes to registers and using secure_boot_lock, TZC-380 TRM).
-func Lock() {
-	reg.Write(TZASC_LOCKDOWN_RANGE, 0xffffffff)
-	reg.Write(TZASC_LOCKDOWN_SELECT, 0xffffffff)
-	reg.Set(GPR1_TZASC1_BOOT_LOCK, 23)
+func (hw *TZASC) Lock() {
+	reg.Write(hw.lockdown_range, 0xffffffff)
+	reg.Write(hw.lockdown_select, 0xffffffff)
+	reg.Set(hw.SecureBootLockReg, hw.SecureBootLockPos)
 }

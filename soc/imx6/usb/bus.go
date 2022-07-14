@@ -98,7 +98,7 @@ const (
 	ENDPTCTRL_RXS      = 0
 )
 
-// USB represents a controller instance.
+// USB represents a USB controller instance.
 type USB struct {
 	sync.Mutex
 

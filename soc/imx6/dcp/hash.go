@@ -23,10 +23,9 @@ func (pkt *WorkPacket) SetHashDefaults() {
 	pkt.Control1 |= HASH_SELECT_SHA256 << DCP_CTRL1_HASH_SELECT
 }
 
-func hash(buf []byte, mode uint32, init bool, term bool) (sum []byte, err error) {
+func (hw *DCP) hash(buf []byte, mode uint32, init bool, term bool) (sum []byte, err error) {
 	pkt := &WorkPacket{}
 	pkt.SetHashDefaults()
-
 	pkt.BufferSize = uint32(len(buf))
 
 	pkt.SourceBufferAddress = dma.Alloc(buf, 4)
@@ -51,9 +50,7 @@ func hash(buf []byte, mode uint32, init bool, term bool) (sum []byte, err error)
 	ptr := dma.Alloc(pkt.Bytes(), 4)
 	defer dma.Free(ptr)
 
-	err = cmd(ptr, 1)
-
-	if err != nil {
+	if err = hw.cmd(ptr, 1); err != nil {
 		return
 	}
 

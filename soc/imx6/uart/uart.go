@@ -108,7 +108,7 @@ const (
 	UTS_TXFULL = 4
 )
 
-// UART represents a serial port instance
+// UART represents a serial port instance.
 type UART struct {
 	sync.Mutex
 

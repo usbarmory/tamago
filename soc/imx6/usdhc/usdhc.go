@@ -222,7 +222,7 @@ type CardInfo struct {
 	CID [16]byte
 }
 
-// USDHC represents a controller instance.
+// USDHC represents an SD/MMC controller instance.
 type USDHC struct {
 	sync.Mutex
 

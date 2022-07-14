@@ -18,7 +18,6 @@ package mk2
 import (
 	"github.com/usbarmory/tamago/soc/imx6"
 	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
-	"github.com/usbarmory/tamago/soc/imx6/ocotp"
 
 	_ "unsafe"
 )
@@ -48,7 +47,7 @@ var (
 func Model() (model string) {
 	// WithSecure burns model information in the MSB of OTP fuses bank 4
 	// word 2 (OCOTP_MAC0).
-	mac0, _ := ocotp.Read(4, 2)
+	mac0, _ := imx6ul.OCOTP.Read(4, 2)
 
 	switch mac0 >> 24 {
 	case REV_GAMMA:
