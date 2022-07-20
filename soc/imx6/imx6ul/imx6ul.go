@@ -171,13 +171,8 @@ var (
 //go:linkname ramStackOffset runtime.ramStackOffset
 var ramStackOffset uint32 = 0x100
 
-var (
-	// Flag for native or emulated processor
-	Native bool
-
-	// Flag for SDP detection
-	sdp bool
-)
+// Flag for SDP detection
+var sdp bool
 
 func init() {
 	if !imx6.Native || imx6.ARM.NonSecure() {
