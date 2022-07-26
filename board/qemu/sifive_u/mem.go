@@ -1,15 +1,16 @@
-// USB armory Mk II support for tamago/arm
+// QEMU sifive_u support for tamago/riscv64
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+//go:build !linkramsize
 // +build !linkramsize
 
-package usbarmory
+package sifive_u
 
 import (
 	_ "unsafe"
@@ -20,7 +21,5 @@ import (
 // This is useful when large DMA descriptors are required to re-initialize
 // tamago `mem` package in external RAM.
 
-// The standard USB armory Mk II features a single 512MB DDR3 RAM module.
-
 //go:linkname ramSize runtime.ramSize
-var ramSize uint32 = 0x20000000 // 512 MB
+var ramSize uint64 = 0x20000000 // 512 MB

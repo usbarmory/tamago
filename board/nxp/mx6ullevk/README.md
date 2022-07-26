@@ -3,8 +3,8 @@ TamaGo - bare metal Go for ARM SoCs - MCIMX6ULL-EVK support
 
 tamago | https://github.com/usbarmory/tamago  
 
-Copyright (c) F-Secure Corporation  
-https://foundry.f-secure.com
+Copyright (c) WithSecure Corporation  
+https://foundry.withsecure.com
 
 ![TamaGo gopher](https://github.com/usbarmory/tamago/wiki/images/tamago.svg?sanitize=true)
 
@@ -12,16 +12,16 @@ Authors
 =======
 
 Andrea Barisani  
-andrea.barisani@f-secure.com | andrea@inversepath.com  
+andrea.barisani@withsecure.com | andrea@inversepath.com  
 
 Andrej Rosano  
-andrej.rosano@f-secure.com   | andrej@inversepath.com  
+andrej.rosano@withsecure.com   | andrej@inversepath.com  
 
 Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM System-on-Chip (SoC) components.
+applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
 
 The [mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk)
 package provides support for the [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) development board.
@@ -74,7 +74,7 @@ ensuring that the required SoC and board packages are available in `GOPATH`:
 
 ```
 GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm \
-  ${TAMAGO} build -ldflags "-T 0x80010000  -E _rt0_arm_tamago -R 0x1000"
+  ${TAMAGO} build -ldflags "-T 0x80010000 -E _rt0_arm_tamago -R 0x1000"
 ```
 
 An example application, targeting the MCIMX6ULL-EVK platform,
@@ -86,6 +86,12 @@ Executing and debugging
 The [example application](https://github.com/usbarmory/tamago-example)
 provides reference usage and a Makefile target for automatic creation of an ELF
 as well as `imx` image for flashing.
+
+Native hardware: imx image over USB
+-----------------------------------
+
+Follow [the SDP procedure](https://github.com/usbarmory/usbarmory/wiki/Boot-Modes-(Mk-II)#serial-download-protocol-sdp)
+using the built `imx` image.
 
 Native hardware: imx image on microSD
 -------------------------------------
@@ -166,8 +172,8 @@ The target can be executed under emulation as follows:
 ```
 qemu-system-arm \
 	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M \
-	  -nographic -monitor none -serial null -serial stdio -net none \
-	  -kernel example -semihosting -d unimp
+	-nographic -monitor none -serial null -serial stdio -net none \
+	-kernel example -semihosting
 ```
 
 The emulated target can be debugged with GDB by adding the `-S -s` flags to the
@@ -189,7 +195,7 @@ License
 =======
 
 tamago | https://github.com/usbarmory/tamago  
-Copyright (c) F-Secure Corporation
+Copyright (c) WithSecure Corporation
 
 These source files are distributed under the BSD-style license found in the
 [LICENSE](https://github.com/usbarmory/tamago/blob/master/LICENSE) file.

@@ -1,8 +1,8 @@
 // NXP Data Co-Processor (DCP) driver
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -30,7 +30,7 @@ func (pkt *WorkPacket) SetCipherDefaults() {
 	pkt.Control1 |= CIPHER_MODE_CBC << DCP_CTRL1_CIPHER_MODE
 }
 
-func cipher(buf []byte, index int, iv []byte, enc bool) (err error) {
+func (hw *DCP) cipher(buf []byte, index int, iv []byte, enc bool) (err error) {
 	if len(buf)%aes.BlockSize != 0 {
 		return errors.New("invalid input size")
 	}
@@ -52,7 +52,6 @@ func cipher(buf []byte, index int, iv []byte, enc bool) (err error) {
 
 	// use key RAM slot
 	pkt.Control1 |= (uint32(index) & 0xff) << DCP_CTRL1_KEY_SELECT
-
 	pkt.BufferSize = uint32(len(buf))
 
 	pkt.SourceBufferAddress = dma.Alloc(buf, aes.BlockSize)
@@ -66,9 +65,7 @@ func cipher(buf []byte, index int, iv []byte, enc bool) (err error) {
 	ptr := dma.Alloc(pkt.Bytes(), 4)
 	defer dma.Free(ptr)
 
-	err = cmd(ptr, 1)
-
-	if err != nil {
+	if err = hw.cmd(ptr, 1); err != nil {
 		return
 	}
 
@@ -79,14 +76,14 @@ func cipher(buf []byte, index int, iv []byte, enc bool) (err error) {
 
 // Encrypt performs in-place buffer encryption using AES-128-CBC, the key can
 // be selected with the index argument from one previously set with SetKey().
-func Encrypt(buf []byte, index int, iv []byte) (err error) {
-	return cipher(buf, index, iv, true)
+func (hw *DCP) Encrypt(buf []byte, index int, iv []byte) (err error) {
+	return hw.cipher(buf, index, iv, true)
 }
 
 // Decrypt performs in-place buffer decryption using AES-128-CBC, the key can
 // be selected with the index argument from one previously set with SetKey().
-func Decrypt(buf []byte, index int, iv []byte) (err error) {
-	return cipher(buf, index, iv, false)
+func (hw *DCP) Decrypt(buf []byte, index int, iv []byte) (err error) {
+	return hw.cipher(buf, index, iv, false)
 }
 
 // CipherChain performs chained in-place buffer encryption/decryption using
@@ -97,7 +94,7 @@ func Decrypt(buf []byte, index int, iv []byte) (err error) {
 // array with concatenated initialization vectors, the count and size arguments
 // should reflect the number of slices, each to be ciphered and with the
 // corresponding initialization vector slice.
-func CipherChain(buf []byte, ivs []byte, count int, size int, index int, enc bool) (err error) {
+func (hw *DCP) CipherChain(buf []byte, ivs []byte, count int, size int, index int, enc bool) (err error) {
 	if len(buf) != size*count || len(buf)%aes.BlockSize != 0 {
 		return errors.New("invalid input size")
 	}
@@ -148,9 +145,7 @@ func CipherChain(buf []byte, ivs []byte, count int, size int, index int, enc boo
 		copy(pktBuf[i*WorkPacketLength:], pkt.Bytes())
 	}
 
-	err = cmd(pkts, count)
-
-	if err != nil {
+	if err = hw.cmd(pkts, count); err != nil {
 		return
 	}
 

@@ -1,8 +1,8 @@
 // NXP i.MX6UL ARM clock control
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -25,11 +25,11 @@ const (
 	CCM_CBCDR      = 0x020c4014
 	CBCDR_IPG_PODF = 8
 
-	CCM_CSCDR1             = 0x020c4024
-	CSCDR1_USDHC2_CLK_PODF = 16
-	CSCDR1_USDHC1_CLK_PODF = 11
-	CSCDR1_UART_CLK_SEL    = 6
-	CSCDR1_UART_CLK_PODF   = 0
+	CCM_CSCDR1           = 0x020c4024
+	CSCDR1_USDHC2_PODF   = 16
+	CSCDR1_USDHC1_PODF   = 11
+	CSCDR1_UART_CLK_SEL  = 6
+	CSCDR1_UART_CLK_PODF = 0
 
 	CCM_CSCMR1            = 0x020c401c
 	CSCMR1_USDHC2_CLK_SEL = 17
@@ -357,4 +357,104 @@ func SetPFD(pll uint32, pfd uint32, div uint32) error {
 	reg.SetN(register, div_pos, 0b111111, div)
 
 	return nil
+}
+
+// GetPerClock returns the PERCLK_CLK_ROOT frequency,
+// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM).
+func GetPerClock() uint32 {
+	var freq uint32
+
+	if reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_SEL, 1) == 1 {
+		freq = OSC_FREQ
+	} else {
+		// IPG_CLK_ROOT derived from AHB_CLK_ROOT which is 132 MHz
+		ipg_podf := reg.Get(CCM_CBCDR, CBCDR_IPG_PODF, 0b11)
+		freq = 132000000 / (ipg_podf + 1)
+	}
+
+	podf := reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_PODF, 0x3f)
+
+	return freq / (podf + 1)
+}
+
+// GetUARTClock returns the UART_CLK_ROOT frequency,
+// (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM).
+func GetUARTClock() uint32 {
+	var freq uint32
+
+	if reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, 0b1) == 1 {
+		freq = OSC_FREQ
+	} else {
+		// match /6 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
+		freq = PLL3_FREQ / 6
+	}
+
+	podf := reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_PODF, 0b111111)
+
+	return freq / (podf + 1)
+}
+
+// GetUSDHCClock returns the USDHCx_CLK_ROOT clock by reading CSCMR1[USDHCx_CLK_SEL]
+// and CSCDR1[USDHCx_PODF]
+// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM)
+func GetUSDHCClock(index int) (podf uint32, clksel uint32, clock uint32) {
+	var podf_pos int
+	var clksel_pos int
+	var freq uint32
+
+	switch index {
+	case 1:
+		podf_pos = CSCDR1_USDHC1_PODF
+		clksel_pos = CSCMR1_USDHC1_CLK_SEL
+	case 2:
+		podf_pos = CSCDR1_USDHC2_PODF
+		clksel_pos = CSCMR1_USDHC2_CLK_SEL
+	default:
+		return
+	}
+
+	podf = reg.Get(CCM_CSCDR1, podf_pos, 0b111)
+	clksel = reg.Get(CCM_CSCMR1, clksel_pos, 1)
+
+	if clksel == 1 {
+		_, freq = GetPFD(2, 0)
+	} else {
+		_, freq = GetPFD(2, 2)
+	}
+
+	clock = freq / (podf + 1)
+
+	return
+}
+
+// SetUSDHCClock controls the USDHCx_CLK_ROOT clock by setting CSCMR1[USDHCx_CLK_SEL]
+// and CSCDR1[USDHCx_PODF]
+// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM).
+func SetUSDHCClock(index int, podf uint32, clksel uint32) (err error) {
+	var podf_pos int
+	var clksel_pos int
+
+	if podf < 0 || podf > 7 {
+		return errors.New("podf value out of range")
+	}
+
+	if clksel < 0 || clksel > 1 {
+		return errors.New("selector value out of range")
+	}
+
+	switch index {
+	case 1:
+		podf_pos = CSCDR1_USDHC1_PODF
+		clksel_pos = CSCMR1_USDHC1_CLK_SEL
+	case 2:
+		podf_pos = CSCDR1_USDHC2_PODF
+		clksel_pos = CSCMR1_USDHC2_CLK_SEL
+	default:
+		return errors.New("invalid interface index")
+	}
+
+	reg.SetN(CCM_CSCDR1, podf_pos, 0b111, podf)
+	reg.SetN(CCM_CSCMR1, clksel_pos, 1, clksel)
+
+	return
 }

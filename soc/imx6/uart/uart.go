@@ -1,19 +1,20 @@
 // NXP i.MX6 UART driver
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package imx6
+package uart
 
 import (
 	"sync"
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
+	"github.com/usbarmory/tamago/soc/imx6"
 )
 
 // UART registers
@@ -22,21 +23,6 @@ const (
 	ESC                   = 0x1b
 
 	// p3608, 55.15 UART Memory Map/Register Definition, IMX6ULLRM
-
-	// i.MX 6UltraLite (G0, G1, G2, G3, G4)
-	// i.MX 6ULL (Y0, Y1, Y2)
-	// i.MX 6ULZ (Z0)
-	UART1_BASE = 0x02020000
-	UART2_BASE = 0x021e8000
-	UART3_BASE = 0x021ec000
-	UART4_BASE = 0x021f0000
-
-	// i.MX 6UltraLite (G1, G2, G3, G4)
-	// i.MX 6ULL (Y1, Y2)
-	UART5_BASE = 0x021f4000
-	UART6_BASE = 0x021fc000
-	UART7_BASE = 0x02018000
-	UART8_BASE = 0x02024000
 
 	UARTx_URXD   = 0x0000
 	URXD_CHARRDY = 15
@@ -126,9 +112,10 @@ const (
 type UART struct {
 	sync.Mutex
 
-	// controller index
-	n int
-
+	// Controller index
+	Index int
+	// Base register
+	Base uint32
 	// port speed
 	Baudrate uint32
 	// DTE mode
@@ -152,70 +139,36 @@ type UART struct {
 	uts  uint32
 }
 
-// UART1 instance
-var UART1 = &UART{
-	n:        1,
-	Baudrate: UART_DEFAULT_BAUDRATE,
-}
-
-// UART2 instance
-var UART2 = &UART{
-	n:        2,
-	Baudrate: UART_DEFAULT_BAUDRATE,
-}
-
 // Init initializes and enables the UART for RS-232 mode,
 // p3605, 55.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
 func (hw *UART) Init() {
-	var base uint32
-
 	hw.Lock()
 
-	switch hw.n {
-	case 1:
-		base = UART1_BASE
-	case 2:
-		base = UART2_BASE
-	case 3:
-		base = UART3_BASE
-	case 4:
-		base = UART4_BASE
-	default:
+	if hw.Base == 0 {
 		panic("invalid UART controller instance")
 	}
 
-	hw.urxd = base + UARTx_URXD
-	hw.utxd = base + UARTx_UTXD
-	hw.ucr1 = base + UARTx_UCR1
-	hw.ucr2 = base + UARTx_UCR2
-	hw.ucr3 = base + UARTx_UCR3
-	hw.ucr4 = base + UARTx_UCR4
-	hw.ufcr = base + UARTx_UFCR
-	hw.usr2 = base + UARTx_USR2
-	hw.uesc = base + UARTx_UESC
-	hw.utim = base + UARTx_UTIM
-	hw.ubir = base + UARTx_UBIR
-	hw.ubmr = base + UARTx_UBMR
-	hw.uts = base + UARTx_UTS
+	if hw.Baudrate == 0 {
+		hw.Baudrate = UART_DEFAULT_BAUDRATE
+	}
+
+	hw.urxd = hw.Base + UARTx_URXD
+	hw.utxd = hw.Base + UARTx_UTXD
+	hw.ucr1 = hw.Base + UARTx_UCR1
+	hw.ucr2 = hw.Base + UARTx_UCR2
+	hw.ucr3 = hw.Base + UARTx_UCR3
+	hw.ucr4 = hw.Base + UARTx_UCR4
+	hw.ufcr = hw.Base + UARTx_UFCR
+	hw.usr2 = hw.Base + UARTx_USR2
+	hw.uesc = hw.Base + UARTx_UESC
+	hw.utim = hw.Base + UARTx_UTIM
+	hw.ubir = hw.Base + UARTx_UBIR
+	hw.ubmr = hw.Base + UARTx_UBMR
+	hw.uts = hw.Base + UARTx_UTS
 
 	hw.setup()
 
 	hw.Unlock()
-}
-
-func uartclk() uint32 {
-	var freq uint32
-
-	if reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, 0b1) == 1 {
-		freq = OSC_FREQ
-	} else {
-		// match /6 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
-		freq = PLL3_FREQ / 6
-	}
-
-	podf := reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_PODF, 0b111111)
-
-	return freq / (podf + 1)
 }
 
 func (hw *UART) txFull() bool {
@@ -279,7 +232,7 @@ func (hw *UART) setup() {
 	// ref_clk_freq = module_clock
 
 	// multiply to match UFCR_RFDIV divider value
-	ubmr := uartclk() / (2 * hw.Baudrate)
+	ubmr := imx6.GetUARTClock() / (2 * hw.Baudrate)
 	// neutralize denominator
 	reg.Write(hw.ubir, 15)
 	// set UBMR
@@ -351,14 +304,16 @@ func (hw *UART) Rx() (c byte, valid bool) {
 }
 
 // Write data from buffer to serial port.
-func (hw *UART) Write(buf []byte) {
-	for i := 0; i < len(buf); i++ {
-		hw.Tx(buf[i])
+func (hw *UART) Write(buf []byte) (n int, _ error) {
+	for n = 0; n < len(buf); n++ {
+		hw.Tx(buf[n])
 	}
+
+	return
 }
 
 // Read available data to buffer from serial port.
-func (hw *UART) Read(buf []byte) (n int) {
+func (hw *UART) Read(buf []byte) (n int, _ error) {
 	var valid bool
 
 	for n = 0; n < len(buf); n++ {

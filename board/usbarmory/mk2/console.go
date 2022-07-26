@@ -1,20 +1,21 @@
 // USB armory Mk II support for tamago/arm
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+//go:build !linkprintk
 // +build !linkprintk
 
-package usbarmory
+package mk2
 
 import (
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/soc/imx6"
+	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
 )
 
 // On the USB armory Mk II the serial console is UART2, therefore standard
@@ -25,5 +26,5 @@ import (
 
 //go:linkname printk runtime.printk
 func printk(c byte) {
-	imx6.UART2.Tx(c)
+	imx6ul.UART2.Tx(c)
 }

@@ -1,8 +1,8 @@
 // ARM processor support
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -81,11 +81,11 @@ func (cpu *CPU) InitGenericTimers(base uint32, freq int32) {
 	cpu.TimerFn = read_cntpct
 }
 
-// SetTimerOffset sets the timer offset in nanoseconds.
-func (cpu *CPU) SetTimerOffset(offset int64) {
+// SetTimer sets the timer to the argument nanoseconds value.
+func (cpu *CPU) SetTimer(t int64) {
 	if cpu.TimerFn == nil || cpu.TimerMultiplier == 0 {
 		return
 	}
 
-	cpu.TimerOffset = offset - int64(cpu.TimerFn()*cpu.TimerMultiplier)
+	cpu.TimerOffset = t - int64(cpu.TimerFn()*cpu.TimerMultiplier)
 }

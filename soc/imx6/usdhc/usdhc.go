@@ -3,8 +3,8 @@
 //
 // IP: https://www.mobiveil.com/esdhc/
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -57,14 +57,10 @@ import (
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/imx6"
 )
 
 // USDHC registers (p4012, 58.8 uSDHC Memory Map/Register Definition, IMX6ULLRM).
 const (
-	USDHC1_BASE = 0x02190000
-	USDHC2_BASE = 0x02194000
-
 	USDHCx_BLK_ATT  = 0x04
 	BLK_ATT_BLKCNT  = 16
 	BLK_ATT_BLKSIZE = 0
@@ -226,9 +222,18 @@ type CardInfo struct {
 	CID [16]byte
 }
 
-// USDHC represents a controller instance.
+// USDHC represents an SD/MMC controller instance.
 type USDHC struct {
 	sync.Mutex
+
+	// Controller index
+	Index int
+	// Base register
+	Base uint32
+	// Clock gate register
+	CCGR uint32
+	// Clock gate
+	CG int
 
 	// LowVoltage is the board specific function responsible for voltage
 	// switching (SD) or low voltage indication (eMMC).
@@ -237,12 +242,8 @@ type USDHC struct {
 	// low voltage indication (MMC) is successful.
 	LowVoltage func(enable bool) bool
 
-	// controller index
-	n int
 	// bus width
 	width int
-	// clock gate
-	cg int
 	// Relative Card Address
 	rca uint32
 
@@ -274,44 +275,6 @@ type USDHC struct {
 
 	readTimeout  time.Duration
 	writeTimeout time.Duration
-}
-
-// USDHC1 instance
-var USDHC1 = &USDHC{n: 1}
-
-// USDHC2 instance
-var USDHC2 = &USDHC{n: 2}
-
-// setRootClock controls the USDHCx_CLK_ROOT clock by setting CSCMR1[USDHCx_CLK_SEL]
-// and CSCDR1[USDHCx_PODF]
-// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM).
-func (hw *USDHC) setRootClock(podf uint32, sel uint32) (err error) {
-	var podf_pos int
-	var clksel_pos int
-
-	if podf < 0 || podf > 7 {
-		return errors.New("podf value out of range")
-	}
-
-	if sel < 0 || sel > 1 {
-		return errors.New("selector value out of range")
-	}
-
-	switch hw.n {
-	case 1:
-		podf_pos = imx6.CSCDR1_USDHC1_CLK_PODF
-		clksel_pos = imx6.CSCMR1_USDHC1_CLK_SEL
-	case 2:
-		podf_pos = imx6.CSCDR1_USDHC2_CLK_PODF
-		clksel_pos = imx6.CSCMR1_USDHC2_CLK_SEL
-	default:
-		return errors.New("invalid interface index")
-	}
-
-	reg.SetN(imx6.CCM_CSCDR1, podf_pos, 0b111, podf)
-	reg.SetN(imx6.CCM_CSCMR1, clksel_pos, 1, sel)
-
-	return
 }
 
 // setClock controls the clock of USDHCx_CLK line by setting
@@ -394,40 +357,32 @@ func (hw *USDHC) Info() CardInfo {
 
 // Init initializes the uSDHC controller instance.
 func (hw *USDHC) Init(width int) {
-	var base uint32
-
 	hw.Lock()
+	defer hw.Unlock()
 
-	switch hw.n {
-	case 1:
-		base = USDHC1_BASE
-		hw.cg = imx6.CCGRx_CG1
-	case 2:
-		base = USDHC2_BASE
-		hw.cg = imx6.CCGRx_CG2
-	default:
+	if hw.Index == 0 || hw.Base == 0 || hw.CCGR == 0 {
 		panic("invalid uSDHC controller instance")
 	}
 
 	hw.width = width
-	hw.blk_att = base + USDHCx_BLK_ATT
-	hw.wtmk_lvl = base + USDHCx_WTMK_LVL
-	hw.cmd_arg = base + USDHCx_CMD_ARG
-	hw.cmd_xfr = base + USDHCx_CMD_XFR_TYP
-	hw.cmd_rsp = base + USDHCx_CMD_RSP0
-	hw.prot_ctrl = base + USDHCx_PROT_CTRL
-	hw.sys_ctrl = base + USDHCx_SYS_CTRL
-	hw.mix_ctrl = base + USDHCx_MIX_CTRL
-	hw.pres_state = base + USDHCx_PRES_STATE
-	hw.int_status = base + USDHCx_INT_STATUS
-	hw.int_status_en = base + USDHCx_INT_STATUS_EN
-	hw.int_signal_en = base + USDHCx_INT_SIGNAL_EN
-	hw.adma_sys_addr = base + USDHCx_ADMA_SYS_ADDR
-	hw.adma_err_status = base + USDHCx_ADMA_ERR_STATUS
-	hw.ac12_err_status = base + USDHCx_AUTOCMD12_ERR_STATUS
-	hw.vend_spec = base + USDHCx_VEND_SPEC
-	hw.vend_spec2 = base + USDHCx_VEND_SPEC2
-	hw.tuning_ctrl = base + USDHCx_TUNING_CTRL
+	hw.blk_att = hw.Base + USDHCx_BLK_ATT
+	hw.wtmk_lvl = hw.Base + USDHCx_WTMK_LVL
+	hw.cmd_arg = hw.Base + USDHCx_CMD_ARG
+	hw.cmd_xfr = hw.Base + USDHCx_CMD_XFR_TYP
+	hw.cmd_rsp = hw.Base + USDHCx_CMD_RSP0
+	hw.prot_ctrl = hw.Base + USDHCx_PROT_CTRL
+	hw.sys_ctrl = hw.Base + USDHCx_SYS_CTRL
+	hw.mix_ctrl = hw.Base + USDHCx_MIX_CTRL
+	hw.pres_state = hw.Base + USDHCx_PRES_STATE
+	hw.int_status = hw.Base + USDHCx_INT_STATUS
+	hw.int_status_en = hw.Base + USDHCx_INT_STATUS_EN
+	hw.int_signal_en = hw.Base + USDHCx_INT_SIGNAL_EN
+	hw.adma_sys_addr = hw.Base + USDHCx_ADMA_SYS_ADDR
+	hw.adma_err_status = hw.Base + USDHCx_ADMA_ERR_STATUS
+	hw.ac12_err_status = hw.Base + USDHCx_AUTOCMD12_ERR_STATUS
+	hw.vend_spec = hw.Base + USDHCx_VEND_SPEC
+	hw.vend_spec2 = hw.Base + USDHCx_VEND_SPEC2
+	hw.tuning_ctrl = hw.Base + USDHCx_TUNING_CTRL
 
 	// Generic SD specs read/write timeout rules (applied also to MMC by
 	// this driver).
@@ -438,9 +393,7 @@ func (hw *USDHC) Init(width int) {
 	hw.writeTimeout = 500 * time.Millisecond
 
 	// enable clock
-	reg.SetN(imx6.CCM_CCGR6, hw.cg, 0b11, 0b11)
-
-	hw.Unlock()
+	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
 }
 
 // Detect initializes an SD/MMC card. The highest speed supported by the
@@ -451,7 +404,7 @@ func (hw *USDHC) Detect() (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if hw.cg == 0 {
+	if hw.sys_ctrl == 0 {
 		return errors.New("controller is not initialized")
 	}
 
@@ -519,7 +472,7 @@ func (hw *USDHC) Detect() (err error) {
 	} else if hw.voltageValidationMMC() {
 		err = hw.initMMC()
 	} else {
-		return fmt.Errorf("no card detected on uSDHC%d", hw.n)
+		return fmt.Errorf("no card detected on uSDHC%d", hw.Index)
 	}
 
 	if err != nil {
@@ -541,7 +494,7 @@ func (hw *USDHC) Detect() (err error) {
 func (hw *USDHC) transfer(index uint32, dtd uint32, arg uint64, blocks uint32, blockSize uint32, buf []byte) (err error) {
 	var timeout time.Duration
 
-	if hw.cg == 0 {
+	if hw.blk_att == 0 {
 		return errors.New("controller is not initialized")
 	}
 

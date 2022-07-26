@@ -1,8 +1,8 @@
 // NXP USBOH3USBO2 / USBPHY driver
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -24,15 +24,9 @@ import (
 
 // USB registers
 const (
-	USB_ANALOG1_BASE = 0x020c81a0
-	USB_ANALOG2_BASE = 0x020c8200
-
 	USB_ANALOG_USBx_CHRG_DETECT = 0x10
 	CHRG_DETECT_EN_B            = 20
 	CHRG_DETECT_CHK_CHRG_B      = 19
-
-	USBPHY1_BASE = 0x020c9000
-	USBPHY2_BASE = 0x020ca000
 
 	USBPHYx_PWD = 0x00
 
@@ -42,9 +36,6 @@ const (
 	CTRL_ENUTMILEVEL3       = 15
 	CTRL_ENUTMILEVEL2       = 14
 	CTRL_ENHOSTDISCONDETECT = 1
-
-	USB1_BASE = 0x02184000
-	USB2_BASE = 0x02184200
 
 	// p3823, 56.6 USB Core Memory Map/Register Definition, IMX6ULLRM
 
@@ -107,17 +98,29 @@ const (
 	ENDPTCTRL_RXS      = 0
 )
 
-// USB represents a controller instance.
+// USB represents a USB controller instance.
 type USB struct {
 	sync.Mutex
 
+	// Controller index
+	Index int
+	// Base register
+	Base uint32
+	// Clock gate register
+	CCGR uint32
+	// Clock gate
+	CG int
+	// Analog base register
+	Analog uint32
+	// PHY base register
+	PHY uint32
+	// PLL register
+	PLL uint32
+
 	// signal for EP1-N cancellation
 	done chan bool
-	// controller index
-	n int
 
 	// control registers
-	pll      uint32
 	ctrl     uint32
 	pwd      uint32
 	chrg     uint32
@@ -141,76 +144,47 @@ type USB struct {
 	dQH [MAX_ENDPOINTS][2]uint32
 }
 
-// USB1 instance
-var USB1 = &USB{n: 1}
-
-// USB2 instance
-var USB2 = &USB{n: 2}
-
-var sdp bool
-
-// SDP returns whether Serial Download Protocol over USB has been used to boot
-// this runtime.
-func SDP() bool {
-	return sdp
-}
-
 // Init initializes the USB controller.
 func (hw *USB) Init() {
-	var base uint32
-	var analogBase uint32
-	var phyBase uint32
-
 	hw.Lock()
 	defer hw.Unlock()
 
-	switch hw.n {
-	case 1:
-		base = USB1_BASE
-		analogBase = USB_ANALOG1_BASE
-		phyBase = USBPHY1_BASE
-		hw.pll = imx6.CCM_ANALOG_PLL_USB1
-	case 2:
-		base = USB2_BASE
-		analogBase = USB_ANALOG2_BASE
-		phyBase = USBPHY2_BASE
-		hw.pll = imx6.CCM_ANALOG_PLL_USB2
-	default:
+	if hw.Base == 0 || hw.CCGR == 0 || hw.Analog == 0 || hw.PHY == 0 || hw.PLL == 0 {
 		panic("invalid USB controller instance")
 	}
 
-	hw.ctrl = phyBase + USBPHYx_CTRL
-	hw.pwd = phyBase + USBPHYx_PWD
-	hw.chrg = analogBase + USB_ANALOG_USBx_CHRG_DETECT
-	hw.mode = base + USB_UOGx_USBMODE
-	hw.otg = base + USB_UOGx_OTGSC
-	hw.cmd = base + USB_UOGx_USBCMD
-	hw.addr = base + USB_UOGx_DEVICEADDR
-	hw.sts = base + USB_UOGx_USBSTS
-	hw.sc = base + USB_UOGx_PORTSC1
-	hw.eplist = base + USB_UOGx_ENDPTLISTADDR
-	hw.setup = base + USB_UOGx_ENDPTSETUPSTAT
-	hw.flush = base + USB_UOGx_ENDPTFLUSH
-	hw.prime = base + USB_UOGx_ENDPTPRIME
-	hw.stat = base + USB_UOGx_ENDPTSTAT
-	hw.complete = base + USB_UOGx_ENDPTCOMPLETE
-	hw.epctrl = base + USB_UOGx_ENDPTCTRL
+	hw.ctrl = hw.PHY + USBPHYx_CTRL
+	hw.pwd = hw.PHY + USBPHYx_PWD
+	hw.chrg = hw.Analog + USB_ANALOG_USBx_CHRG_DETECT
+	hw.mode = hw.Base + USB_UOGx_USBMODE
+	hw.otg = hw.Base + USB_UOGx_OTGSC
+	hw.cmd = hw.Base + USB_UOGx_USBCMD
+	hw.addr = hw.Base + USB_UOGx_DEVICEADDR
+	hw.sts = hw.Base + USB_UOGx_USBSTS
+	hw.sc = hw.Base + USB_UOGx_PORTSC1
+	hw.eplist = hw.Base + USB_UOGx_ENDPTLISTADDR
+	hw.setup = hw.Base + USB_UOGx_ENDPTSETUPSTAT
+	hw.flush = hw.Base + USB_UOGx_ENDPTFLUSH
+	hw.prime = hw.Base + USB_UOGx_ENDPTPRIME
+	hw.stat = hw.Base + USB_UOGx_ENDPTSTAT
+	hw.complete = hw.Base + USB_UOGx_ENDPTCOMPLETE
+	hw.epctrl = hw.Base + USB_UOGx_ENDPTCTRL
 
 	// enable clock
-	reg.SetN(imx6.CCM_CCGR6, imx6.CCGRx_CG0, 0b11, 0b11)
+	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
 
 	// power up PLL
-	reg.Set(hw.pll, imx6.PLL_POWER)
-	reg.Set(hw.pll, imx6.PLL_EN_USB_CLKS)
+	reg.Set(hw.PLL, imx6.PLL_POWER)
+	reg.Set(hw.PLL, imx6.PLL_EN_USB_CLKS)
 
 	// wait for lock
-	reg.Wait(hw.pll, imx6.PLL_LOCK, 1, 1)
+	reg.Wait(hw.PLL, imx6.PLL_LOCK, 1, 1)
 
 	// remove bypass
-	reg.Clear(hw.pll, imx6.PLL_BYPASS)
+	reg.Clear(hw.PLL, imx6.PLL_BYPASS)
 
 	// enable PLL
-	reg.Set(hw.pll, imx6.PLL_ENABLE)
+	reg.Set(hw.PLL, imx6.PLL_ENABLE)
 
 	// soft reset USB PHY
 	reg.Set(hw.ctrl, CTRL_SFTRST)

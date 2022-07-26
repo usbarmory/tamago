@@ -1,18 +1,30 @@
 // USB armory Mk II support for tamago/arm
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package usbarmory
+package mk2
 
 import (
 	"time"
+)
 
-	"github.com/usbarmory/tamago/soc/imx6"
+// Plug USB port controller constants
+const (
+	TUSB320_CSR_2      = 0x09
+	CSR_ATTACHED_STATE = 6
+)
+
+// Plug USB port controller modes
+const (
+	STATE_NOT_ATTACHED = iota
+	STATE_ATTACHED_SRC
+	STATE_ATTACHED_SNK
+	STATE_ATTACHED_ACC
 )
 
 // Receptacle USB port controller constants
@@ -34,22 +46,29 @@ const (
 	TYPE_AUDIO       = 0
 )
 
+// PlugMode returns the type of attached device detected by the plug USB port
+// controller.
+func PlugMode() (mode int, err error) {
+	t, err := I2C1.Read(TUSB320_ADDR, TUSB320_CSR_2, 1, 1)
+	return int(t[0] >> CSR_ATTACHED_STATE), err
+}
+
 // EnableReceptacleController activates the receptacle USB port controller.
 func EnableReceptacleController() (err error) {
-	a, err := imx6.I2C1.Read(FUSB303_ADDR, FUSB303_CONTROL1, 1, 1)
+	a, err := I2C1.Read(FUSB303_ADDR, FUSB303_CONTROL1, 1, 1)
 
 	if err != nil {
 		return
 	}
 
 	a[0] |= 1 << CONTROL1_ENABLE
-	return imx6.I2C1.Write(a, FUSB303_ADDR, FUSB303_CONTROL1, 1)
+	return I2C1.Write(a, FUSB303_ADDR, FUSB303_CONTROL1, 1)
 }
 
 // ReceptacleMode returns the type of device or accessory detected by the
 // receptacle USB port controller.
 func ReceptacleMode() (mode int, err error) {
-	t, err := imx6.I2C1.Read(FUSB303_ADDR, FUSB303_TYPE, 1, 1)
+	t, err := I2C1.Read(FUSB303_ADDR, FUSB303_TYPE, 1, 1)
 	return int(t[0]), err
 }
 

@@ -1,8 +1,8 @@
 // NXP i.MX6 On-Chip OTP Controller (OCOTP_CTRL) driver
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -35,24 +35,15 @@ import (
 // OCOTP registers
 // (p2388, 37.5 OCOTP Memory Map/Register Definition, IMX6ULLRM).
 const (
-	OCOTP_BASE = 0x021bc000
-
-	OCOTP_CTRL          = OCOTP_BASE
+	OCOTP_CTRL          = 0x0000
 	CTRL_WRUNLOCK       = 16
 	CTRL_RELOAD_SHADOWS = 10
 	CTRL_ERROR          = 9
 	CTRL_BUSY           = 8
 	CTRL_ADDR           = 0
 
-	OCOTP_CTRL_CLR = OCOTP_BASE + 0x0008
-	OCOTP_DATA     = OCOTP_BASE + 0x0020
-
-	OCOTP_VERSION = OCOTP_BASE + 0x0090
-	VERSION_MAJOR = 24
-	VERSION_MINOR = 16
-	VERSION_STEP  = 0
-
-	OCOTP_BANK0_WORD0 = OCOTP_BASE + 0x0400
+	OCOTP_CTRL_CLR = 0x0008
+	OCOTP_DATA     = 0x0020
 )
 
 // Configuration constants
@@ -61,26 +52,53 @@ const (
 	WordSize = 4
 	// BankSize represents the number of words per OTP bank.
 	BankSize = 8
+	// Timeout is the default timeout for OCOTP operations.
+	Timeout = 10 * time.Millisecond
 )
 
-var mux sync.Mutex
+type OCOTP struct {
+	sync.Mutex
 
-// Timeout for OCOTP controller operations
-var Timeout = 10 * time.Millisecond
+	// Base register
+	Base uint32
+	// Bank base register (bank 0, word 0)
+	BankBase uint32
+	// Clock gate register
+	CCGR uint32
+	// Clock gate
+	CG int
+	// Timeout for OCOTP controller operations
+	Timeout time.Duration
+
+	// control registers
+	ctrl     uint32
+	ctrl_clr uint32
+	data     uint32
+}
 
 // Init initializes the OCOTP controller instance.
-func Init() (err error) {
-	mux.Lock()
-	defer mux.Unlock()
+func (hw *OCOTP) Init() {
+	hw.Lock()
+	defer hw.Unlock()
+
+	if hw.Base == 0 || hw.BankBase == 0 || hw.CCGR == 0 {
+		panic("invalid OCOTP instance")
+	}
+
+	if hw.Timeout == 0 {
+		hw.Timeout = Timeout
+	}
+
+	hw.ctrl = hw.Base + OCOTP_CTRL
+	hw.ctrl_clr = hw.Base + OCOTP_CTRL_CLR
+	hw.data = hw.Base + OCOTP_DATA
 
 	// enable clock
-	reg.SetN(imx6.CCM_CCGR2, imx6.CCGRx_CG6, 0b11, 0b11)
-
-	return
+	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
 }
 
 // Read returns the value in the argument bank and word location.
-func Read(bank int, word int) (value uint32, err error) {
+func (hw *OCOTP) Read(bank int, word int) (value uint32, err error) {
 	var banks int
 
 	switch imx6.Model() {
@@ -104,10 +122,10 @@ func Read(bank int, word int) (value uint32, err error) {
 		offset += 0x100
 	}
 
-	mux.Lock()
-	defer mux.Unlock()
+	hw.Lock()
+	defer hw.Unlock()
 
-	value = reg.Read(OCOTP_BANK0_WORD0 + offset)
+	value = reg.Read(hw.BankBase + offset)
 
 	return
 }
@@ -121,11 +139,11 @@ func Read(bank int, word int) (value uint32, err error) {
 // **bricked** device.
 //
 // The use of this function is therefore **at your own risk**.
-func Blow(bank int, word int, value uint32) (err error) {
-	mux.Lock()
-	defer mux.Unlock()
+func (hw *OCOTP) Blow(bank int, word int, value uint32) (err error) {
+	hw.Lock()
+	defer hw.Unlock()
 
-	if !reg.WaitFor(Timeout, OCOTP_CTRL, CTRL_BUSY, 1, 0) {
+	if !reg.WaitFor(Timeout, hw.ctrl, CTRL_BUSY, 1, 0) {
 		return errors.New("OCOTP controller busy")
 	}
 
@@ -139,16 +157,16 @@ func Blow(bank int, word int, value uint32) (err error) {
 	// p2393, OCOTP_CTRLn field descriptions, IMX6ULLRM
 
 	// clear error bit
-	reg.Set(OCOTP_CTRL_CLR, CTRL_ERROR)
+	reg.Set(hw.ctrl_clr, CTRL_ERROR)
 	// set OTP write register
-	reg.SetN(OCOTP_CTRL, CTRL_ADDR, 0x7f, uint32(BankSize*bank+word))
+	reg.SetN(hw.ctrl, CTRL_ADDR, 0x7f, uint32(BankSize*bank+word))
 	// enable OTP write access
-	reg.SetN(OCOTP_CTRL, CTRL_WRUNLOCK, 0xffff, 0x3e77)
+	reg.SetN(hw.ctrl, CTRL_WRUNLOCK, 0xffff, 0x3e77)
 
 	// blow the fuse
-	reg.Write(OCOTP_DATA, value)
+	reg.Write(hw.data, value)
 
-	if err = checkOp(); err != nil {
+	if err = hw.checkOp(); err != nil {
 		return
 	}
 
@@ -156,17 +174,15 @@ func Blow(bank int, word int, value uint32) (err error) {
 	time.Sleep(2 * time.Microsecond)
 
 	// ensure update of shadow registers
-	err = shadowReload()
-
-	return
+	return hw.shadowReload()
 }
 
-func checkOp() (err error) {
-	if !reg.WaitFor(Timeout, OCOTP_CTRL, CTRL_BUSY, 1, 0) {
+func (hw *OCOTP) checkOp() (err error) {
+	if !reg.WaitFor(Timeout, hw.ctrl, CTRL_BUSY, 1, 0) {
 		return errors.New("operation timeout")
 	}
 
-	if reg.Get(OCOTP_CTRL, CTRL_ERROR, 1) != 0 {
+	if reg.Get(hw.ctrl, CTRL_ERROR, 1) != 0 {
 		return errors.New("operation error")
 	}
 
@@ -175,17 +191,15 @@ func checkOp() (err error) {
 
 // shadowReload reloads memory mapped shadow registers from OTP fuse banks
 // (p2383, 37.3.1.1 Shadow Register Reload, IMX6ULLRM).
-func shadowReload() (err error) {
-	if !reg.WaitFor(Timeout, OCOTP_CTRL, CTRL_BUSY, 1, 0) {
+func (hw *OCOTP) shadowReload() (err error) {
+	if !reg.WaitFor(Timeout, hw.ctrl, CTRL_BUSY, 1, 0) {
 		return errors.New("OCOTP controller busy")
 	}
 
 	// clear error bit
-	reg.Set(OCOTP_CTRL_CLR, CTRL_ERROR)
+	reg.Set(hw.ctrl_clr, CTRL_ERROR)
 	// force re-loading of shadow registers
-	reg.Set(OCOTP_CTRL, CTRL_RELOAD_SHADOWS)
+	reg.Set(hw.ctrl, CTRL_RELOAD_SHADOWS)
 
-	err = checkOp()
-
-	return
+	return hw.checkOp()
 }

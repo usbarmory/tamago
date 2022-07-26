@@ -1,8 +1,8 @@
 // First-fit memory allocator for DMA buffers
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -11,8 +11,8 @@
 // it is primarily used in bare metal device driver operation to avoid passing
 // Go pointers for DMA purposes.
 //
-// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// This package is only meant to be used with `GOOS=tamago` as supported by the
+// TamaGo framework for bare metal Go on ARM/RISC-V SoCs, see
 // https://github.com/usbarmory/tamago.
 package dma
 

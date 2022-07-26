@@ -3,8 +3,8 @@ TamaGo - bare metal Go for ARM SoCs - USB armory support
 
 tamago | https://github.com/usbarmory/tamago  
 
-Copyright (c) F-Secure Corporation  
-https://foundry.f-secure.com
+Copyright (c) WithSecure Corporation  
+https://foundry.withsecure.com
 
 ![TamaGo gopher](https://github.com/usbarmory/tamago/wiki/images/tamago.svg?sanitize=true)
 
@@ -12,18 +12,18 @@ Authors
 =======
 
 Andrea Barisani  
-andrea.barisani@f-secure.com | andrea@inversepath.com  
+andrea.barisani@withsecure.com | andrea@inversepath.com  
 
 Andrej Rosano  
-andrej.rosano@f-secure.com   | andrej@inversepath.com  
+andrej.rosano@withsecure.com   | andrej@inversepath.com  
 
 Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM System-on-Chip (SoC) components.
+applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
 
-The [usbarmory](https://github.com/usbarmory/tamago/tree/master/board/f-secure/usbarmory)
+The [usbarmory](https://github.com/usbarmory/tamago/tree/master/board/usbarmory)
 package provides support for the [USB armory](https://github.com/usbarmory/usbarmory/wiki)
 Single Board Computer.
 
@@ -43,9 +43,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC           | Board                                                                  | SoC package                                                      | Board package                                                                                           |
-|---------------|------------------------------------------------------------------------|------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
-| NXP i.MX6ULZ  | [USB armory Mk II](https://github.com/usbarmory/usbarmory/wiki)        | [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6) | [usbarmory/mark-two](https://github.com/usbarmory/tamago/tree/master/board/f-secure/usbarmory/mark-two) |
+| SoC           | Board                                                                  | SoC package                                                      | Board package                                                                        |
+|---------------|------------------------------------------------------------------------|------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| NXP i.MX6ULZ  | [USB armory Mk II](https://github.com/usbarmory/usbarmory/wiki)        | [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6) | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory/mk2) |
 
 Compiling
 =========
@@ -55,7 +55,7 @@ ensure that hardware initialization and runtime support takes place:
 
 ```golang
 import (
-	_ "github.com/usbarmory/tamago/board/f-secure/usbarmory/mark-two"
+	_ "github.com/usbarmory/tamago/board/usbarmory/mk2"
 )
 ```
 
@@ -75,7 +75,7 @@ ensuring that the required SoC and board packages are available in `GOPATH`:
 
 ```
 GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm \
-  ${TAMAGO} build -ldflags "-T 0x80010000  -E _rt0_arm_tamago -R 0x1000"
+  ${TAMAGO} build -ldflags "-T 0x80010000 -E _rt0_arm_tamago -R 0x1000"
 ```
 
 An example application, targeting the USB armory Mk II platform,
@@ -92,7 +92,7 @@ Native hardware: imx image
 --------------------------
 
 Follow [these instructions](https://github.com/usbarmory/usbarmory/wiki/Boot-Modes-(Mk-II)#flashing-bootable-images-on-externalinternal-media)
-using built `imx` images.
+using the built `imx` image.
 
 Native hardware: existing bootloader
 ------------------------------------
@@ -151,9 +151,9 @@ The target can be executed under emulation as follows:
 
 ```
 qemu-system-arm \
-	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M
-	\ -nographic -monitor none -serial null -serial stdio -net none
-	\ -kernel example -semihosting -d unimp
+	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M \
+	-nographic -monitor none -serial null -serial stdio -net none \
+	-kernel example -semihosting
 ```
 
 The emulated target can be debugged with GDB by adding the `-S -s` flags to the
@@ -175,7 +175,7 @@ License
 =======
 
 tamago | https://github.com/usbarmory/tamago  
-Copyright (c) F-Secure Corporation
+Copyright (c) WithSecure Corporation
 
 These source files are distributed under the BSD-style license found in the
 [LICENSE](https://github.com/usbarmory/tamago/blob/master/LICENSE) file.

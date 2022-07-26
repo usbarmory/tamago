@@ -1,8 +1,8 @@
 // NXP i.MX6 IOMUX driver
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) F-Secure Corporation
-// https://foundry.f-secure.com
+// Copyright (c) WithSecure Corporation
+// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -19,6 +19,9 @@ import (
 const (
 	IOMUXC_START = 0x020e0000
 	IOMUXC_END   = 0x020e3fff
+
+	IOMUXC_GPR_GPR1       = 0x020e4004
+	GPR1_TZASC1_BOOT_LOCK = 23
 
 	SW_PAD_CTL_HYS = 16
 
