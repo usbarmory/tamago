@@ -1,4 +1,4 @@
-// NXP i.MX6UL RNG initialization
+// SiFive FU540 initialization
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,7 +7,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package imx6ul
+package fu540
 
 import (
 	_ "unsafe"
@@ -15,12 +15,16 @@ import (
 	"github.com/usbarmory/tamago/internal/rng"
 )
 
+//go:linkname ramStackOffset runtime.ramStackOffset
+var ramStackOffset uint64 = 0x100
+
 //go:linkname initRNG runtime.initRNG
 func initRNG() {
-	if Native && Family == IMX6ULL {
-		RNGB.Init()
-		rng.GetRandomDataFn = RNGB.GetRandomData
-	} else {
-		rng.GetRandomDataFn = rng.GetLCGData
-	}
+	rng.GetRandomDataFn = rng.GetLCGData
+}
+
+// Init takes care of the lower level SoC initialization triggered early in
+// runtime setup (e.g. runtime.hwinit).
+func Init() {
+	return
 }

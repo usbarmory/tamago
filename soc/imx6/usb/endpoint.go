@@ -222,11 +222,7 @@ func buildDTD(n int, dir int, ioc bool, addr uint32, size int) (dtd *dTD) {
 	dtd = &dTD{}
 
 	// interrupt on completion (ioc)
-	if ioc {
-		bits.Set(&dtd.Token, TOKEN_IOC)
-	} else {
-		bits.Clear(&dtd.Token, TOKEN_IOC)
-	}
+	bits.SetTo(&dtd.Token, TOKEN_IOC, ioc)
 
 	// invalidate next pointer
 	dtd.Next = 1

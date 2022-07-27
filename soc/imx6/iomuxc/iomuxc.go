@@ -1,4 +1,4 @@
-// NXP i.MX6 IOMUX driver
+// NXP IOMUXC support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,22 +7,19 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package imx6
+// Package iomuxc implements helpers for IOMUX configuration on NXP SoCs.
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/usbarmory/tamago.
+package iomuxc
 
 import (
-	"fmt"
-
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
-// IOMUX registers
+// IOMUXC registers
 const (
-	IOMUXC_START = 0x020e0000
-	IOMUXC_END   = 0x020e3fff
-
-	IOMUXC_GPR_GPR1       = 0x020e4004
-	GPR1_TZASC1_BOOT_LOCK = 23
-
 	SW_PAD_CTL_HYS = 16
 
 	SW_PAD_CTL_PUS                = 14
@@ -57,59 +54,38 @@ const (
 
 // Pad instance.
 type Pad struct {
-	// mux register (IOMUXC_SW_MUX_CTL_PAD_*)
-	mux uint32
-	// pad register (IOMUXC_SW_PAD_CTL_PAD_*)
-	pad uint32
-	// daisy register (IOMUXC_*_SELECT_INPUT)
-	daisy uint32
-}
-
-// NewPad initializes a pad.
-func NewPad(mux uint32, pad uint32, daisy uint32) (*Pad, error) {
-	if mux < IOMUXC_START || mux > IOMUXC_END {
-		return nil, fmt.Errorf("invalid mux register %#x", pad)
-	}
-
-	if pad < IOMUXC_START || pad > IOMUXC_END {
-		return nil, fmt.Errorf("invalid pad register %#x", pad)
-	}
-
-	if daisy > 0 && (daisy < IOMUXC_START || daisy > IOMUXC_END) {
-		return nil, fmt.Errorf("invalid daisy register %#x", daisy)
-	}
-
-	return &Pad{
-		mux:   mux,
-		pad:   pad,
-		daisy: daisy,
-	}, nil
+	// Mux register (e.g. IOMUXC_SW_MUX_CTL_PAD_*)
+	Mux uint32
+	// Pad register (e.g. IOMUXC_SW_PAD_CTL_PAD_*)
+	Pad uint32
+	// Daisy register (e.g. IOMUXC_*_SELECT_INPUT)
+	Daisy uint32
 }
 
 // Mode configures the pad iomux mode.
 func (pad *Pad) Mode(mode uint32) {
-	reg.SetN(pad.mux, SW_MUX_CTL_MUX_MODE, 0b1111, mode)
+	reg.SetN(pad.Mux, SW_MUX_CTL_MUX_MODE, 0b1111, mode)
 }
 
 // SoftwareInput configures the pad SION bit.
 func (pad *Pad) SoftwareInput(enabled bool) {
 	if enabled {
-		reg.Set(pad.mux, SW_MUX_CTL_SION)
+		reg.Set(pad.Mux, SW_MUX_CTL_SION)
 	} else {
-		reg.Clear(pad.mux, SW_MUX_CTL_SION)
+		reg.Clear(pad.Mux, SW_MUX_CTL_SION)
 	}
 }
 
 // Ctl configures the pad control register.
 func (pad *Pad) Ctl(ctl uint32) {
-	reg.Write(pad.pad, ctl)
+	reg.Write(pad.Pad, ctl)
 }
 
 // Select configures the pad daisy chain register.
 func (pad *Pad) Select(input uint32) {
-	if pad.daisy == 0 {
+	if pad.Daisy == 0 {
 		return
 	}
 
-	reg.Write(pad.daisy, input)
+	reg.Write(pad.Daisy, input)
 }

@@ -9,12 +9,18 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package usdhc implements a driver for Freescale Enhanced Secure Digital
+// Package usdhc implements a driver for the Freescale Enhanced Secure Digital
 // Host Controller (eSDHC) interface, also known as NXP Ultra Secured Digital
 // Host Controller (uSDHC).
 //
-// It currently supports interfacing with SD/MMC cards up to High Speed mode
-// and Dual Data Rate.
+// The following specifications are adopted:
+//   * IMX6ULLRM  - i.MX 6ULL Applications Processor Reference Manual                - Rev 1      2017/11
+//   * IMX6FG     - i.MX 6 Series Firmware Guide                                     - Rev 0      2012/11
+//   * SD-PL-7.10 - SD Specifications Part 1 Physical Layer Simplified Specification - 7.10       2020/03/25
+//   * JESD84-B51 - Embedded Multi-Media Card (e•MMC) Electrical Standard (5.1)      - JESD84-B51 2015/02
+//
+// The driver currently supports interfacing with SD/MMC cards up to High Speed
+// mode and Dual Data Rate.
 //
 // Higher speed modes for eMMC cards are HS200 (controller supported and driver
 // supported) and HS400 mode (unsupported at controller level) [p35, Table 4,
@@ -234,6 +240,8 @@ type USDHC struct {
 	CCGR uint32
 	// Clock gate
 	CG int
+	// Clock setup function
+	SetClock func(index int, podf uint32, clksel uint32) error
 
 	// LowVoltage is the board specific function responsible for voltage
 	// switching (SD) or low voltage indication (eMMC).
@@ -277,10 +285,10 @@ type USDHC struct {
 	writeTimeout time.Duration
 }
 
-// setClock controls the clock of USDHCx_CLK line by setting
+// setFreq controls the clock of USDHCx_CLK line by setting
 // the SDCLKFS and DVS fields of USDHCx_SYS_CTRL register
 // p4035, 58.8.12 System Control (uSDHCx_SYS_CTRL), IMX6ULLRM.
-func (hw *USDHC) setClock(dvs int, sdclkfs int) {
+func (hw *USDHC) setFreq(dvs int, sdclkfs int) {
 	// Prevent possible glitch on the card clock as noted in
 	// p4011, 58.7.7 Change Clock Frequency, IMX6ULLRM.
 	reg.Clear(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
@@ -360,7 +368,7 @@ func (hw *USDHC) Init(width int) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if hw.Index == 0 || hw.Base == 0 || hw.CCGR == 0 {
+	if hw.Index == 0 || hw.Base == 0 || hw.SetClock == nil || hw.CCGR == 0 {
 		panic("invalid uSDHC controller instance")
 	}
 
@@ -449,9 +457,9 @@ func (hw *USDHC) Detect() (err error) {
 	reg.SetN(hw.prot_ctrl, PROT_CTRL_EMODE, 0b11, 0b10)
 
 	// clear clock
-	hw.setClock(-1, -1)
+	hw.setFreq(-1, -1)
 	// set identification frequency
-	hw.setClock(DVS_ID, SDCLKFS_ID)
+	hw.setFreq(DVS_ID, SDCLKFS_ID)
 
 	// set data timeout counter to SDCLK x 2^28
 	reg.Clear(hw.int_status_en, INT_STATUS_EN_DTOESEN)

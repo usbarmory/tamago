@@ -13,6 +13,7 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/internal/reg"
+	"github.com/usbarmory/tamago/internal/rng"
 )
 
 // RNG registers
@@ -76,19 +77,6 @@ func (hw *Rng) getRandomData(b []byte) {
 		for (reg.Read(hw.status) >> 24) == 0 {
 		}
 
-		read = fill(b, read, reg.Read(hw.data))
+		read = rng.Fill(b, read, reg.Read(hw.data))
 	}
-}
-
-func fill(b []byte, index int, val uint32) int {
-	shift := 0
-	limit := len(b)
-
-	for (index < limit) && (shift <= 24) {
-		b[index] = byte((val >> shift) & 0xff)
-		index++
-		shift += 8
-	}
-
-	return index
 }

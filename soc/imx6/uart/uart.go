@@ -1,4 +1,4 @@
-// NXP i.MX6 UART driver
+// NXP UART driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,14 +7,18 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+// Package uart implements a driver for NXP UART controllers adopting the
+// following reference specifications:
+//   * IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/usbarmory/tamago.
 package uart
 
 import (
-	"sync"
-
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/imx6"
 )
 
 // UART registers
@@ -110,12 +114,12 @@ const (
 
 // UART represents a serial port instance.
 type UART struct {
-	sync.Mutex
-
 	// Controller index
 	Index int
 	// Base register
 	Base uint32
+	// Clock retrieval function
+	Clock func() uint32
 	// port speed
 	Baudrate uint32
 	// DTE mode
@@ -142,9 +146,7 @@ type UART struct {
 // Init initializes and enables the UART for RS-232 mode,
 // p3605, 55.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
 func (hw *UART) Init() {
-	hw.Lock()
-
-	if hw.Base == 0 {
+	if hw.Base == 0 || hw.Clock == nil {
 		panic("invalid UART controller instance")
 	}
 
@@ -167,8 +169,6 @@ func (hw *UART) Init() {
 	hw.uts = hw.Base + UARTx_UTS
 
 	hw.setup()
-
-	hw.Unlock()
 }
 
 func (hw *UART) txFull() bool {
@@ -232,7 +232,7 @@ func (hw *UART) setup() {
 	// ref_clk_freq = module_clock
 
 	// multiply to match UFCR_RFDIV divider value
-	ubmr := imx6.GetUARTClock() / (2 * hw.Baudrate)
+	ubmr := hw.Clock() / (2 * hw.Baudrate)
 	// neutralize denominator
 	reg.Write(hw.ubir, 15)
 	// set UBMR

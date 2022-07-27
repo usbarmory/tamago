@@ -1,4 +1,4 @@
-// NXP i.MX6 I2C driver
+// NXP I2C driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,6 +7,14 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+// Package i2c implements a driver for NXP I2C controllers adopting the
+// following reference specifications:
+//   * IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
+//   * IMX6FG    - i.MX 6 Series Firmware Guide                      - Rev 0 2012/11
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/usbarmory/tamago.
 package i2c
 
 import (
@@ -21,9 +29,9 @@ import (
 // (p1462, 31.7 I2C Memory Map/Register Definition, IMX6ULLRM)
 const (
 	// The default IFDR value corresponds to a frequency divider of 768,
-	// assuming 66 MHz for PERCLK_CLK_ROOT (see GetHighFrequencyClock())
-	// this results in a baud rate of 85 kbps
-	// (p1464, 31.7.2 I2C Frequency Divider Register (I2Cx_IFDR), IMX6ULLRM).
+	// assuming 66 MHz for PERCLK_CLK_ROOT this results in a baud rate of
+	// 85 kbps (p1464, 31.7.2 I2C Frequency Divider Register (I2Cx_IFDR),
+	// IMX6ULLRM).
 	I2C_DEFAULT_IFDR = 0x16
 
 	I2Cx_IADR = 0x0000

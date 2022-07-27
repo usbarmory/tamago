@@ -1,4 +1,4 @@
-// SiFive FU540 initialization
+// SiFive FU540 configuration and support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -23,7 +23,7 @@ package fu540
 import (
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/soc/fu540/uart"
+	"github.com/usbarmory/tamago/soc/sifive/uart"
 )
 
 // Peripheral registers
@@ -47,15 +47,6 @@ var (
 		Base:  UART2_BASE,
 	}
 )
-
-//go:linkname ramStackOffset runtime.ramStackOffset
-var ramStackOffset uint64 = 0x100
-
-// Init takes care of the lower level SoC initialization triggered early in
-// runtime setup.
-func Init() {
-	return
-}
 
 // Model returns the SoC model name.
 func Model() string {

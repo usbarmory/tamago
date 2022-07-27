@@ -19,7 +19,6 @@ import (
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/imx6"
 )
 
 // SD registers
@@ -299,7 +298,7 @@ func (hw *USDHC) voltageSwitchSD() (err error) {
 		return fmt.Errorf("voltage switch failed, invalid data line")
 	}
 
-	hw.setClock(-1, -1)
+	hw.setFreq(-1, -1)
 
 	// SoC uSDHC IO power voltage selection signal (might be unused)
 	reg.Set(hw.vend_spec, VEND_SPEC_VSELECT)
@@ -311,7 +310,7 @@ func (hw *USDHC) voltageSwitchSD() (err error) {
 
 	time.Sleep(10 * time.Millisecond)
 
-	hw.setClock(DVS_OP, SDCLKFS_OP)
+	hw.setFreq(DVS_OP, SDCLKFS_OP)
 
 	if !reg.WaitFor(1*time.Millisecond, hw.pres_state, PRES_STATE_DLSL, 1, 1) {
 		return fmt.Errorf("voltage switch failed, invalid data line")
@@ -357,8 +356,8 @@ func (hw *USDHC) initSD() (err error) {
 	}
 
 	if hw.card.Rate == HS_MBPS {
-		hw.setClock(-1, -1)
-		hw.setClock(DVS_OP, SDCLKFS_OP)
+		hw.setFreq(-1, -1)
+		hw.setFreq(DVS_OP, SDCLKFS_OP)
 	}
 
 	// set relative card address
@@ -436,9 +435,9 @@ func (hw *USDHC) initSD() (err error) {
 		return
 	}
 
-	hw.setClock(-1, -1)
-	imx6.SetUSDHCClock(hw.Index, root_clk, 0)
-	hw.setClock(DVS_HS, clk)
+	hw.setFreq(-1, -1)
+	hw.SetClock(hw.Index, root_clk, 0)
+	hw.setFreq(DVS_HS, clk)
 
 	if tune {
 		err = hw.executeTuningSD()

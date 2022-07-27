@@ -26,7 +26,7 @@ import (
 // is enabled).
 //
 // *WARNING*: when SNVS is not enabled a default non-unique test vector is used
-// and therefore key derivation is *unsafe*, see imx6.SNVS().
+// and therefore key derivation is *unsafe*, see snvs.Available().
 //
 // A negative index argument results in the derived key being computed and
 // returned.
@@ -48,9 +48,13 @@ func (hw *DCP) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, 
 	memory := hw.DeriveKeyMemory
 
 	if index >= 0 {
+		if memory == nil {
+			return nil, errors.New("invalid DeriveKeyMemory")
+		}
+
 		// Use DeriveKeyMemory only if the default DMA region start
 		// does not overlap with it.
-		if !(region.Start > memory.Start && region.Start < memory.Start+uint32(memory.Size)) {
+		if !(region.Start() > memory.Start() && region.Start() < memory.Start()+memory.Size()) {
 			region = memory
 		}
 	}

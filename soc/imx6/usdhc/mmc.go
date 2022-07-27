@@ -19,7 +19,6 @@ import (
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/imx6"
 )
 
 // MMC registers
@@ -256,9 +255,9 @@ func (hw *USDHC) initMMC() (err error) {
 
 	if mhz == TRAN_SPEED_26MHZ {
 		// clear clock
-		hw.setClock(-1, -1)
+		hw.setFreq(-1, -1)
 		// set operating frequency
-		hw.setClock(DVS_OP, SDCLKFS_OP)
+		hw.setFreq(DVS_OP, SDCLKFS_OP)
 	} else {
 		return fmt.Errorf("unexpected TRAN_SPEED %#x", mhz)
 	}
@@ -338,9 +337,9 @@ func (hw *USDHC) initMMC() (err error) {
 		return
 	}
 
-	hw.setClock(-1, -1)
-	imx6.SetUSDHCClock(hw.Index, root_clk, 0)
-	hw.setClock(DVS_HS, clk)
+	hw.setFreq(-1, -1)
+	hw.SetClock(hw.Index, root_clk, 0)
+	hw.setFreq(DVS_HS, clk)
 
 	if tune {
 		// FIXME: Use fixed sampling clock as eMMC tuning fails for unknown reasons.

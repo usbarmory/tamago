@@ -8,7 +8,10 @@
 // that can be found in the LICENSE file.
 
 // Package usb implements a driver for the USB PHY designated as NXP
-// USBOH3USBO2, included in i.MX6 SoCs.
+// USBOH3USBO2, included in several i.MX SoCs, adopting the following
+// specifications:
+//   * IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
+//   * USB2.0    - USB Specification Revision 2.0
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
@@ -19,7 +22,6 @@ import (
 	"sync"
 
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/imx6"
 )
 
 // USB registers
@@ -114,8 +116,8 @@ type USB struct {
 	Analog uint32
 	// PHY base register
 	PHY uint32
-	// PLL register
-	PLL uint32
+	// PLL enable function
+	EnablePLL func(index int) error
 
 	// signal for EP1-N cancellation
 	done chan bool
@@ -149,7 +151,7 @@ func (hw *USB) Init() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if hw.Base == 0 || hw.CCGR == 0 || hw.Analog == 0 || hw.PHY == 0 || hw.PLL == 0 {
+	if hw.Base == 0 || hw.CCGR == 0 || hw.Analog == 0 || hw.PHY == 0 || hw.EnablePLL == nil {
 		panic("invalid USB controller instance")
 	}
 
@@ -172,25 +174,13 @@ func (hw *USB) Init() {
 
 	// enable clock
 	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
-
-	// power up PLL
-	reg.Set(hw.PLL, imx6.PLL_POWER)
-	reg.Set(hw.PLL, imx6.PLL_EN_USB_CLKS)
-
-	// wait for lock
-	reg.Wait(hw.PLL, imx6.PLL_LOCK, 1, 1)
-
-	// remove bypass
-	reg.Clear(hw.PLL, imx6.PLL_BYPASS)
-
-	// enable PLL
-	reg.Set(hw.PLL, imx6.PLL_ENABLE)
+	hw.EnablePLL(hw.Index)
 
 	// soft reset USB PHY
 	reg.Set(hw.ctrl, CTRL_SFTRST)
 	reg.Clear(hw.ctrl, CTRL_SFTRST)
 
-	// enable clocks
+	// disable clock gate
 	reg.Clear(hw.ctrl, CTRL_CLKGATE)
 
 	// clear power down

@@ -17,7 +17,7 @@ import (
 func (b *block) read(off int, buf []byte) {
 	var ptr unsafe.Pointer
 
-	ptr = unsafe.Add(ptr, int(b.addr)+off)
+	ptr = unsafe.Add(ptr, b.addr+off)
 	mem := unsafe.Slice((*byte)(ptr), len(buf))
 
 	copy(buf, mem)
@@ -26,7 +26,7 @@ func (b *block) read(off int, buf []byte) {
 func (b *block) write(off int, buf []byte) {
 	var ptr unsafe.Pointer
 
-	ptr = unsafe.Add(ptr, int(b.addr)+off)
+	ptr = unsafe.Add(ptr, b.addr+off)
 	mem := unsafe.Slice((*byte)(ptr), len(buf))
 
 	copy(mem, buf)
@@ -40,7 +40,7 @@ func (dma *Region) defrag() {
 		b := e.Value.(*block)
 
 		if prevBlock != nil {
-			if prevBlock.addr+uint32(prevBlock.size) == b.addr {
+			if prevBlock.addr+prevBlock.size == b.addr {
 				prevBlock.size += b.size
 				defer dma.freeBlocks.Remove(e)
 				continue
@@ -66,7 +66,7 @@ func (dma *Region) alloc(size int, align int) *block {
 		b := e.Value.(*block)
 
 		// pad to required alignment
-		pad = -int(b.addr) & (align - 1)
+		pad = -b.addr & (align - 1)
 		size += pad
 
 		if b.size >= size {
@@ -85,7 +85,7 @@ func (dma *Region) alloc(size int, align int) *block {
 	// adjust block to desired size, add new block for remainder
 	if r := freeBlock.size - size; r != 0 {
 		newBlockAfter := &block{
-			addr: freeBlock.addr + uint32(size),
+			addr: freeBlock.addr + size,
 			size: r,
 		}
 
@@ -100,7 +100,7 @@ func (dma *Region) alloc(size int, align int) *block {
 			size: pad,
 		}
 
-		freeBlock.addr += uint32(pad)
+		freeBlock.addr += pad
 		freeBlock.size -= pad
 		dma.freeBlocks.InsertBefore(newBlockBefore, e)
 	}

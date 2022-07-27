@@ -169,27 +169,12 @@ func (hw *USDHC) cmd(index uint32, arg uint32, blocks uint32, timeout time.Durat
 	bits.SetN(&xfr, CMD_XFR_TYP_CMDINX, 0b111111, index)
 	// clear special command types
 	bits.SetN(&xfr, CMD_XFR_TYP_CMDTYP, 0b11, 0)
-
 	// command index verification
-	if params.cic {
-		bits.Set(&xfr, CMD_XFR_TYP_CICEN)
-	} else {
-		bits.Clear(&xfr, CMD_XFR_TYP_CICEN)
-	}
-
+	bits.SetTo(&xfr, CMD_XFR_TYP_CICEN, params.cic)
 	// CRC verification
-	if params.ccc {
-		bits.Set(&xfr, CMD_XFR_TYP_CCCEN)
-	} else {
-		bits.Clear(&xfr, CMD_XFR_TYP_CCCEN)
-	}
-
-	if hw.card.DDR {
-		// enable dual data rate
-		bits.Set(&mix, MIX_CTRL_DDR_EN)
-	} else {
-		bits.Clear(&mix, MIX_CTRL_DDR_EN)
-	}
+	bits.SetTo(&xfr, CMD_XFR_TYP_CCCEN, params.ccc)
+	// dual data rate
+	bits.SetTo(&mix, MIX_CTRL_DDR_EN, hw.card.DDR)
 
 	// command completion
 	int_status := INT_STATUS_CC
@@ -197,23 +182,16 @@ func (hw *USDHC) cmd(index uint32, arg uint32, blocks uint32, timeout time.Durat
 	if blocks > 0 {
 		// transfer completion
 		int_status = INT_STATUS_TC
-
 		// enable data presence
 		bits.Set(&xfr, CMD_XFR_TYP_DPSEL)
 		// enable DMA
 		bits.Set(&mix, MIX_CTRL_DMAEN)
 		// enable automatic CMD12 to stop transactions
 		bits.Set(&mix, MIX_CTRL_AC12EN)
-
-		if blocks > 1 {
-			// multiple blocks
-			bits.Set(&mix, MIX_CTRL_MSBSEL)
-			// enable block count
-			bits.Set(&mix, MIX_CTRL_BCEN)
-		} else {
-			bits.Clear(&mix, MIX_CTRL_MSBSEL)
-			bits.Clear(&mix, MIX_CTRL_BCEN)
-		}
+		// multiple blocks
+		bits.SetTo(&mix, MIX_CTRL_MSBSEL, blocks > 1)
+		// block count
+		bits.SetTo(&mix, MIX_CTRL_BCEN, blocks > 1)
 	} else {
 		bits.Clear(&xfr, CMD_XFR_TYP_DPSEL)
 		bits.Clear(&mix, MIX_CTRL_AC12EN)

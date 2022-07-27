@@ -1,4 +1,4 @@
-// USB descriptor support
+// USB mass storage descriptor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation

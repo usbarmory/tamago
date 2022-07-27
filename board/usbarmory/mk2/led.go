@@ -12,7 +12,9 @@ package mk2
 import (
 	"errors"
 
-	"github.com/usbarmory/tamago/soc/imx6"
+	"github.com/usbarmory/tamago/soc/imx6/gpio"
+	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
+	"github.com/usbarmory/tamago/soc/imx6/iomuxc"
 )
 
 // LED configuration constants
@@ -36,32 +38,24 @@ const (
 	IOMUXC_SW_PAD_CTL_PAD_CSI_DATA01 = 0x020e0474
 )
 
-var white *imx6.GPIO
-var blue *imx6.GPIO
+var white *gpio.Pin
+var blue *gpio.Pin
 
 func init() {
 	var err error
 
-	ctl := uint32((1 << imx6.SW_PAD_CTL_PKE) |
-		(imx6.SW_PAD_CTL_SPEED_100MHZ << imx6.SW_PAD_CTL_SPEED) |
-		(imx6.SW_PAD_CTL_DSE_2_R0_6 << imx6.SW_PAD_CTL_DSE))
+	ctl := uint32((1 << iomuxc.SW_PAD_CTL_PKE) |
+		(iomuxc.SW_PAD_CTL_SPEED_100MHZ << iomuxc.SW_PAD_CTL_SPEED) |
+		(iomuxc.SW_PAD_CTL_DSE_2_R0_6 << iomuxc.SW_PAD_CTL_DSE))
 
-	white, err = imx6.NewGPIO(WHITE, 4,
-		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA00, IOMUXC_SW_PAD_CTL_PAD_CSI_DATA00)
-
-	if err != nil {
+	if white, err = imx6ul.GPIO4.InitPad(WHITE,
+		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA00, IOMUXC_SW_PAD_CTL_PAD_CSI_DATA00); err != nil {
 		panic(err)
 	}
 
-	blue, err = imx6.NewGPIO(BLUE, 4,
-		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA01, IOMUXC_SW_PAD_CTL_PAD_CSI_DATA01)
-
-	if err != nil {
+	if blue, err = imx6ul.GPIO4.InitPad(BLUE,
+		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA01, IOMUXC_SW_PAD_CTL_PAD_CSI_DATA01); err != nil {
 		panic(err)
-	}
-
-	if !imx6.Native {
-		return
 	}
 
 	white.Pad.Ctl(ctl)
@@ -73,7 +67,7 @@ func init() {
 
 // LED turns on/off an LED by name.
 func LED(name string, on bool) (err error) {
-	var led *imx6.GPIO
+	var led *gpio.Pin
 
 	switch name {
 	case "white", "White", "WHITE":
@@ -82,10 +76,6 @@ func LED(name string, on bool) (err error) {
 		led = blue
 	default:
 		return errors.New("invalid LED")
-	}
-
-	if !imx6.Native {
-		return
 	}
 
 	if on {

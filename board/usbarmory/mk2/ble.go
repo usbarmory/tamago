@@ -15,7 +15,9 @@ import (
 	"time"
 
 	"github.com/usbarmory/tamago/bits"
-	"github.com/usbarmory/tamago/soc/imx6"
+	"github.com/usbarmory/tamago/soc/imx6/gpio"
+	"github.com/usbarmory/tamago/soc/imx6/iomuxc"
+	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
 	"github.com/usbarmory/tamago/soc/imx6/uart"
 )
 
@@ -87,13 +89,11 @@ const (
 	RESET_GRACE_TIME = 1 * time.Second
 )
 
-func configureBLEPad(mux uint32, pad uint32, daisy uint32, mode uint32, ctl uint32) (p *imx6.Pad) {
-	var err error
-
-	p, err = imx6.NewPad(mux, pad, daisy)
-
-	if err != nil {
-		panic(err)
+func configureBLEPad(mux uint32, pad uint32, daisy uint32, mode uint32, ctl uint32) (p *iomuxc.Pad) {
+	p = &iomuxc.Pad{
+		Mux: mux,
+		Pad: pad,
+		Daisy: daisy,
 	}
 
 	p.Mode(mode)
@@ -102,18 +102,15 @@ func configureBLEPad(mux uint32, pad uint32, daisy uint32, mode uint32, ctl uint
 	return
 }
 
-func configureBLEGPIO(num int, instance int, mux uint32, pad uint32, ctl uint32) (gpio *imx6.GPIO) {
+func configureBLEGPIO(num int, gpio *gpio.GPIO, mux uint32, pad uint32, ctl uint32) (pin *gpio.Pin) {
 	var err error
 
-	gpio, err = imx6.NewGPIO(num, instance, mux, pad)
-
-	if err != nil {
+	if pin, err = gpio.InitPad(num, mux, pad); err != nil {
 		panic(err)
 	}
 
-	gpio.Pad.Mode(GPIO_MODE)
-	gpio.Pad.Ctl(ctl)
-	gpio.Out()
+	pin.Pad.Ctl(ctl)
+	pin.Out()
 
 	return
 }
@@ -125,14 +122,14 @@ type ANNA struct {
 
 	UART *uart.UART
 
-	reset   *imx6.GPIO
-	switch1 *imx6.GPIO
-	switch2 *imx6.GPIO
+	reset   *gpio.Pin
+	switch1 *gpio.Pin
+	switch2 *gpio.Pin
 
 	// On β revisions RTS/CTS are implemented as GPIO due to errata.
 	errata bool
-	rts    *imx6.GPIO
-	cts    *imx6.GPIO
+	rts    *gpio.Pin
+	cts    *gpio.Pin
 }
 
 // BLE module instance
@@ -146,13 +143,13 @@ func (ble *ANNA) Init() (err error) {
 	BLE.UART = UART1
 
 	ctl := uint32(0)
-	bits.Set(&ctl, imx6.SW_PAD_CTL_HYS)
-	bits.Set(&ctl, imx6.SW_PAD_CTL_PUE)
-	bits.Set(&ctl, imx6.SW_PAD_CTL_PKE)
+	bits.Set(&ctl, iomuxc.SW_PAD_CTL_HYS)
+	bits.Set(&ctl, iomuxc.SW_PAD_CTL_PUE)
+	bits.Set(&ctl, iomuxc.SW_PAD_CTL_PKE)
 
-	bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_UP_100K)
-	bits.SetN(&ctl, imx6.SW_PAD_CTL_SPEED, 0b11, imx6.SW_PAD_CTL_SPEED_100MHZ)
-	bits.SetN(&ctl, imx6.SW_PAD_CTL_DSE, 0b111, imx6.SW_PAD_CTL_DSE_2_R0_6)
+	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_PUS, 0b11, iomuxc.SW_PAD_CTL_PUS_PULL_UP_100K)
+	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_SPEED, 0b11, iomuxc.SW_PAD_CTL_SPEED_100MHZ)
+	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_DSE, 0b111, iomuxc.SW_PAD_CTL_DSE_2_R0_6)
 
 	// BT_UART_TX
 	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART1_TX_DATA,
@@ -171,16 +168,16 @@ func (ble *ANNA) Init() (err error) {
 		BLE.errata = true
 
 		// On β BT_UART_RTS is set to GPIO for CTS due to errata.
-		BLE.cts = configureBLEGPIO(7, 1,
+		BLE.cts = configureBLEGPIO(7, imx6ul.GPIO1,
 			IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
 			IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07,
 			ctl)
 		BLE.cts.Out()
 
-		bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_DOWN_100K)
+		bits.SetN(&ctl, iomuxc.SW_PAD_CTL_PUS, 0b11, iomuxc.SW_PAD_CTL_PUS_PULL_DOWN_100K)
 
 		// On β BT_UART_CTS is set to GPIO for RTS due to errata.
-		BLE.rts = configureBLEGPIO(18, 1,
+		BLE.rts = configureBLEGPIO(18, imx6ul.GPIO1,
 			IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B,
 			IOMUXC_SW_PAD_CTL_PAD_UART1_CTS_B,
 			ctl)
@@ -193,7 +190,7 @@ func (ble *ANNA) Init() (err error) {
 			IOMUXC_SW_PAD_CTL_PAD_UART1_CTS_B,
 			0, DEFAULT_MODE, ctl)
 
-		bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_DOWN_100K)
+		bits.SetN(&ctl, iomuxc.SW_PAD_CTL_PUS, 0b11, iomuxc.SW_PAD_CTL_PUS_PULL_DOWN_100K)
 
 		// BT_UART_RTS
 		pad = configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
@@ -205,9 +202,9 @@ func (ble *ANNA) Init() (err error) {
 		BLE.UART.Flow = true
 	}
 
-	bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_UP_22K)
-	bits.SetN(&ctl, imx6.SW_PAD_CTL_SPEED, 0b11, imx6.SW_PAD_CTL_SPEED_50MHZ)
-	bits.SetN(&ctl, imx6.SW_PAD_CTL_DSE, 0b111, imx6.SW_PAD_CTL_DSE_2_R0_4)
+	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_PUS, 0b11, iomuxc.SW_PAD_CTL_PUS_PULL_UP_22K)
+	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_SPEED, 0b11, iomuxc.SW_PAD_CTL_SPEED_50MHZ)
+	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_DSE, 0b111, iomuxc.SW_PAD_CTL_DSE_2_R0_4)
 
 	// BT_UART_DSR
 	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART3_TX_DATA,
@@ -225,26 +222,26 @@ func (ble *ANNA) Init() (err error) {
 		0, GPIO_MODE, ctl)
 
 	// BT_RESET
-	BLE.reset = configureBLEGPIO(BT_RESET, 1,
+	BLE.reset = configureBLEGPIO(BT_RESET, imx6ul.GPIO1,
 		IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO09,
 		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO09,
 		ctl)
 
 	// BT_SWITCH_1
-	BLE.switch1 = configureBLEGPIO(BT_SWITCH_1, 1,
+	BLE.switch1 = configureBLEGPIO(BT_SWITCH_1, imx6ul.GPIO1,
 		IOMUXC_SW_MUX_CTL_PAD_UART3_RTS_B,
 		IOMUXC_SW_PAD_CTL_PAD_UART3_RTS_B,
 		ctl)
 
 	// BT_SWITCH_2
-	BLE.switch2 = configureBLEGPIO(BT_SWITCH_2, 1,
+	BLE.switch2 = configureBLEGPIO(BT_SWITCH_2, imx6ul.GPIO1,
 		IOMUXC_SW_MUX_CTL_PAD_UART3_CTS_B,
 		IOMUXC_SW_PAD_CTL_PAD_UART3_CTS_B,
 		ctl)
 
 	ctl = 0
-	bits.SetN(&ctl, imx6.SW_PAD_CTL_DSE, 0b111, imx6.SW_PAD_CTL_DSE_2_R0_4)
-	bits.Set(&ctl, imx6.SW_PAD_CTL_HYS)
+	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_DSE, 0b111, iomuxc.SW_PAD_CTL_DSE_2_R0_4)
+	bits.Set(&ctl, iomuxc.SW_PAD_CTL_HYS)
 
 	// BT_UART_DTR
 	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART3_RX_DATA,

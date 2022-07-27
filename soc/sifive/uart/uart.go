@@ -1,4 +1,4 @@
-// SiFive FU540 UART driver
+// SiFive UART driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,11 +7,16 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+// Package uart implements a driver for SiFive UART controllers adopting the
+// following reference specifications:
+//   * FU540C00RM - SiFive FU540-C000 Manual - v1p4 2021/03/25
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=riscv64` as
+// supported by the TamaGo framework for bare metal Go on RISC-V SoCs, see
+// https://github.com/usbarmory/tamago.
 package uart
 
 import (
-	"sync"
-
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 )
@@ -34,10 +39,8 @@ const (
 	UARTx_RXCTRL = 0x000c
 )
 
-// UART represents a serial port instance
+// UART represents a serial port instance.
 type UART struct {
-	sync.Mutex
-
 	// Controller index
 	Index int
 	// Base register
@@ -53,8 +56,6 @@ type UART struct {
 // Init initializes and enables the UART for RS-232 mode,
 // p3605, 55.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
 func (hw *UART) Init() {
-	hw.Lock()
-
 	if hw.Base == 0 {
 		panic("invalid UART controller instance")
 	}
@@ -63,8 +64,6 @@ func (hw *UART) Init() {
 	hw.rxdata = hw.Base + UARTx_RXDATA
 	hw.txctrl = hw.Base + UARTx_TXCTRL
 	hw.rxctrl = hw.Base + UARTx_RXCTRL
-
-	hw.Unlock()
 }
 
 func (hw *UART) txFull() bool {

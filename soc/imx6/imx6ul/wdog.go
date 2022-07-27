@@ -1,4 +1,4 @@
-// NXP i.MX6UL/i.MX6ULL/i.MX6Q support
+// NXP i.MX6UL watchdog support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,7 +7,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package imx6
+package imx6ul
 
 import (
 	"github.com/usbarmory/tamago/internal/reg"
@@ -37,7 +37,7 @@ const (
 	SCR_WARM_RESET_ENABLE = 0
 )
 
-func init() {
+func clearWDOG() {
 	// Clear the 16 seconds power-down counter event for all watchdogs
 	// (p4085, 59.5.3 Power-down counter event, IMX6ULLRM).
 	reg.Clear16(WDOG1_WMCR, WMCR_PDE)

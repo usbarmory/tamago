@@ -1,4 +1,4 @@
-// NXP i.MX6UL ARM clock control
+// NXP i.MX6UL clock control
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,7 +7,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package imx6
+package imx6ul
 
 import (
 	"errors"
@@ -130,7 +130,7 @@ func ARMFreq() (hz uint32) {
 	return uint32((OSC_FREQ * ARMPLLDiv()) / ARMCoreDiv())
 }
 
-func setOperatingPointIMX6ULL(uV uint32) {
+func setOperatingPoint(uV uint32) {
 	var reg0Targ uint32
 	var reg2Targ uint32
 
@@ -167,7 +167,7 @@ func setOperatingPointIMX6ULL(uV uint32) {
 	arm.Busyloop(10000)
 }
 
-func setARMFreqIMX6ULL(mhz uint32) (err error) {
+func setARMFreq(mhz uint32) (err error) {
 	var div_select uint32
 	var arm_podf uint32
 	var uV uint32
@@ -205,7 +205,7 @@ func setARMFreqIMX6ULL(mhz uint32) (err error) {
 	}
 
 	if mhz > curMHz {
-		setOperatingPointIMX6ULL(uV)
+		setOperatingPoint(uV)
 	}
 
 	// set bypass source to main oscillator
@@ -227,23 +227,20 @@ func setARMFreqIMX6ULL(mhz uint32) (err error) {
 	reg.SetN(CCM_CACRR, CACRR_ARM_PODF, 0b111, arm_podf)
 
 	if mhz < curMHz {
-		setOperatingPointIMX6ULL(uV)
+		setOperatingPoint(uV)
 	}
 
 	return
 }
 
 // SetARMFreq changes the ARM core frequency, see `Freq*` constants for
-// supported values.
+// supported values. Only i.MX6ULL P/Ns are supported.
 func SetARMFreq(mhz uint32) (err error) {
-	switch Family {
-	case IMX6ULL:
-		err = setARMFreqIMX6ULL(mhz)
-	default:
-		err = errors.New("unsupported")
+	if Family == IMX6ULL {
+		return setARMFreq(mhz)
+	} else {
+		return errors.New("unsupported")
 	}
-
-	return
 }
 
 // GetPeripheralClock returns the IPG_CLK_ROOT frequency,
@@ -359,24 +356,6 @@ func SetPFD(pll uint32, pfd uint32, div uint32) error {
 	return nil
 }
 
-// GetPerClock returns the PERCLK_CLK_ROOT frequency,
-// (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM).
-func GetPerClock() uint32 {
-	var freq uint32
-
-	if reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_SEL, 1) == 1 {
-		freq = OSC_FREQ
-	} else {
-		// IPG_CLK_ROOT derived from AHB_CLK_ROOT which is 132 MHz
-		ipg_podf := reg.Get(CCM_CBCDR, CBCDR_IPG_PODF, 0b11)
-		freq = 132000000 / (ipg_podf + 1)
-	}
-
-	podf := reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_PODF, 0x3f)
-
-	return freq / (podf + 1)
-}
-
 // GetUARTClock returns the UART_CLK_ROOT frequency,
 // (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM).
 func GetUARTClock() uint32 {
@@ -455,6 +434,35 @@ func SetUSDHCClock(index int, podf uint32, clksel uint32) (err error) {
 
 	reg.SetN(CCM_CSCDR1, podf_pos, 0b111, podf)
 	reg.SetN(CCM_CSCMR1, clksel_pos, 1, clksel)
+
+	return
+}
+
+// EnableUSBPLL enables the USBPHY0 480MHz PLL.
+func EnableUSBPLL(index int) (err error) {
+	var pll uint32
+
+	switch index {
+	case 1:
+		pll = CCM_ANALOG_PLL_USB1
+	case 2:
+		pll = CCM_ANALOG_PLL_USB2
+	default:
+		return errors.New("invalid interface index")
+	}
+
+	// power up PLL
+	reg.Set(pll, PLL_POWER)
+	reg.Set(pll, PLL_EN_USB_CLKS)
+
+	// wait for lock
+	reg.Wait(pll, PLL_LOCK, 1, 1)
+
+	// remove bypass
+	reg.Clear(pll, PLL_BYPASS)
+
+	// enable PLL
+	reg.Set(pll, PLL_ENABLE)
 
 	return
 }

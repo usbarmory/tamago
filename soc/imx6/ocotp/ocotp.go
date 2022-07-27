@@ -8,8 +8,9 @@
 // that can be found in the LICENSE file.
 
 // Package ocotp implements a driver for the NXP On-Chip OTP Controller
-// (OCOTP_CTRL), included in i.MX6 series SoCs to interface with on-chip fuses,
-// including write operation.
+// (OCOTP_CTRL), which provides an interface to on-chip fuses for read/write
+// operation, adopting the following reference specifications:
+//   * IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
 //
 // WARNING: Fusing SoC OTPs is an **irreversible** action that permanently
 // fuses values on the device. This means that any errors in the process, or
@@ -29,7 +30,6 @@ import (
 	"time"
 
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/imx6"
 )
 
 // OCOTP registers
@@ -63,6 +63,8 @@ type OCOTP struct {
 	Base uint32
 	// Bank base register (bank 0, word 0)
 	BankBase uint32
+	// Banks size
+	Banks int
 	// Clock gate register
 	CCGR uint32
 	// Clock gate
@@ -99,16 +101,7 @@ func (hw *OCOTP) Init() {
 
 // Read returns the value in the argument bank and word location.
 func (hw *OCOTP) Read(bank int, word int) (value uint32, err error) {
-	var banks int
-
-	switch imx6.Model() {
-	case "i.MX6UL":
-		banks = 16
-	case "i.MX6ULL":
-		banks = 8
-	}
-
-	if bank > banks || word > BankSize {
+	if bank > hw.Banks || word > BankSize {
 		return 0, errors.New("invalid argument")
 	}
 
@@ -150,9 +143,6 @@ func (hw *OCOTP) Blow(bank int, word int, value uint32) (err error) {
 	// We do not configure the OCOTP_TIMING register. Timings depend on
 	// IPG_CLK_ROOT frequency. Default values work for default frequency of
 	// 66 MHz.
-	if imx6.GetPeripheralClock() != imx6.IPG_FREQ {
-		return errors.New("IPG_CLK_ROOT must be set boot value")
-	}
 
 	// p2393, OCOTP_CTRLn field descriptions, IMX6ULLRM
 

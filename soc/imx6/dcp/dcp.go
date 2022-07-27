@@ -7,8 +7,9 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package dcp implements a driver for the NXP Data Co-Processor (DCP), a
-// cryptographic hardware accelerator included in i.MX6ULL/i.MX6ULZ SoCs.
+// Package dcp implements a driver for the NXP Data Co-Processor (DCP)
+// cryptographic accelerator adopting the following reference specifications:
+//   * MCIMX28RM - i.MX28 Applications Processor Reference Manual - Rev 2 2013/08
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
@@ -119,7 +120,7 @@ type DCP struct {
 
 	// DeriveKeyMemory represents the DMA memory region used for exchanging DCP
 	// derived keys when the derivation index points to an internal DCP key RAM
-	// slot. The memory region must be already initialized.
+	// slot. The memory region must be initialized before DeriveKey().
 	//
 	// It is recommended to use a DMA region within the internal RAM (e.g.
 	// i.MX6 On-Chip OCRAM/iRAM) to avoid passing through external RAM.
@@ -156,7 +157,7 @@ func (hw *DCP) Init() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if hw.Base == 0 || hw.DeriveKeyMemory == nil {
+	if hw.Base == 0 {
 		panic("invalid DCP instance")
 	}
 
@@ -175,7 +176,7 @@ func (hw *DCP) Init() {
 	reg.Set(hw.ctrl, CTRL_SFTRST)
 	reg.Clear(hw.ctrl, CTRL_SFTRST)
 
-	// enable clocks
+	// enable clock
 	reg.Clear(hw.ctrl, CTRL_CLKGATE)
 
 	// enable channel 0
