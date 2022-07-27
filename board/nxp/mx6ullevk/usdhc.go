@@ -10,7 +10,7 @@
 package mx6ullevk
 
 import (
-	"github.com/usbarmory/tamago/soc/imx6/iomuxc"
+	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 )
 
 // SD1 is the base board full size SD instance

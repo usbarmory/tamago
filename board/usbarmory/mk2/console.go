@@ -15,7 +15,7 @@ package mk2
 import (
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
+	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
 )
 
 // On the USB armory Mk II the serial console is UART2, therefore standard

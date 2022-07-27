@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/imx6/iomuxc"
+	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 )
 
 // GPIO registers

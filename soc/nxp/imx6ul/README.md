@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for ARM SoCs - i.MX 6 support
-====================================================
+TamaGo - bare metal Go for ARM SoCs - i.MX 6UL support
+======================================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -23,8 +23,9 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
 
-The [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6) package
-provides support for the NXP i.MX 6 series of System-on-Chip (SoCs) parts.
+The [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul)
+package provides support for the NXP i.MX 6UL series of System-on-Chip (SoCs)
+parts.
 
 Documentation
 =============
@@ -38,10 +39,10 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC                 | Related board packages                                                               | Peripheral drivers                                        |
-|---------------------|--------------------------------------------------------------------------------------|-----------------------------------------------------------|
-| NXP i.MX 6UltraLite | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory)     | CSU, DCP, GPIO, I2C, OCOTP, RNGB, TZASC, UART, USB, USDHC |
-| NXP i.MX 6UltraLite | [nxp/mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk) | CSU, DCP, GPIO, I2C, OCOTP, RNGB, TZASC, UART, USB, USDHC |
+| SoC           | Related board packages                                                               | Peripheral drivers                                                                                                   |
+|---------------|--------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| NXP i.MX 6ULZ | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory)     | [CSU, DCP, GPIO, I2C, OCOTP, RNGB, TZASC, UART, USB, USDHC](https://github.com/usbarmory/tamago/tree/master/soc/nxp) |
+| NXP i.MX 6ULL | [nxp/mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk) | [CSU, DCP, GPIO, I2C, OCOTP, RNGB, TZASC, UART, USB, USDHC](https://github.com/usbarmory/tamago/tree/master/soc/nxp) |
 
 License
 =======

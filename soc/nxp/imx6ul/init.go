@@ -15,7 +15,7 @@ import (
 	"github.com/usbarmory/tamago/arm"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/imx6/usb"
+	"github.com/usbarmory/tamago/soc/nxp/usb"
 )
 
 // i.MX processor families

@@ -12,8 +12,8 @@ package mx6ullevk
 import (
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
-	"github.com/usbarmory/tamago/soc/imx6/iomuxc"
+	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
+	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 )
 
 // On the MCIMX6ULL-EVK the SoC LCD_RESET output signal, which is tied to the

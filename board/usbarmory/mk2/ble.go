@@ -15,10 +15,10 @@ import (
 	"time"
 
 	"github.com/usbarmory/tamago/bits"
-	"github.com/usbarmory/tamago/soc/imx6/gpio"
-	"github.com/usbarmory/tamago/soc/imx6/iomuxc"
-	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
-	"github.com/usbarmory/tamago/soc/imx6/uart"
+	"github.com/usbarmory/tamago/soc/nxp/gpio"
+	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
+	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
+	"github.com/usbarmory/tamago/soc/nxp/uart"
 )
 
 // BLE module configuration constants.

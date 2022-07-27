@@ -16,7 +16,7 @@
 package mk2
 
 import (
-	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
+	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
 
 	_ "unsafe"
 )

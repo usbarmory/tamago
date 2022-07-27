@@ -10,7 +10,7 @@
 package mk2
 
 import (
-	"github.com/usbarmory/tamago/soc/imx6/iomuxc"
+	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 )
 
 // SD instance

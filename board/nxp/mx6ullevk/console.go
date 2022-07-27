@@ -15,7 +15,7 @@ package mx6ullevk
 import (
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
+	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
 )
 
 // On the MCIMX6ULL-EVK the serial console is UART1, therefore standard
