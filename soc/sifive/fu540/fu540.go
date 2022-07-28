@@ -23,6 +23,7 @@ package fu540
 import (
 	_ "unsafe"
 
+	"github.com/usbarmory/tamago/riscv"
 	"github.com/usbarmory/tamago/soc/sifive/uart"
 )
 
@@ -37,6 +38,9 @@ const (
 
 // Peripheral instances
 var (
+	// RISC-V core
+	RV64 = &riscv.CPU{}
+
 	UART1 = &uart.UART{
 		Index: 1,
 		Base:  UART1_BASE,

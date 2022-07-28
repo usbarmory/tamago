@@ -26,5 +26,5 @@ func initRNG() {
 // Init takes care of the lower level SoC initialization triggered early in
 // runtime setup (e.g. runtime.hwinit).
 func Init() {
-	return
+	RV64.Init()
 }

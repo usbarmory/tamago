@@ -60,7 +60,7 @@ var mux sync.Mutex
 
 // ReadPMP returns the Physical Memory Protection CSRs, configuration and
 // address, for the relevant index (currently limited to PMPs from 0 to 7).
-func ReadPMP(i int) (addr uint64, r bool, w bool, x bool, a int, l bool, err error) {
+func (cpu *CPU) ReadPMP(i int) (addr uint64, r bool, w bool, x bool, a int, l bool, err error) {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -93,18 +93,18 @@ func ReadPMP(i int) (addr uint64, r bool, w bool, x bool, a int, l bool, err err
 	cfg := read_pmpcfg0()
 	off := i * 8
 
-	r = bits.Get64(&cfg, off + PMP_CFG_R, 0b1) == 1
-	w = bits.Get64(&cfg, off + PMP_CFG_W, 0b1) == 1
-	x = bits.Get64(&cfg, off + PMP_CFG_X, 0b1) == 1
-	l = bits.Get64(&cfg, off + PMP_CFG_L, 0b1) == 1
-	a = int(bits.Get64(&cfg, off + PMP_CFG_A, 0b11))
+	r = bits.Get64(&cfg, off+PMP_CFG_R, 0b1) == 1
+	w = bits.Get64(&cfg, off+PMP_CFG_W, 0b1) == 1
+	x = bits.Get64(&cfg, off+PMP_CFG_X, 0b1) == 1
+	l = bits.Get64(&cfg, off+PMP_CFG_L, 0b1) == 1
+	a = int(bits.Get64(&cfg, off+PMP_CFG_A, 0b11))
 
 	return
 }
 
 // WritePMP sets the Physical Memory Protection CSRs, configuration and
 // address, for the relevant index (currently limited to PMPs from 0 to 7).
-func WritePMP(i int, addr uint64, r bool, w bool, x bool, a int, l bool) (err error) {
+func (cpu *CPU) WritePMP(i int, addr uint64, r bool, w bool, x bool, a int, l bool) (err error) {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -133,11 +133,11 @@ func WritePMP(i int, addr uint64, r bool, w bool, x bool, a int, l bool) (err er
 	cfg := read_pmpcfg0()
 	off := i * 8
 
-	bits.SetTo64(&cfg, off + PMP_CFG_R, r)
-	bits.SetTo64(&cfg, off + PMP_CFG_W, w)
-	bits.SetTo64(&cfg, off + PMP_CFG_X, x)
-	bits.SetTo64(&cfg, off + PMP_CFG_L, l)
-	bits.SetN64(&cfg, off + PMP_CFG_A, 0b11, uint64(a))
+	bits.SetTo64(&cfg, off+PMP_CFG_R, r)
+	bits.SetTo64(&cfg, off+PMP_CFG_W, w)
+	bits.SetTo64(&cfg, off+PMP_CFG_X, x)
+	bits.SetTo64(&cfg, off+PMP_CFG_L, l)
+	bits.SetN64(&cfg, off+PMP_CFG_A, 0b11, uint64(a))
 
 	write_pmpcfg0(cfg)
 
