@@ -52,7 +52,7 @@ var Mailbox = mailbox{}
 func init() {
 	// We don't use this region for DMA, but dma package provides a convenient
 	// block allocation system.
-	Mailbox.Region, _ = dma.NewRegion(MAILBOX_REGION_BASE | DRAM_FLAG_NOCACHE, MAILBOX_REGION_SIZE)
+	Mailbox.Region, _ = dma.NewRegion(MAILBOX_REGION_BASE|DRAM_FLAG_NOCACHE, MAILBOX_REGION_SIZE)
 }
 
 type MailboxTag struct {

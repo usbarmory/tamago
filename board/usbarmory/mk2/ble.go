@@ -16,8 +16,8 @@ import (
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/soc/nxp/gpio"
-	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
+	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 	"github.com/usbarmory/tamago/soc/nxp/uart"
 )
 
@@ -91,8 +91,8 @@ const (
 
 func configureBLEPad(mux uint32, pad uint32, daisy uint32, mode uint32, ctl uint32) (p *iomuxc.Pad) {
 	p = &iomuxc.Pad{
-		Mux: mux,
-		Pad: pad,
+		Mux:   mux,
+		Pad:   pad,
 		Daisy: daisy,
 	}
 

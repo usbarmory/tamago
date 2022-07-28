@@ -77,7 +77,7 @@ func (hw *PhysicalFilter) WriteDevicePMP(i int, addr uint64, r bool, w bool, a b
 
 	pmp := reg.Read64(uint64(hw.Base) + uint64(8*i))
 
-	bits.SetN64(&pmp, PMP_ADDR_HI, 0x1ffffff, addr >> 4)
+	bits.SetN64(&pmp, PMP_ADDR_HI, 0x1ffffff, addr>>4)
 
 	bits.SetTo64(&pmp, PMP_R, r)
 	bits.SetTo64(&pmp, PMP_W, w)

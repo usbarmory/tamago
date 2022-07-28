@@ -12,8 +12,8 @@ package mk2
 import (
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
+	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 )
 
 // On the USB armory Mk II the PMIC watchdog input (WDI) is connected to the
