@@ -37,23 +37,9 @@ type CLINT struct {
 	TimerOffset int64
 }
 
-func mulDiv(x, m, d uint64) uint64 {
-	divx := x / d
-	modx := x - divx*d
-	divm := m / d
-	modm := m - divm*d
-	return divx*m + modx*divm + modx*modm/d
-}
-
 // Mtime returns the number of cycles counted from the RTCCLK input.
 func (hw *CLINT) Mtime() uint64 {
 	return reg.Read64(hw.Base + MTIME)
-}
-
-// Nanotime returns the number of nanoseconds counted from the RTCLLK input
-// plus the timer offset.
-func (hw *CLINT) Nanotime() int64 {
-	return int64(mulDiv(hw.Mtime(), 1e9, hw.RTCCLK)) + hw.TimerOffset
 }
 
 // SetTimer sets the timer to the argument nanoseconds value.
