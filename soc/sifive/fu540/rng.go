@@ -10,8 +10,15 @@
 package fu540
 
 import (
+	_ "unsafe"
+
 	"github.com/usbarmory/tamago/internal/rng"
 )
+
+//go:linkname initRNG runtime.initRNG
+func initRNG() {
+	rng.GetRandomDataFn = rng.GetLCGData
+}
 
 // SetRNG allows to override the internal random number generator function used
 // by TamaGo on the FU540 SoC.

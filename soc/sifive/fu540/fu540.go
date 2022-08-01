@@ -24,14 +24,16 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/riscv"
+	"github.com/usbarmory/tamago/soc/sifive/clint"
 	"github.com/usbarmory/tamago/soc/sifive/uart"
 )
 
 // Peripheral registers
 const (
+	// Core-Local Interruptor
 	CLINT_BASE = 0x2000000
-	MTIME      = 0xbff8
 
+	// Serial ports
 	UART1_BASE = 0x10010000
 	UART2_BASE = 0x10011000
 )
@@ -41,11 +43,19 @@ var (
 	// RISC-V core
 	RV64 = &riscv.CPU{}
 
+	// Core-Local Interruptor
+	CLINT = &clint.CLINT{
+		Base:   CLINT_BASE,
+		RTCCLK: RTCCLK,
+	}
+
+	// Serial port 1
 	UART1 = &uart.UART{
 		Index: 1,
 		Base:  UART1_BASE,
 	}
 
+	// Serial port 2
 	UART2 = &uart.UART{
 		Index: 2,
 		Base:  UART2_BASE,
