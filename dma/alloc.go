@@ -14,7 +14,7 @@ import (
 	"unsafe"
 )
 
-func (b *block) read(off int, buf []byte) {
+func (b *block) read(off uint, buf []byte) {
 	var ptr unsafe.Pointer
 
 	ptr = unsafe.Add(ptr, b.addr+off)
@@ -23,7 +23,7 @@ func (b *block) read(off int, buf []byte) {
 	copy(buf, mem)
 }
 
-func (b *block) write(off int, buf []byte) {
+func (b *block) write(off uint, buf []byte) {
 	var ptr unsafe.Pointer
 
 	ptr = unsafe.Add(ptr, b.addr+off)
@@ -51,10 +51,10 @@ func (dma *Region) defrag() {
 	}
 }
 
-func (dma *Region) alloc(size int, align int) *block {
+func (dma *Region) alloc(size uint, align uint) *block {
 	var e *list.Element
 	var freeBlock *block
-	var pad int
+	var pad uint
 
 	if align == 0 {
 		// force word alignment
