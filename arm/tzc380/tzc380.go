@@ -130,7 +130,7 @@ func (hw *TZASC) EnableSecurityInversion() {
 // EnableRegion configures a TZASC region with the argument start address, size
 // and security permissions, for region 0 only security permissions are
 // relevant.
-func (hw *TZASC) EnableRegion(n int, start uint32, size int, sp int) (err error) {
+func (hw *TZASC) EnableRegion(n int, start uint32, size uint32, sp int) (err error) {
 	var attrs uint32
 	var s uint32
 
@@ -151,7 +151,7 @@ func (hw *TZASC) EnableRegion(n int, start uint32, size int, sp int) (err error)
 		return errors.New("incompatible start address")
 	}
 
-	if start != 0 && (start%uint32(size)) != 0 {
+	if start != 0 && (start%size) != 0 {
 		return errors.New("start address must be a multiple of its region size")
 	}
 

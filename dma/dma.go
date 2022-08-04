@@ -64,9 +64,10 @@ func NewRegion(addr uint32, size int, unsafe bool) (dma *Region, err error) {
 	ramStart := uint(rs)
 	ramEnd := uint(re)
 
-	if !unsafe && (ramStart >= start && ramStart <= end ||
-		ramEnd >= start && ramEnd <= end ||
-		start >= ramStart && end <= ramEnd) {
+	if !unsafe &&
+		(ramStart > start && ramStart < end ||
+			ramEnd > start && ramEnd < end ||
+			start > ramStart && end < ramEnd) {
 		return nil, fmt.Errorf("DMA within Go runtime memory (%#x-%#x) is not allowed", ramStart, ramEnd)
 	}
 
@@ -109,8 +110,8 @@ func (dma *Region) Size() uint32 {
 // allocation or memory copy.
 //
 // Great care must be taken on reserved buffer as:
-//   * buf contents are uninitialized (unlike when using Alloc())
-//   * buf slices remain in reserved space but only the original buf
+//   - buf contents are uninitialized (unlike when using Alloc())
+//   - buf slices remain in reserved space but only the original buf
 //     can be subject of Release()
 //
 // The optional alignment must be a power of 2 and word alignment is always
