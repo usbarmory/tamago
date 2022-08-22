@@ -49,12 +49,16 @@ func init() {
 		(iomuxc.SW_PAD_CTL_DSE_2_R0_6 << iomuxc.SW_PAD_CTL_DSE))
 
 	if white, err = imx6ul.GPIO4.InitPad(WHITE,
-		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA00, IOMUXC_SW_PAD_CTL_PAD_CSI_DATA00); err != nil {
+		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA00,
+		IOMUXC_SW_PAD_CTL_PAD_CSI_DATA00,
+		 GPIO_MODE); err != nil {
 		panic(err)
 	}
 
 	if blue, err = imx6ul.GPIO4.InitPad(BLUE,
-		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA01, IOMUXC_SW_PAD_CTL_PAD_CSI_DATA01); err != nil {
+		IOMUXC_SW_MUX_CTL_PAD_CSI_DATA01,
+		IOMUXC_SW_PAD_CTL_PAD_CSI_DATA01,
+		GPIO_MODE); err != nil {
 		panic(err)
 	}
 

@@ -26,8 +26,6 @@ import (
 const (
 	GPIO_DR   = 0x00
 	GPIO_GDIR = 0x04
-
-	GPIO_MODE = 5
 )
 
 // GPIO controller instance
@@ -47,8 +45,8 @@ type Pin struct {
 	dir  uint32
 }
 
-// InitPad initializes a pad for GPIO mode.
-func (hw *GPIO) InitPad(num int, mux uint32, pad uint32) (gpio *Pin, err error) {
+// InitPad initializes a pad for GPIO.
+func (hw *GPIO) InitPad(num int, mux uint32, pad uint32, mode uint32) (gpio *Pin, err error) {
 	if hw.Base == 0 {
 		return nil, errors.New("invalid GPIO controller instance")
 	}
@@ -67,7 +65,7 @@ func (hw *GPIO) InitPad(num int, mux uint32, pad uint32) (gpio *Pin, err error) 
 		dir:  hw.Base + GPIO_GDIR,
 	}
 
-	gpio.Pad.Mode(GPIO_MODE)
+	gpio.Pad.Mode(mode)
 
 	return
 }

@@ -105,7 +105,7 @@ func configureBLEPad(mux uint32, pad uint32, daisy uint32, mode uint32, ctl uint
 func configureBLEGPIO(num int, gpio *gpio.GPIO, mux uint32, pad uint32, ctl uint32) (pin *gpio.Pin) {
 	var err error
 
-	if pin, err = gpio.InitPad(num, mux, pad); err != nil {
+	if pin, err = gpio.InitPad(num, mux, pad, GPIO_MODE); err != nil {
 		panic(err)
 	}
 
