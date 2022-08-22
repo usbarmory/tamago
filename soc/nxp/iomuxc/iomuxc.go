@@ -62,6 +62,18 @@ type Pad struct {
 	Daisy uint32
 }
 
+// Init initializes a pad.
+func Init(mux uint32, pad uint32, mode uint32) (p *Pad) {
+	p = &Pad{
+		Mux: mux,
+		Pad: pad,
+	}
+
+	p.Mode(mode)
+
+	return
+}
+
 // Mode configures the pad iomux mode.
 func (pad *Pad) Mode(mode uint32) {
 	reg.SetN(pad.Mux, SW_MUX_CTL_MUX_MODE, 0b1111, mode)

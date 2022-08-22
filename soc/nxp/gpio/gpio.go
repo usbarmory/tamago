@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 )
 
 // GPIO registers
@@ -38,15 +37,13 @@ type GPIO struct {
 
 // Pin instance
 type Pin struct {
-	Pad *iomuxc.Pad
-
 	num  int
 	data uint32
 	dir  uint32
 }
 
-// InitPad initializes a pad for GPIO.
-func (hw *GPIO) InitPad(num int, mux uint32, pad uint32, mode uint32) (gpio *Pin, err error) {
+// Init initializes a GPIO.
+func (hw *GPIO) Init(num int) (gpio *Pin, err error) {
 	if hw.Base == 0 {
 		return nil, errors.New("invalid GPIO controller instance")
 	}
@@ -56,16 +53,10 @@ func (hw *GPIO) InitPad(num int, mux uint32, pad uint32, mode uint32) (gpio *Pin
 	}
 
 	gpio = &Pin{
-		Pad: &iomuxc.Pad{
-			Mux: mux,
-			Pad: pad,
-		},
 		num:  num,
 		data: hw.Base + GPIO_DR,
 		dir:  hw.Base + GPIO_GDIR,
 	}
-
-	gpio.Pad.Mode(mode)
 
 	return
 }
