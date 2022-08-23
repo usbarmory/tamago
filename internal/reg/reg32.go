@@ -64,7 +64,7 @@ func ClearN(addr uint32, pos int, mask int) {
 	atomic.StoreUint32(reg, r)
 }
 
-// defined in reg32.s
+// defined in reg32_*.s
 func Move(dst uint32, src uint32)
 
 func Read(addr uint32) uint32 {

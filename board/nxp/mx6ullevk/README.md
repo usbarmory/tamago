@@ -34,7 +34,7 @@ For more information about TamaGo see its
 [project wiki](https://github.com/usbarmory/tamago/wiki).
 
 For the underlying driver support for this board see package
-[imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6).
+[imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul).
 
 The package API documentation can be found on
 [pkg.go.dev](https://pkg.go.dev/github.com/usbarmory/tamago).
@@ -42,9 +42,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC           | Board                                                                                                                                                                                | SoC package                                                      | Board package                                                                    |
-|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| NXP i.MX6ULL  | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6](https://github.com/usbarmory/tamago/tree/master/soc/imx6) | [mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk) |
+| SoC           | Board                                                                                                                                                                                | SoC package                                                              | Board package                                                                    |
+|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| NXP i.MX6ULL  | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul) | [mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk) |
 
 Compiling
 =========

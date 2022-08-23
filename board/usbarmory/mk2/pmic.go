@@ -12,7 +12,8 @@ package mk2
 import (
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/soc/imx6"
+	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
+	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 )
 
 // On the USB armory Mk II the PMIC watchdog input (WDI) is connected to the
@@ -28,20 +29,17 @@ const (
 func init() {
 	var ctl uint32
 
-	bits.Set(&ctl, imx6.SW_PAD_CTL_HYS)
-	bits.Set(&ctl, imx6.SW_PAD_CTL_PUE)
-	bits.Set(&ctl, imx6.SW_PAD_CTL_PKE)
+	bits.Set(&ctl, iomuxc.SW_PAD_CTL_HYS)
+	bits.Set(&ctl, iomuxc.SW_PAD_CTL_PUE)
+	bits.Set(&ctl, iomuxc.SW_PAD_CTL_PKE)
 
-	bits.SetN(&ctl, imx6.SW_PAD_CTL_PUS, 0b11, imx6.SW_PAD_CTL_PUS_PULL_UP_22K)
-	bits.SetN(&ctl, imx6.SW_PAD_CTL_SPEED, 0b11, imx6.SW_PAD_CTL_SPEED_50MHZ)
-	bits.SetN(&ctl, imx6.SW_PAD_CTL_DSE, 0b111, imx6.SW_PAD_CTL_DSE_2_R0_6)
+	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_PUS, 0b11, iomuxc.SW_PAD_CTL_PUS_PULL_UP_22K)
+	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_SPEED, 0b11, iomuxc.SW_PAD_CTL_SPEED_50MHZ)
+	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_DSE, 0b111, iomuxc.SW_PAD_CTL_DSE_2_R0_6)
 
-	p, err := imx6.NewPad(IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_EN,
-		IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_EN,
-		0)
-
-	if err != nil {
-		panic(err)
+	p := &iomuxc.Pad{
+		Mux: IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_EN,
+		Pad: IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_EN,
 	}
 
 	p.Mode(WDOG2_WDOG_RST_B_DEB_MODE)
@@ -53,9 +51,9 @@ func init() {
 func Reset() {
 	for {
 		// enable software reset extension
-		reg.Set16(imx6.WDOG2_WCR, imx6.WCR_SRE)
+		reg.Set16(imx6ul.WDOG2_WCR, imx6ul.WCR_SRE)
 
 		// assert system reset signal
-		reg.Clear16(imx6.WDOG2_WCR, imx6.WCR_SRS)
+		reg.Clear16(imx6ul.WDOG2_WCR, imx6ul.WCR_SRS)
 	}
 }

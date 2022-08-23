@@ -43,7 +43,7 @@ func nanotime1() int64 {
 }
 
 // Init takes care of the lower level SoC initialization triggered early in
-// runtime setup.
+// runtime setup (e.g. runtime.hwinit).
 func Init(base uint32) {
 	peripheralBase = base
 

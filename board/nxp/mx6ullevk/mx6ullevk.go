@@ -18,8 +18,7 @@ package mx6ullevk
 import (
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/soc/imx6"
-	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
+	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
 )
 
 // Peripheral instances
@@ -43,7 +42,7 @@ var (
 //
 //go:linkname Init runtime.hwinit
 func Init() {
-	imx6.Init()
+	imx6ul.Init()
 
 	// initialize console
 	imx6ul.UART1.Init()

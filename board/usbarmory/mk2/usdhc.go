@@ -10,7 +10,7 @@
 package mk2
 
 import (
-	"github.com/usbarmory/tamago/soc/imx6"
+	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 )
 
 // SD instance
@@ -61,28 +61,20 @@ func init() {
 	// There are no write-protect lines on uSD or eMMC cards, therefore the
 	// respective SoC pads must be selected on pulled down unconnected pads
 	// to ensure the driver never sees write protection enabled.
-	ctl := uint32((1 << imx6.SW_PAD_CTL_PUE) | (1 << imx6.SW_PAD_CTL_PKE))
+	ctl := uint32((1 << iomuxc.SW_PAD_CTL_PUE) | (1 << iomuxc.SW_PAD_CTL_PKE))
 
 	// SD write protect (USDHC1_WP)
-	wpSD, err := imx6.NewPad(IOMUXC_SW_MUX_CTL_PAD_CSI_DATA04,
-		IOMUXC_SW_PAD_CTL_PAD_CSI_DATA04,
-		IOMUXC_USDHC1_WP_SELECT_INPUT)
-
-	if err != nil {
-		panic(err)
+	wpSD := &iomuxc.Pad{
+		Mux:   IOMUXC_SW_MUX_CTL_PAD_CSI_DATA04,
+		Pad:   IOMUXC_SW_PAD_CTL_PAD_CSI_DATA04,
+		Daisy: IOMUXC_USDHC1_WP_SELECT_INPUT,
 	}
 
 	// MMC write protect (USDHC2_WP)
-	wpMMC, err := imx6.NewPad(IOMUXC_SW_MUX_CTL_PAD_CSI_PIXCLK,
-		IOMUXC_SW_PAD_CTL_PAD_CSI_PIXCLK,
-		IOMUXC_USDHC2_WP_SELECT_INPUT)
-
-	if err != nil {
-		panic(err)
-	}
-
-	if !imx6.Native {
-		return
+	wpMMC := &iomuxc.Pad{
+		Mux:   IOMUXC_SW_MUX_CTL_PAD_CSI_PIXCLK,
+		Pad:   IOMUXC_SW_PAD_CTL_PAD_CSI_PIXCLK,
+		Daisy: IOMUXC_USDHC2_WP_SELECT_INPUT,
 	}
 
 	wpSD.Mode(USDHC1_WP_MODE)

@@ -16,8 +16,7 @@
 package mk2
 
 import (
-	"github.com/usbarmory/tamago/soc/imx6"
-	"github.com/usbarmory/tamago/soc/imx6/imx6ul"
+	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
 
 	_ "unsafe"
 )
@@ -43,7 +42,7 @@ var (
 )
 
 // Model returns the USB armory model name, to further detect SoC variants
-// imx6.Model() can be used.
+// imx6ul.Model() can be used.
 func Model() (model string) {
 	// WithSecure burns model information in the MSB of OTP fuses bank 4
 	// word 2 (OCOTP_MAC0).
@@ -63,7 +62,7 @@ func Model() (model string) {
 //go:linkname Init runtime.hwinit
 func Init() {
 	// initialize SoC
-	imx6.Init()
+	imx6ul.Init()
 
 	// initialize serial console
 	imx6ul.UART2.Init()

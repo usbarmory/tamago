@@ -19,7 +19,7 @@ package sifive_u
 import (
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/soc/fu540"
+	"github.com/usbarmory/tamago/soc/sifive/fu540"
 )
 
 // Peripheral instances

@@ -1,3 +1,5 @@
+GOARCH ?= "arm"
+
 .PHONY : prepare report imports
 
 all: imports prepare report
@@ -14,7 +16,7 @@ prepare:
 
 report:
 	@echo "==> Launch report program using $(go env GOROOT)"
-	GOOS=tamago GOARCH=arm ./gen_import_report
+	GOOS=tamago GOARCH=$(GOARCH) ./gen_import_report
 	rm -f main
 
 clean:
