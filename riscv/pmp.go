@@ -90,6 +90,9 @@ func (cpu *CPU) ReadPMP(i int) (addr uint64, r bool, w bool, x bool, a int, l bo
 		return
 	}
 
+	// addr holds bits 55:2
+	addr = addr << 2
+
 	cfg := read_pmpcfg0()
 	off := i * 8
 
@@ -107,6 +110,9 @@ func (cpu *CPU) ReadPMP(i int) (addr uint64, r bool, w bool, x bool, a int, l bo
 func (cpu *CPU) WritePMP(i int, addr uint64, r bool, w bool, x bool, a int, l bool) (err error) {
 	mux.Lock()
 	defer mux.Unlock()
+
+	// addr holds bits 55:2
+	addr = addr >> 2
 
 	switch i {
 	case 0:
