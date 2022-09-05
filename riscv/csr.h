@@ -1,11 +1,9 @@
 // RISC-V processor support
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) WithSecure Corporation
-// https://foundry.withsecure.com
-//
-// Use of this source code is governed by the license
-// that can be found in the LICENSE file.
+// Copyright 2022 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in Go LICENSE file.
 
 #define s0 8
 
