@@ -16,18 +16,18 @@
 
 // func set_mtvec(addr uint64)
 TEXT ·set_mtvec(SB),NOSPLIT,$0-8
-	MOV	addr+0(FP), S0
-	CSRW	(s0, mtvec)
+	MOV	addr+0(FP), T0
+	CSRW	(t0, mtvec)
 	RET
 
 // func read_mepc() uint64
 TEXT ·read_mepc(SB),NOSPLIT,$0-8
-	CSRR	(mepc, s0)
-	MOV	S0, ret+0(FP)
+	CSRR	(mepc, t0)
+	MOV	T0, ret+0(FP)
 	RET
 
 // func read_mcause() uint64
 TEXT ·read_mcause(SB),NOSPLIT,$0-8
-	CSRR	(mcause, s0)
-	MOV	S0, ret+0(FP)
+	CSRR	(mcause, t0)
+	MOV	T0, ret+0(FP)
 	RET

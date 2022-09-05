@@ -10,7 +10,7 @@
 // Package riscv provides support for RISC-V architecture specific operations.
 //
 // The following architectures/cores are supported/tested:
-//  * RV64 (single-core)
+//   - RV64 (single-core)
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=riscv64` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see

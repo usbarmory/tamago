@@ -28,8 +28,8 @@
 TEXT ·read_pmpcfg0(SB),$0-8
 	// Volume II: RISC-V Privileged Architectures V20211203
 	// 3.7.1 Physical Memory Protection CSRs
-	CSRR	(pmpcfg0, s0)
-	MOV	S0, ret+0(FP)
+	CSRR	(pmpcfg0, t0)
+	MOV	T0, ret+0(FP)
 
 	RET
 
@@ -37,103 +37,103 @@ TEXT ·read_pmpcfg0(SB),$0-8
 TEXT ·write_pmpcfg0(SB),$0-8
 	// Volume II: RISC-V Privileged Architectures V20211203
 	// 3.7.1 Physical Memory Protection CSRs
-	MOV	cfg+0(FP), S0
-	CSRW	(s0, pmpcfg0)
+	MOV	cfg+0(FP), T0
+	CSRW	(t0, pmpcfg0)
 
 	RET
 
 // func read_pmpaddr0() uint64
 TEXT ·read_pmpaddr0(SB),$0-8
-	CSRR	(pmpaddr0, s0)
-	MOV	S0, ret+0(FP)
+	CSRR	(pmpaddr0, t0)
+	MOV	T0, ret+0(FP)
 	RET
 
 // func read_pmpaddr1() uint64
 TEXT ·read_pmpaddr1(SB),$0-8
-	CSRR	(pmpaddr1, s0)
-	MOV	S0, ret+0(FP)
+	CSRR	(pmpaddr1, t0)
+	MOV	T0, ret+0(FP)
 	RET
 
 // func read_pmpaddr2() uint64
 TEXT ·read_pmpaddr2(SB),$0-8
-	CSRR	(pmpaddr2, s0)
-	MOV	S0, ret+0(FP)
+	CSRR	(pmpaddr2, t0)
+	MOV	T0, ret+0(FP)
 	RET
 
 // func read_pmpaddr3() uint64
 TEXT ·read_pmpaddr3(SB),$0-8
-	CSRR	(pmpaddr3, s0)
-	MOV	S0, ret+0(FP)
+	CSRR	(pmpaddr3, t0)
+	MOV	T0, ret+0(FP)
 	RET
 
 // func read_pmpaddr4() uint64
 TEXT ·read_pmpaddr4(SB),$0-8
-	CSRR	(pmpaddr4, s0)
-	MOV	S0, ret+0(FP)
+	CSRR	(pmpaddr4, t0)
+	MOV	T0, ret+0(FP)
 	RET
 
 // func read_pmpaddr5() uint64
 TEXT ·read_pmpaddr5(SB),$0-8
-	CSRR	(pmpaddr5, s0)
-	MOV	S0, ret+0(FP)
+	CSRR	(pmpaddr5, t0)
+	MOV	T0, ret+0(FP)
 	RET
 
 // func read_pmpaddr6() uint64
 TEXT ·read_pmpaddr6(SB),$0-8
-	CSRR	(pmpaddr6, s0)
-	MOV	S0, ret+0(FP)
+	CSRR	(pmpaddr6, t0)
+	MOV	T0, ret+0(FP)
 	RET
 
 // func read_pmpaddr7() uint64
 TEXT ·read_pmpaddr7(SB),$0-8
-	CSRR	(pmpaddr7, s0)
-	MOV	S0, ret+0(FP)
+	CSRR	(pmpaddr7, t0)
+	MOV	T0, ret+0(FP)
 	RET
 
 // func write_pmpaddr0(uint64)
 TEXT ·write_pmpaddr0(SB),$0-8
-	MOV	addr+0(FP), S0
-	CSRW	(s0, pmpaddr0)
+	MOV	addr+0(FP), T0
+	CSRW	(t0, pmpaddr0)
 	RET
 
 // func write_pmpaddr1(uint64)
 TEXT ·write_pmpaddr1(SB),$0-8
-	MOV	addr+0(FP), S0
-	CSRW	(s0, pmpaddr1)
+	MOV	addr+0(FP), T0
+	CSRW	(t0, pmpaddr1)
 	RET
 
 // func write_pmpaddr2(uint64)
 TEXT ·write_pmpaddr2(SB),$0-8
-	MOV	addr+0(FP), S0
-	CSRW	(s0, pmpaddr2)
+	MOV	addr+0(FP), T0
+	CSRW	(t0, pmpaddr2)
 	RET
 
 // func write_pmpaddr3(uint64)
 TEXT ·write_pmpaddr3(SB),$0-8
-	MOV	addr+0(FP), S0
-	CSRW	(s0, pmpaddr3)
+	MOV	addr+0(FP), T0
+	CSRW	(t0, pmpaddr3)
 	RET
 
 // func write_pmpaddr4(uint64)
 TEXT ·write_pmpaddr4(SB),$0-8
-	MOV	addr+0(FP), S0
-	CSRW	(s0, pmpaddr4)
+	MOV	addr+0(FP), T0
+	CSRW	(t0, pmpaddr4)
 	RET
 
 // func write_pmpaddr5(uint64)
 TEXT ·write_pmpaddr5(SB),$0-8
-	MOV	addr+0(FP), S0
-	CSRW	(s0, pmpaddr5)
+	MOV	addr+0(FP), T0
+	CSRW	(t0, pmpaddr5)
 	RET
 
 // func write_pmpaddr6(uint64)
 TEXT ·write_pmpaddr6(SB),$0-8
-	MOV	addr+0(FP), S0
-	CSRW	(s0, pmpaddr6)
+	MOV	addr+0(FP), T0
+	CSRW	(t0, pmpaddr6)
 	RET
 
 // func write_pmpaddr7(uint64)
 TEXT ·write_pmpaddr7(SB),$0-8
-	MOV	addr+0(FP), S0
-	CSRW	(s0, pmpaddr7)
+	MOV	addr+0(FP), T0
+	CSRW	(t0, pmpaddr7)
 	RET

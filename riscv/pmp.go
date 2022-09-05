@@ -17,8 +17,8 @@ import (
 )
 
 // PMP CSRs constants
-// (Volume II: RISC-V Privileged Architectures V20211203
-/// 3.7.1 Physical Memory Protection CSRs).
+// (3.7.1 Physical Memory Protection CSRs
+// RISC-V Privileged Architectures V20211203).
 const (
 	PMP_CFG_L = 7 // lock
 	PMP_CFG_A = 3 // address-matching mode

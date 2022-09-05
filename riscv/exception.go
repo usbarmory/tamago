@@ -13,6 +13,25 @@ import (
 	"unsafe"
 )
 
+// RISC-V exception codes (non-interrupt)
+// (Table 3.6 - Volume II: RISC-V Privileged Architectures V20211203).
+const (
+	InstructionAddressMisaligned = 0
+	InstructionAccessFault       = 1
+	IllegalInstruction           = 2
+	Breakpoint                   = 3
+	LoadAddressMisaligned        = 4
+	LoadAccessFault              = 5
+	StoreAddressMisaligned       = 6
+	StoreAccessFault             = 7
+	EnvironmentCallFromU         = 8
+	EnvironmentCallFromS         = 9
+	EnvironmentCallFromM         = 11
+	InstructionPageFault         = 12
+	LoadPageFault                = 13
+	StorePageFault               = 15
+)
+
 // defined in exception.s
 func set_mtvec(addr uint64)
 func read_mepc() uint64
