@@ -95,6 +95,11 @@ func (dma *Region) Start() uint32 {
 	return uint32(dma.start)
 }
 
+// End returns the DMA region end address.
+func (dma *Region) End() uint32 {
+	return uint32(dma.start + dma.size)
+}
+
 // Size returns the DMA region size.
 func (dma *Region) Size() uint32 {
 	return uint32(dma.size)
