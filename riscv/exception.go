@@ -34,8 +34,11 @@ const (
 
 // defined in exception.s
 func set_mtvec(addr uint64)
+func set_stvec(addr uint64)
 func read_mepc() uint64
+func read_sepc() uint64
 func read_mcause() uint64
+func read_scause() uint64
 
 type ExceptionHandler func()
 
@@ -52,7 +55,20 @@ func DefaultExceptionHandler() {
 	irq := int(mcause >> size)
 	code := int(mcause) & ^(1 << size)
 
-	print("exception: pc:", int(read_mepc()), " interrupt:", irq, " code:", code, "\n")
+	print("machine exception: pc ", int(read_mepc()), " interrupt ", irq, " code ", code, "\n")
+	panic("unhandled exception")
+}
+
+// DefaultSupervisorExceptionHandler handles an exception by printing the
+// exception program counter and trap cause before panicking.
+func DefaultSupervisorExceptionHandler() {
+	scause := read_scause()
+	size := XLEN - 1
+
+	irq := int(scause >> size)
+	code := int(scause) & ^(1 << size)
+
+	print("supervisor exception: pc ", int(read_sepc()), " interrupt ", irq, " code ", code, "\n")
 	panic("unhandled exception")
 }
 
@@ -61,8 +77,14 @@ func (cpu *CPU) initExceptionHandler() {
 	set_mtvec(vector(DefaultExceptionHandler))
 }
 
-// SetExceptionHandler updates the CPU trap vector vector with the address of
-// the argument function.
+// SetExceptionHandler updates the CPU machine trap vector vector with the
+// address of the argument function.
 func (cpu *CPU) SetExceptionHandler(fn ExceptionHandler) {
 	set_mtvec(vector(fn))
+}
+
+// SetSupervisorExceptionHandler updates the CPU supervisor trap vector vector
+// with the address of the argument function.
+func (cpu *CPU) SetSupervisorExceptionHandler(fn ExceptionHandler) {
+	set_stvec(vector(fn))
 }

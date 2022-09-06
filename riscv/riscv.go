@@ -23,7 +23,13 @@ const XLEN = 64
 // CPU instance
 type CPU struct{}
 
-// Init performs initialization of an RV64 core instance.
+// Init performs initialization of an RV64 core instance in machine mode.
 func (cpu *CPU) Init() {
 	cpu.SetExceptionHandler(DefaultExceptionHandler)
+}
+
+// InitSupervisor performs initialization of an RV64 core instance in
+// supervisor mode.
+func (cpu *CPU) InitSupervisor() {
+	cpu.SetSupervisorExceptionHandler(DefaultSupervisorExceptionHandler)
 }
