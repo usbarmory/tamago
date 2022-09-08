@@ -64,10 +64,6 @@ func (cpu *CPU) ReadPMP(i int) (addr uint64, r bool, w bool, x bool, a int, l bo
 	mux.Lock()
 	defer mux.Unlock()
 
-	if i > 7 {
-		return
-	}
-
 	switch i {
 	case 0:
 		addr = read_pmpaddr0()
