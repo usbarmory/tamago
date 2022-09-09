@@ -186,7 +186,7 @@ func (hw *USB) enable(n int, dir int, transferType int) {
 
 // clear resets the endpoint status (active and halt bits)
 func (hw *USB) clear(n int, dir int) {
-	token := hw.dQH[n][dir] + uint32(DQH_TOKEN)
+	token := hw.dQH[n][dir] + DQH_TOKEN
 	reg.SetN(token, 6, 0b11, 0b00)
 }
 
@@ -207,10 +207,10 @@ func (hw *USB) qh(n int, dir int) (dqh dQH) {
 // nextDTD sets the next endpoint transfer pointer
 func (hw *USB) nextDTD(n int, dir int, dtd uint32) {
 	dqh := hw.dQH[n][dir]
-	next := dqh + uint32(DQH_NEXT)
+	next := dqh + DQH_NEXT
 
 	// wait for endpoint status to be cleared
-	reg.Wait(dqh+uint32(DQH_TOKEN), 6, 0b11, 0b00)
+	reg.Wait(dqh+DQH_TOKEN, 6, 0b11, 0b00)
 	// set next dTD
 	reg.Write(next, dtd)
 }
@@ -237,7 +237,7 @@ func buildDTD(n int, dir int, ioc bool, addr uint32, size int) (dtd *dTD) {
 	dtd._size = uint32(size)
 
 	for n := 0; n < DTD_PAGES; n++ {
-		dtd.Buffer[n] = dtd._buf + uint32(DTD_PAGE_SIZE*n)
+		dtd.Buffer[n] = dtd._buf + DTD_PAGE_SIZE*uint32(n)
 	}
 
 	buf := new(bytes.Buffer)
