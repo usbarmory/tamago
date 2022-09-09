@@ -59,6 +59,13 @@ func (hw *DCP) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, 
 		}
 	}
 
+	sourceBufferAddress := region.Alloc(key, aes.BlockSize)
+	defer region.Free(sourceBufferAddress)
+
+	payloadPointer := region.Alloc(iv, 0)
+	defer region.Free(payloadPointer)
+
+
 	pkt := &WorkPacket{}
 	pkt.SetCipherDefaults()
 
@@ -66,16 +73,10 @@ func (hw *DCP) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, 
 	pkt.Control0 |= 1 << DCP_CTRL0_CIPHER_ENCRYPT
 	pkt.Control0 |= 1 << DCP_CTRL0_OTP_KEY
 	pkt.Control1 |= KEY_SELECT_UNIQUE_KEY << DCP_CTRL1_KEY_SELECT
-
-	pkt.BufferSize = uint32(len(key))
-
-	pkt.SourceBufferAddress = region.Alloc(key, aes.BlockSize)
-	defer region.Free(pkt.SourceBufferAddress)
-
+	pkt.SourceBufferAddress = uint32(sourceBufferAddress)
 	pkt.DestinationBufferAddress = pkt.SourceBufferAddress
-
-	pkt.PayloadPointer = region.Alloc(iv, 0)
-	defer region.Free(pkt.PayloadPointer)
+	pkt.BufferSize = uint32(len(key))
+	pkt.PayloadPointer = uint32(payloadPointer)
 
 	ptr := region.Alloc(pkt.Bytes(), 0)
 	defer region.Free(ptr)
@@ -87,7 +88,7 @@ func (hw *DCP) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, 
 	if index >= 0 {
 		return nil, hw.setKeyData(index, nil, pkt.SourceBufferAddress)
 	} else {
-		region.Read(pkt.SourceBufferAddress, 0, key)
+		region.Read(sourceBufferAddress, 0, key)
 	}
 
 	return

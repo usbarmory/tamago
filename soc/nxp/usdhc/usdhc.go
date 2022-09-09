@@ -536,7 +536,7 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, arg uint64, blocks uint32, b
 	bdAddress := dma.Alloc(bd.Bytes(), 4)
 	defer dma.Free(bdAddress)
 
-	reg.Write(hw.adma_sys_addr, bdAddress)
+	reg.Write(hw.adma_sys_addr, uint32(bdAddress))
 
 	if hw.card.HC && (index == 18 || index == 25) {
 		// p102, 4.3.14 Command Functional Difference in Card Capacity Types, SD-PL-7.10
