@@ -21,32 +21,8 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
-	"sync"
 	"unsafe"
 )
-
-type block struct {
-	// pointer address
-	addr uint
-	// buffer size
-	size uint
-	// distinguish regular (`Alloc`/`Free`) and reserved
-	// (`Reserve`/`Release`) blocks.
-	res bool
-}
-
-// Region represents a memory region allocated for DMA purposes.
-type Region struct {
-	sync.Mutex
-
-	start uint
-	size  uint
-
-	freeBlocks *list.List
-	usedBlocks map[uint]*block
-}
-
-var dma *Region
 
 // NewRegion initializes a memory region for DMA buffer allocation.
 //
@@ -55,7 +31,7 @@ var dma *Region
 //
 // To allow allocation of DMA buffers within Go runtime memory the unsafe flag
 // must be set.
-func NewRegion(addr uint32, size int, unsafe bool) (dma *Region, err error) {
+func NewRegion(addr uint, size int, unsafe bool) (dma *Region, err error) {
 	start := uint(addr)
 	end := uint(start) + uint(size)
 
@@ -91,18 +67,18 @@ func NewRegion(addr uint32, size int, unsafe bool) (dma *Region, err error) {
 }
 
 // Start returns the DMA region start address.
-func (dma *Region) Start() uint32 {
-	return uint32(dma.start)
+func (dma *Region) Start() uint {
+	return dma.start
 }
 
 // End returns the DMA region end address.
-func (dma *Region) End() uint32 {
-	return uint32(dma.start + dma.size)
+func (dma *Region) End() uint {
+	return dma.start + dma.size
 }
 
 // Size returns the DMA region size.
-func (dma *Region) Size() uint32 {
-	return uint32(dma.size)
+func (dma *Region) Size() uint {
+	return dma.size
 }
 
 // Reserve allocates a slice of bytes for DMA purposes, by placing its data
@@ -121,7 +97,7 @@ func (dma *Region) Size() uint32 {
 //
 // The optional alignment must be a power of 2 and word alignment is always
 // enforced (0 == 4).
-func (dma *Region) Reserve(size int, align int) (addr uint32, buf []byte) {
+func (dma *Region) Reserve(size int, align int) (addr uint, buf []byte) {
 	if size == 0 {
 		return
 	}
@@ -139,17 +115,17 @@ func (dma *Region) Reserve(size int, align int) (addr uint32, buf []byte) {
 	hdr.Len = size
 	hdr.Cap = hdr.Len
 
-	return uint32(b.addr), buf
+	return b.addr, buf
 }
 
 // Reserved returns whether a slice of bytes data is allocated within the DMA
 // buffer region, it is used to determine whether the passed buffer has been
 // previously allocated by this package with Reserve().
-func (dma *Region) Reserved(buf []byte) (res bool, addr uint32) {
+func (dma *Region) Reserved(buf []byte) (res bool, addr uint) {
 	ptr := uint(uintptr(unsafe.Pointer(&buf[0])))
 	res = ptr >= dma.start && ptr+uint(len(buf)) <= dma.start+dma.size
 
-	return res, uint32(ptr)
+	return res, ptr
 }
 
 // Alloc reserves a memory region for DMA purposes, copying over a buffer and
@@ -161,7 +137,7 @@ func (dma *Region) Reserved(buf []byte) (res bool, addr uint32) {
 //
 // The optional alignment must be a power of 2 and word alignment is always
 // enforced (0 == 4).
-func (dma *Region) Alloc(buf []byte, align int) (addr uint32) {
+func (dma *Region) Alloc(buf []byte, align int) (addr uint) {
 	size := len(buf)
 
 	if size == 0 {
@@ -169,7 +145,7 @@ func (dma *Region) Alloc(buf []byte, align int) (addr uint32) {
 	}
 
 	if res, addr := Reserved(buf); res {
-		return uint32(addr)
+		return addr
 	}
 
 	dma.Lock()
@@ -180,7 +156,7 @@ func (dma *Region) Alloc(buf []byte, align int) (addr uint32) {
 
 	dma.usedBlocks[b.addr] = b
 
-	return uint32(b.addr)
+	return b.addr
 }
 
 // Read reads exactly len(buf) bytes from a memory region address into a
@@ -193,7 +169,7 @@ func (dma *Region) Alloc(buf []byte, align int) (addr uint32) {
 // If the argument is a buffer previously created with Reserve(), then the
 // function returns without modifying it, as it is assumed for the buffer to be
 // already updated.
-func (dma *Region) Read(addr uint32, off int, buf []byte) {
+func (dma *Region) Read(addr uint, off int, buf []byte) {
 	size := len(buf)
 
 	if addr == 0 || size == 0 {
@@ -207,7 +183,7 @@ func (dma *Region) Read(addr uint32, off int, buf []byte) {
 	dma.Lock()
 	defer dma.Unlock()
 
-	b, ok := dma.usedBlocks[uint(addr)]
+	b, ok := dma.usedBlocks[addr]
 
 	if !ok {
 		panic("read of unallocated pointer")
@@ -226,7 +202,7 @@ func (dma *Region) Read(addr uint32, off int, buf []byte) {
 // An offset can be passed to write a slice of the memory region, a panic
 // occurs if the offset is not compatible with the initial allocation for the
 // address.
-func (dma *Region) Write(addr uint32, off int, buf []byte) {
+func (dma *Region) Write(addr uint, off int, buf []byte) {
 	size := len(buf)
 
 	if addr == 0 || size == 0 {
@@ -236,7 +212,7 @@ func (dma *Region) Write(addr uint32, off int, buf []byte) {
 	dma.Lock()
 	defer dma.Unlock()
 
-	b, ok := dma.usedBlocks[uint(addr)]
+	b, ok := dma.usedBlocks[addr]
 
 	if !ok {
 		return
@@ -251,36 +227,14 @@ func (dma *Region) Write(addr uint32, off int, buf []byte) {
 
 // Free frees the memory region stored at the passed address, the region must
 // have been previously allocated with Alloc().
-func (dma *Region) Free(addr uint32) {
-	dma.freeBlock(uint(addr), false)
+func (dma *Region) Free(addr uint) {
+	dma.freeBlock(addr, false)
 }
 
 // Release frees the memory region stored at the passed address, the region
 // must have been previously allocated with Reserve().
-func (dma *Region) Release(addr uint32) {
-	dma.freeBlock(uint(addr), true)
-}
-
-func (dma *Region) freeBlock(addr uint, res bool) {
-	if addr == 0 {
-		return
-	}
-
-	dma.Lock()
-	defer dma.Unlock()
-
-	b, ok := dma.usedBlocks[addr]
-
-	if !ok {
-		return
-	}
-
-	if b.res != res {
-		return
-	}
-
-	dma.free(b)
-	delete(dma.usedBlocks, addr)
+func (dma *Region) Release(addr uint) {
+	dma.freeBlock(addr, true)
 }
 
 // Init initializes the global memory region for DMA buffer allocation, used
@@ -288,47 +242,42 @@ func (dma *Region) freeBlock(addr uint, res bool) {
 //
 // Additional DMA regions for application use can be allocated through
 // NewRegion().
-func Init(start uint32, size int) (err error) {
+func Init(start uint, size int) (err error) {
 	dma, err = NewRegion(start, size, false)
 	return
 }
 
-// Default returns the global DMA region instance.
-func Default() *Region {
-	return dma
-}
-
 // Reserve is the equivalent of Region.Reserve() on the global DMA region.
-func Reserve(size int, align int) (addr uint32, buf []byte) {
+func Reserve(size int, align int) (addr uint, buf []byte) {
 	return dma.Reserve(size, align)
 }
 
 // Reserved is the equivalent of Region.Reserved() on the global DMA region.
-func Reserved(buf []byte) (res bool, addr uint32) {
+func Reserved(buf []byte) (res bool, addr uint) {
 	return dma.Reserved(buf)
 }
 
 // Alloc is the equivalent of Region.Alloc() on the global DMA region.
-func Alloc(buf []byte, align int) (addr uint32) {
+func Alloc(buf []byte, align int) (addr uint) {
 	return dma.Alloc(buf, align)
 }
 
 // Read is the equivalent of Region.Read() on the global DMA region.
-func Read(addr uint32, off int, buf []byte) {
+func Read(addr uint, off int, buf []byte) {
 	dma.Read(addr, off, buf)
 }
 
 // Write is the equivalent of Region.Write() on the global DMA region.
-func Write(addr uint32, off int, buf []byte) {
+func Write(addr uint, off int, buf []byte) {
 	dma.Write(addr, off, buf)
 }
 
 // Free is the equivalent of Region.Free() on the global DMA region.
-func Free(addr uint32) {
+func Free(addr uint) {
 	dma.Free(addr)
 }
 
 // Release is the equivalent of Region.Release() on the global DMA region.
-func Release(addr uint32) {
+func Release(addr uint) {
 	dma.Release(addr)
 }

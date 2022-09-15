@@ -105,7 +105,7 @@ func (hw *USB) initQH() {
 	buf := new(bytes.Buffer)
 
 	binary.Write(buf, binary.LittleEndian, &epList)
-	hw.epListAddr = dma.Alloc(buf.Bytes(), DQH_LIST_ALIGN)
+	hw.epListAddr = uint32(dma.Alloc(buf.Bytes(), DQH_LIST_ALIGN))
 
 	// set endpoint queue head
 	reg.Write(hw.eplist, hw.epListAddr)
@@ -144,7 +144,7 @@ func (hw *USB) set(n int, dir int, max int, zlt bool, mult int) {
 	binary.Write(buf, binary.LittleEndian, &dqh)
 
 	offset := (n*2 + dir) * DQH_SIZE
-	dma.Write(hw.epListAddr, offset, buf.Bytes())
+	dma.Write(uint(hw.epListAddr), offset, buf.Bytes())
 
 	hw.dQH[n][dir] = hw.epListAddr + uint32(offset)
 }
@@ -193,7 +193,7 @@ func (hw *USB) clear(n int, dir int) {
 // qh returns the Endpoint Queue Head (dQH)
 func (hw *USB) qh(n int, dir int) (dqh dQH) {
 	buf := make([]byte, DQH_SIZE)
-	dma.Read(hw.dQH[n][dir], 0, buf)
+	dma.Read(uint(hw.dQH[n][dir]), 0, buf)
 
 	err := binary.Read(bytes.NewReader(buf), binary.LittleEndian, &dqh)
 
@@ -244,7 +244,7 @@ func buildDTD(n int, dir int, ioc bool, addr uint32, size int) (dtd *dTD) {
 	binary.Write(buf, binary.LittleEndian, dtd)
 
 	// skip internal DMA buffer pointers
-	dtd._dtd = dma.Alloc(buf.Bytes()[0:DTD_SIZE], DTD_ALIGN)
+	dtd._dtd = uint32(dma.Alloc(buf.Bytes()[0:DTD_SIZE], DTD_ALIGN))
 
 	return
 }
@@ -316,8 +316,8 @@ func (hw *USB) transfer(n int, dir int, ioc bool, buf []byte) (out []byte, err e
 			size = transferSize - i
 		}
 
-		dtd := buildDTD(n, dir, ioc, pages+uint32(i), size)
-		defer dma.Free(dtd._dtd)
+		dtd := buildDTD(n, dir, ioc, uint32(pages)+uint32(i), size)
+		defer dma.Free(uint(dtd._dtd))
 
 		if i == 0 {
 			prime = true

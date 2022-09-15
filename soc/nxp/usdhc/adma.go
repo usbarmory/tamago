@@ -44,19 +44,19 @@ type ADMABufferDescriptor struct {
 }
 
 // Init initializes an ADMA2 buffer descriptor.
-func (bd *ADMABufferDescriptor) Init(addr uint32, size int) {
+func (bd *ADMABufferDescriptor) Init(addr uint, size int) {
 	b := bd
 
 	for size > 0 {
 		if size <= ADMA_BD_MAX_LENGTH {
 			b.Attribute = ACT_TRANSFER<<ATTR_ACT | 1<<ATTR_END | 1<<ATTR_VALID
 			b.Length = uint16(size)
-			b.Address = addr
+			b.Address = uint32(addr)
 			break
 		} else {
 			b.Attribute = ACT_TRANSFER<<ATTR_ACT | 1<<ATTR_VALID
 			b.Length = uint16(ADMA_BD_MAX_LENGTH)
-			b.Address = addr
+			b.Address = uint32(addr)
 
 			addr += ADMA_BD_MAX_LENGTH
 			size -= ADMA_BD_MAX_LENGTH

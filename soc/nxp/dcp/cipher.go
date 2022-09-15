@@ -43,6 +43,12 @@ func (hw *DCP) cipher(buf []byte, index int, iv []byte, enc bool) (err error) {
 		return errors.New("invalid IV size")
 	}
 
+	sourceBufferAddress := dma.Alloc(buf, aes.BlockSize)
+	defer dma.Free(sourceBufferAddress)
+
+	payloadPointer := dma.Alloc(iv, 4)
+	defer dma.Free(payloadPointer)
+
 	pkt := &WorkPacket{}
 	pkt.SetCipherDefaults()
 
@@ -52,15 +58,10 @@ func (hw *DCP) cipher(buf []byte, index int, iv []byte, enc bool) (err error) {
 
 	// use key RAM slot
 	pkt.Control1 |= (uint32(index) & 0xff) << DCP_CTRL1_KEY_SELECT
-	pkt.BufferSize = uint32(len(buf))
-
-	pkt.SourceBufferAddress = dma.Alloc(buf, aes.BlockSize)
-	defer dma.Free(pkt.SourceBufferAddress)
-
+	pkt.SourceBufferAddress = uint32(sourceBufferAddress)
 	pkt.DestinationBufferAddress = pkt.SourceBufferAddress
-
-	pkt.PayloadPointer = dma.Alloc(iv, 4)
-	defer dma.Free(pkt.PayloadPointer)
+	pkt.BufferSize = uint32(len(buf))
+	pkt.PayloadPointer = uint32(payloadPointer)
 
 	ptr := dma.Alloc(pkt.Bytes(), 4)
 	defer dma.Free(ptr)
@@ -69,7 +70,7 @@ func (hw *DCP) cipher(buf []byte, index int, iv []byte, enc bool) (err error) {
 		return
 	}
 
-	dma.Read(pkt.DestinationBufferAddress, 0, buf)
+	dma.Read(sourceBufferAddress, 0, buf)
 
 	return
 }
@@ -131,12 +132,12 @@ func (hw *DCP) CipherChain(buf []byte, ivs []byte, count int, size int, index in
 	pkt.Control1 |= (uint32(index) & 0xff) << DCP_CTRL1_KEY_SELECT
 
 	for i := 0; i < count; i++ {
-		pkt.SourceBufferAddress = src + uint32(i*size)
+		pkt.SourceBufferAddress = uint32(src) + uint32(i*size)
 		pkt.DestinationBufferAddress = pkt.SourceBufferAddress
-		pkt.PayloadPointer = payloads + uint32(i*aes.BlockSize)
+		pkt.PayloadPointer = uint32(payloads) + uint32(i*aes.BlockSize)
 
 		if i < count-1 {
-			pkt.NextCmdAddr = pkts + uint32((i+1)*WorkPacketLength)
+			pkt.NextCmdAddr = uint32(pkts) + uint32((i+1)*WorkPacketLength)
 		} else {
 			bits.Clear(&pkt.Control0, DCP_CTRL0_CHAIN)
 			bits.Set(&pkt.Control0, DCP_CTRL0_INTERRUPT_ENABL)

@@ -183,7 +183,7 @@ func (hw *DCP) Init() {
 	reg.Write(hw.chctrl, DCP_CHANNEL_0)
 }
 
-func (hw *DCP) cmd(ptr uint32, count int) (err error) {
+func (hw *DCP) cmd(ptr uint, count int) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
@@ -195,7 +195,7 @@ func (hw *DCP) cmd(ptr uint32, count int) (err error) {
 	reg.Write(hw.ch0stat_clr, 0xffffffff)
 
 	// set command address
-	reg.Write(hw.ch0cmdptr, ptr)
+	reg.Write(hw.ch0cmdptr, uint32(ptr))
 	// activate channel
 	reg.SetN(hw.ch0sema, 0, 0xff, uint32(count))
 	// wait for completion

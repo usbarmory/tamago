@@ -11,25 +11,25 @@ package dma
 
 import (
 	"container/list"
-	"unsafe"
+	"sync"
 )
 
-func (b *block) read(off uint, buf []byte) {
-	var ptr unsafe.Pointer
+// Region represents a memory region allocated for DMA purposes.
+type Region struct {
+	sync.Mutex
 
-	ptr = unsafe.Add(ptr, b.addr+off)
-	mem := unsafe.Slice((*byte)(ptr), len(buf))
+	start uint
+	size  uint
 
-	copy(buf, mem)
+	freeBlocks *list.List
+	usedBlocks map[uint]*block
 }
 
-func (b *block) write(off uint, buf []byte) {
-	var ptr unsafe.Pointer
+var dma *Region
 
-	ptr = unsafe.Add(ptr, b.addr+off)
-	mem := unsafe.Slice((*byte)(ptr), len(buf))
-
-	copy(mem, buf)
+// Default returns the global DMA region instance.
+func Default() *Region {
+	return dma
 }
 
 func (dma *Region) defrag() {
@@ -120,4 +120,26 @@ func (dma *Region) free(usedBlock *block) {
 	}
 
 	dma.freeBlocks.PushBack(usedBlock)
+}
+
+func (dma *Region) freeBlock(addr uint, res bool) {
+	if addr == 0 {
+		return
+	}
+
+	dma.Lock()
+	defer dma.Unlock()
+
+	b, ok := dma.usedBlocks[addr]
+
+	if !ok {
+		return
+	}
+
+	if b.res != res {
+		return
+	}
+
+	dma.free(b)
+	delete(dma.usedBlocks, addr)
 }
