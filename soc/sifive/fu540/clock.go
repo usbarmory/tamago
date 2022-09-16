@@ -16,14 +16,14 @@ import (
 
 // Clock registers
 const (
-	PRCI = 0x10000000
+	PRCI_BASE = 0x10000000
 
-	PRCI_COREPLLCFG = PRCI + 0x4
+	PRCI_COREPLLCFG = PRCI_BASE + 0x4
 	COREPLL_DIVR    = 0
 	COREPLL_DIVF    = 6
 	COREPLL_DIVQ    = 15
 
-	PRCI_CORECLKSEL = PRCI + 0x24
+	PRCI_CORECLKSEL = PRCI_BASE + 0x24
 )
 
 // Oscillator frequencies
