@@ -34,6 +34,9 @@ const (
 	PMP_A       = 59 // address-matching mode
 	PMP_W       = 57 // write access
 	PMP_R       = 56 // read access
+
+	PMP_A_OFF = false // Null region (disabled)
+	PMP_A_TOR = true  // Top of range
 )
 
 // PhysicalFilter represents a Physical Filter instance.
@@ -44,11 +47,11 @@ type PhysicalFilter struct {
 	Base uint32
 }
 
-// ReadDevicePMP returns the Device Physical Memory Protection register,
+// ReadPMP returns the Device Physical Memory Protection register,
 // configuration and address, for the relevant index.
-func (hw *PhysicalFilter) ReadDevicePMP(i int) (addr uint64, r bool, w bool, a bool, l bool, err error) {
+func (hw *PhysicalFilter) ReadPMP(i int) (addr uint64, r bool, w bool, a bool, l bool, err error) {
 	if i > 3 {
-		err = errors.New("invalid Device PMP index")
+		err = errors.New("invalid PMP index")
 		return
 	}
 
@@ -56,20 +59,19 @@ func (hw *PhysicalFilter) ReadDevicePMP(i int) (addr uint64, r bool, w bool, a b
 
 	addr = bits.Get64(&pmp, PMP_ADDR_HI, 0x1ffffff) << 4
 
-	r = bits.Get64(&pmp, PMP_R, 0b1) == 1
-	w = bits.Get64(&pmp, PMP_W, 0b1) == 1
-	a = bits.Get64(&pmp, PMP_A, 0b1) == 1
-	l = bits.Get64(&pmp, PMP_L, 0b1) == 1
+	r = bits.Get64(&pmp, PMP_R, 1) == 1
+	w = bits.Get64(&pmp, PMP_W, 1) == 1
+	a = bits.Get64(&pmp, PMP_A, 1) == 1
+	l = bits.Get64(&pmp, PMP_L, 1) == 1
 
 	return
 }
 
-// WriteDevicePMP sets the Device Physical Memory Protection register,
-// configuration and address, for the relevant index.
-func (hw *PhysicalFilter) WriteDevicePMP(i int, addr uint64, r bool, w bool, a bool, l bool) (err error) {
+// WritePMP sets the Device Physical Memory Protection register, configuration
+// and address, for the relevant index.
+func (hw *PhysicalFilter) WritePMP(i int, addr uint64, r bool, w bool, a bool, l bool) (err error) {
 	if i > 3 {
-		err = errors.New("invalid Device PMP index")
-		return
+		return errors.New("invalid PMP index")
 	}
 
 	hw.Lock()

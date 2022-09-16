@@ -26,10 +26,10 @@ const (
 	PMP_CFG_W = 1 // write access
 	PMP_CFG_R = 0 // read access
 
-	PMP_CFG_A_OFF   = 0 // Null region (disabled)
-	PMP_CFG_A_TOR   = 1 // Top of range
-	PMP_CFG_A_NA4   = 2 // Naturally aligned four-byte region
-	PMP_CFG_A_NAPOT = 3 // Naturally aligned power-of-two region, ≥8 bytes
+	PMP_A_OFF   = 0 // Null region (disabled)
+	PMP_A_TOR   = 1 // Top of range
+	PMP_A_NA4   = 2 // Naturally aligned four-byte region
+	PMP_A_NAPOT = 3 // Naturally aligned power-of-two region, ≥8 bytes
 )
 
 // PMP CSRs helpers for RV64, only 8 PMPs are supported for now. In the future,
@@ -92,10 +92,10 @@ func (cpu *CPU) ReadPMP(i int) (addr uint64, r bool, w bool, x bool, a int, l bo
 	cfg := read_pmpcfg0()
 	off := i * 8
 
-	r = bits.Get64(&cfg, off+PMP_CFG_R, 0b1) == 1
-	w = bits.Get64(&cfg, off+PMP_CFG_W, 0b1) == 1
-	x = bits.Get64(&cfg, off+PMP_CFG_X, 0b1) == 1
-	l = bits.Get64(&cfg, off+PMP_CFG_L, 0b1) == 1
+	r = bits.Get64(&cfg, off+PMP_CFG_R, 1) == 1
+	w = bits.Get64(&cfg, off+PMP_CFG_W, 1) == 1
+	x = bits.Get64(&cfg, off+PMP_CFG_X, 1) == 1
+	l = bits.Get64(&cfg, off+PMP_CFG_L, 1) == 1
 	a = int(bits.Get64(&cfg, off+PMP_CFG_A, 0b11))
 
 	return

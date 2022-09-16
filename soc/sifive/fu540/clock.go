@@ -47,7 +47,7 @@ func init() {
 
 // Freq returns the RISC-V core frequency.
 func Freq() (hz uint32) {
-	if reg.Get(PRCI_CORECLKSEL, 0, 0b1) == 1 {
+	if reg.Get(PRCI_CORECLKSEL, 0, 1) == 1 {
 		return COREPLL
 	}
 

@@ -304,7 +304,7 @@ func GetPFD(pll int, pfd int) (div uint32, hz uint32) {
 		return
 	}
 
-	if reg.Get(register, gate_pos, 0b1) == 1 {
+	if reg.Get(register, gate_pos, 1) == 1 {
 		return
 	}
 
@@ -361,7 +361,7 @@ func SetPFD(pll uint32, pfd uint32, div uint32) error {
 func GetUARTClock() uint32 {
 	var freq uint32
 
-	if reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, 0b1) == 1 {
+	if reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, 1) == 1 {
 		freq = OSC_FREQ
 	} else {
 		// match /6 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)

@@ -38,7 +38,7 @@ func (hw *CSU) GetSecurityLevel(periph int, slave int) (csl uint8, lock bool, er
 	val := reg.Read(hw.csl0 + uint32(4*periph))
 	csl = uint8((val >> (CSL_S2 * slave)) & 0xff)
 
-	if uint8((val>>(CSL_S1_LOCK+CSL_S2*slave))&0b1) == 1 {
+	if uint8((val>>(CSL_S1_LOCK+CSL_S2*slave))&1) == 1 {
 		lock = true
 	}
 
