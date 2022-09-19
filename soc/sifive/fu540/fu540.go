@@ -34,8 +34,8 @@ const (
 	CLINT_BASE = 0x2000000
 
 	// Serial ports
-	UART1_BASE = 0x10010000
-	UART2_BASE = 0x10011000
+	UART0_BASE = 0x10010000
+	UART1_BASE = 0x10011000
 )
 
 // Peripheral instances
@@ -50,15 +50,15 @@ var (
 	}
 
 	// Serial port 1
-	UART1 = &uart.UART{
+	UART0 = &uart.UART{
 		Index: 1,
-		Base:  UART1_BASE,
+		Base:  UART0_BASE,
 	}
 
 	// Serial port 2
-	UART2 = &uart.UART{
+	UART1 = &uart.UART{
 		Index: 2,
-		Base:  UART2_BASE,
+		Base:  UART1_BASE,
 	}
 )
 

@@ -20,5 +20,5 @@ import (
 
 //go:linkname printk runtime.printk
 func printk(c byte) {
-	fu540.UART1.Tx(c)
+	fu540.UART0.Tx(c)
 }

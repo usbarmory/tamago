@@ -24,7 +24,7 @@ import (
 
 // Peripheral instances
 var (
-	UART1 = fu540.UART1
+	UART0 = fu540.UART0
 )
 
 // Init takes care of the lower level SoC initialization triggered early in
@@ -36,5 +36,5 @@ func Init() {
 	fu540.Init()
 
 	// initialize serial console
-	fu540.UART1.Init()
+	fu540.UART0.Init()
 }
