@@ -78,7 +78,7 @@ func (hw *USB) Start(dev *Device) {
 
 		// handle setup packet
 		if err := hw.handleSetup(dev, hw.getSetup()); err != nil {
-			log.Printf("imx6_usb: setup error, %v", err)
+			log.Printf("usb: setup error, %v", err)
 		}
 
 		// check if configuration reload is required

@@ -82,7 +82,7 @@ func (ep *Endpoint) Start() {
 
 		if err != nil {
 			ep.Flush()
-			log.Printf("imx6_usb: EP%d.%d transfer error, %v", ep.n, ep.dir, err)
+			log.Printf("usb: EP%d.%d transfer error, %v", ep.n, ep.dir, err)
 		}
 
 		select {
