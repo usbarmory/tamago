@@ -75,14 +75,22 @@ func init() {
 	// use internal OCRAM (iRAM) as default DMA region
 	dma.Init(OCRAM_START, OCRAM_SIZE)
 
-	// assign internal OCRAM to DCP internal key exchange
-	DCP.DeriveKeyMemory = dma.Default()
-
 	switch Model() {
 	case "i.MX6UL":
+		DCP = nil
+		RNGB = nil
 		OCOTP.Banks = 16
 	case "i.MX6ULL":
 		OCOTP.Banks = 8
+	case "i.MX6ULZ":
+		ENET1 = nil
+		ENET2 = nil
+		OCOTP.Banks = 8
+	}
+
+	if DCP != nil {
+		// assign internal OCRAM to DCP internal key exchange
+		DCP.DeriveKeyMemory = dma.Default()
 	}
 
 	if !Native || ARM.NonSecure() {

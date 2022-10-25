@@ -49,6 +49,12 @@ const (
 	CCM_ANALOG_PLL_USB2 = CCM_ANALOG_PLL_ARM + 0x20
 	PLL_EN_USB_CLKS     = 6
 
+	CCM_ANALOG_PLL_ENET  = CCM_ANALOG_PLL_ARM + 0xe0
+	PLL_ENET2_125M_EN    = 20
+	PLL_ENET1_125M_EN    = 13
+	PLL_ENET1_DIV_SELECT = 2
+	PLL_ENET0_DIV_SELECT = 0
+
 	CCM_ANALOG_PFD_480  = 0x020c80f0
 	CCM_ANALOG_PFD_528  = 0x020c8100
 	ANALOG_PFD3_CLKGATE = 31
@@ -64,8 +70,11 @@ const (
 	CORE_REG2_TARG = 18
 	CORE_REG0_TARG = 0
 
+	CCM_CCGR0 = 0x020c4068
 	CCM_CCGR1 = 0x020c406c
 	CCM_CCGR2 = 0x020c4070
+	CCM_CCGR3 = 0x020c4074
+	CCM_CCGR5 = 0x020c407c
 	CCM_CCGR6 = 0x020c4080
 
 	CCGRx_CG15 = 30
@@ -84,6 +93,14 @@ const (
 	CCGRx_CG2  = 4
 	CCGRx_CG1  = 2
 	CCGRx_CG0  = 0
+)
+
+const (
+	IOMUXC_GPR_GPR1  = 0x020e4004
+	ENET2_TX_CLK_DIR = 18
+	ENET1_TX_CLK_DIR = 17
+	ENET2_CLK_SEL    = 14
+	ENET1_CLK_SEL    = 13
 )
 
 // Oscillator frequencies
@@ -463,6 +480,51 @@ func EnableUSBPLL(index int) (err error) {
 
 	// enable PLL
 	reg.Set(pll, PLL_ENABLE)
+
+	return
+}
+
+// EnableENETPLL enables the Ethernet MAC 50MHz PLL.
+func EnableENETPLL(index int) (err error) {
+	var sel int
+	var dir int
+	var enable int
+	var div_select int
+	var pll uint32 = CCM_ANALOG_PLL_ENET
+
+	switch index {
+	case 1:
+		sel = ENET1_CLK_SEL
+		dir = ENET1_TX_CLK_DIR
+		enable = PLL_ENET1_125M_EN
+		div_select = PLL_ENET0_DIV_SELECT
+	case 2:
+		sel = ENET2_CLK_SEL
+		dir = ENET2_TX_CLK_DIR
+		enable = PLL_ENET2_125M_EN
+		div_select = PLL_ENET1_DIV_SELECT
+	default:
+		return errors.New("invalid interface index")
+	}
+
+	// set reference clock
+	reg.Clear(IOMUXC_GPR_GPR1, sel)
+	reg.Set(IOMUXC_GPR_GPR1, dir)
+
+	// set frequency to 50MHz
+	reg.SetN(pll, div_select, 0b11, 1)
+
+	// power up PLL
+	reg.Clear(pll, PLL_POWER)
+
+	// wait for lock
+	reg.Wait(pll, PLL_LOCK, 1, 1)
+
+	// enable PLL
+	reg.Set(pll, enable)
+
+	// remove bypass
+	reg.Clear(pll, PLL_BYPASS)
 
 	return
 }

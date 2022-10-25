@@ -118,6 +118,10 @@ type UART struct {
 	Index int
 	// Base register
 	Base uint32
+	// Clock gate register
+	CCGR uint32
+	// Clock gate
+	CG int
 	// Clock retrieval function
 	Clock func() uint32
 	// port speed
@@ -146,7 +150,7 @@ type UART struct {
 // Init initializes and enables the UART for RS-232 mode,
 // p3605, 55.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
 func (hw *UART) Init() {
-	if hw.Base == 0 || hw.Clock == nil {
+	if hw.Base == 0 || hw.CCGR == 0 || hw.CG == 0 || hw.Clock == nil {
 		panic("invalid UART controller instance")
 	}
 
@@ -167,6 +171,9 @@ func (hw *UART) Init() {
 	hw.ubir = hw.Base + UARTx_UBIR
 	hw.ubmr = hw.Base + UARTx_UBMR
 	hw.uts = hw.Base + UARTx_UTS
+
+	// enable clock
+	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
 
 	hw.setup()
 }

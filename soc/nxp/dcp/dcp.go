@@ -117,6 +117,10 @@ type DCP struct {
 
 	// Base register
 	Base uint32
+	// Clock gate register
+	CCGR uint32
+	// Clock gate
+	CG int
 
 	// DeriveKeyMemory represents the DMA memory region used for exchanging DCP
 	// derived keys when the derivation index points to an internal DCP key RAM
@@ -157,7 +161,7 @@ func (hw *DCP) Init() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if hw.Base == 0 {
+	if hw.Base == 0 || hw.CCGR == 0 {
 		panic("invalid DCP instance")
 	}
 
@@ -172,11 +176,14 @@ func (hw *DCP) Init() {
 	hw.ch0stat = hw.Base + DCP_CH0STAT
 	hw.ch0stat_clr = hw.Base + DCP_CH0STAT_CLR
 
+	// enable clock
+	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
+
 	// soft reset DCP
 	reg.Set(hw.ctrl, CTRL_SFTRST)
 	reg.Clear(hw.ctrl, CTRL_SFTRST)
 
-	// enable clock
+	// enable DCP
 	reg.Clear(hw.ctrl, CTRL_CLKGATE)
 
 	// enable channel 0

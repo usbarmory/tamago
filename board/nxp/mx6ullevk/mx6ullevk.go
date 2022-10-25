@@ -23,6 +23,9 @@ import (
 
 // Peripheral instances
 var (
+	ENET1 = imx6ul.ENET1
+	ENET2 = imx6ul.ENET2
+
 	I2C1 = imx6ul.I2C1
 	I2C2 = imx6ul.I2C2
 

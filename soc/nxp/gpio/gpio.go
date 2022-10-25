@@ -33,6 +33,12 @@ type GPIO struct {
 	Index int
 	// Base register
 	Base uint32
+	// Clock gate register
+	CCGR uint32
+	// Clock gate
+	CG int
+
+	clk bool
 }
 
 // Pin instance
@@ -44,7 +50,7 @@ type Pin struct {
 
 // Init initializes a GPIO.
 func (hw *GPIO) Init(num int) (gpio *Pin, err error) {
-	if hw.Base == 0 {
+	if hw.Base == 0 || hw.CCGR == 0 {
 		return nil, errors.New("invalid GPIO controller instance")
 	}
 
@@ -56,6 +62,12 @@ func (hw *GPIO) Init(num int) (gpio *Pin, err error) {
 		num:  num,
 		data: hw.Base + GPIO_DR,
 		dir:  hw.Base + GPIO_GDIR,
+	}
+
+	if !hw.clk {
+		// enable clock
+		reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
+		hw.clk = true
 	}
 
 	return

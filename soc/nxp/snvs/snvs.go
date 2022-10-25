@@ -37,6 +37,20 @@ const (
 type SNVS struct {
 	// Base register
 	Base uint32
+	// Clock gate register
+	CCGR uint32
+	// Clock gate
+	CG int
+}
+
+// Init initializes the SNVS controller.
+func (hw *SNVS) Init() {
+	if hw.Base == 0 || hw.CCGR == 0 {
+		panic("invalid SNVS instance")
+	}
+
+	// enable clock
+	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
 }
 
 // Available verifies whether the Secure Non Volatile Storage (SNVS) is

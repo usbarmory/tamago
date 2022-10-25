@@ -14,12 +14,12 @@
 // The package implements initialization and drivers for NXP
 // i.MX6UL/i.MX6ULL/i.MX6ULZ SoCs, adopting the following reference
 // specifications:
-//   * IMX6ULCEC  - i.MX6UL  Data Sheet                               - Rev 2.2 2015/05
-//   * IMX6ULLCEC - i.MX6ULL Data Sheet                               - Rev 1.2 2017/11
-//   * IMX6ULZCEC - i.MX6ULZ Data Sheet                               - Rev 0   2018/09
-//   * IMX6ULRM   - i.MX 6UL  Applications Processor Reference Manual - Rev 1   2016/04
-//   * IMX6ULLRM  - i.MX 6ULL Applications Processor Reference Manual - Rev 1   2017/11
-//   * IMX6ULZRM  - i.MX 6ULZ Applications Processor Reference Manual - Rev 0   2018/10
+//   - IMX6ULCEC  - i.MX6UL  Data Sheet                               - Rev 2.2 2015/05
+//   - IMX6ULLCEC - i.MX6ULL Data Sheet                               - Rev 1.2 2017/11
+//   - IMX6ULZCEC - i.MX6ULZ Data Sheet                               - Rev 0   2018/09
+//   - IMX6ULRM   - i.MX 6UL  Applications Processor Reference Manual - Rev 1   2016/04
+//   - IMX6ULLRM  - i.MX 6ULL Applications Processor Reference Manual - Rev 1   2017/11
+//   - IMX6ULZRM  - i.MX 6ULZ Applications Processor Reference Manual - Rev 0   2018/10
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
@@ -34,6 +34,7 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/soc/nxp/csu"
 	"github.com/usbarmory/tamago/soc/nxp/dcp"
+	"github.com/usbarmory/tamago/soc/nxp/enet"
 	"github.com/usbarmory/tamago/soc/nxp/gpio"
 	"github.com/usbarmory/tamago/soc/nxp/i2c"
 	"github.com/usbarmory/tamago/soc/nxp/ocotp"
@@ -62,6 +63,10 @@ const (
 	GPIO4_BASE = 0x020a8000
 	GPIO5_BASE = 0x020ac000
 
+	// Ethernet MAC (UL/ULL only)
+	ENET1_BASE = 0x02188000
+	ENET2_BASE = 0x020b4000
+
 	// I2C
 	I2C1_BASE = 0x021a0000
 	I2C2_BASE = 0x021a4000
@@ -83,7 +88,6 @@ const (
 	// TrustZone Address Space Controller
 	TZASC_BASE            = 0x021d0000
 	TZASC_BYPASS          = 0x020e4024
-	IOMUXC_GPR_GPR1       = 0x020e4004
 	GPR1_TZASC1_BOOT_LOCK = 23
 
 	// Serial ports
@@ -121,6 +125,8 @@ var (
 	// Data Co-Processor (ULL/ULZ only)
 	DCP = &dcp.DCP{
 		Base: DCP_BASE,
+		CCGR: CCM_CCGR0,
+		CG:   CCGRx_CG5,
 		// DeriveKeyMemory is assigned in init.go
 	}
 
@@ -128,30 +134,60 @@ var (
 	GPIO1 = &gpio.GPIO{
 		Index: 1,
 		Base:  GPIO1_BASE,
+		CCGR:  CCM_CCGR1,
+		CG:    CCGRx_CG13,
 	}
 
 	// GPIO controller 2
 	GPIO2 = &gpio.GPIO{
 		Index: 2,
 		Base:  GPIO2_BASE,
+		CCGR:  CCM_CCGR0,
+		CG:    CCGRx_CG15,
 	}
 
 	// GPIO controller 3
 	GPIO3 = &gpio.GPIO{
 		Index: 3,
 		Base:  GPIO3_BASE,
+		CCGR:  CCM_CCGR2,
+		CG:    CCGRx_CG13,
 	}
 
 	// GPIO controller 4
 	GPIO4 = &gpio.GPIO{
 		Index: 4,
 		Base:  GPIO4_BASE,
+		CCGR:  CCM_CCGR3,
+		CG:    CCGRx_CG6,
 	}
 
 	// GPIO controller 5
 	GPIO5 = &gpio.GPIO{
 		Index: 5,
 		Base:  GPIO5_BASE,
+		CCGR:  CCM_CCGR1,
+		CG:    CCGRx_CG15,
+	}
+
+	// Ethernet MAC 1 (UL/ULL only)
+	ENET1 = &enet.ENET{
+		Index:     1,
+		Base:      ENET1_BASE,
+		CCGR:      CCM_CCGR0,
+		CG:        CCGRx_CG6,
+		Clock:     GetPeripheralClock,
+		EnablePLL: EnableENETPLL,
+	}
+
+	// Ethernet MAC 2 (UL/ULL only)
+	ENET2 = &enet.ENET{
+		Index:     2,
+		Base:      ENET2_BASE,
+		CCGR:      CCM_CCGR0,
+		CG:        CCGRx_CG6,
+		Clock:     GetPeripheralClock,
+		EnablePLL: EnableENETPLL,
 	}
 
 	// I2C controller 1
@@ -186,6 +222,8 @@ var (
 	// Secure Non-Volatile Storage
 	SNVS = &snvs.SNVS{
 		Base: SNVS_BASE,
+		CCGR: CCM_CCGR5,
+		CG:   CCGRx_CG9,
 	}
 
 	// TrustZone Address Space Controller
@@ -200,6 +238,8 @@ var (
 	UART1 = &uart.UART{
 		Index: 1,
 		Base:  UART1_BASE,
+		CCGR:  CCM_CCGR5,
+		CG:    CCGRx_CG12,
 		Clock: GetUARTClock,
 	}
 
@@ -207,6 +247,8 @@ var (
 	UART2 = &uart.UART{
 		Index: 2,
 		Base:  UART2_BASE,
+		CCGR:  CCM_CCGR0,
+		CG:    CCGRx_CG14,
 		Clock: GetUARTClock,
 	}
 
@@ -278,11 +320,19 @@ func UniqueID() (uid [8]byte) {
 
 // Model returns the SoC model name.
 func Model() (model string) {
+	OCOTP.Init()
+
 	switch Family {
 	case IMX6UL:
 		model = "i.MX6UL"
 	case IMX6ULL:
-		model = "i.MX6ULL"
+		cfg5, _ := OCOTP.Read(0, 6)
+
+		if (cfg5>>6)&1 == 1 {
+			model = "i.MX6ULZ"
+		} else {
+			model = "i.MX6ULL"
+		}
 	default:
 		model = "unknown"
 	}
