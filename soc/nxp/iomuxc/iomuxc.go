@@ -81,11 +81,7 @@ func (pad *Pad) Mode(mode uint32) {
 
 // SoftwareInput configures the pad SION bit.
 func (pad *Pad) SoftwareInput(enabled bool) {
-	if enabled {
-		reg.Set(pad.Mux, SW_MUX_CTL_SION)
-	} else {
-		reg.Clear(pad.Mux, SW_MUX_CTL_SION)
-	}
+	reg.SetTo(pad.Mux, SW_MUX_CTL_SION, enabled)
 }
 
 // Ctl configures the pad control register.

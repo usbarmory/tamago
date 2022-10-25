@@ -85,11 +85,7 @@ func (hw *CSU) SetAccess(id int, secure bool, lock bool) (err error) {
 		return errors.New("index out of range")
 	}
 
-	if secure {
-		reg.Clear(hw.sa, id*2)
-	} else {
-		reg.Set(hw.sa, id*2)
-	}
+	reg.SetTo(hw.sa, id*2, !secure)
 
 	if lock {
 		reg.Set(hw.sa, id*2+1)

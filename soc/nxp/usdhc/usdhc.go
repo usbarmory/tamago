@@ -310,9 +310,7 @@ func (hw *USDHC) setFreq(dvs int, sdclkfs int) {
 	reg.Write(hw.sys_ctrl, sys)
 	reg.Wait(hw.pres_state, PRES_STATE_SDSTB, 1, 1)
 
-	if hw.card.SD {
-		reg.Set(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON)
-	}
+	reg.SetTo(hw.vend_spec, VEND_SPEC_FRC_SDCLK_ON, hw.card.SD)
 }
 
 // executeTuning performs the bus tuning, `cmd` should be set to the relevant

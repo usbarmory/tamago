@@ -21,11 +21,6 @@ const (
 
 // Debug controls ARM invasive and non-invasive debug functionalities.
 func Debug(enable bool) {
-	if enable {
-		reg.Set(IOMUXC_GPR_GPR10, GPR10_DBG_CLK_EN)
-		reg.Set(IOMUXC_GPR_GPR10, GPR10_DBG_EN)
-	} else {
-		reg.Clear(IOMUXC_GPR_GPR10, GPR10_DBG_CLK_EN)
-		reg.Clear(IOMUXC_GPR_GPR10, GPR10_DBG_EN)
-	}
+	reg.SetTo(IOMUXC_GPR_GPR10, GPR10_DBG_CLK_EN, enable)
+	reg.SetTo(IOMUXC_GPR_GPR10, GPR10_DBG_EN, enable)
 }
