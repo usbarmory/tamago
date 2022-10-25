@@ -130,8 +130,8 @@ type ENET struct {
 	tx bufferDescriptorRing
 }
 
-// Init initializes and enables the UART for RS-232 mode,
-// p3605, 55.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
+// Init initializes and enables the Ethernet MAC controller for 100 Mbps
+// full-duplex operation.
 func (hw *ENET) Init() {
 	hw.Lock()
 

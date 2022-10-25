@@ -32,6 +32,7 @@ func mdio22(op int, pa int, ra int, data uint16) (pkt uint32) {
 	return
 }
 
+// ReadMII reads a connected Ethernet PHY register.
 func (hw *ENET) ReadMII(pa int, ra int) (data uint16) {
 	reg.Set(hw.eir, EIR_MII)
 	defer reg.Set(hw.eir, EIR_MII)
@@ -42,6 +43,7 @@ func (hw *ENET) ReadMII(pa int, ra int) (data uint16) {
 	return uint16(reg.Read(hw.mmfr))
 }
 
+// WriteMII writes a connected Ethernet PHY register.
 func (hw *ENET) WriteMII(pa int, ra int, data uint16) {
 	reg.Set(hw.eir, EIR_MII)
 	defer reg.Set(hw.eir, EIR_MII)

@@ -150,6 +150,8 @@ func (ring *bufferDescriptorRing) push(bd bufferDescriptor) {
 	}
 }
 
+// Rx receives a single Ethernet frame, excluding the checksum, from the MAC
+// controller ring buffer.
 func (hw *ENET) Rx() (buf []byte) {
 	hw.Lock()
 	defer hw.Unlock()
@@ -177,6 +179,8 @@ func (hw *ENET) Rx() (buf []byte) {
 	return
 }
 
+// Tx transmits a single Ethernet frame, the checksum is appended
+// automatically and must not be included.
 func (hw *ENET) Tx(buf []byte) {
 	hw.Lock()
 	defer hw.Unlock()
