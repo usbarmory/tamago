@@ -41,8 +41,8 @@ Supported hardware
 
 | SoC           | Related board packages                                                               | Peripheral drivers                                                                                                   |
 |---------------|--------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| NXP i.MX 6ULZ | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory)     | [CSU, DCP, GPIO, I2C, OCOTP, RNGB, TZASC, UART, USB, USDHC](https://github.com/usbarmory/tamago/tree/master/soc/nxp) |
-| NXP i.MX 6ULL | [nxp/mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk) | [CSU, DCP, GPIO, I2C, OCOTP, RNGB, TZASC, UART, USB, USDHC](https://github.com/usbarmory/tamago/tree/master/soc/nxp) |
+| NXP i.MX 6ULZ | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory)     | [CSU, DCP, ENET, GPIO, I2C, OCOTP, RNGB, TZASC, UART, USB, USDHC](https://github.com/usbarmory/tamago/tree/master/soc/nxp) |
+| NXP i.MX 6ULL | [nxp/mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk) | [CSU, DCP, ENET, GPIO, I2C, OCOTP, RNGB, TZASC, UART, USB, USDHC](https://github.com/usbarmory/tamago/tree/master/soc/nxp) |
 
 License
 =======
