@@ -159,7 +159,8 @@ func (ble *ANNA) Init() (err error) {
 		0, DEFAULT_MODE, ctl)
 
 	// BT_UART_RX
-	pad := configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART1_RX_DATA,
+	pad := configureBLEPad(
+		IOMUXC_SW_MUX_CTL_PAD_UART1_RX_DATA,
 		IOMUXC_SW_PAD_CTL_PAD_UART1_RX_DATA,
 		IOMUXC_UART1_RX_DATA_SELECT_INPUT,
 		DEFAULT_MODE, ctl)
@@ -188,14 +189,16 @@ func (ble *ANNA) Init() (err error) {
 		BLE.UART.Flow = false
 	default:
 		// BT_UART_CTS
-		pad = configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B,
+		pad = configureBLEPad(
+			IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B,
 			IOMUXC_SW_PAD_CTL_PAD_UART1_CTS_B,
 			0, DEFAULT_MODE, ctl)
 
 		bits.SetN(&ctl, iomuxc.SW_PAD_CTL_PUS, 0b11, iomuxc.SW_PAD_CTL_PUS_PULL_DOWN_100K)
 
 		// BT_UART_RTS
-		pad = configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
+		pad = configureBLEPad(
+			IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
 			IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07,
 			IOMUXC_UART1_RTS_B_SELECT_INPUT,
 			UART1_RTS_B_MODE, ctl)
@@ -209,17 +212,20 @@ func (ble *ANNA) Init() (err error) {
 	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_DSE, 0b111, iomuxc.SW_PAD_CTL_DSE_2_R0_4)
 
 	// BT_UART_DSR
-	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART3_TX_DATA,
+	configureBLEPad(
+		IOMUXC_SW_MUX_CTL_PAD_UART3_TX_DATA,
 		IOMUXC_SW_PAD_CTL_PAD_UART3_TX_DATA,
 		0, ctl, GPIO_MODE)
 
 	// BT_SWDCLK
-	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO04,
+	configureBLEPad(
+		IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO04,
 		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO04,
 		0, GPIO_MODE, ctl)
 
 	// BT_SWDIO
-	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO06,
+	configureBLEPad(
+		IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO06,
 		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO06,
 		0, GPIO_MODE, ctl)
 
@@ -246,7 +252,8 @@ func (ble *ANNA) Init() (err error) {
 	bits.Set(&ctl, iomuxc.SW_PAD_CTL_HYS)
 
 	// BT_UART_DTR
-	configureBLEPad(IOMUXC_SW_MUX_CTL_PAD_UART3_RX_DATA,
+	configureBLEPad(
+		IOMUXC_SW_MUX_CTL_PAD_UART3_RX_DATA,
 		IOMUXC_SW_PAD_CTL_PAD_UART3_RX_DATA,
 		0, GPIO_MODE, ctl)
 
