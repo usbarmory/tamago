@@ -7,7 +7,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package uart implements a driver for NXP Ethernet controllers adopting the
+// Package enet implements a driver for NXP Ethernet controllers adopting the
 // following reference specifications:
 //   - IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
 //
