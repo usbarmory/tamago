@@ -32,6 +32,7 @@ import (
 	"github.com/usbarmory/tamago/arm"
 	"github.com/usbarmory/tamago/arm/tzc380"
 	"github.com/usbarmory/tamago/internal/reg"
+	"github.com/usbarmory/tamago/soc/nxp/caam"
 	"github.com/usbarmory/tamago/soc/nxp/csu"
 	"github.com/usbarmory/tamago/soc/nxp/dcp"
 	"github.com/usbarmory/tamago/soc/nxp/enet"
@@ -47,6 +48,9 @@ import (
 
 // Peripheral registers
 const (
+	// Cryptographic Acceleration and Assurance Module (UL only)
+	CAAM_BASE = 0x02140000
+
 	// Central Security Unit
 	CSU_BASE = 0x021c0000
 
@@ -114,6 +118,9 @@ const (
 var (
 	// ARM core
 	ARM = &arm.CPU{}
+
+	// Cryptographic Acceleration and Assurance Module (UL only)
+	CAAM *caam.CAAM
 
 	// Central Security Unit
 	CSU = &csu.CSU{
@@ -215,9 +222,7 @@ var (
 	}
 
 	// True Random Number Generator (ULL/ULZ only)
-	RNGB = &rngb.RNGB{
-		Base: RNGB_BASE,
-	}
+	RNGB *rngb.RNGB
 
 	// Secure Non-Volatile Storage
 	SNVS = &snvs.SNVS{

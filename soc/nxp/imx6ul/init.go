@@ -78,7 +78,6 @@ func init() {
 	switch Model() {
 	case "i.MX6UL":
 		DCP = nil
-		RNGB = nil
 		OCOTP.Banks = 16
 	case "i.MX6ULL":
 		OCOTP.Banks = 8
