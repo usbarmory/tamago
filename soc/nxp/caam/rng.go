@@ -23,14 +23,16 @@ func (hw *CAAM) GetRandomData(b []byte) {
 	need := len(b)
 
 	for read < need {
-		if reg.Get(hw.rtmctl, RTMCTL_ENT_VAL, 1) == 1 {
-			read = rng.Fill(b, read, reg.Read(hw.rtenta))
+		if reg.Get(hw.rtmctl, RTMCTL_ENT_VAL, 1) == 0 {
+			continue
 		}
 
-		hw.rtenta += 4
+		read = rng.Fill(b, read, reg.Read(hw.rtenta))
 
 		if hw.rtenta == hw.rtent15 {
 			hw.rtenta = hw.rtent0
+		} else {
+			hw.rtenta += 4
 		}
 	}
 }
