@@ -173,7 +173,7 @@ func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 		return
 	}
 
-	// set random AES CTR mode
+	// set AES CTR mode
 	reg.Set(hw.ctrl, CTRL_AES_MODE)
 	// set maximum security level
 	reg.SetN(hw.ctrl, CTRL_SECURITY_LEVEL, 0b11, 0b11)
