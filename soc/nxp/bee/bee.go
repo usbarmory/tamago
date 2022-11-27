@@ -47,6 +47,13 @@ const (
 	BEE_ADDR_OFFSET0 = 0x04
 	BEE_ADDR_OFFSET1 = 0x08
 
+	// AES key
+	BEE_AES_KEY0_W0 = 0x0c
+	BEE_AES_KEY0_W1 = 0x10
+	BEE_AES_KEY0_W2 = 0x14
+	BEE_AES_KEY0_W3 = 0x18
+
+	// AES CTR nonce
 	BEE_AES_KEY1_W0 = 0x20
 	BEE_AES_KEY1_W1 = 0x24
 	BEE_AES_KEY1_W2 = 0x28
@@ -71,8 +78,10 @@ type BEE struct {
 	addr0 uint32
 	addr1 uint32
 
-	// AES CTR key address
-	key uint
+	// AES key buffer address
+	key uint32
+	// AES CTR nonce buffer address
+	nonce uint32
 }
 
 // Init initializes the BEE module.
@@ -87,7 +96,8 @@ func (hw *BEE) Init() {
 	hw.ctrl = hw.Base + BEE_CTRL
 	hw.addr0 = hw.Base + BEE_ADDR_OFFSET0
 	hw.addr1 = hw.Base + BEE_ADDR_OFFSET1
-	hw.key = uint(hw.Base) + BEE_AES_KEY1_W0
+	hw.key = hw.Base + BEE_AES_KEY0_W0
+	hw.nonce = hw.Base + BEE_AES_KEY1_W0
 
 	var ctrl uint32
 
@@ -97,6 +107,26 @@ func (hw *BEE) Init() {
 	bits.Set(&ctrl, CTRL_SFTRST_N)
 
 	reg.Write(hw.ctrl, ctrl)
+}
+
+func (hw *BEE) generateKey(ptr uint32) (err error) {
+	key, err := dma.NewRegion(uint(ptr), aes.BlockSize, false)
+
+	if err != nil {
+		return
+	}
+
+	addr, buf := key.Reserve(aes.BlockSize, 0)
+
+	if n, err := rand.Read(buf); n != aes.BlockSize || err != nil {
+		return errors.New("could not set random key")
+	}
+
+	if addr != uint(ptr) {
+		return errors.New("invalid key address")
+	}
+
+	return
 }
 
 func checkRegion(region uint32, offset uint32) error {
@@ -110,26 +140,6 @@ func checkRegion(region uint32, offset uint32) error {
 	}
 
 	return nil
-}
-
-func (hw *BEE) generateCTRKey() (err error) {
-	key, err := dma.NewRegion(hw.key, aes.BlockSize, false)
-
-	if err != nil {
-		return
-	}
-
-	addr, buf := key.Reserve(aes.BlockSize, 0)
-
-	if n, err := rand.Read(buf); n != aes.BlockSize || err != nil {
-		return errors.New("could not set random BEE AES key")
-	}
-
-	if addr != hw.key {
-		return errors.New("invalid BEE AES key address")
-	}
-
-	return
 }
 
 // Enable activates the BEE using the argument regions, each can be up to
@@ -153,8 +163,13 @@ func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 	reg.Write(hw.addr0, region0>>16)
 	reg.Write(hw.addr1, region1>>16)
 
-	// set random AES key for CTR mode
-	if err = hw.generateCTRKey(); err != nil {
+	// set random AES key
+	if err = hw.generateKey(hw.key); err != nil {
+		return
+	}
+
+	// set random nonce for CTR mode
+	if err = hw.generateKey(hw.nonce); err != nil {
 		return
 	}
 
@@ -165,7 +180,7 @@ func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 	// use custom AES key
 	reg.Set(hw.ctrl, CTRL_AES_KEY_SEL)
 
-	// enable memory encryption
+	// enable OTF memory encryption
 	reg.Set(hw.ctrl, CTRL_BEE_ENABLE)
 
 	return
