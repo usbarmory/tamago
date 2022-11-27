@@ -26,22 +26,25 @@ func initRNG() {
 
 	switch Model() {
 	case "i.MX6UL":
-		// Cryptographic Acceleration and Assurance Module (UL only)
+		// Cryptographic Acceleration and Assurance Module
 		CAAM = &caam.CAAM{
 			Base: CAAM_BASE,
 			CCGR: CCM_CCGR0,
 			CG:   CCGRx_CG5,
 		}
-
 		CAAM.Init()
 
-		rng.GetRandomDataFn = CAAM.GetRandomData
+		// The CAAM TRNG is too slow for direct use, therefore
+		// we use it to seed an AES-CTR based DRBG.
+		drbg := &rng.DRBG{}
+		CAAM.GetRandomData(drbg.Seed[:])
+
+		rng.GetRandomDataFn = drbg.GetRandomData
 	case "i.MX6ULL", "i.MX6ULZ":
-		// True Random Number Generator (ULL/ULZ only)
+		// True Random Number Generator
 		RNGB = &rngb.RNGB{
 			Base: RNGB_BASE,
 		}
-
 		RNGB.Init()
 
 		rng.GetRandomDataFn = RNGB.GetRandomData

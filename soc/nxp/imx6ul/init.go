@@ -15,6 +15,9 @@ import (
 	"github.com/usbarmory/tamago/arm"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
+	"github.com/usbarmory/tamago/soc/nxp/bee"
+	"github.com/usbarmory/tamago/soc/nxp/dcp"
+	"github.com/usbarmory/tamago/soc/nxp/enet"
 	"github.com/usbarmory/tamago/soc/nxp/usb"
 )
 
@@ -75,21 +78,52 @@ func init() {
 	// use internal OCRAM (iRAM) as default DMA region
 	dma.Init(OCRAM_START, OCRAM_SIZE)
 
-	switch Model() {
+	OCOTP.Init()
+	model := Model()
+
+	switch model {
 	case "i.MX6UL":
-		DCP = nil
+		// Bus Encryption Engine
+		BEE = &bee.BEE{
+			Base: BEE_BASE,
+		}
+
 		OCOTP.Banks = 16
-	case "i.MX6ULL":
-		OCOTP.Banks = 8
-	case "i.MX6ULZ":
-		ENET1 = nil
-		ENET2 = nil
+	case "i.MX6ULL", "i.MX6ULZ":
+
+		// Data Co-Processor
+		DCP = &dcp.DCP{
+			Base:            DCP_BASE,
+			CCGR:            CCM_CCGR0,
+			CG:              CCGRx_CG5,
+			// assign internal OCRAM to DCP internal key exchange
+			DeriveKeyMemory: dma.Default(),
+		}
+
 		OCOTP.Banks = 8
 	}
 
-	if DCP != nil {
-		// assign internal OCRAM to DCP internal key exchange
-		DCP.DeriveKeyMemory = dma.Default()
+	switch model {
+	case "i.MX6UL", "i.MX6ULL":
+		// Ethernet MAC 1
+		ENET1 = &enet.ENET{
+			Index:     1,
+			Base:      ENET1_BASE,
+			CCGR:      CCM_CCGR0,
+			CG:        CCGRx_CG6,
+			Clock:     GetPeripheralClock,
+			EnablePLL: EnableENETPLL,
+		}
+
+		// Ethernet MAC 2
+		ENET2 = &enet.ENET{
+			Index:     2,
+			Base:      ENET2_BASE,
+			CCGR:      CCM_CCGR0,
+			CG:        CCGRx_CG6,
+			Clock:     GetPeripheralClock,
+			EnablePLL: EnableENETPLL,
+		}
 	}
 
 	if !Native || ARM.NonSecure() {

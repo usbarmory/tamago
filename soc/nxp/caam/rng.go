@@ -14,7 +14,7 @@ import (
 	"github.com/usbarmory/tamago/internal/rng"
 )
 
-// GetRandomData returns len(b) random bytes gathered from the RNGB module.
+// GetRandomData returns len(b) random bytes gathered from the CAAM TRNG.
 func (hw *CAAM) GetRandomData(b []byte) {
 	hw.Lock()
 	defer hw.Unlock()
@@ -23,8 +23,9 @@ func (hw *CAAM) GetRandomData(b []byte) {
 	need := len(b)
 
 	for read < need {
-		if reg.Get(hw.rtmctl, RTMCTL_ENT_VAL, 1) == 0 {
-			continue
+		if hw.rtenta == hw.rtent0 {
+			for reg.Get(hw.rtmctl, RTMCTL_ENT_VAL, 1) == 0 {
+			}
 		}
 
 		read = rng.Fill(b, read, reg.Read(hw.rtenta))

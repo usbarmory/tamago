@@ -29,9 +29,12 @@ package imx6ul
 import (
 	"encoding/binary"
 
+	"github.com/usbarmory/tamago/internal/reg"
+
 	"github.com/usbarmory/tamago/arm"
 	"github.com/usbarmory/tamago/arm/tzc380"
-	"github.com/usbarmory/tamago/internal/reg"
+
+	"github.com/usbarmory/tamago/soc/nxp/bee"
 	"github.com/usbarmory/tamago/soc/nxp/caam"
 	"github.com/usbarmory/tamago/soc/nxp/csu"
 	"github.com/usbarmory/tamago/soc/nxp/dcp"
@@ -48,6 +51,9 @@ import (
 
 // Peripheral registers
 const (
+	// Bus Encryption Engine (UL only)
+	BEE_BASE = 0x02044000
+
 	// Cryptographic Acceleration and Assurance Module (UL only)
 	CAAM_BASE = 0x02140000
 
@@ -119,6 +125,9 @@ var (
 	// ARM core
 	ARM = &arm.CPU{}
 
+	// Bus Encryption Engine (UL only)
+	BEE *bee.BEE
+
 	// Cryptographic Acceleration and Assurance Module (UL only)
 	CAAM *caam.CAAM
 
@@ -130,12 +139,7 @@ var (
 	}
 
 	// Data Co-Processor (ULL/ULZ only)
-	DCP = &dcp.DCP{
-		Base: DCP_BASE,
-		CCGR: CCM_CCGR0,
-		CG:   CCGRx_CG5,
-		// DeriveKeyMemory is assigned in init.go
-	}
+	DCP *dcp.DCP
 
 	// GPIO controller 1
 	GPIO1 = &gpio.GPIO{
@@ -178,24 +182,8 @@ var (
 	}
 
 	// Ethernet MAC 1 (UL/ULL only)
-	ENET1 = &enet.ENET{
-		Index:     1,
-		Base:      ENET1_BASE,
-		CCGR:      CCM_CCGR0,
-		CG:        CCGRx_CG6,
-		Clock:     GetPeripheralClock,
-		EnablePLL: EnableENETPLL,
-	}
-
-	// Ethernet MAC 2 (UL/ULL only)
-	ENET2 = &enet.ENET{
-		Index:     2,
-		Base:      ENET2_BASE,
-		CCGR:      CCM_CCGR0,
-		CG:        CCGRx_CG6,
-		Clock:     GetPeripheralClock,
-		EnablePLL: EnableENETPLL,
-	}
+	ENET1 *enet.ENET
+	ENET2 *enet.ENET
 
 	// I2C controller 1
 	I2C1 = &i2c.I2C{
@@ -312,8 +300,6 @@ func SiliconVersion() (sv, family, revMajor, revMinor uint32) {
 
 // UniqueID returns the NXP SoC Device Unique 64-bit ID.
 func UniqueID() (uid [8]byte) {
-	OCOTP.Init()
-
 	cfg0, _ := OCOTP.Read(0, 1)
 	cfg1, _ := OCOTP.Read(0, 2)
 
@@ -325,8 +311,6 @@ func UniqueID() (uid [8]byte) {
 
 // Model returns the SoC model name.
 func Model() (model string) {
-	OCOTP.Init()
-
 	switch Family {
 	case IMX6UL:
 		model = "i.MX6UL"
