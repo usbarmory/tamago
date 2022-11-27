@@ -21,7 +21,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"runtime"
 	"sync"
 
 	"github.com/usbarmory/tamago/bits"
@@ -100,21 +99,14 @@ func (hw *BEE) Init() {
 	reg.Write(hw.ctrl, ctrl)
 }
 
-func checkRegion(region uint32) error {
-	if region == 0 {
-		return nil
-	}
-
-	ramStart, _ := runtime.MemRegion()
-
-	// Not strictly required by BEE but easier to enforce to avoid overlaps
-	// while fitting most valid use cases.
-	if region < ramStart {
-		return errors.New("address must fall within external RAM")
-	}
-
-	if region & 0xffff != 0 {
+func checkRegion(region uint32, offset uint32) error {
+	if region&0xffff != 0 {
 		return errors.New("address must be 64KB aligned")
+	}
+
+	if offset >= AliasRegion0 && offset <= AliasRegion0+AliasRegionSize ||
+		offset >= AliasRegion1 && offset <= AliasRegion1+AliasRegionSize {
+		return errors.New("invalid region (offset overalps with aliased region)")
 	}
 
 	return nil
@@ -150,16 +142,16 @@ func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 	hw.mu.Lock()
 	defer hw.mu.Unlock()
 
-	if err = checkRegion(region0); err != nil {
+	if err = checkRegion(region0, region0-AliasRegion0); err != nil {
 		return fmt.Errorf("region0 error: %v", err)
 	}
 
-	if err = checkRegion(region1); err != nil {
+	if err = checkRegion(region1, region1-AliasRegion1); err != nil {
 		return fmt.Errorf("region1 error: %v", err)
 	}
 
-	reg.Write(hw.addr0, region0 >> 16)
-	reg.Write(hw.addr1, region1 >> 16)
+	reg.Write(hw.addr0, region0>>16)
+	reg.Write(hw.addr1, region1>>16)
 
 	// set random AES key for CTR mode
 	if err = hw.generateCTRKey(); err != nil {
