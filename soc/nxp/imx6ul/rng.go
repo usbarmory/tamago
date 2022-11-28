@@ -10,6 +10,8 @@
 package imx6ul
 
 import (
+	"encoding/binary"
+	"time"
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/internal/rng"
@@ -20,7 +22,9 @@ import (
 //go:linkname initRNG runtime.initRNG
 func initRNG() {
 	if !Native {
-		rng.GetRandomDataFn = rng.GetLCGData
+		drbg := &rng.DRBG{}
+		binary.LittleEndian.PutUint64(drbg.Seed[:], uint64(time.Now().UnixNano()))
+		rng.GetRandomDataFn = drbg.GetRandomData
 		return
 	}
 

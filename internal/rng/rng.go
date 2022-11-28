@@ -18,3 +18,16 @@ var GetRandomDataFn func([]byte)
 func getRandomData(b []byte) {
 	GetRandomDataFn(b)
 }
+
+func Fill(b []byte, index int, val uint32) int {
+	shift := 0
+	limit := len(b)
+
+	for (index < limit) && (shift <= 24) {
+		b[index] = byte((val >> shift) & 0xff)
+		index += 1
+		shift += 8
+	}
+
+	return index
+}

@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 )
@@ -99,14 +98,12 @@ func (hw *BEE) Init() {
 	hw.key = hw.Base + BEE_AES_KEY0_W0
 	hw.nonce = hw.Base + BEE_AES_KEY1_W0
 
-	var ctrl uint32
-
 	// enable clock
-	bits.Set(&ctrl, CTRL_CLK_EN)
+	reg.Set(hw.ctrl, CTRL_CLK_EN)
 	// soft reset
-	bits.Set(&ctrl, CTRL_SFTRST_N)
-
-	reg.Write(hw.ctrl, ctrl)
+	reg.Set(hw.ctrl, CTRL_SFTRST_N)
+	// disable
+	reg.Clear(hw.ctrl, CTRL_BEE_ENABLE)
 }
 
 func (hw *BEE) generateKey(ptr uint32) (err error) {
@@ -176,11 +173,11 @@ func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 	// set AES CTR mode
 	reg.Set(hw.ctrl, CTRL_AES_MODE)
 	// set maximum security level
-	reg.SetN(hw.ctrl, CTRL_SECURITY_LEVEL, 0b11, 0b11)
+	reg.SetN(hw.ctrl, CTRL_SECURITY_LEVEL, 0b11, 3)
 	// use custom AES key
 	reg.Set(hw.ctrl, CTRL_AES_KEY_SEL)
 
-	// enable OTF memory encryption
+	// enable
 	reg.Set(hw.ctrl, CTRL_BEE_ENABLE)
 
 	return
