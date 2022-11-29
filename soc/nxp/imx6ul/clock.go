@@ -110,7 +110,8 @@ const (
 	PLL3_FREQ = 480000000
 )
 
-// Operating ARM core frequencies in MHz
+// Operating ARM core frequencies in MHz (care must be taken as not all P/Ns
+// support the entire range)
 // (p24, Table 10. Operating Ranges, IMX6ULLCEC).
 const (
 	FreqMax = Freq900
@@ -184,7 +185,10 @@ func setOperatingPoint(uV uint32) {
 	arm.Busyloop(10000)
 }
 
-func setARMFreq(mhz uint32) (err error) {
+// SetARMFreq changes the ARM core frequency, see `Freq*` constants for
+// supported values. This function allows overclocking as it does not verify
+// P/N compatibility with the desired frequency.
+func SetARMFreq(mhz uint32) (err error) {
 	var div_select uint32
 	var arm_podf uint32
 	var uV uint32
@@ -248,16 +252,6 @@ func setARMFreq(mhz uint32) (err error) {
 	}
 
 	return
-}
-
-// SetARMFreq changes the ARM core frequency, see `Freq*` constants for
-// supported values. Only i.MX6ULL P/Ns are supported.
-func SetARMFreq(mhz uint32) (err error) {
-	if Family == IMX6ULL {
-		return setARMFreq(mhz)
-	} else {
-		return errors.New("unsupported")
-	}
 }
 
 // GetPeripheralClock returns the IPG_CLK_ROOT frequency,
