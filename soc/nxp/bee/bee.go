@@ -77,9 +77,9 @@ type BEE struct {
 	addr0 uint32
 	addr1 uint32
 
-	// AES key buffer address
+	// AES key pointer
 	key uint32
-	// AES CTR nonce buffer address
+	// AES CTR nonce pointer
 	nonce uint32
 }
 
@@ -100,8 +100,9 @@ func (hw *BEE) Init() {
 
 	// enable clock
 	reg.Set(hw.ctrl, CTRL_CLK_EN)
-	// soft reset
+	// disable reset
 	reg.Set(hw.ctrl, CTRL_SFTRST_N)
+
 	// disable
 	reg.Clear(hw.ctrl, CTRL_BEE_ENABLE)
 }
@@ -174,7 +175,7 @@ func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 	reg.Set(hw.ctrl, CTRL_AES_MODE)
 	// set maximum security level
 	reg.SetN(hw.ctrl, CTRL_SECURITY_LEVEL, 0b11, 3)
-	// use custom AES key
+	// select software AES key
 	reg.Set(hw.ctrl, CTRL_AES_KEY_SEL)
 
 	// enable
