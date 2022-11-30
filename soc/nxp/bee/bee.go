@@ -192,7 +192,7 @@ func (hw *BEE) Lock() {
 	reg.Set(hw.ctrl, CTRL_CLK_EN_LOCK)
 	reg.Set(hw.ctrl, CTRL_SFTRST_N_LOCK)
 	reg.Set(hw.ctrl, CTRL_AES_MODE_LOCK)
-	reg.Set(hw.ctrl, CTRL_SECURITY_LEVEL_LOCK)
+	reg.SetN(hw.ctrl, CTRL_SECURITY_LEVEL_LOCK, 0b11, 0b11)
 	reg.Set(hw.ctrl, CTRL_AES_KEY_SEL_LOCK)
 	reg.Set(hw.ctrl, CTRL_BEE_ENABLE_LOCK)
 
