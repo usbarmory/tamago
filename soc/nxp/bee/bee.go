@@ -149,7 +149,7 @@ func checkRegion(region uint32, offset uint32) error {
 //
 // After activation the regions are encrypted using AES CTR. On secure booted
 // systems the internal OTPMK is used as key, otherwise a random one is
-// generated.
+// generated and assigned.
 //
 // After enabling, both regions should only be accessed through their
 // respective aliased spaces (see AliasRegion0 and AliasRegion1) and only with
@@ -170,7 +170,7 @@ func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 	reg.Write(hw.addr1, region1>>16)
 
 	if hw.SNVS != nil && hw.SNVS.Available() {
-		// use OTPMK under secure booted SNVS
+		// use OTPMK if SNVS is secure booted
 		reg.Clear(hw.ctrl, CTRL_AES_KEY_SEL)
 	} else {
 		// set random AES key
