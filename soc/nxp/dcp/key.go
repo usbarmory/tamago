@@ -22,8 +22,8 @@ import (
 // DeriveKey derives a hardware unique key in a manner equivalent to PKCS#11
 // C_DeriveKey with CKM_AES_CBC_ENCRYPT_DATA.
 //
-// The diversifier is AES-CBC encrypted using the internal OTPMK key (when SNVS
-// is enabled).
+// The diversifier is AES-CBC encrypted using the internal OTPMK (when SNVS is
+// enabled).
 //
 // *WARNING*: when SNVS is not enabled a default non-unique test vector is used
 // and therefore key derivation is *unsafe*, see snvs.Available().

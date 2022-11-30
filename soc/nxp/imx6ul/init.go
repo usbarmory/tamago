@@ -86,6 +86,7 @@ func init() {
 		// Bus Encryption Engine
 		BEE = &bee.BEE{
 			Base: BEE_BASE,
+			SNVS: SNVS,
 		}
 
 		OCOTP.Banks = 16

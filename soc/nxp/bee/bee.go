@@ -25,6 +25,7 @@ import (
 
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
+	"github.com/usbarmory/tamago/soc/nxp/snvs"
 )
 
 // BEE registers
@@ -71,6 +72,8 @@ type BEE struct {
 
 	// Base register
 	Base uint32
+	// SNVS instance
+	SNVS *snvs.SNVS
 
 	// control registers
 	ctrl  uint32
@@ -108,6 +111,7 @@ func (hw *BEE) Init() {
 }
 
 func (hw *BEE) generateKey(ptr uint32) (err error) {
+	// avoid key exposure to external RAM
 	key, err := dma.NewRegion(uint(ptr), aes.BlockSize, false)
 
 	if err != nil {
@@ -140,12 +144,15 @@ func checkRegion(region uint32, offset uint32) error {
 	return nil
 }
 
-// Enable activates the BEE using the argument regions, each can be up to
-// AliasRegionSize (512 MB) in size.
+// Enable activates the BEE using the argument memory regions, each can be up
+// to AliasRegionSize (512 MB) in size.
 //
-// After enabling both regions should be accessed through their respective
-// aliased spaces (see AliasRegion0 and AliasRegion1) as their physical regions
-// are encrypted used AES CTR mode with a randomly generated key.
+// After activation the regions are encrypted using AES CTR. On secure booted
+// systems the internal OTPMK is used as key, otherwise a random one is
+// generated.
+//
+// After enabling both regions should only be accessed through their respective
+// aliased spaces, AliasRegion0 and AliasRegion1, and with caching enabled.
 func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 	hw.mu.Lock()
 	defer hw.mu.Unlock()
@@ -161,9 +168,17 @@ func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 	reg.Write(hw.addr0, region0>>16)
 	reg.Write(hw.addr1, region1>>16)
 
-	// set random AES key
-	if err = hw.generateKey(hw.key); err != nil {
-		return
+	if hw.SNVS != nil && hw.SNVS.Available() {
+		// use OTPMK under secure booted SNVS
+		reg.Clear(hw.ctrl, CTRL_AES_KEY_SEL)
+	} else {
+		// set random AES key
+		if err = hw.generateKey(hw.key); err != nil {
+			return
+		}
+
+		// select software AES key
+		reg.Set(hw.ctrl, CTRL_AES_KEY_SEL)
 	}
 
 	// set random nonce for CTR mode
@@ -175,8 +190,6 @@ func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 	reg.Set(hw.ctrl, CTRL_AES_MODE)
 	// set maximum security level
 	reg.SetN(hw.ctrl, CTRL_SECURITY_LEVEL, 0b11, 3)
-	// select software AES key
-	reg.Set(hw.ctrl, CTRL_AES_KEY_SEL)
 
 	// enable
 	reg.Set(hw.ctrl, CTRL_BEE_ENABLE)
