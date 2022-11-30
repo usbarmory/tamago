@@ -156,6 +156,7 @@ External drivers using TamaGo
 =============================
 
 * [imx-usbnet](https://github.com/usbarmory/imx-usbnet) - i.MX Ethernet over USB driver
+* [imx-enet](https://github.com/usbarmory/imx-enet) - i.MX Ethernet driver
 
 Additional resources
 ====================
