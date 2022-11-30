@@ -91,7 +91,6 @@ func init() {
 
 		OCOTP.Banks = 16
 	case "i.MX6ULL", "i.MX6ULZ":
-
 		// Data Co-Processor
 		DCP = &dcp.DCP{
 			Base:            DCP_BASE,
