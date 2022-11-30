@@ -151,8 +151,9 @@ func checkRegion(region uint32, offset uint32) error {
 // systems the internal OTPMK is used as key, otherwise a random one is
 // generated.
 //
-// After enabling both regions should only be accessed through their respective
-// aliased spaces, AliasRegion0 and AliasRegion1, and with caching enabled.
+// After enabling, both regions should only be accessed through their
+// respective aliased spaces (see AliasRegion0 and AliasRegion1) and only with
+// caching enabled (see arm.ConfigureMMU).
 func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 	hw.mu.Lock()
 	defer hw.mu.Unlock()
