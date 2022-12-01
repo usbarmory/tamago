@@ -63,7 +63,7 @@ const (
 const (
 	AliasRegion0    = 0x10000000
 	AliasRegion1    = 0x30000000
-	AliasRegionSize = 0x1fffffff
+	AliasRegionSize = 0x20000000
 )
 
 // BEE represents the Bus Encryption Engine instance.
@@ -136,8 +136,8 @@ func checkRegion(region uint32, offset uint32) error {
 		return errors.New("address must be 64KB aligned")
 	}
 
-	if offset >= AliasRegion0 && offset <= AliasRegion0+AliasRegionSize ||
-		offset >= AliasRegion1 && offset <= AliasRegion1+AliasRegionSize {
+	if offset >= AliasRegion0 && offset < AliasRegion0+AliasRegionSize ||
+		offset >= AliasRegion1 && offset < AliasRegion1+AliasRegionSize {
 		return errors.New("invalid region (offset overalps with aliased region)")
 	}
 
