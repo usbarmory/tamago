@@ -138,12 +138,14 @@ func (hw *I2C) Read(target uint8, addr uint32, alen int, size int) (buf []byte, 
 	}
 	defer hw.stop()
 
-	if err = hw.txAddress(target, addr, alen); err != nil {
-		return
-	}
+	if alen > 0 {
+		if err = hw.txAddress(target, addr, alen); err != nil {
+			return
+		}
 
-	if err = hw.start(true); err != nil {
-		return
+		if err = hw.start(true); err != nil {
+			return
+		}
 	}
 
 	// send target address with R/W bit set
