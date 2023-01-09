@@ -44,6 +44,7 @@ import (
 	"github.com/usbarmory/tamago/soc/nxp/ocotp"
 	"github.com/usbarmory/tamago/soc/nxp/rngb"
 	"github.com/usbarmory/tamago/soc/nxp/snvs"
+	"github.com/usbarmory/tamago/soc/nxp/tempmon"
 	"github.com/usbarmory/tamago/soc/nxp/uart"
 	"github.com/usbarmory/tamago/soc/nxp/usb"
 	"github.com/usbarmory/tamago/soc/nxp/usdhc"
@@ -94,6 +95,9 @@ const (
 
 	// Secure Non-Volatile Storage
 	SNVS_BASE = 0x020cc000
+
+	// Temperature Monitor
+	TEMPMON_BASE = 0x020c8180
 
 	// TrustZone Address Space Controller
 	TZASC_BASE            = 0x021d0000
@@ -217,6 +221,11 @@ var (
 		Base: SNVS_BASE,
 		CCGR: CCM_CCGR5,
 		CG:   CCGRx_CG9,
+	}
+
+	// Temperature Monitor
+	TEMPMON = &tempmon.TEMPMON{
+		Base: TEMPMON_BASE,
 	}
 
 	// TrustZone Address Space Controller

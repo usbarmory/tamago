@@ -93,9 +93,9 @@ func init() {
 	case "i.MX6ULL", "i.MX6ULZ":
 		// Data Co-Processor
 		DCP = &dcp.DCP{
-			Base:            DCP_BASE,
-			CCGR:            CCM_CCGR0,
-			CG:              CCGRx_CG5,
+			Base: DCP_BASE,
+			CCGR: CCM_CCGR0,
+			CG:   CCGRx_CG5,
 			// assign internal OCRAM to DCP internal key exchange
 			DeriveKeyMemory: dma.Default(),
 		}
@@ -129,6 +129,10 @@ func init() {
 	if !Native || ARM.NonSecure() {
 		return
 	}
+
+	// read Temperature Sensor Calibration Data
+	ana1, _ := OCOTP.Read(1, 6)
+	TEMPMON.Init(ana1)
 
 	// On the i.MX6UL family the only way to detect if we are booting
 	// through Serial Download Mode over USB is to check whether the USB
