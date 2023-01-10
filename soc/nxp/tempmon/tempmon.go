@@ -43,7 +43,7 @@ const (
 
 // TEMPMON represents the Temperature Monitor instance.
 type TEMPMON struct {
-	mu sync.Mutex
+	sync.Mutex
 
 	// Base register
 	Base uint32
@@ -52,9 +52,7 @@ type TEMPMON struct {
 	sense0     uint32
 	sense0_set uint32
 	sense0_clr uint32
-
 	sense1     uint32
-	sense1_set uint32
 	sense1_clr uint32
 
 	// calibration points
@@ -63,10 +61,11 @@ type TEMPMON struct {
 	roomCount uint32
 }
 
-// Init initializes the TEMPMON instance.
+// Init initializes the Temperature Monitor instance, the calibration data is
+// fused individually for each part and is required for correct measurements.
 func (hw *TEMPMON) Init(calibrationData uint32) {
-	hw.mu.Lock()
-	defer hw.mu.Unlock()
+	hw.Lock()
+	defer hw.Unlock()
 
 	if hw.Base == 0 {
 		panic("invalid TEMPMON instance")
@@ -77,7 +76,6 @@ func (hw *TEMPMON) Init(calibrationData uint32) {
 	hw.sense0_clr = hw.Base + TEMPMON_TEMPSENSE0_CLR
 
 	hw.sense1 = hw.Base + TEMPMON_TEMPSENSE1
-	hw.sense1_set = hw.Base + TEMPMON_TEMPSENSE1_SET
 	hw.sense1_clr = hw.Base + TEMPMON_TEMPSENSE1_CLR
 
 	hw.hotTemp = bits.Get(&calibrationData, 0, 0xff)
@@ -87,6 +85,9 @@ func (hw *TEMPMON) Init(calibrationData uint32) {
 
 // Read performs a single on-die temperature measurement.
 func (hw *TEMPMON) Read() float32 {
+	hw.Lock()
+	defer hw.Unlock()
+
 	// enable sensor only during single measurement
 	reg.Set(hw.sense0_clr, TEMPSENSE0_POWER_DOWN)
 	defer reg.Set(hw.sense0_set, TEMPSENSE0_POWER_DOWN)

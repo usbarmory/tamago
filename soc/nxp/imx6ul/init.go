@@ -130,7 +130,8 @@ func init() {
 		return
 	}
 
-	// read Temperature Sensor Calibration Data
+	// OCOTP_ANA1 Temperature Sensor Calibration Data
+	// p3531, 52.2 Software Usage Guidelines, IMX6ULLRM
 	ana1, _ := OCOTP.Read(1, 6)
 	TEMPMON.Init(ana1)
 
