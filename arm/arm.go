@@ -52,6 +52,11 @@ type CPU struct {
 	TimerOffset int64
 	// timer function
 	TimerFn func() int64
+
+	// GIC Distributor base address
+	gicd uint32
+	// GIC CPU interface base address
+	gicc uint32
 }
 
 // defined in arm.s

@@ -29,6 +29,7 @@ const (
 	GICD_TYPER_ITLINES = 0
 
 	GICD_IGROUPR   = 0x080
+	GICD_ISENABLER = 0x100
 	GICD_ICENABLER = 0x180
 	GICD_ICPENDR   = 0x280
 
@@ -44,36 +45,76 @@ const (
 )
 
 // InitGIC initializes the ARM Generic Interrupt Controller (GIC).
-func InitGIC(base uint32) {
-	gicd := base + GICD_OFF
-	gicc := base + GICC_OFF
+func (cpu *CPU) InitGIC(base uint32, secure bool) {
+	cpu.gicd = base + GICD_OFF
+	cpu.gicc = base + GICC_OFF
 
 	// Get the maximum number of external interrupt lines
-	itLinesNum := reg.Get(gicd+GICD_TYPER, GICD_TYPER_ITLINES, 0x1f)
+	itLinesNum := reg.Get(cpu.gicd+GICD_TYPER, GICD_TYPER_ITLINES, 0x1f)
 
 	// Add a line for the 32 internal interrupts
 	itLinesNum += 1
 
-	for i := uint32(0); i < itLinesNum; i++ {
+	for n := uint32(0); n < itLinesNum; n++ {
 		// Disable interrupts
-		addr := gicd + GICD_ICENABLER + 4*i
+		addr := cpu.gicd + GICD_ICENABLER + 4*n
 		reg.Write(addr, 0xffffffff)
 
 		// Clear pending interrupts
-		addr = gicd + GICD_ICPENDR + 4*i
+		addr = cpu.gicd + GICD_ICPENDR + 4*n
 		reg.Write(addr, 0xffffffff)
 
-		// Assign all interrupts to Non-Secure
-		addr = gicd + GICD_IGROUPR + 4*i
-		reg.Write(addr, 0xffffffff)
+		if !secure {
+			addr = cpu.gicd + GICD_IGROUPR + 4*n
+			reg.Write(addr, 0xffffffff)
+		}
 	}
 
 	// Set priority mask to allow Non-Secure world to use the lower half
 	// of the priority range.
-	reg.Write(gicc+GICC_PMR, 0x80)
+	reg.Write(cpu.gicc+GICC_PMR, 0x80)
 
 	// Enable GIC
-	reg.Write(gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP1|GICC_CTLR_ENABLEGRP0|GICC_CTLR_FIQEN)
-	reg.Set(gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP1)
-	reg.Set(gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP0)
+	reg.Write(cpu.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP1|GICC_CTLR_ENABLEGRP0|GICC_CTLR_FIQEN)
+	reg.Set(cpu.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP1)
+	reg.Set(cpu.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP0)
+}
+
+func irq(gicd uint32, m int, secure bool, enable bool) {
+	if gicd == 0 {
+		return
+	}
+
+	var addr uint32
+
+	n := uint32(m / 32)
+	i := m % 32
+
+	if enable {
+		addr = gicd + GICD_IGROUPR + 4*n
+
+		if !secure {
+			reg.Set(addr, i)
+		} else {
+			reg.Clear(addr, i)
+		}
+
+		addr = gicd + GICD_ISENABLER + 4*n
+	} else {
+		addr = gicd + GICD_ICENABLER + 4*n
+	}
+
+	reg.SetTo(addr, i, true)
+}
+
+// EnableInterrupt enables forwarding of the corresponding interrupt to the CPU
+// and configures its group status (Secure: Group 0, Non-Secure: Group 1).
+func (cpu *CPU) EnableInterrupt(m int, secure bool) {
+	irq(cpu.gicd, m, secure, true)
+}
+
+// DisableInterrupt disables forwarding of the corresponding interrupt to the
+// CPU.
+func (cpu *CPU) DisableInterrupt(m int) {
+	irq(cpu.gicd, m, false, false)
 }

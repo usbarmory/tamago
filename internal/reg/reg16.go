@@ -32,6 +32,14 @@ func Clear16(addr uint32, pos int) {
 	*reg &= ^(1 << pos)
 }
 
+func SetTo16(addr uint32, pos int, val bool) {
+	if val {
+		Set16(addr, pos)
+	} else {
+		Clear16(addr, pos)
+	}
+}
+
 func SetN16(addr uint32, pos int, mask int, val uint16) {
 	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
 	*reg = (*reg & (^(uint16(mask) << pos))) | (val << pos)

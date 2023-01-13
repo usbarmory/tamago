@@ -72,8 +72,8 @@ func Init() {
 }
 
 func init() {
-	// clear power-down watchdog
-	clearWDOG()
+	// clear watchdogs power-down counters
+	disablePowerDownCounters()
 
 	// use internal OCRAM (iRAM) as default DMA region
 	dma.Init(OCRAM_START, OCRAM_SIZE)
