@@ -119,18 +119,18 @@ func (hw *WDOG) Service(timeout int) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if hw.Index == 2 {
-		// WDOG2 is the TrustZone Watchdog (TZ WDOG), used to prevent
-		// resource starvation by Normal World OS.
-		//
-		// The Normal World OS might disable its clock, keeping the
-		// timeout but preventing servicing, therefore we re-enable the
-		// clock.
-		reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
-	}
+	// In case we are a TrustZone Watchdog the Normal World OS might
+	// disable our clock, which keeps the timeout but prevents servicing,
+	// therefore we re-enable the clock.
+	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
 
 	// update timeout
 	reg.SetN16(hw.wcr, WCR_WT, 0xff, uint16(timeout/500-1))
+
+	if reg.Get16(hw.wicr, WICR_WIE, 1) == 1 {
+		// clear interrupt status
+		reg.Set16(hw.wicr, WICR_WTIS)
+	}
 
 	// perform service sequence
 	reg.Write16(hw.wsr, wsr_seq1)
