@@ -21,11 +21,11 @@ const (
 
 	// Distributor register map
 	// (p75, Table 4-1, ARM Generic Interrupt Controller Architecture Specification).
-	GICD_CTLR            = 0
+	GICD_CTLR            = 0x000
 	GICD_CTLR_ENABLEGRP1 = 1
 	GICD_CTLR_ENABLEGRP0 = 0
 
-	GICD_TYPER         = 0x4
+	GICD_TYPER         = 0x004
 	GICD_TYPER_ITLINES = 0
 
 	GICD_IGROUPR   = 0x080
@@ -35,13 +35,16 @@ const (
 
 	// CPU interface register map
 	// (p76, Table 4-2, ARM Generic Interrupt Controller Architecture Specification).
-	GICC_CTLR            = 0
+	GICC_CTLR            = 0x0000
 	GICC_CTLR_FIQEN      = 3
 	GICC_CTLR_ENABLEGRP1 = 1
 	GICC_CTLR_ENABLEGRP0 = 0
 
-	GICC_PMR          = 0x4
+	GICC_PMR          = 0x0004
 	GICC_PMR_PRIORITY = 0
+
+	GICC_IAR    = 0x000c
+	GICC_IAR_ID = 0
 )
 
 // InitGIC initializes the ARM Generic Interrupt Controller (GIC).
@@ -109,12 +112,21 @@ func irq(gicd uint32, m int, secure bool, enable bool) {
 
 // EnableInterrupt enables forwarding of the corresponding interrupt to the CPU
 // and configures its group status (Secure: Group 0, Non-Secure: Group 1).
-func (cpu *CPU) EnableInterrupt(m int, secure bool) {
-	irq(cpu.gicd, m, secure, true)
+func (cpu *CPU) EnableInterrupt(id int, secure bool) {
+	irq(cpu.gicd, id, secure, true)
 }
 
 // DisableInterrupt disables forwarding of the corresponding interrupt to the
 // CPU.
-func (cpu *CPU) DisableInterrupt(m int) {
-	irq(cpu.gicd, m, false, false)
+func (cpu *CPU) DisableInterrupt(id int) {
+	irq(cpu.gicd, id, false, false)
+}
+
+// GetInterrupt obtains and acknowledges a signaled interrupt.
+func (cpu *CPU) GetInterrupt() (id int) {
+	if cpu.gicc == 0 {
+		return
+	}
+
+	return int(reg.Get(cpu.gicc + GICC_IAR, GICC_IAR_ID, 0x3ff))
 }
