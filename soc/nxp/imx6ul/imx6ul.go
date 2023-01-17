@@ -48,6 +48,7 @@ import (
 	"github.com/usbarmory/tamago/soc/nxp/uart"
 	"github.com/usbarmory/tamago/soc/nxp/usb"
 	"github.com/usbarmory/tamago/soc/nxp/usdhc"
+	"github.com/usbarmory/tamago/soc/nxp/wdog"
 )
 
 // Peripheral registers
@@ -122,6 +123,16 @@ const (
 	// SD/MMC
 	USDHC1_BASE = 0x02190000
 	USDHC2_BASE = 0x02194000
+
+	// Watchdog Timers
+	WDOG1_BASE = 0x020bc000
+	WDOG2_BASE = 0x020c0000
+	WDOG3_BASE = 0x021e4000
+
+	// Watchdog Timer interrupts
+	WDOG1_IRQ = 32 + 80
+	WDOG2_IRQ = 32 + 81
+	WDOG3_IRQ = 32 + 11
 )
 
 // Peripheral instances
@@ -292,6 +303,36 @@ var (
 		CCGR:     CCM_CCGR6,
 		CG:       CCGRx_CG2,
 		SetClock: SetUSDHCClock,
+	}
+
+	// Watchdog Timer 1
+	WDOG1 = &wdog.WDOG{
+		Index: 1,
+		Base:  WDOG1_BASE,
+		CCGR:  CCM_CCGR3,
+		CG:    CCGRx_CG8,
+		IRQ:   WDOG1_IRQ,
+	}
+
+	// Watchdog Timer 2
+	WDOG2 = &wdog.WDOG{
+		Index: 2,
+		Base:  WDOG2_BASE,
+		CCGR:  CCM_CCGR5,
+		CG:    CCGRx_CG5,
+		IRQ:   WDOG2_IRQ,
+	}
+
+	// TrustZone Watchdog
+	TZ_WDOG = WDOG2
+
+	// Watchdog Timer 3
+	WDOG3 = &wdog.WDOG{
+		Index: 3,
+		Base:  WDOG3_BASE,
+		CCGR:  CCM_CCGR6,
+		CG:    CCGRx_CG10,
+		IRQ:   WDOG3_IRQ,
 	}
 )
 

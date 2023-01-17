@@ -72,8 +72,12 @@ func Init() {
 }
 
 func init() {
-	// clear watchdogs power-down counters
-	disablePowerDownCounters()
+	// Initialize watchdogs, this must be done within 16 seconds to clear
+	// their power-down counter event
+	// (p4085, 59.5.3 Power-down counter event, IMX6ULLRM).
+	WDOG1.Init()
+	WDOG2.Init()
+	WDOG3.Init()
 
 	// use internal OCRAM (iRAM) as default DMA region
 	dma.Init(OCRAM_START, OCRAM_SIZE)

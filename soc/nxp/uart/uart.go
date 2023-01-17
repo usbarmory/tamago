@@ -150,7 +150,7 @@ type UART struct {
 // Init initializes and enables the UART for RS-232 mode,
 // p3605, 55.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
 func (hw *UART) Init() {
-	if hw.Base == 0 || hw.CCGR == 0 || hw.CG == 0 || hw.Clock == nil {
+	if hw.Base == 0 || hw.CCGR == 0 || hw.Clock == nil {
 		panic("invalid UART controller instance")
 	}
 
