@@ -45,6 +45,9 @@ const (
 
 	GICC_IAR    = 0x000c
 	GICC_IAR_ID = 0
+
+	GICC_EOIR    = 0x0010
+	GICC_EOIR_ID = 0
 )
 
 // InitGIC initializes the ARM Generic Interrupt Controller (GIC).
@@ -78,7 +81,11 @@ func (cpu *CPU) InitGIC(base uint32, secure bool) {
 	reg.Write(cpu.gicc+GICC_PMR, 0x80)
 
 	// Enable GIC
-	reg.Write(cpu.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP1|GICC_CTLR_ENABLEGRP0|GICC_CTLR_FIQEN)
+
+	reg.Set(cpu.gicc+GICC_CTLR, GICC_CTLR_FIQEN)
+	reg.Set(cpu.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP1)
+	reg.Set(cpu.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP0)
+
 	reg.Set(cpu.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP1)
 	reg.Set(cpu.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP0)
 }
@@ -128,5 +135,8 @@ func (cpu *CPU) GetInterrupt() (id int) {
 		return
 	}
 
-	return int(reg.Get(cpu.gicc + GICC_IAR, GICC_IAR_ID, 0x3ff))
+	m := reg.Get(cpu.gicc + GICC_IAR, GICC_IAR_ID, 0x3ff)
+	reg.SetN(cpu.gicc + GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
+
+	return int(m)
 }
