@@ -137,7 +137,12 @@ func (hw *WDOG) Service(timeout int) {
 	reg.Write16(hw.wsr, wsr_seq2)
 }
 
-// Reset asserts a system reset signal.
+// Reset asserts the watchdog reset signal.
+func (hw *WDOG) Reset() {
+	reg.Clear16(hw.wcr, WCR_WDA)
+}
+
+// SoftwareReset asserts the watchdog softwarw reset signal.
 func (hw *WDOG) SoftwareReset() {
 	reg.Set16(hw.wcr, WCR_SRE)
 	reg.Clear16(hw.wcr, WCR_SRS)
