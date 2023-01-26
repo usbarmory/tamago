@@ -9,7 +9,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package tzc380 implements a driver the ARM TrustZone Address Space
+// Package tzc380 implements a driver for the ARM TrustZone Address Space
 // Controller TZC-380.
 //
 // Note that the TZASC must be initialized early in the boot process, see

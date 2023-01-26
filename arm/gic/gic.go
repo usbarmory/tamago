@@ -1,5 +1,7 @@
-// ARM processor support
+// ARM Generic Interrupt Controller (GIC) driver
 // https://github.com/usbarmory/tamago
+//
+// IP: ARM Generic Interrupt Controller version 2.0
 //
 // Copyright (c) WithSecure Corporation
 // https://foundry.withsecure.com
@@ -7,7 +9,15 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package arm
+// Package gic implements a driver for the ARM Generic Interrupt Controller.
+//
+// The driver is based on the following reference specifications:
+//   * ARM IHI 0048B.b - ARM Generic Interrupt Controller - Architecture version 2.0
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
+// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// https://github.com/usbarmory/tamago.
+package gic
 
 import (
 	"github.com/usbarmory/tamago/internal/reg"
@@ -50,47 +60,59 @@ const (
 	GICC_EOIR_ID = 0
 )
 
+// GIC represents the Generic Interrupt Controller instance.
+type GIC struct {
+	// Base register
+	Base uint32
+
+	// control registers
+	gicd uint32
+	gicc uint32
+}
+
 // InitGIC initializes the ARM Generic Interrupt Controller (GIC).
-func (cpu *CPU) InitGIC(base uint32, secure bool, fiq bool) {
-	cpu.gicd = base + GICD_OFF
-	cpu.gicc = base + GICC_OFF
+func (hw *GIC) Init(secure bool, fiq bool) {
+	if hw.Base == 0 {
+		panic("invalid GIC instance")
+	}
+
+	hw.gicd = hw.Base + GICD_OFF
+	hw.gicc = hw.Base + GICC_OFF
 
 	// Get the maximum number of external interrupt lines
-	itLinesNum := reg.Get(cpu.gicd+GICD_TYPER, GICD_TYPER_ITLINES, 0x1f)
+	itLinesNum := reg.Get(hw.gicd+GICD_TYPER, GICD_TYPER_ITLINES, 0x1f)
 
 	// Add a line for the 32 internal interrupts
 	itLinesNum += 1
 
 	for n := uint32(0); n < itLinesNum; n++ {
 		// Disable interrupts
-		addr := cpu.gicd + GICD_ICENABLER + 4*n
+		addr := hw.gicd + GICD_ICENABLER + 4*n
 		reg.Write(addr, 0xffffffff)
 
 		// Clear pending interrupts
-		addr = cpu.gicd + GICD_ICPENDR + 4*n
+		addr = hw.gicd + GICD_ICPENDR + 4*n
 		reg.Write(addr, 0xffffffff)
 
 		if !secure {
-			addr = cpu.gicd + GICD_IGROUPR + 4*n
+			addr = hw.gicd + GICD_IGROUPR + 4*n
 			reg.Write(addr, 0xffffffff)
 		}
 	}
 
 	// Set priority mask to allow Non-Secure world to use the lower half
 	// of the priority range.
-	reg.Write(cpu.gicc+GICC_PMR, 0x80)
-
-	// Enable GIC
+	reg.Write(hw.gicc+GICC_PMR, 0x80)
 
 	if fiq {
-		reg.Set(cpu.gicc+GICC_CTLR, GICC_CTLR_FIQEN)
+		reg.Set(hw.gicc+GICC_CTLR, GICC_CTLR_FIQEN)
 	}
 
-	reg.Set(cpu.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP1)
-	reg.Set(cpu.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP0)
+	reg.Set(hw.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP1)
+	reg.Set(hw.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP0)
 
-	reg.Set(cpu.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP1)
-	reg.Set(cpu.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP0)
+	reg.Set(hw.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP1)
+	reg.Set(hw.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP0)
 }
 
 func irq(gicd uint32, m int, secure bool, enable bool) {
@@ -122,31 +144,31 @@ func irq(gicd uint32, m int, secure bool, enable bool) {
 
 // EnableInterrupt enables forwarding of the corresponding interrupt to the CPU
 // and configures its group status (Secure: Group 0, Non-Secure: Group 1).
-func (cpu *CPU) EnableInterrupt(id int, secure bool) {
-	irq(cpu.gicd, id, secure, true)
+func (hw *GIC) EnableInterrupt(id int, secure bool) {
+	irq(hw.gicd, id, secure, true)
 }
 
 // DisableInterrupt disables forwarding of the corresponding interrupt to the
 // CPU.
-func (cpu *CPU) DisableInterrupt(id int) {
-	irq(cpu.gicd, id, false, false)
+func (hw *GIC) DisableInterrupt(id int) {
+	irq(hw.gicd, id, false, false)
 }
 
 // GetInterrupt obtains and acknowledges a signaled interrupt, the end of its
 // handling must be signaled through the returned channel.
-func (cpu *CPU) GetInterrupt() (id int, end chan bool) {
-	if cpu.gicc == 0 {
+func (hw *GIC) GetInterrupt() (id int, end chan bool) {
+	if hw.gicc == 0 {
 		return
 	}
 
-	m := reg.Get(cpu.gicc + GICC_IAR, GICC_IAR_ID, 0x3ff)
+	m := reg.Get(hw.gicc + GICC_IAR, GICC_IAR_ID, 0x3ff)
 
 	if m != 1023 {
 		end = make(chan bool)
 
 		go func() {
 			<-end
-			reg.SetN(cpu.gicc + GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
+			reg.SetN(hw.gicc + GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
 		}()
 	}
 

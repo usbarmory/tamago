@@ -32,6 +32,7 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 
 	"github.com/usbarmory/tamago/arm"
+	"github.com/usbarmory/tamago/arm/gic"
 	"github.com/usbarmory/tamago/arm/tzc380"
 
 	"github.com/usbarmory/tamago/soc/nxp/bee"
@@ -155,6 +156,11 @@ var (
 
 	// Data Co-Processor (ULL/ULZ only)
 	DCP *dcp.DCP
+
+	// Generic Interrupt Controller
+	GIC = &gic.GIC{
+		Base:  GIC_BASE,
+	}
 
 	// GPIO controller 1
 	GPIO1 = &gpio.GPIO{
