@@ -14,6 +14,10 @@
 TEXT ·set_exc_stack(SB),NOSPLIT,$0-4
 	MOVW addr+0(FP), R0
 
+	// Set FIQ mode SP
+	WORD	$0xe321f0d1	// msr CPSR_c, 0xd1
+	MOVW R0, R13
+
 	// Set IRQ mode SP
 	WORD	$0xe321f0d2	// msr CPSR_c, 0xd2
 	MOVW R0, R13
