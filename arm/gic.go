@@ -51,7 +51,7 @@ const (
 )
 
 // InitGIC initializes the ARM Generic Interrupt Controller (GIC).
-func (cpu *CPU) InitGIC(base uint32, secure bool) {
+func (cpu *CPU) InitGIC(base uint32, secure bool, fiq bool) {
 	cpu.gicd = base + GICD_OFF
 	cpu.gicc = base + GICC_OFF
 
@@ -82,7 +82,10 @@ func (cpu *CPU) InitGIC(base uint32, secure bool) {
 
 	// Enable GIC
 
-	reg.Set(cpu.gicc+GICC_CTLR, GICC_CTLR_FIQEN)
+	if fiq {
+		reg.Set(cpu.gicc+GICC_CTLR, GICC_CTLR_FIQEN)
+	}
+
 	reg.Set(cpu.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP1)
 	reg.Set(cpu.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP0)
 
@@ -129,14 +132,25 @@ func (cpu *CPU) DisableInterrupt(id int) {
 	irq(cpu.gicd, id, false, false)
 }
 
-// GetInterrupt obtains and acknowledges a signaled interrupt.
-func (cpu *CPU) GetInterrupt() (id int) {
+// GetInterrupt obtains and acknowledges a signaled interrupt, the end of its
+// handling must be signaled through the returned channel.
+func (cpu *CPU) GetInterrupt() (id int, end chan bool) {
 	if cpu.gicc == 0 {
 		return
 	}
 
 	m := reg.Get(cpu.gicc + GICC_IAR, GICC_IAR_ID, 0x3ff)
-	reg.SetN(cpu.gicc + GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
 
-	return int(m)
+	if m != 1023 {
+		end = make(chan bool)
+
+		go func() {
+			<-end
+			reg.SetN(cpu.gicc + GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
+		}()
+	}
+
+	id = int(m)
+
+	return
 }
