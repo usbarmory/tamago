@@ -116,6 +116,7 @@ func init() {
 			CCGR:      CCM_CCGR0,
 			CG:        CCGRx_CG6,
 			Clock:     GetPeripheralClock,
+			IRQ:       ENET1_IRQ,
 			EnablePLL: EnableENETPLL,
 		}
 
@@ -126,6 +127,7 @@ func init() {
 			CCGR:      CCM_CCGR0,
 			CG:        CCGRx_CG6,
 			Clock:     GetPeripheralClock,
+			IRQ:       ENET2_IRQ,
 			EnablePLL: EnableENETPLL,
 		}
 	}

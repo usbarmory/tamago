@@ -80,6 +80,10 @@ const (
 	ENET1_BASE = 0x02188000
 	ENET2_BASE = 0x020b4000
 
+	// Ethernet MAC interrupts
+	ENET1_IRQ = 32 + 118
+	ENET2_IRQ = 32 + 120
+
 	// I2C
 	I2C1_BASE = 0x021a0000
 	I2C2_BASE = 0x021a4000
@@ -159,7 +163,7 @@ var (
 
 	// Generic Interrupt Controller
 	GIC = &gic.GIC{
-		Base:  GIC_BASE,
+		Base: GIC_BASE,
 	}
 
 	// GPIO controller 1
