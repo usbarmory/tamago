@@ -157,6 +157,7 @@ func (hw *ENET) Rx() (buf []byte) {
 	defer hw.Unlock()
 
 	bd := hw.rx.pop()
+	reg.Set(hw.rdar, RDAR_ACTIVE)
 
 	if bd.Status&(1<<BD_RX_ST_E) != 0 {
 		return
@@ -173,8 +174,6 @@ func (hw *ENET) Rx() (buf []byte) {
 	if bd.Status&(1<<BD_RX_ST_CR) == 0 {
 		buf = bd.Data()
 	}
-
-	reg.Set(hw.rdar, RDAR_ACTIVE)
 
 	return
 }
