@@ -58,6 +58,12 @@ const (
 
 	GICC_EOIR    = 0x0010
 	GICC_EOIR_ID = 0
+
+	GICC_AIAR    = 0x0020
+	GICC_AIAR_ID = 0
+
+	GICC_AEOIR    = 0x0024
+	GICC_AEOIR_ID = 0
 )
 
 // GIC represents the Generic Interrupt Controller instance.
@@ -156,19 +162,30 @@ func (hw *GIC) DisableInterrupt(id int) {
 
 // GetInterrupt obtains and acknowledges a signaled interrupt, the end of its
 // handling must be signaled through the returned channel.
-func (hw *GIC) GetInterrupt() (id int, end chan bool) {
+func (hw *GIC) GetInterrupt(secure bool) (id int, end chan bool) {
 	if hw.gicc == 0 {
 		return
 	}
 
-	m := reg.Get(hw.gicc + GICC_IAR, GICC_IAR_ID, 0x3ff)
+	var m uint32
 
-	if m != 1023 {
+	if secure {
+		m = reg.Get(hw.gicc + GICC_IAR, GICC_IAR_ID, 0x3ff)
+	} else {
+		m = reg.Get(hw.gicc + GICC_AIAR, GICC_AIAR_ID, 0x3ff)
+	}
+
+	if m < 1020 {
 		end = make(chan bool)
 
 		go func() {
 			<-end
-			reg.SetN(hw.gicc + GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
+
+			if secure {
+				reg.SetN(hw.gicc + GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
+			} else {
+				reg.SetN(hw.gicc + GICC_AEOIR, GICC_AEOIR_ID, 0x3ff, m)
+			}
 		}()
 	}
 
