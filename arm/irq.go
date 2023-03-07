@@ -10,15 +10,31 @@
 package arm
 
 // defined in irq.s
-func irq_enable()
-func irq_disable()
+func irq_enable(spsr bool)
+func irq_disable(spsr bool)
+func fiq_enable(spsr bool)
+func fiq_disable(spsr bool)
 
-// EnableInterrupts unmasks IRQ interrupts.
-func (cpu *CPU) EnableInterrupts() {
-	irq_enable()
+// EnableInterrupts unmasks IRQ interrupts in the current or saved program
+// status.
+func (cpu *CPU) EnableInterrupts(saved bool) {
+	irq_enable(saved)
 }
 
-// DisableInterrupts masks IRQ interrupts.
-func (cpu *CPU) DisableInterrupts() {
-	irq_disable()
+// DisableInterrupts masks IRQ interrupts in the current or saved program
+// status.
+func (cpu *CPU) DisableInterrupts(saved bool) {
+	irq_disable(saved)
+}
+
+// EnableFastInterrupts unmasks FIQ interrupts in the current or saved program
+// status.
+func (cpu *CPU) EnableFastInterrupts(saved bool) {
+	fiq_enable(saved)
+}
+
+// DisableFastInterrupts masks FIQ interrupts in the current or saved program
+// status.
+func (cpu *CPU) DisableFastInterrupts(saved bool) {
+	fiq_disable(saved)
 }
