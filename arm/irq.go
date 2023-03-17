@@ -9,6 +9,13 @@
 
 package arm
 
+import (
+	"math"
+	"time"
+
+	"github.com/usbarmory/tamago/internal/reg"
+)
+
 // defined in irq.s
 func irq_enable(spsr bool)
 func irq_disable(spsr bool)
@@ -37,4 +44,22 @@ func (cpu *CPU) EnableFastInterrupts(saved bool) {
 // status.
 func (cpu *CPU) DisableFastInterrupts(saved bool) {
 	fiq_disable(saved)
+}
+
+// RegisterInterruptHandler sets the calling goroutine as IRQ handler, the
+// goroutine must then use WaitInterrupt() to receive an IRQ and service it.
+func RegisterInterruptHandler() {
+	irqHandlerG = reg.G()
+}
+
+// WaitInterrupt() puts the calling goroutine in wait state, its execution is
+// resumed when an IRQ exception is received.
+func WaitInterrupt() {
+	// To avoid losing interrupts, re-enabling must happen only after we
+	// are sleeping.
+	go irq_enable(false)
+
+	// Sleep indefinitely until woken up only by runtime.WakeG
+	// (see irqHandler in exception.s).
+	time.Sleep(math.MaxInt64)
 }

@@ -80,6 +80,9 @@ func DefaultExceptionHandler(off int) {
 // CPU.Init()).
 var SystemExceptionHandler = DefaultExceptionHandler
 
+// IRQ handling goroutine, set with RegisterInterruptHandler()
+var irqHandlerG uint32
+
 func systemException(off int) {
 	SystemExceptionHandler(off)
 }

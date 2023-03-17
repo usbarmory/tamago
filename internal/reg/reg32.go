@@ -21,6 +21,8 @@ import (
 	"unsafe"
 )
 
+func G() uint32
+
 func Get(addr uint32, pos int, mask int) uint32 {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 	r := atomic.LoadUint32(reg)
