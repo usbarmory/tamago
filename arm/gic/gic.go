@@ -12,7 +12,7 @@
 // Package gic implements a driver for the ARM Generic Interrupt Controller.
 //
 // The driver is based on the following reference specifications:
-//   * ARM IHI 0048B.b - ARM Generic Interrupt Controller - Architecture version 2.0
+//   - ARM IHI 0048B.b - ARM Generic Interrupt Controller - Architecture version 2.0
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
@@ -170,9 +170,9 @@ func (hw *GIC) GetInterrupt(secure bool) (id int, end chan bool) {
 	var m uint32
 
 	if secure {
-		m = reg.Get(hw.gicc + GICC_IAR, GICC_IAR_ID, 0x3ff)
+		m = reg.Get(hw.gicc+GICC_IAR, GICC_IAR_ID, 0x3ff)
 	} else {
-		m = reg.Get(hw.gicc + GICC_AIAR, GICC_AIAR_ID, 0x3ff)
+		m = reg.Get(hw.gicc+GICC_AIAR, GICC_AIAR_ID, 0x3ff)
 	}
 
 	if m < 1020 {
@@ -182,9 +182,9 @@ func (hw *GIC) GetInterrupt(secure bool) (id int, end chan bool) {
 			<-end
 
 			if secure {
-				reg.SetN(hw.gicc + GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
+				reg.SetN(hw.gicc+GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
 			} else {
-				reg.SetN(hw.gicc + GICC_AEOIR, GICC_AEOIR_ID, 0x3ff, m)
+				reg.SetN(hw.gicc+GICC_AEOIR, GICC_AEOIR_ID, 0x3ff, m)
 			}
 		}()
 	}

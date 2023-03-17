@@ -10,7 +10,7 @@
 // Package arm provides support for ARM architecture specific operations.
 //
 // The following architectures/cores are supported/tested:
-//  * ARMv7-A / Cortex-A7 (single-core)
+//   - ARMv7-A / Cortex-A7 (single-core)
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see

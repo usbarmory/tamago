@@ -14,10 +14,10 @@
 // Host Controller (uSDHC).
 //
 // The following specifications are adopted:
-//   * IMX6ULLRM  - i.MX 6ULL Applications Processor Reference Manual                - Rev 1      2017/11
-//   * IMX6FG     - i.MX 6 Series Firmware Guide                                     - Rev 0      2012/11
-//   * SD-PL-7.10 - SD Specifications Part 1 Physical Layer Simplified Specification - 7.10       2020/03/25
-//   * JESD84-B51 - Embedded Multi-Media Card (e•MMC) Electrical Standard (5.1)      - JESD84-B51 2015/02
+//   - IMX6ULLRM  - i.MX 6ULL Applications Processor Reference Manual                - Rev 1      2017/11
+//   - IMX6FG     - i.MX 6 Series Firmware Guide                                     - Rev 0      2012/11
+//   - SD-PL-7.10 - SD Specifications Part 1 Physical Layer Simplified Specification - 7.10       2020/03/25
+//   - JESD84-B51 - Embedded Multi-Media Card (e•MMC) Electrical Standard (5.1)      - JESD84-B51 2015/02
 //
 // The driver currently supports interfacing with SD/MMC cards up to High Speed
 // mode and Dual Data Rate.
@@ -44,10 +44,10 @@
 //
 // Note that due to NXP errata ERR010450 the following maximum theoretical
 // limits apply:
-//  * eMMC  HS200: 150MB/s - 150MHz (instead of 200MB/s - 200MHz), supported
-//  * eMMC  DDR52:  90MB/s -  45MHz (instead of 104MB/s -  52MHz), supported
-//  *   SD SDR104:  75MB/s - 150MHz (instead of 104MB/s - 208MHz), supported
-//  *   SD  DDR50:  45MB/s -  45MHz (instead of  50MB/s -  50MHz), unsupported
+//   - eMMC  HS200: 150MB/s - 150MHz (instead of 200MB/s - 200MHz), supported
+//   - eMMC  DDR52:  90MB/s -  45MHz (instead of 104MB/s -  52MHz), supported
+//   - SD SDR104:  75MB/s - 150MHz (instead of 104MB/s - 208MHz), supported
+//   - SD  DDR50:  45MB/s -  45MHz (instead of  50MB/s -  50MHz), unsupported
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
@@ -167,9 +167,9 @@ const (
 
 // Configuration constants (p348, 35.4.2 Frequency divider configuration,
 // IMX6FG) to support the following frequencies:
-//   * Identification frequency ≤ 400 KHz
-//   * Operating frequency ≤ 25 MHz
-//   * High frequency ≤ 50 MHz
+//   - Identification frequency ≤ 400 KHz
+//   - Operating frequency ≤ 25 MHz
+//   - High frequency ≤ 50 MHz
 const (
 	// p346, 35.2 Clocks, IMX6FG.
 	//
@@ -495,8 +495,9 @@ func (hw *USDHC) Detect() (err error) {
 }
 
 // transfer data from/to the card as specified in:
-//   p347, 35.5.1 Reading data from the card, IMX6FG,
-//   p354, 35.5.2 Writing data to the card, IMX6FG.
+//
+//	p347, 35.5.1 Reading data from the card, IMX6FG,
+//	p354, 35.5.2 Writing data to the card, IMX6FG.
 func (hw *USDHC) transfer(index uint32, dtd uint32, arg uint64, blocks uint32, blockSize uint32, buf []byte) (err error) {
 	var timeout time.Duration
 

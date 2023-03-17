@@ -1,3 +1,3 @@
 module github.com/usbarmory/tamago
 
-go 1.18
+go 1.20

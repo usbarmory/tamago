@@ -10,8 +10,8 @@
 // Package usb implements a driver for the USB PHY designated as NXP
 // USBOH3USBO2, included in several i.MX SoCs, adopting the following
 // specifications:
-//   * IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
-//   * USB2.0    - USB Specification Revision 2.0
+//   - IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
+//   - USB2.0    - USB Specification Revision 2.0
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see

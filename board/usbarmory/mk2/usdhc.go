@@ -22,18 +22,18 @@ var MMC = USDHC2
 // SD/MMC configuration constants.
 //
 // On the USB armory Mk II the following uSDHC interfaces are connected:
-//   * uSDHC1: external uSD  slot (SD1)
-//   * uSDHC2: internal eMMC card (SD2/NAND)
+//   - uSDHC1: external uSD  slot (SD1)
+//   - uSDHC2: internal eMMC card (SD2/NAND)
 //
 // On the USB armory Mk II β revision the maximum achievable theoretical speed
 // modes are:
-//   * uSD:  High Speed (HS)      25MB/s, 50MHz, 3.3V, 4-bit data bus
-//   * eMMC: High Speed (HS) DDR 104MB/s, 52MHz, 3.3V, 8-bit data bus
+//   - uSD:  High Speed (HS)      25MB/s, 50MHz, 3.3V, 4-bit data bus
+//   - eMMC: High Speed (HS) DDR 104MB/s, 52MHz, 3.3V, 8-bit data bus
 //
 // On the USB armory Mk II γ revision the maximum achievable theoretical speed
 // modes are:
-//   * uSD:  SDR104  75MB/s, 150MHz, 1.8V, 4-bit data bus
-//   * eMMC: HS200  150MB/s, 150MHz, 1.8V, 8-bit data bus
+//   - uSD:  SDR104  75MB/s, 150MHz, 1.8V, 4-bit data bus
+//   - eMMC: HS200  150MB/s, 150MHz, 1.8V, 8-bit data bus
 const (
 	IOMUXC_SW_MUX_CTL_PAD_CSI_DATA04 = 0x020e01f4
 	IOMUXC_SW_PAD_CTL_PAD_CSI_DATA04 = 0x020e0480

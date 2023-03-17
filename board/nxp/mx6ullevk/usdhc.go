@@ -22,8 +22,8 @@ var SD2 = USDHC2
 // SD1/SD2 configuration constants.
 //
 // On the MCIMX6ULL-EVK the following uSDHC interfaces are connected:
-//   * uSDHC1: base board full size SD slot (SD1)
-//   * uSDHC2: CPU board microSD slot (SD2)
+//   - uSDHC1: base board full size SD slot (SD1)
+//   - uSDHC2: CPU board microSD slot (SD2)
 const (
 	IOMUXC_SW_MUX_CTL_PAD_CSI_DATA04 = 0x020e01f4
 	IOMUXC_SW_PAD_CTL_PAD_CSI_DATA04 = 0x020e0480
