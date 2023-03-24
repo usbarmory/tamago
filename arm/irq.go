@@ -11,8 +11,8 @@ package arm
 
 import (
 	"math"
-	"time"
 	"runtime"
+	"time"
 )
 
 // IRQ handling goroutine, set with RegisterInterruptHandler()
