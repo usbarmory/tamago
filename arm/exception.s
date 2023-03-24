@@ -112,15 +112,18 @@ TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
 
 	/* wake up IRQ handling goroutine */
 	MOVW	·irqHandlerG(SB), R0
+	MOVW	·irqHandlerP(SB), R1
 	CMP	$0, R0
-	B.EQ	5(PC)
+	B.EQ	done
+	CMP	$0, R1
+	B.EQ	done
 	CALL	runtime·WakeG(SB)
 
 	/* the IRQ handling goroutine is expected to unmask IRQs */
 	WORD	$0xe14f0000			// mrs r0, SPSR
 	ORR	$1<<7, R0			// mask IRQs
 	WORD	$0xe169f000			// msr SPSR, r0
-
+done:
 	/* restore registers */
 	MOVM.IA.W	(R13), [R0-R12, R14]	// pop {r0-r12, r14}
 

@@ -12,8 +12,13 @@ package arm
 import (
 	"math"
 	"time"
+	"runtime"
+)
 
-	"github.com/usbarmory/tamago/internal/reg"
+// IRQ handling goroutine, set with RegisterInterruptHandler()
+var (
+	irqHandlerG uint32
+	irqHandlerP uint32
 )
 
 // defined in irq.s
@@ -49,7 +54,7 @@ func (cpu *CPU) DisableFastInterrupts(saved bool) {
 // RegisterInterruptHandler sets the calling goroutine as IRQ handler, the
 // goroutine must then use WaitInterrupt() to receive an IRQ and service it.
 func RegisterInterruptHandler() {
-	irqHandlerG = reg.G()
+	irqHandlerG, irqHandlerP = runtime.GetG()
 }
 
 // WaitInterrupt() puts the calling goroutine in wait state, its execution is
@@ -59,7 +64,7 @@ func WaitInterrupt() {
 	// are sleeping.
 	go irq_enable(false)
 
-	// Sleep indefinitely until woken up only by runtime.WakeG
+	// Sleep indefinitely until woken up by runtime.WakeG
 	// (see irqHandler in exception.s).
 	time.Sleep(math.MaxInt64)
 }
