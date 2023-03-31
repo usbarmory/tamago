@@ -218,10 +218,6 @@ func (hw *ENET) setup() {
 	reg.Write(hw.mrbr, uint32(size))
 	reg.SetN(hw.rcr, RCR_MAX_FL, 0x3fff, uint32(size))
 
-	// set receive and transmit descriptors
-	reg.Write(hw.rdsr, hw.rx.init(true))
-	reg.Write(hw.tdsr, hw.tx.init(false))
-
 	// set physical address
 	hw.SetMAC(hw.MAC)
 
@@ -260,6 +256,10 @@ func (hw *ENET) SetMAC(mac net.HardwareAddr) {
 // function waits and handles received packets (see Rx()) through RxHandler()
 // (when set), it should never return.
 func (hw *ENET) Start(rx bool) {
+	// set receive and transmit descriptors
+	reg.Write(hw.rdsr, hw.rx.init(true))
+	reg.Write(hw.tdsr, hw.tx.init(false))
+
 	reg.Set(hw.rdar, RDAR_ACTIVE)
 
 	if !rx || hw.RxHandler == nil {
