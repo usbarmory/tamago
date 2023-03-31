@@ -13,7 +13,7 @@ import (
 	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 )
 
-// SD instance
+// SD instance (UA-MKII-β, UA-MKII-γ)
 var SD = USDHC1
 
 // MMC instance
@@ -22,7 +22,7 @@ var MMC = USDHC2
 // SD/MMC configuration constants.
 //
 // On the USB armory Mk II the following uSDHC interfaces are connected:
-//   - uSDHC1: external uSD  slot (SD1)
+//   - uSDHC1: external uSD  slot (SD1, only on UA-MKII-β and UA-MKII-γ models)
 //   - uSDHC2: internal eMMC card (SD2/NAND)
 //
 // On the USB armory Mk II β revision the maximum achievable theoretical speed
@@ -30,8 +30,8 @@ var MMC = USDHC2
 //   - uSD:  High Speed (HS)      25MB/s, 50MHz, 3.3V, 4-bit data bus
 //   - eMMC: High Speed (HS) DDR 104MB/s, 52MHz, 3.3V, 8-bit data bus
 //
-// On the USB armory Mk II γ revision the maximum achievable theoretical speed
-// modes are:
+// On the USB armory Mk II γ revision (and UA-MKII-LAN for eMMC only) the
+// maximum achievable theoretical speed modes are:
 //   - uSD:  SDR104  75MB/s, 150MHz, 1.8V, 4-bit data bus
 //   - eMMC: HS200  150MB/s, 150MHz, 1.8V, 8-bit data bus
 const (
@@ -77,25 +77,31 @@ func init() {
 		Daisy: IOMUXC_USDHC2_WP_SELECT_INPUT,
 	}
 
-	wpSD.Mode(USDHC1_WP_MODE)
-	wpSD.Select(DAISY_CSI_DATA04)
-	wpSD.Ctl(ctl)
-
 	wpMMC.Mode(USDHC2_WP_MODE)
 	wpMMC.Select(DAISY_CSI_PIXCLK)
 	wpMMC.Ctl(ctl)
 
-	SD.Init(SD_BUS_WIDTH)
-	MMC.Init(MMC_BUS_WIDTH)
+	model := model()
 
-	switch Model() {
-	case "UA-MKII-β":
+	switch model {
+	case BETA, GAMMA:
+		wpSD.Mode(USDHC1_WP_MODE)
+		wpSD.Select(DAISY_CSI_DATA04)
+		wpSD.Ctl(ctl)
+
 		// β revisions do not support SDR104 (SD) or HS200 (MMC)
-		return
-	case "UA-MKII-γ":
-		SD.LowVoltage = lowVoltageSD
+		if model != BETA {
+			SD.LowVoltage = lowVoltageSD
+			MMC.LowVoltage = lowVoltageMMC
+		}
+
+		SD.Init(SD_BUS_WIDTH)
+	case LAN:
+		SD = nil
 		MMC.LowVoltage = lowVoltageMMC
 	}
+
+	MMC.Init(MMC_BUS_WIDTH)
 }
 
 func lowVoltageSD(enable bool) bool {
