@@ -15,18 +15,19 @@ import (
 )
 
 const (
-	// Clause 22
+	// IEEE 802.3 Clause 22
 	MDIO_ST       = 0b01
 	MDIO_OP_READ  = 0b10
 	MDIO_OP_WRITE = 0b01
 	MDIO_TA       = 0b10
 
-	// Clause 45
+	// IEEE 802.3 Clause 45
 	MDIO_45_ST          = 0b00
 	MDIO_45_OP_ADDR     = 0b00
 	MDIO_45_OP_WRITE    = 0b01
 	MDIO_45_OP_READ_INC = 0b10
 	MDIO_45_OP_READ     = 0b11
+	MDIO_45_TA          = 0b10
 )
 
 func mdio(st, op, pa, ra, ta uint32, data uint16) (frame uint32) {
@@ -40,7 +41,8 @@ func mdio(st, op, pa, ra, ta uint32, data uint16) (frame uint32) {
 	return
 }
 
-// MDIO22 transmits a Clause 22 MII frame
+// MDIO22 transmits a MII frame (IEEE 802.3 Clause 22), the transacted frame is
+// returned.
 func (hw *ENET) MDIO22(op, pa, ra int, data uint16) (frame uint32) {
 	reg.Set(hw.eir, IRQ_MII)
 	defer reg.Set(hw.eir, IRQ_MII)
@@ -52,24 +54,27 @@ func (hw *ENET) MDIO22(op, pa, ra int, data uint16) (frame uint32) {
 	return reg.Read(hw.mmfr)
 }
 
-// MDIO45 transmits a Clause 45 MII frame
+// MDIO45 transmits a MII frame (IEEE 802.3 Clause 45), the transacted frame is
+// returned.
 func (hw *ENET) MDIO45(op, prtad, devad int, data uint16) (frame uint32) {
 	reg.Set(hw.eir, IRQ_MII)
 	defer reg.Set(hw.eir, IRQ_MII)
 
-	frame = mdio(MDIO_45_ST, uint32(op), uint32(prtad), uint32(devad), MDIO_TA, data)
+	frame = mdio(MDIO_45_ST, uint32(op), uint32(prtad), uint32(devad), MDIO_45_TA, data)
 	reg.Write(hw.mmfr, frame)
 
 	reg.Wait(hw.eir, IRQ_MII, 1, 1)
 	return reg.Read(hw.mmfr)
 }
 
-// ReadPHYRegister reads a standard register from the connected Ethernet PHY.
+// ReadPHYRegister reads a standard register (IEEE 802.3 Clause 22) from the
+// connected Ethernet PHY.
 func (hw *ENET) ReadPHYRegister(pa int, ra int) (data uint16) {
 	return uint16(hw.MDIO22(MDIO_OP_READ, pa, ra, 0))
 }
 
-// WritePHYRegister writes a standard register from the connected Ethernet PHY.
+// WritePHYRegister writes a standard register (IEEE 802.3 Clause 22) from the
+// connected Ethernet PHY.
 func (hw *ENET) WritePHYRegister(pa int, ra int, data uint16) {
 	hw.MDIO22(MDIO_OP_WRITE, pa, ra, data)
 }
