@@ -298,13 +298,13 @@ func EnablePHY(eth *enet.ENET) error {
 	}
 
 	// Software reset
-	eth.WriteMII(pa, KSZ_CTRL, (1 << CTRL_RESET))
+	eth.WritePHYRegister(pa, KSZ_CTRL, (1 << CTRL_RESET))
 	// HP Auto MDI/MDI-X mode, RMII 50MHz, LEDs: Activity/Link
-	eth.WriteMII(pa, KSZ_PHYCTRL2, (1<<CTRL2_HP_MDIX)|(1<<CTRL2_RMII)|(1<<CTRL2_LED))
+	eth.WritePHYRegister(pa, KSZ_PHYCTRL2, (1<<CTRL2_HP_MDIX)|(1<<CTRL2_RMII)|(1<<CTRL2_LED))
 	// 100 Mbps, Full-duplex
-	eth.WriteMII(pa, KSZ_CTRL, (1<<CTRL_SPEED)|(1<<CTRL_DUPLEX))
+	eth.WritePHYRegister(pa, KSZ_CTRL, (1<<CTRL_SPEED)|(1<<CTRL_DUPLEX))
 	// enable interrupts
-	eth.WriteMII(pa, KSZ_INT, 0xff00)
+	eth.WritePHYRegister(pa, KSZ_INT, 0xff00)
 
 	return nil
 }

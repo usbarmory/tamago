@@ -15,39 +15,61 @@ import (
 )
 
 const (
+	// Clause 22
 	MDIO_ST       = 0b01
 	MDIO_OP_READ  = 0b10
 	MDIO_OP_WRITE = 0b01
 	MDIO_TA       = 0b10
+
+	// Clause 45
+	MDIO_45_ST          = 0b00
+	MDIO_45_OP_ADDR     = 0b00
+	MDIO_45_OP_WRITE    = 0b01
+	MDIO_45_OP_READ_INC = 0b10
+	MDIO_45_OP_READ     = 0b11
 )
 
-func mdio22(op int, pa int, ra int, data uint16) (pkt uint32) {
-	bits.SetN(&pkt, MMFR_ST, 0b11, MDIO_ST)
-	bits.SetN(&pkt, MMFR_OP, 0b11, uint32(op))
-	bits.SetN(&pkt, MMFR_PA, 0x1f, uint32(pa))
-	bits.SetN(&pkt, MMFR_RA, 0x1f, uint32(ra))
-	bits.SetN(&pkt, MMFR_TA, 0b11, MDIO_TA)
-	bits.SetN(&pkt, MMFR_DATA, 0xffff, uint32(data))
+func mdio(st, op, pa, ra, ta uint32, data uint16) (frame uint32) {
+	bits.SetN(&frame, MMFR_ST, 0b11, st)
+	bits.SetN(&frame, MMFR_OP, 0b11, op)
+	bits.SetN(&frame, MMFR_PA, 0x1f, pa)
+	bits.SetN(&frame, MMFR_RA, 0x1f, ra)
+	bits.SetN(&frame, MMFR_TA, 0b11, ta)
+	bits.SetN(&frame, MMFR_DATA, 0xffff, uint32(data))
 
 	return
 }
 
-// ReadMII reads a connected Ethernet PHY register.
-func (hw *ENET) ReadMII(pa int, ra int) (data uint16) {
+// MDIO22 transmits a Clause 22 MII frame
+func (hw *ENET) MDIO22(op, pa, ra int, data uint16) (frame uint32) {
 	reg.Set(hw.eir, IRQ_MII)
 	defer reg.Set(hw.eir, IRQ_MII)
 
-	reg.Write(hw.mmfr, mdio22(MDIO_OP_READ, pa, ra, 0))
-	reg.Wait(hw.eir, IRQ_MII, 1, 1)
+	frame = mdio(MDIO_ST, uint32(op), uint32(pa), uint32(ra), MDIO_TA, data)
+	reg.Write(hw.mmfr, frame)
 
-	return uint16(reg.Read(hw.mmfr))
+	reg.Wait(hw.eir, IRQ_MII, 1, 1)
+	return reg.Read(hw.mmfr)
 }
 
-// WriteMII writes a connected Ethernet PHY register.
-func (hw *ENET) WriteMII(pa int, ra int, data uint16) {
+// MDIO45 transmits a Clause 45 MII frame
+func (hw *ENET) MDIO45(op, prtad, devad int, data uint16) (frame uint32) {
 	reg.Set(hw.eir, IRQ_MII)
 	defer reg.Set(hw.eir, IRQ_MII)
 
-	reg.Write(hw.mmfr, mdio22(MDIO_OP_WRITE, pa, ra, data))
+	frame = mdio(MDIO_45_ST, uint32(op), uint32(prtad), uint32(devad), MDIO_TA, data)
+	reg.Write(hw.mmfr, frame)
+
 	reg.Wait(hw.eir, IRQ_MII, 1, 1)
+	return reg.Read(hw.mmfr)
+}
+
+// ReadPHYRegister reads a standard register from the connected Ethernet PHY.
+func (hw *ENET) ReadPHYRegister(pa int, ra int) (data uint16) {
+	return uint16(hw.MDIO22(MDIO_OP_READ, pa, ra, 0))
+}
+
+// WritePHYRegister writes a standard register from the connected Ethernet PHY.
+func (hw *ENET) WritePHYRegister(pa int, ra int, data uint16) {
+	hw.MDIO22(MDIO_OP_WRITE, pa, ra, data)
 }

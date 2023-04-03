@@ -188,9 +188,9 @@ func EnablePHY(eth *enet.ENET) error {
 	configurePHYPads()
 
 	// Software reset
-	eth.WriteMII(PHY_ADDR, DP_CTRL, (1 << CTRL_RESET))
+	eth.WritePHYRegister(PHY_ADDR, DP_CTRL, (1 << CTRL_RESET))
 	// 100 Mbps, Full-duplex
-	eth.WriteMII(PHY_ADDR, DP_CTRL, (1<<CTRL_SPEED)|(1<<CTRL_DUPLEX))
+	eth.WritePHYRegister(PHY_ADDR, DP_CTRL, (1<<CTRL_SPEED)|(1<<CTRL_DUPLEX))
 
 	return nil
 }
