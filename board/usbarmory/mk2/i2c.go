@@ -13,20 +13,21 @@ package mk2
 const (
 	// Power management controller
 	PF1510_ADDR = 0x08
-	// Cryptographic co-processor (rev. γ only)
+	// Cryptographic co-processor (UA-MKII-γ, UA-MKII-LAN)
 	SE050_ADDR = 0x48
-	// Cryptographic co-processor (rev. β only)
+	// Cryptographic co-processor (UA-MKII-β)
 	A71CH_ADDR = 0x48
-	// Cryptographic co-processor (rev. β only)
+	// Cryptographic co-processor (UA-MKII-β)
 	ATECC_ADDR = 0x60
-	// Type-C plug port controller
+	// Type-C front port controller
 	TUSB320_ADDR = 0x61
-	// Type-C receptacle port controller
+	// Type-C receptacle port controller (UA-MKII-β, UA-MKII-γ)
 	FUSB303_ADDR = 0x31
 )
 
 func init() {
-	// I2C1 is used to enable the USB receptacle controller as well as low
-	// switch SD card signaling to low voltage.
+	// On models UA-MKII-β and UA-MKII-γ I2C1 is used to enable the USB
+	// receptacle controller as well as low switch SD card signaling to low
+	// voltage.
 	I2C1.Init()
 }

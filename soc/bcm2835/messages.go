@@ -8,9 +8,7 @@
 
 package bcm2835
 
-//
 // Channels (see <https://github.com/raspberrypi/firmware/wiki/Mailboxes>)
-//
 const (
 	VC_CH_POWERMGMT            = 0
 	VC_CH_FRAMEBUFFER          = 1
@@ -23,13 +21,11 @@ const (
 	VC_CH_PROPERTYTAGS_VC_TO_A = 9
 )
 
-//
 // Tags (see <https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface>)
 //
 // For fixed length messages, message lengths are provided as the larger of the request
 // or response size, since response overwrites the request buffer and caller is
 // responsible for allocation.
-//
 const (
 	VC_FIRMWARE_GET_REV     = 0x00000001
 	VC_FIRMWARE_GET_REV_LEN = 4

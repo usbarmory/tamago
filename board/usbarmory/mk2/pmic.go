@@ -11,7 +11,6 @@ package mk2
 
 import (
 	"github.com/usbarmory/tamago/bits"
-	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
 	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 )
@@ -46,14 +45,10 @@ func init() {
 	p.Ctl(ctl)
 }
 
-// Reset deasserts the PMIC watchdog signal (through the SoC external reset
+// Reset asserts the PMIC watchdog signal (through the SoC external reset
 // source) causing the USB armory Mk II board to power cycle (cold reset).
 func Reset() {
 	for {
-		// enable software reset extension
-		reg.Set16(imx6ul.WDOG2_WCR, imx6ul.WCR_SRE)
-
-		// assert system reset signal
-		reg.Clear16(imx6ul.WDOG2_WCR, imx6ul.WCR_SRS)
+		imx6ul.WDOG2.SoftwareReset()
 	}
 }

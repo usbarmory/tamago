@@ -65,7 +65,6 @@ func (hw *DCP) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, 
 	payloadPointer := region.Alloc(iv, 0)
 	defer region.Free(payloadPointer)
 
-
 	pkt := &WorkPacket{}
 	pkt.SetCipherDefaults()
 

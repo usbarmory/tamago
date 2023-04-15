@@ -23,8 +23,8 @@ import (
 
 // BLE module configuration constants.
 //
-// On the USB armory Mk II a u-blox ANNA-B112 Bluetooth module is connected as
-// illustrated in the following constants.
+// On models UA-MKII-β and UA-MKII-γ a u-blox ANNA-B112 Bluetooth module is
+// connected to UART1.
 //
 // On the USB armory Mk II β revision, due to an errata, the RTS/CTS signals
 // are connected inverted on the Bluetooth module side. This is automatically
@@ -142,7 +142,7 @@ func (ble *ANNA) Init() (err error) {
 	ble.Lock()
 	defer ble.Unlock()
 
-	BLE.UART = UART1
+	ble.UART = UART1
 
 	ctl := uint32(0)
 	bits.Set(&ctl, iomuxc.SW_PAD_CTL_HYS)
@@ -166,27 +166,29 @@ func (ble *ANNA) Init() (err error) {
 		DEFAULT_MODE, ctl)
 	pad.Select(DAISY_UART1_RX_DATA)
 
-	switch Model() {
-	case "UA-MKII-β":
-		BLE.errata = true
+	switch model() {
+	case LAN:
+		return errors.New("unavailable on this model")
+	case BETA:
+		ble.errata = true
 
 		// On β BT_UART_RTS is set to GPIO for CTS due to errata.
-		BLE.cts = configureBLEGPIO(7, imx6ul.GPIO1,
+		ble.cts = configureBLEGPIO(7, imx6ul.GPIO1,
 			IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
 			IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07,
 			ctl)
-		BLE.cts.Out()
+		ble.cts.Out()
 
 		bits.SetN(&ctl, iomuxc.SW_PAD_CTL_PUS, 0b11, iomuxc.SW_PAD_CTL_PUS_PULL_DOWN_100K)
 
 		// On β BT_UART_CTS is set to GPIO for RTS due to errata.
-		BLE.rts = configureBLEGPIO(18, imx6ul.GPIO1,
+		ble.rts = configureBLEGPIO(18, imx6ul.GPIO1,
 			IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B,
 			IOMUXC_SW_PAD_CTL_PAD_UART1_CTS_B,
 			ctl)
-		BLE.rts.In()
+		ble.rts.In()
 
-		BLE.UART.Flow = false
+		ble.UART.Flow = false
 	default:
 		// BT_UART_CTS
 		pad = configureBLEPad(
@@ -204,7 +206,7 @@ func (ble *ANNA) Init() (err error) {
 			UART1_RTS_B_MODE, ctl)
 		pad.Select(DAISY_GPIO1_IO07)
 
-		BLE.UART.Flow = true
+		ble.UART.Flow = true
 	}
 
 	bits.SetN(&ctl, iomuxc.SW_PAD_CTL_PUS, 0b11, iomuxc.SW_PAD_CTL_PUS_PULL_UP_22K)
@@ -230,19 +232,19 @@ func (ble *ANNA) Init() (err error) {
 		0, GPIO_MODE, ctl)
 
 	// BT_RESET
-	BLE.reset = configureBLEGPIO(BT_RESET, imx6ul.GPIO1,
+	ble.reset = configureBLEGPIO(BT_RESET, imx6ul.GPIO1,
 		IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO09,
 		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO09,
 		ctl)
 
 	// BT_SWITCH_1
-	BLE.switch1 = configureBLEGPIO(BT_SWITCH_1, imx6ul.GPIO1,
+	ble.switch1 = configureBLEGPIO(BT_SWITCH_1, imx6ul.GPIO1,
 		IOMUXC_SW_MUX_CTL_PAD_UART3_RTS_B,
 		IOMUXC_SW_PAD_CTL_PAD_UART3_RTS_B,
 		ctl)
 
 	// BT_SWITCH_2
-	BLE.switch2 = configureBLEGPIO(BT_SWITCH_2, imx6ul.GPIO1,
+	ble.switch2 = configureBLEGPIO(BT_SWITCH_2, imx6ul.GPIO1,
 		IOMUXC_SW_MUX_CTL_PAD_UART3_CTS_B,
 		IOMUXC_SW_PAD_CTL_PAD_UART3_CTS_B,
 		ctl)
@@ -257,13 +259,13 @@ func (ble *ANNA) Init() (err error) {
 		IOMUXC_SW_PAD_CTL_PAD_UART3_RX_DATA,
 		0, GPIO_MODE, ctl)
 
-	BLE.UART.Init()
+	ble.UART.Init()
 
 	// reset in normal mode
-	BLE.switch1.High()
-	BLE.switch2.High()
-	BLE.reset.Low()
-	defer BLE.reset.High()
+	ble.switch1.High()
+	ble.switch2.High()
+	ble.reset.Low()
+	ble.reset.High()
 
 	return
 }
@@ -271,7 +273,7 @@ func (ble *ANNA) Init() (err error) {
 // RTS returns whether the BLE module allows to send or not data, only useful
 // on β boards when a workaround to the RTS/CTS errata is required.
 func (ble *ANNA) RTS() (ready bool) {
-	if !BLE.errata {
+	if !ble.errata {
 		return
 	}
 
@@ -281,7 +283,7 @@ func (ble *ANNA) RTS() (ready bool) {
 // CTS signals the BLE module whether it is allowed to send or not data, only
 // useful on β boards when a workaround to the RTS/CTS errata is required.
 func (ble *ANNA) CTS(clear bool) {
-	if !BLE.errata {
+	if !ble.errata {
 		return
 	}
 

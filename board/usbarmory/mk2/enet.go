@@ -1,4 +1,4 @@
-// MCIMX6ULL-EVK support for tamago/arm
+// USB armory Mk II support for tamago/arm
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,11 +7,9 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package mx6ullevk
+package mk2
 
 import (
-	"errors"
-
 	"github.com/usbarmory/tamago/soc/nxp/enet"
 	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
 	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
@@ -19,47 +17,22 @@ import (
 
 // Ethernet PHY configuration constants.
 //
-// On the MCIMX6ULL-EVK the ENET MACs are each connected to an KSZ8081RNB PHY,
-// this board package configures them at 100 Mbps / Full-duplex mode.
+// On the UA-MKII-LAN the ENET2 MAC is connected to a DP83825I PHY, this board
+// package configures it at 100 Mbps / Full-duplex mode.
 const (
-	KSZ_CTRL    = 0x00
+	PHY_ADDR = 0
+
+	DP_CTRL     = 0x00
 	CTRL_RESET  = 15
 	CTRL_SPEED  = 13
 	CTRL_DUPLEX = 8
 
-	KSZ_INT = 0x1b
-
-	KSZ_PHYCTRL2  = 0x1f
-	CTRL2_HP_MDIX = 15
-	CTRL2_RMII    = 7
-	CTRL2_LED     = 4
+	DP_RCSR      = 0x17
+	RCSR_RMII_CS = 7
+	RCSR_RX_BUF  = 0
 )
 
 const (
-	// ENET1 MUX
-	IOMUXC_SW_MUX_CTL_PAD_ENET1_RX_DATA0 = 0x020e00c4
-	IOMUXC_SW_MUX_CTL_PAD_ENET1_RX_DATA1 = 0x020e00c8
-	IOMUXC_SW_MUX_CTL_PAD_ENET1_RX_EN    = 0x020e00cc
-	IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_DATA0 = 0x020e00d0
-	IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_DATA1 = 0x020e00d4
-	IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_EN    = 0x020e00d8
-	IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_CLK   = 0x020e00dc
-	IOMUXC_SW_MUX_CTL_PAD_ENET1_RX_ER    = 0x020e00e0
-
-	// ENET1 PAD
-	IOMUXC_SW_PAD_CTL_PAD_ENET1_RX_DATA0 = 0x020e0350
-	IOMUXC_SW_PAD_CTL_PAD_ENET1_RX_DATA1 = 0x020e0354
-	IOMUXC_SW_PAD_CTL_PAD_ENET1_RX_EN    = 0x020e0358
-	IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_DATA0 = 0x020e035c
-	IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_DATA1 = 0x020e0360
-	IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_EN    = 0x020e0364
-	IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_CLK   = 0x020e0368
-	IOMUXC_SW_PAD_CTL_PAD_ENET1_RX_ER    = 0x020e036c
-
-	// ENET1 SELECT INPUT
-	IOMUXC_ENET1_REF_CLK1_SELECT_INPUT  = 0x020e0574
-	IOMUXC_ENET1_MAC0_MDIO_SELECT_INPUT = 0x020e0578
-
 	// ENET2 MUX
 	IOMUXC_SW_MUX_CTL_PAD_ENET2_RX_DATA0 = 0x020e00e4
 	IOMUXC_SW_MUX_CTL_PAD_ENET2_RX_DATA1 = 0x020e00e8
@@ -84,30 +57,34 @@ const (
 	IOMUXC_ENET2_REF_CLK2_SELECT_INPUT  = 0x020e057c
 	IOMUXC_ENET2_MAC0_MDIO_SELECT_INPUT = 0x020e0580
 
-	// MDIO
-	IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO06 = 0x020e0074
-	IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO06 = 0x020e0300
+	// MDIO (already defined as BT_SWDIO in ble.go)
+	//IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO06
+	//IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO06
 
-	// MDC
-	IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07 = 0x020e0304
-	IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07 = 0x020e0078
+	// MDC (already defined as BT_UART_RTS in ble.go)
+	//IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07
+	//IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07
 
 	IOMUX_ALT0 = 0
 	IOMUX_ALT1 = 1
 	IOMUX_ALT4 = 4
 
-	DAISY_ENET1_TX_CLK_ALT4     = 0b10
 	DAISY_ENET2_TX_CLK_ALT4     = 0b10
-	DAISY_ENET1_GPIO1_IO06_ALT0 = 0
-	DAISY_ENET2_GPIO1_IO06_ALT1 = 1
+	DAISY_ENET2_GPIO1_IO06_ALT0 = 0
 )
 
 func init() {
-	imx6ul.ENET1.EnablePHY = EnablePHY
-	imx6ul.ENET2.EnablePHY = EnablePHY
+	if imx6ul.ENET1 != nil {
+		// ENET1 is only used on emulated runs
+		imx6ul.ENET1.EnablePHY = EnablePHY
+		imx6ul.ENET1.RMII = true
+	}
 
-	imx6ul.ENET1.RMII = true
-	imx6ul.ENET2.RMII = true
+	if imx6ul.ENET2 != nil {
+		// ENET2 is only used on UA-MKII-NET
+		imx6ul.ENET2.EnablePHY = EnablePHY
+		imx6ul.ENET2.RMII = true
+	}
 }
 
 func configurePHYPad(mux uint32, pad uint32, daisy uint32, mode uint32, ctl uint32) (p *iomuxc.Pad) {
@@ -139,79 +116,7 @@ func ctl100() uint32 {
 		(1 << iomuxc.SW_PAD_CTL_HYS)
 }
 
-func configurePHY1Pads() {
-	// 50 Mhz pad
-	ctl50 := ctl50()
-	// 100 Mhz pad
-	ctl100 := ctl100()
-
-	// [ALT0] ENET1_RDATA01
-	configurePHYPad(
-		IOMUXC_SW_MUX_CTL_PAD_ENET1_RX_DATA0,
-		IOMUXC_SW_PAD_CTL_PAD_ENET1_RX_DATA0,
-		0, IOMUX_ALT0, ctl100)
-
-	// [ALT0] ENET1_RDATA01
-	configurePHYPad(
-		IOMUXC_SW_MUX_CTL_PAD_ENET1_RX_DATA1,
-		IOMUXC_SW_PAD_CTL_PAD_ENET1_RX_DATA1,
-		0, IOMUX_ALT0, ctl100)
-
-	// [ALT0] ENET1_RX_EN
-	configurePHYPad(
-		IOMUXC_SW_MUX_CTL_PAD_ENET1_RX_EN,
-		IOMUXC_SW_PAD_CTL_PAD_ENET1_RX_EN,
-		0, IOMUX_ALT0, ctl100)
-
-	// [ALT0] ENET1_TDATA00
-	configurePHYPad(
-		IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_DATA0,
-		IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_DATA0,
-		0, IOMUX_ALT0, ctl100)
-
-	// [ALT0] ENET1_TDATA01
-	configurePHYPad(
-		IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_DATA1,
-		IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_DATA1,
-		0, IOMUX_ALT0, ctl100)
-
-	// [ALT0] ENET1_TX_EN
-	configurePHYPad(
-		IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_EN,
-		IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_EN,
-		0, IOMUX_ALT0, ctl100)
-
-	// [ALT4] ENET1_REF_CLK / SION ENABLED
-	pad := configurePHYPad(
-		IOMUXC_SW_MUX_CTL_PAD_ENET1_TX_CLK,
-		IOMUXC_SW_PAD_CTL_PAD_ENET1_TX_CLK,
-		IOMUXC_ENET1_REF_CLK1_SELECT_INPUT,
-		IOMUX_ALT4, ctl50)
-	pad.Select(DAISY_ENET1_TX_CLK_ALT4)
-	pad.SoftwareInput(true)
-
-	// [ALT0] ENET1_RX_ER
-	configurePHYPad(
-		IOMUXC_SW_MUX_CTL_PAD_ENET1_RX_ER,
-		IOMUXC_SW_PAD_CTL_PAD_ENET1_RX_ER,
-		0, IOMUX_ALT0, ctl100)
-
-	// [ALT0] ENET1_MDIO
-	pad = configurePHYPad(
-		IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO06,
-		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO06,
-		IOMUXC_ENET1_MAC0_MDIO_SELECT_INPUT,
-		IOMUX_ALT0, ctl100)
-	pad.Select(DAISY_ENET1_GPIO1_IO06_ALT0)
-
-	// [ALT0] ENET1_MDC
-	configurePHYPad(
-		IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
-		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07,
-		0, IOMUX_ALT0, ctl100)
-}
-
-func configurePHY2Pads() {
+func configurePHYPads() {
 	// 50 Mhz pad
 	ctl50 := ctl50()
 	// 100 Mhz pad
@@ -274,7 +179,7 @@ func configurePHY2Pads() {
 		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO06,
 		IOMUXC_ENET2_MAC0_MDIO_SELECT_INPUT,
 		IOMUX_ALT1, ctl100)
-	pad.Select(DAISY_ENET2_GPIO1_IO06_ALT1)
+	pad.Select(DAISY_ENET2_GPIO1_IO06_ALT0)
 
 	// [ALT0] ENET2_MDC
 	configurePHYPad(
@@ -284,27 +189,14 @@ func configurePHY2Pads() {
 }
 
 func EnablePHY(eth *enet.ENET) error {
-	var pa int
-
-	switch eth.Index {
-	case 1:
-		pa = 2
-		configurePHY1Pads()
-	case 2:
-		pa = 1
-		configurePHY2Pads()
-	default:
-		return errors.New("invalid index")
-	}
+	configurePHYPads()
 
 	// Software reset
-	eth.WritePHYRegister(pa, KSZ_CTRL, (1 << CTRL_RESET))
-	// HP Auto MDI/MDI-X mode, RMII 50MHz, LEDs: Activity/Link
-	eth.WritePHYRegister(pa, KSZ_PHYCTRL2, (1<<CTRL2_HP_MDIX)|(1<<CTRL2_RMII)|(1<<CTRL2_LED))
+	eth.WritePHYRegister(PHY_ADDR, DP_CTRL, (1 << CTRL_RESET))
 	// 100 Mbps, Full-duplex
-	eth.WritePHYRegister(pa, KSZ_CTRL, (1<<CTRL_SPEED)|(1<<CTRL_DUPLEX))
-	// enable interrupts
-	eth.WritePHYRegister(pa, KSZ_INT, 0xff00)
+	eth.WritePHYRegister(PHY_ADDR, DP_CTRL, (1<<CTRL_SPEED)|(1<<CTRL_DUPLEX))
+	// 50MHz RMII Reference Clock Select, 2 bit tolerance Receive Elasticity Buffer Size
+	eth.WritePHYRegister(PHY_ADDR, DP_RCSR, (1<<RCSR_RMII_CS)|(1<<RCSR_RX_BUF))
 
 	return nil
 }

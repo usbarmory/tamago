@@ -10,7 +10,7 @@
 // Package ocotp implements a driver for the NXP On-Chip OTP Controller
 // (OCOTP_CTRL), which provides an interface to on-chip fuses for read/write
 // operation, adopting the following reference specifications:
-//   * IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
+//   - IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
 //
 // WARNING: Fusing SoC OTPs is an **irreversible** action that permanently
 // fuses values on the device. This means that any errors in the process, or

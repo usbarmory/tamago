@@ -14,6 +14,10 @@
 TEXT ·set_exc_stack(SB),NOSPLIT,$0-4
 	MOVW addr+0(FP), R0
 
+	// Set FIQ mode SP
+	WORD	$0xe321f0d1	// msr CPSR_c, 0xd1
+	MOVW R0, R13
+
 	// Set IRQ mode SP
 	WORD	$0xe321f0d2	// msr CPSR_c, 0xd2
 	MOVW R0, R13
@@ -61,6 +65,16 @@ TEXT ·set_mvbar(SB),NOSPLIT,$0-4
 	/* save caller registers */					\
 	MOVM.DB.W	[R0-RN, R14], (R13)	/* push {r0-rN, r14} */	\
 									\
+	/* restore g in case this mode banks them */			\
+	MOVW	$SAVE_SIZE, R0						\
+	CMP	$44, R0							\
+	B.GT	6(PC)							\
+	WORD	$0xe10f0000			/* mrs r0, CPSR */	\
+	WORD	$0xe321f0db			/* msr CPSR_c, 0xdb */	\
+	MOVW	g, R1							\
+	WORD	$0xe129f000			/* msr CPSR, r0 */	\
+	MOVW	R1, g							\
+									\
 	/* call exception handler on g0 */				\
 	MOVW	$OFFSET, R0						\
 	MOVW	$FN(SB), R1						\
@@ -72,7 +86,6 @@ TEXT ·set_mvbar(SB),NOSPLIT,$0-4
 	MOVM.IA.W	(R13), [R0-RN, R14]	/* pop {r0-rN, r14} */	\
 									\
 	/* restore PC from LR and mode */				\
-	ADD	$LROFFSET, R14, R14					\
 	MOVW.S	R14, R15
 
 TEXT ·resetHandler(SB),NOSPLIT|NOFRAME,$0
@@ -91,7 +104,31 @@ TEXT ·dataAbortHandler(SB),NOSPLIT|NOFRAME,$0
 	EXCEPTION(const_DATA_ABORT, ·systemException, 8, R12, 56)
 
 TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
-	EXCEPTION(const_IRQ, ·systemException, 4, R12, 56)
+	/* remove exception specific LR offset */
+	SUB	$4, R14, R14
+
+	/* save caller registers */
+	MOVM.DB.W	[R0-R12, R14], (R13)	// push {r0-r12, r14}
+
+	/* wake up IRQ handling goroutine */
+	MOVW	·irqHandlerG(SB), R0
+	MOVW	·irqHandlerP(SB), R1
+	CMP	$0, R0
+	B.EQ	done
+	CMP	$0, R1
+	B.EQ	done
+	CALL	runtime·WakeG(SB)
+
+	/* the IRQ handling goroutine is expected to unmask IRQs */
+	WORD	$0xe14f0000			// mrs r0, SPSR
+	ORR	$1<<7, R0			// mask IRQs
+	WORD	$0xe169f000			// msr SPSR, r0
+done:
+	/* restore registers */
+	MOVM.IA.W	(R13), [R0-R12, R14]	// pop {r0-r12, r14}
+
+	/* restore PC from LR and mode */
+	MOVW.S	R14, R15
 
 TEXT ·fiqHandler(SB),NOSPLIT|NOFRAME,$0
 	EXCEPTION(const_FIQ, ·systemException, 4, R7, 36)

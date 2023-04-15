@@ -21,8 +21,11 @@ import (
 // On the USB armory Mk II the serial console is UART2, therefore standard
 // output is redirected there.
 //
-// The console is exposed through the USB Type-C receptacle and available only
-// in debug accessory mode (see EnableDebugAccessory()).
+// On models UA-MKII-β and UA-MKII-γ the console is exposed through the USB
+// Type-C receptacle and available only in debug accessory mode (see
+// EnableDebugAccessory()).
+//
+// On model UA-MKII-LAN the console is exposed through test pads.
 
 //go:linkname printk runtime.printk
 func printk(c byte) {

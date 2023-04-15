@@ -9,7 +9,7 @@
 
 // Package physicalfilter implements a driver for SiFive physical-filter IP
 // adopting the following reference specifications:
-//   * FU740C00RM - SiFive FU740-C000 Manual - v1p2 2021/03/25
+//   - FU740C00RM - SiFive FU740-C000 Manual - v1p2 2021/03/25
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=riscv64` as
 // supported by the TamaGo framework for bare metal Go on RISC-V SoCs, see

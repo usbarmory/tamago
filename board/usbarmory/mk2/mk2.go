@@ -21,9 +21,15 @@ import (
 	_ "unsafe"
 )
 
+// USB armory Mk II model revisions, WithSecure burns model information in the
+// MSB of OTP fuses bank 4 word 2 (OCOTP_MAC0), returned by Model().
 const (
-	REV_BETA = iota
-	REV_GAMMA
+	// USB armory Mk II (rev. β) - UA-MKII-β
+	BETA = iota
+	// USB armory Mk II (rev. γ) - UA-MKII-γ
+	GAMMA
+	// USB armory Mk II LAN - UA-MKII-LAN
+	LAN
 )
 
 // Peripheral instances
@@ -41,18 +47,25 @@ var (
 	USDHC2 = imx6ul.USDHC2
 )
 
-// Model returns the USB armory model name, to further detect SoC variants
-// imx6ul.Model() can be used.
-func Model() (model string) {
+func model() uint32 {
 	// WithSecure burns model information in the MSB of OTP fuses bank 4
 	// word 2 (OCOTP_MAC0).
 	mac0, _ := imx6ul.OCOTP.Read(4, 2)
+	return mac0 >> 24
+}
 
-	switch mac0 >> 24 {
-	case REV_GAMMA:
-		return "UA-MKII-γ"
-	default:
+// Model returns the USB armory model name, to further detect SoC variants
+// imx6ul.Model() can be used.
+func Model() string {
+	switch model() {
+	case BETA:
 		return "UA-MKII-β"
+	case GAMMA:
+		return "UA-MKII-γ"
+	case LAN:
+		return "UA-MKII-LAN"
+	default:
+		return "unknown"
 	}
 }
 

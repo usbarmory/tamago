@@ -72,6 +72,19 @@ TEXT ·read_cntpct(SB),$0-8
 
 	RET
 
+// func write_cntptval(val int32, enable bool)
+TEXT ·write_cntptval(SB),$0-8
+	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
+	// B6.1.13 CNTP_TVAL, PL1 Physical TimerValue register, PMSA
+	MOVW	val+0(FP), R0
+	MOVW	enable+4(FP), R1
+
+	WORD	$0xf57ff06f // isb sy
+	MCR	15, 0, R0, C14, C2, 0
+	MCR	15, 0, R1, C14, C2, 1
+
+	RET
+
 // func busyloop(count int32)
 TEXT ·Busyloop(SB),$0-4
 	MOVW count+0(FP), R0

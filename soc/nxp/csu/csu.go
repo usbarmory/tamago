@@ -9,8 +9,8 @@
 
 // Package csu implements a driver for the NXP Central Security Unit (CSU)
 // adopting the following reference specifications:
-//   * IMX6ULLRM  - i.MX 6ULL Applications Processor Reference Manual          - Rev 1 2017/11
-//   * IMX6ULLSRM - i.MX 6ULL Applications Processor Security Reference Manual - Rev 0 2016/09
+//   - IMX6ULLRM  - i.MX 6ULL Applications Processor Reference Manual          - Rev 1 2017/11
+//   - IMX6ULLSRM - i.MX 6ULL Applications Processor Security Reference Manual - Rev 0 2016/09
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see

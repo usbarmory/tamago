@@ -30,9 +30,7 @@ import (
 const (
 	// p879, 22.5 Memory map/register definition, IMX6ULLRM
 
-	ENETx_EIR = 0x0004
-	EIR_MII   = 23
-
+	ENETx_EIR  = 0x0004
 	ENETx_EIMR = 0x0008
 
 	ENETx_RDAR  = 0x0010
@@ -82,6 +80,29 @@ const (
 	MRBR_R_BUF_SIZE = 4
 )
 
+// ENET interrupt events
+const (
+	// p889, 22.5.1 Interrupt Event Register (ENETx_EIR),  IMX6ULLRM
+	// p891, 22.5.2 Interrupt Mask  Register (ENETx_EIMR), IMX6ULLRM
+
+	IRQ_BABR     = 30
+	IRQ_BABT     = 29
+	IRQ_GRA      = 28
+	IRQ_TXF      = 27
+	IRQ_TXB      = 26
+	IRQ_RXF      = 25
+	IRQ_RXB      = 24
+	IRQ_MII      = 23
+	IRQ_EBERR    = 22
+	IRQ_LC       = 21
+	IRQ_RL       = 20
+	IRQ_UN       = 19
+	IRQ_PLR      = 18
+	IRQ_WAKEUP   = 17
+	IRQ_TS_AVAIL = 16
+	IRQ_TS_TIMER = 15
+)
+
 // ENET represents an Ethernet MAC instance.
 type ENET struct {
 	sync.Mutex
@@ -90,12 +111,14 @@ type ENET struct {
 	Index int
 	// Base register
 	Base uint32
-	// Clock retrieval function
-	Clock func() uint32
 	// Clock gate register
 	CCGR uint32
 	// Clock gate
 	CG int
+	// Clock retrieval function
+	Clock func() uint32
+	// Interrupt ID
+	IRQ int
 	// PLL enable function
 	EnablePLL func(index int) error
 	// PHY enable function
@@ -195,10 +218,6 @@ func (hw *ENET) setup() {
 	reg.Write(hw.mrbr, uint32(size))
 	reg.SetN(hw.rcr, RCR_MAX_FL, 0x3fff, uint32(size))
 
-	// set receive and transmit descriptors
-	reg.Write(hw.rdsr, hw.rx.init(true))
-	reg.Write(hw.tdsr, hw.tx.init(false))
-
 	// set physical address
 	hw.SetMAC(hw.MAC)
 
@@ -233,18 +252,37 @@ func (hw *ENET) SetMAC(mac net.HardwareAddr) {
 	reg.Write(hw.paur, uint32(upper)<<16)
 }
 
-// Start begins automatic processing of incoming packets and passes them to the
-// Rx function, it should never return.
-func (hw *ENET) Start() {
-	var buf []byte
+// Start begins processing of incoming packets. When the argument is true the
+// function waits and handles received packets (see Rx()) through RxHandler()
+// (when set), it should never return.
+func (hw *ENET) Start(rx bool) {
+	// set receive and transmit descriptors
+	reg.Write(hw.rdsr, hw.rx.init(true))
+	reg.Write(hw.tdsr, hw.tx.init(false))
 
 	reg.Set(hw.rdar, RDAR_ACTIVE)
+
+	if !rx || hw.RxHandler == nil {
+		return
+	}
+
+	var buf []byte
 
 	for {
 		runtime.Gosched()
 
-		if buf = hw.Rx(); buf != nil && hw.RxHandler != nil {
+		if buf = hw.Rx(); buf != nil {
 			hw.RxHandler(buf)
 		}
 	}
+}
+
+// EnableInterrupt enables interrupt generation for a specific event.
+func (hw *ENET) EnableInterrupt(event int) {
+	reg.Set(hw.eimr, event)
+}
+
+// ClearInterrupt clears the interrupt corresponding to a specific event.
+func (hw *ENET) ClearInterrupt(event int) {
+	reg.Set(hw.eir, event)
 }

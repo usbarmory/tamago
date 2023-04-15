@@ -44,6 +44,7 @@ func read_cntfrq() int32
 func write_cntfrq(freq int32)
 func write_cntkctl(val uint32)
 func read_cntpct() int64
+func write_cntptval(val int32, enable bool)
 
 // Busyloop spins the processor for busy waiting purposes, taking a counter
 // value for the number of loops.
@@ -88,4 +89,9 @@ func (cpu *CPU) SetTimer(t int64) {
 	}
 
 	cpu.TimerOffset = t - int64(cpu.TimerFn()*cpu.TimerMultiplier)
+}
+
+// SetDownCounter sets a physical countdown timer.
+func (cpu *CPU) SetDownCounter(t int32, enable bool) {
+	write_cntptval(t, enable)
 }

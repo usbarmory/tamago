@@ -9,14 +9,14 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package tzc380 implements a driver the ARM TrustZone Address Space
+// Package tzc380 implements a driver for the ARM TrustZone Address Space
 // Controller TZC-380.
 //
 // Note that the TZASC must be initialized early in the boot process, see
 // TZASC.Bypass for information.
 //
 // The driver is based on the following reference specifications:
-//   * TZC-380 TRM - CoreLink™ TrustZone Address Space Controller TZC-380 - Revision: r0p1
+//   - TZC-380 TRM - CoreLink™ TrustZone Address Space Controller TZC-380 - Revision: r0p1
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see

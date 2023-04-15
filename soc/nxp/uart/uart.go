@@ -9,7 +9,7 @@
 
 // Package uart implements a driver for NXP UART controllers adopting the
 // following reference specifications:
-//   * IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
+//   - IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
@@ -150,7 +150,7 @@ type UART struct {
 // Init initializes and enables the UART for RS-232 mode,
 // p3605, 55.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
 func (hw *UART) Init() {
-	if hw.Base == 0 || hw.CCGR == 0 || hw.CG == 0 || hw.Clock == nil {
+	if hw.Base == 0 || hw.CCGR == 0 || hw.Clock == nil {
 		panic("invalid UART controller instance")
 	}
 

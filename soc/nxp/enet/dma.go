@@ -123,6 +123,10 @@ func (ring *bufferDescriptorRing) pop() (bd bufferDescriptor) {
 	bd.Status = uint16(ring.buf[off+2])
 	bd.Status |= uint16(ring.buf[off+3]) << 8
 
+	if bd.Status&(1<<BD_RX_ST_E) != 0 {
+		return
+	}
+
 	// set empty
 	ring.buf[off+3] |= (1 << BD_RX_ST_E) >> 8
 
@@ -162,6 +166,8 @@ func (hw *ENET) Rx() (buf []byte) {
 		return
 	}
 
+	reg.Set(hw.rdar, RDAR_ACTIVE)
+
 	if bd.Length > MTU {
 		panic("frame > MTU")
 	}
@@ -173,8 +179,6 @@ func (hw *ENET) Rx() (buf []byte) {
 	if bd.Status&(1<<BD_RX_ST_CR) == 0 {
 		buf = bd.Data()
 	}
-
-	reg.Set(hw.rdar, RDAR_ACTIVE)
 
 	return
 }
@@ -196,5 +200,6 @@ func (hw *ENET) Tx(buf []byte) {
 	}
 
 	hw.tx.push(bd)
+
 	reg.Set(hw.tdar, TDAR_ACTIVE)
 }

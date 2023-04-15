@@ -13,13 +13,15 @@ import (
 	"time"
 )
 
-// Plug USB port controller constants
+// Front USB port controller constants
+// (plug: UA-MKII-β, UA-MKII-γ, receptacle: UA-MKII-LAN).
 const (
 	TUSB320_CSR_2      = 0x09
 	CSR_ATTACHED_STATE = 6
 )
 
-// Plug USB port controller modes
+// Front USB port controller modes
+// (plug: UA-MKII-β, UA-MKII-γ, receptacle: UA-MKII-LAN).
 const (
 	STATE_NOT_ATTACHED = iota
 	STATE_ATTACHED_SRC
@@ -27,7 +29,7 @@ const (
 	STATE_ATTACHED_ACC
 )
 
-// Receptacle USB port controller constants
+// Side receptacle USB port controller constants (UA-MKII-β, UA-MKII-γ)
 const (
 	FUSB303_CONTROL1 = 0x05
 	CONTROL1_ENABLE  = 3
@@ -35,7 +37,7 @@ const (
 	FUSB303_TYPE = 0x13
 )
 
-// Receptacle USB port controller modes
+// Side receptacle USB port controller modes (UA-MKII-β, UA-MKII-γ)
 const (
 	TYPE_DEBUGSRC    = 1 << 6
 	TYPE_DEBUGSNK    = 1 << 5
@@ -46,14 +48,15 @@ const (
 	TYPE_AUDIO       = 0
 )
 
-// PlugMode returns the type of attached device detected by the plug USB port
-// controller.
-func PlugMode() (mode int, err error) {
+// FrontPortMode returns the type of attached device detected by the front USB
+// port controller.
+func FrontPortMode() (mode int, err error) {
 	t, err := I2C1.Read(TUSB320_ADDR, TUSB320_CSR_2, 1, 1)
 	return int(t[0] >> CSR_ATTACHED_STATE), err
 }
 
-// EnableReceptacleController activates the receptacle USB port controller.
+// EnableReceptacleController activates the side receptacle USB port
+// controller.
 func EnableReceptacleController() (err error) {
 	a, err := I2C1.Read(FUSB303_ADDR, FUSB303_CONTROL1, 1, 1)
 
@@ -65,15 +68,15 @@ func EnableReceptacleController() (err error) {
 	return I2C1.Write(a, FUSB303_ADDR, FUSB303_CONTROL1, 1)
 }
 
-// ReceptacleMode returns the type of device or accessory detected by the
+// ReceptacleMode returns the type of device or accessory detected by the side
 // receptacle USB port controller.
 func ReceptacleMode() (mode int, err error) {
 	t, err := I2C1.Read(FUSB303_ADDR, FUSB303_TYPE, 1, 1)
 	return int(t[0]), err
 }
 
-// EnableDebugAccessory enables debug accessory detection on the receptacle USB
-// port controller.
+// EnableDebugAccessory enables debug accessory detection on the side
+// receptacle USB port controller.
 //
 // A debug accessory allows access, among all other debug signals, to the UART2
 // serial console.
@@ -108,9 +111,9 @@ func waitDebugAccessory(timeout time.Duration, ch chan<- bool) {
 	ch <- false
 }
 
-// DetectDebugAccessory enables debug accessory detection on the receptacle USB
-// port controller and polls successful detection (typically done in up to
-// 200ms).
+// DetectDebugAccessory enables debug accessory detection on the side
+// receptacle USB port controller and polls successful detection (typically
+// done in up to 200ms).
 //
 // An error is returned if no debug accessory is detected within the timeout.
 //
@@ -119,9 +122,7 @@ func waitDebugAccessory(timeout time.Duration, ch chan<- bool) {
 func DetectDebugAccessory(timeout time.Duration) (<-chan bool, error) {
 	ch := make(chan bool)
 
-	err := EnableReceptacleController()
-
-	if err != nil {
+	if err := EnableReceptacleController(); err != nil {
 		return nil, err
 	}
 

@@ -72,8 +72,12 @@ func Init() {
 }
 
 func init() {
-	// clear power-down watchdog
-	clearWDOG()
+	// Initialize watchdogs, this must be done within 16 seconds to clear
+	// their power-down counter event
+	// (p4085, 59.5.3 Power-down counter event, IMX6ULLRM).
+	WDOG1.Init()
+	WDOG2.Init()
+	WDOG3.Init()
 
 	// use internal OCRAM (iRAM) as default DMA region
 	dma.Init(OCRAM_START, OCRAM_SIZE)
@@ -93,9 +97,9 @@ func init() {
 	case "i.MX6ULL", "i.MX6ULZ":
 		// Data Co-Processor
 		DCP = &dcp.DCP{
-			Base:            DCP_BASE,
-			CCGR:            CCM_CCGR0,
-			CG:              CCGRx_CG5,
+			Base: DCP_BASE,
+			CCGR: CCM_CCGR0,
+			CG:   CCGRx_CG5,
 			// assign internal OCRAM to DCP internal key exchange
 			DeriveKeyMemory: dma.Default(),
 		}
@@ -112,6 +116,7 @@ func init() {
 			CCGR:      CCM_CCGR0,
 			CG:        CCGRx_CG6,
 			Clock:     GetPeripheralClock,
+			IRQ:       ENET1_IRQ,
 			EnablePLL: EnableENETPLL,
 		}
 
@@ -122,6 +127,7 @@ func init() {
 			CCGR:      CCM_CCGR0,
 			CG:        CCGRx_CG6,
 			Clock:     GetPeripheralClock,
+			IRQ:       ENET2_IRQ,
 			EnablePLL: EnableENETPLL,
 		}
 	}
@@ -129,6 +135,11 @@ func init() {
 	if !Native || ARM.NonSecure() {
 		return
 	}
+
+	// OCOTP_ANA1 Temperature Sensor Calibration Data
+	// p3531, 52.2 Software Usage Guidelines, IMX6ULLRM
+	ana1, _ := OCOTP.Read(1, 6)
+	TEMPMON.Init(ana1)
 
 	// On the i.MX6UL family the only way to detect if we are booting
 	// through Serial Download Mode over USB is to check whether the USB

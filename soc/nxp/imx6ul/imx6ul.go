@@ -32,6 +32,7 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 
 	"github.com/usbarmory/tamago/arm"
+	"github.com/usbarmory/tamago/arm/gic"
 	"github.com/usbarmory/tamago/arm/tzc380"
 
 	"github.com/usbarmory/tamago/soc/nxp/bee"
@@ -44,9 +45,11 @@ import (
 	"github.com/usbarmory/tamago/soc/nxp/ocotp"
 	"github.com/usbarmory/tamago/soc/nxp/rngb"
 	"github.com/usbarmory/tamago/soc/nxp/snvs"
+	"github.com/usbarmory/tamago/soc/nxp/tempmon"
 	"github.com/usbarmory/tamago/soc/nxp/uart"
 	"github.com/usbarmory/tamago/soc/nxp/usb"
 	"github.com/usbarmory/tamago/soc/nxp/usdhc"
+	"github.com/usbarmory/tamago/soc/nxp/wdog"
 )
 
 // Peripheral registers
@@ -77,6 +80,10 @@ const (
 	ENET1_BASE = 0x02188000
 	ENET2_BASE = 0x020b4000
 
+	// Ethernet MAC interrupts
+	ENET1_IRQ = 32 + 118
+	ENET2_IRQ = 32 + 120
+
 	// I2C
 	I2C1_BASE = 0x021a0000
 	I2C2_BASE = 0x021a4000
@@ -94,6 +101,9 @@ const (
 
 	// Secure Non-Volatile Storage
 	SNVS_BASE = 0x020cc000
+
+	// Temperature Monitor
+	TEMPMON_BASE = 0x020c8180
 
 	// TrustZone Address Space Controller
 	TZASC_BASE            = 0x021d0000
@@ -118,6 +128,16 @@ const (
 	// SD/MMC
 	USDHC1_BASE = 0x02190000
 	USDHC2_BASE = 0x02194000
+
+	// Watchdog Timers
+	WDOG1_BASE = 0x020bc000
+	WDOG2_BASE = 0x020c0000
+	WDOG3_BASE = 0x021e4000
+
+	// Watchdog Timer interrupts
+	WDOG1_IRQ = 32 + 80
+	WDOG2_IRQ = 32 + 81
+	WDOG3_IRQ = 32 + 11
 )
 
 // Peripheral instances
@@ -140,6 +160,11 @@ var (
 
 	// Data Co-Processor (ULL/ULZ only)
 	DCP *dcp.DCP
+
+	// Generic Interrupt Controller
+	GIC = &gic.GIC{
+		Base: GIC_BASE,
+	}
 
 	// GPIO controller 1
 	GPIO1 = &gpio.GPIO{
@@ -219,6 +244,11 @@ var (
 		CG:   CCGRx_CG9,
 	}
 
+	// Temperature Monitor
+	TEMPMON = &tempmon.TEMPMON{
+		Base: TEMPMON_BASE,
+	}
+
 	// TrustZone Address Space Controller
 	TZASC = &tzc380.TZASC{
 		Base:              TZASC_BASE,
@@ -283,6 +313,36 @@ var (
 		CCGR:     CCM_CCGR6,
 		CG:       CCGRx_CG2,
 		SetClock: SetUSDHCClock,
+	}
+
+	// Watchdog Timer 1
+	WDOG1 = &wdog.WDOG{
+		Index: 1,
+		Base:  WDOG1_BASE,
+		CCGR:  CCM_CCGR3,
+		CG:    CCGRx_CG8,
+		IRQ:   WDOG1_IRQ,
+	}
+
+	// Watchdog Timer 2
+	WDOG2 = &wdog.WDOG{
+		Index: 2,
+		Base:  WDOG2_BASE,
+		CCGR:  CCM_CCGR5,
+		CG:    CCGRx_CG5,
+		IRQ:   WDOG2_IRQ,
+	}
+
+	// TrustZone Watchdog
+	TZ_WDOG = WDOG2
+
+	// Watchdog Timer 3
+	WDOG3 = &wdog.WDOG{
+		Index: 3,
+		Base:  WDOG3_BASE,
+		CCGR:  CCM_CCGR6,
+		CG:    CCGRx_CG10,
+		IRQ:   WDOG3_IRQ,
 	}
 )
 

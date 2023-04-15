@@ -13,7 +13,7 @@
 // The package implements initialization and drivers for specific SiFive FU540
 // System-on-Chip (SoC) peripherals, adopting, where indicated, the following
 // reference specifications:
-//   * FU540C00RM - SiFive FU540-C000 Manual - v1p4 2021/03/25
+//   - FU540C00RM - SiFive FU540-C000 Manual - v1p4 2021/03/25
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=riscv64` as
 // supported by the TamaGo framework for bare metal Go on RISC-V SoCs, see
