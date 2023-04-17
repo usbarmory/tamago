@@ -16,6 +16,9 @@ import (
 
 // CCID descriptor constants
 const (
+	// p16, Table 4.3-1, CCID Rev1.1
+	SMARTCARD_DEVICE_CLASS = 0x0b
+
 	// p17, Table 5.1-1, CCID Rev1.1
 	CCID_INTERFACE         = 0x21
 	CCID_DESCRIPTOR_LENGTH = 54

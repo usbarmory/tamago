@@ -16,13 +16,23 @@ import (
 
 // Mass Storage constants
 const (
+	// p11, Table 4.5 - Bulk-Only Data Interface Descriptor,
+	// USB Mass Storage Class 1.0
+	MASS_STORAGE_CLASS           = 0x08
+	BULK_ONLY_TRANSPORT_PROTOCOL = 0x50
+
+	// p11, Table 1 — SubClass Codes Mapped to Command Block
+	// Specifications, MSCO Revision 1.4
+	SCSI_CLASS = 0x06
+
 	CBW_LENGTH        = 31
 	CBW_CB_MAX_LENGTH = 16
 
 	CBW_SIGNATURE = 0x43425355
 	CSW_SIGNATURE = 0x53425355
 
-	// p15, Table 5.3 - Command Block Status Values, USB Mass Storage Class 1.0
+	// p15, Table 5.3 - Command Block Status Values,
+	// USB Mass Storage Class 1.0
 	CSW_STATUS_COMMAND_PASSED = 0x00
 	CSW_STATUS_COMMAND_FAILED = 0x01
 	CSW_STATUS_PHASE_ERROR    = 0x02
@@ -32,7 +42,8 @@ const (
 	GET_MAX_LUN                  = 0xfe
 )
 
-// CBW implements p13, 5.1 Command Block Wrapper (CBW), USB Mass Storage Class 1.0
+// CBW implements p13, 5.1 Command Block Wrapper (CBW),
+// USB Mass Storage Class 1.0
 type CBW struct {
 	Signature          uint32
 	Tag                uint32

@@ -16,6 +16,16 @@ import (
 
 // CDC descriptor constants
 const (
+	// p39, Table 14: Communication Device Class Code
+	// USB Class Definitions for Communication Devices 1.1
+	COMMUNICATION_DEVICE_CLASS = 0x02
+	// p39, Table 15: Communication Interface Class Code
+	// USB Class Definitions for Communication Devices 1.1
+	COMMUNICATION_INTERFACE_CLASS = 0x02
+	// p40, Table 17: Data Interface Class Code
+	// USB Class Definitions for Communication Devices 1.1
+	DATA_INTERFACE_CLASS = 0x0a
+
 	// p44, Table 24: Type Values for the bDescriptorType Field,
 	// USB Class Definitions for Communication Devices 1.1
 	CS_INTERFACE = 0x24
@@ -24,14 +34,31 @@ const (
 	// USB Class Definitions for Communication Devices 1.1
 	SET_ETHERNET_PACKET_FILTER = 0x43
 
-	HEADER                      = 0
-	CALL_MANAGEMENT             = 1
-	ABSTRACT_CONTROL_MANAGEMENT = 2
-	UNION                       = 6
-	ETHERNET_NETWORKING         = 15
-
 	// Maximum Segment Size
 	MSS = 1500 + 14
+)
+
+// p39, Table 16: Communication Interface Class SubClass Codes,
+// USB Class Definitions for Communication Devices 1.1
+const (
+	ACM_SUBCLASS = 0x02
+	ETH_SUBCLASS = 0x06
+)
+
+// p40, Table 17: Communication Interface Class Control Protocol Codes,
+// USB Class Definitions for Communication Devices 1.1
+const (
+	AT_COMMAND_PROTOCOL = 0x01
+)
+
+// p44, Table 25: bDescriptor SubType in Functional Descriptors,
+// USB Class Definitions for Communication Devices 1.1
+const (
+	HEADER                      = 0x00
+	CALL_MANAGEMENT             = 0x01
+	ABSTRACT_CONTROL_MANAGEMENT = 0x02
+	UNION                       = 0x06
+	ETHERNET_NETWORKING         = 0x0f
 )
 
 // CDCHeaderDescriptor implements
