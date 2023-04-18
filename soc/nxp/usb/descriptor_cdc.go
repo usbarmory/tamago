@@ -19,9 +19,11 @@ const (
 	// p39, Table 14: Communication Device Class Code
 	// USB Class Definitions for Communication Devices 1.1
 	COMMUNICATION_DEVICE_CLASS = 0x02
+
 	// p39, Table 15: Communication Interface Class Code
 	// USB Class Definitions for Communication Devices 1.1
 	COMMUNICATION_INTERFACE_CLASS = 0x02
+
 	// p40, Table 17: Data Interface Class Code
 	// USB Class Definitions for Communication Devices 1.1
 	DATA_INTERFACE_CLASS = 0x0a

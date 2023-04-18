@@ -40,10 +40,16 @@ const (
 	DQH_LIST_ALIGN = 2048
 	DQH_ALIGN      = 64
 	DQH_SIZE       = 64
-	DQH_INFO       = 0
-	DQH_CURRENT    = 4
-	DQH_NEXT       = 8
-	DQH_TOKEN      = 12
+
+	DQH_INFO  = 0
+	INFO_MULT = 30
+	INFO_ZLT  = 29
+	INFO_MPL  = 16
+	INFO_IOS  = 15
+
+	DQH_CURRENT = 4
+	DQH_NEXT    = 8
+	DQH_TOKEN   = 12
 
 	// p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM
 	DTD_ALIGN     = 32
@@ -57,6 +63,7 @@ const (
 	TOKEN_IOC    = 15
 	TOKEN_MULTO  = 10
 	TOKEN_ACTIVE = 7
+	TOKEN_STATUS = 0
 )
 
 // dTD implements
@@ -117,20 +124,20 @@ func (hw *USB) set(n int, dir int, max int, zlt bool, mult int) {
 	dqh := dQH{}
 
 	// Maximum Packet Length
-	bits.SetN(&dqh.Info, 16, 0x7ff, uint32(max))
+	bits.SetN(&dqh.Info, INFO_MPL, 0x7ff, uint32(max))
 
 	if !zlt {
 		// Zero Length Termination must be disabled for multi dTD
 		// requests.
-		bits.SetN(&dqh.Info, 29, 1, 1)
+		bits.SetN(&dqh.Info, INFO_ZLT, 1, 1)
 	}
 
 	// Mult
-	bits.SetN(&dqh.Info, 30, 0b11, uint32(mult))
+	bits.SetN(&dqh.Info, INFO_MULT, 0b11, uint32(mult))
 
 	if n == 0 && dir == IN {
 		// interrupt on setup (ios)
-		bits.Set(&dqh.Info, 15)
+		bits.Set(&dqh.Info, INFO_IOS)
 	}
 
 	// Total bytes
@@ -187,7 +194,7 @@ func (hw *USB) enable(n int, dir int, transferType int) {
 // clear resets the endpoint status (active and halt bits)
 func (hw *USB) clear(n int, dir int) {
 	token := hw.dQH[n][dir] + DQH_TOKEN
-	reg.SetN(token, 6, 0b11, 0b00)
+	reg.SetN(token, TOKEN_STATUS, 0xc0, 0)
 }
 
 // qh returns the Endpoint Queue Head (dQH)
@@ -210,19 +217,19 @@ func (hw *USB) nextDTD(n int, dir int, dtd uint32) {
 	next := dqh + DQH_NEXT
 
 	// wait for endpoint status to be cleared
-	reg.Wait(dqh+DQH_TOKEN, 6, 0b11, 0b00)
+	reg.Wait(dqh+DQH_TOKEN, TOKEN_STATUS, 0xc0, 0)
 	// set next dTD
 	reg.Write(next, dtd)
 }
 
 // buildDTD configures an endpoint transfer descriptor as described in
 // p3787, 56.4.5.2 Endpoint Transfer Descriptor (dTD), IMX6ULLRM.
-func buildDTD(n int, dir int, ioc bool, addr uint32, size int) (dtd *dTD) {
+func buildDTD(n int, dir int, addr uint32, size int) (dtd *dTD) {
 	// p3809, 56.4.6.6.2 Building a Transfer Descriptor, IMX6ULLRM
 	dtd = &dTD{}
 
 	// interrupt on completion (ioc)
-	bits.SetTo(&dtd.Token, TOKEN_IOC, ioc)
+	bits.Set(&dtd.Token, TOKEN_IOC)
 
 	// invalidate next pointer
 	dtd.Next = 1
@@ -287,7 +294,7 @@ func checkDTD(n int, dir int, dtds []*dTD, done chan bool) (size int, err error)
 
 // transfer initates a transfer using transfer descriptors (dTDs) as described in
 // p3810, 56.4.6.6.3 Executing A Transfer Descriptor, IMX6ULLRM.
-func (hw *USB) transfer(n int, dir int, ioc bool, buf []byte) (out []byte, err error) {
+func (hw *USB) transfer(n int, dir int, buf []byte) (out []byte, err error) {
 	var dtds []*dTD
 	var prev *dTD
 	var i int
@@ -316,7 +323,7 @@ func (hw *USB) transfer(n int, dir int, ioc bool, buf []byte) (out []byte, err e
 			size = transferSize - i
 		}
 
-		dtd := buildDTD(n, dir, ioc, uint32(pages)+uint32(i), size)
+		dtd := buildDTD(n, dir, uint32(pages)+uint32(i), size)
 		defer dma.Free(uint(dtd._dtd))
 
 		if i == 0 {
@@ -367,25 +374,25 @@ func (hw *USB) transfer(n int, dir int, ioc bool, buf []byte) (out []byte, err e
 
 // ack transmits a zero length packet to the host through an IN endpoint
 func (hw *USB) ack(n int) (err error) {
-	_, err = hw.transfer(n, IN, false, nil)
+	_, err = hw.transfer(n, IN, nil)
 	return
 }
 
 // tx transmits a data buffer to the host through an IN endpoint
-func (hw *USB) tx(n int, ioc bool, in []byte) (err error) {
-	_, err = hw.transfer(n, IN, ioc, in)
+func (hw *USB) tx(n int, in []byte) (err error) {
+	_, err = hw.transfer(n, IN, in)
 
 	// p3803, 56.4.6.4.2.3 Status Phase, IMX6ULLRM
 	if err == nil && n == 0 {
-		_, err = hw.transfer(n, OUT, false, nil)
+		_, err = hw.transfer(n, OUT, nil)
 	}
 
 	return
 }
 
-// tx receives a data buffer from the host through an OUT endpoint
-func (hw *USB) rx(n int, ioc bool, buf []byte) (out []byte, err error) {
-	return hw.transfer(n, OUT, ioc, buf)
+// rx receives a data buffer from the host through an OUT endpoint
+func (hw *USB) rx(n int, buf []byte) (out []byte, err error) {
+	return hw.transfer(n, OUT, buf)
 }
 
 // stall forces the endpoint to return a STALL handshake to the host

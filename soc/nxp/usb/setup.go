@@ -98,21 +98,21 @@ func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
 
 	switch bDescriptorType {
 	case DEVICE:
-		err = hw.tx(0, false, trim(dev.Descriptor.Bytes(), setup.Length))
+		err = hw.tx(0, trim(dev.Descriptor.Bytes(), setup.Length))
 	case CONFIGURATION:
 		var conf []byte
 		if conf, err = dev.Configuration(index); err == nil {
-			err = hw.tx(0, false, trim(conf, setup.Length))
+			err = hw.tx(0, trim(conf, setup.Length))
 		}
 	case STRING:
 		if int(index+1) > len(dev.Strings) {
 			hw.stall(0, IN)
 			err = fmt.Errorf("invalid string descriptor index %d", index)
 		} else {
-			err = hw.tx(0, false, trim(dev.Strings[index], setup.Length))
+			err = hw.tx(0, trim(dev.Strings[index], setup.Length))
 		}
 	case DEVICE_QUALIFIER:
-		err = hw.tx(0, false, dev.Qualifier.Bytes())
+		err = hw.tx(0, dev.Qualifier.Bytes())
 	default:
 		hw.stall(0, IN)
 		err = fmt.Errorf("unsupported descriptor type: %#x", bDescriptorType)
@@ -133,7 +133,7 @@ func (hw *USB) handleSetup(dev *Device, setup *SetupData) (err error) {
 			hw.stall(0, IN)
 			return err
 		} else if len(in) != 0 {
-			err = hw.tx(0, false, in)
+			err = hw.tx(0, in)
 		} else if ack {
 			err = hw.ack(0)
 		}
@@ -146,7 +146,7 @@ func (hw *USB) handleSetup(dev *Device, setup *SetupData) (err error) {
 	switch setup.Request {
 	case GET_STATUS:
 		// no meaningful status to report for now
-		err = hw.tx(0, false, []byte{0x00, 0x00})
+		err = hw.tx(0, []byte{0x00, 0x00})
 	case CLEAR_FEATURE:
 		switch setup.Value {
 		case ENDPOINT_HALT:
@@ -168,12 +168,12 @@ func (hw *USB) handleSetup(dev *Device, setup *SetupData) (err error) {
 	case GET_DESCRIPTOR:
 		err = hw.getDescriptor(dev, setup)
 	case GET_CONFIGURATION:
-		err = hw.tx(0, false, []byte{dev.ConfigurationValue})
+		err = hw.tx(0, []byte{dev.ConfigurationValue})
 	case SET_CONFIGURATION:
 		dev.ConfigurationValue = uint8(setup.Value >> 8)
 		err = hw.ack(0)
 	case GET_INTERFACE:
-		err = hw.tx(0, false, []byte{dev.AlternateSetting})
+		err = hw.tx(0, []byte{dev.AlternateSetting})
 	case SET_INTERFACE:
 		dev.AlternateSetting = uint8(setup.Value >> 8)
 		err = hw.ack(0)

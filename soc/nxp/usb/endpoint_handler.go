@@ -67,7 +67,7 @@ func (ep *Endpoint) Start() {
 		runtime.Gosched()
 
 		if ep.dir == OUT {
-			buf, err = ep.bus.rx(ep.n, false, res)
+			buf, err = ep.bus.rx(ep.n, res)
 
 			if err == nil && len(buf) != 0 {
 				res, err = ep.desc.Function(buf, err)
@@ -76,7 +76,7 @@ func (ep *Endpoint) Start() {
 			res, err = ep.desc.Function(nil, err)
 
 			if err == nil && len(res) != 0 {
-				err = ep.bus.tx(ep.n, false, res)
+				err = ep.bus.tx(ep.n, res)
 			}
 		}
 
