@@ -196,6 +196,10 @@ func (hw *I2C) txAddress(target uint8, addr uint32, alen int) (err error) {
 		return errors.New("invalid target address")
 	}
 
+	if alen > 4 {
+		return errors.New("invalid register address length")
+	}
+
 	if alen >= 0 {
 		// send target address with R/W bit unset
 		a := byte(target << 1)
