@@ -21,14 +21,13 @@ type endpoint struct {
 	sync.Mutex
 
 	bus  *USB
-	wg   *sync.WaitGroup
 	desc *EndpointDescriptor
 
 	n   int
 	dir int
 
-	res  []byte
-	err  error
+	res []byte
+	err error
 }
 
 func (ep *endpoint) rx() {
@@ -81,7 +80,7 @@ func (ep *endpoint) Start() {
 
 	defer func() {
 		ep.Flush()
-		ep.wg.Done()
+		ep.bus.wg.Done()
 		ep.Unlock()
 	}()
 
@@ -104,7 +103,7 @@ func (ep *endpoint) Start() {
 	}
 }
 
-func (hw *USB) startEndpoints(wg *sync.WaitGroup) {
+func (hw *USB) startEndpoints() {
 	if hw.Device.ConfigurationValue == 0 {
 		return
 	}
@@ -119,12 +118,11 @@ func (hw *USB) startEndpoints(wg *sync.WaitGroup) {
 		for _, iface := range conf.Interfaces {
 			for _, desc := range iface.Endpoints {
 				ep := &endpoint{
-					wg:   wg,
 					bus:  hw,
 					desc: desc,
 				}
 
-				wg.Add(1)
+				hw.wg.Add(1)
 
 				go func(ep *endpoint) {
 					ep.Start()

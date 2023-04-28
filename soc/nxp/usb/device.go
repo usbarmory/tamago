@@ -46,8 +46,8 @@ func (hw *USB) DeviceMode() {
 	// set OTG termination
 	reg.Set(hw.otg, OTGSC_OT)
 
-	// clear all pending interrupts
-	reg.Write(hw.sts, 0xffffffff)
+	// clear pending interrupts
+	reg.WriteBack(hw.sts)
 
 	// run
 	reg.Set(hw.cmd, USBCMD_RS)
@@ -56,8 +56,6 @@ func (hw *USB) DeviceMode() {
 // Start waits and handles configured USB endpoints in device mode, it should
 // never return. Note that isochronous endpoints are not supported.
 func (hw *USB) Start(dev *Device) {
-	var wg sync.WaitGroup
-
 	if dev == nil {
 		return
 	}
@@ -86,10 +84,50 @@ func (hw *USB) Start(dev *Device) {
 		// stop configuration endpoints
 		if hw.done != nil {
 			close(hw.done)
-			wg.Wait()
+			hw.wg.Wait()
 		}
 
 		// start configuration endpoints
-		hw.startEndpoints(&wg)
+		hw.startEndpoints()
+	}
+}
+
+// ServiceInterrupts services pending endpoint transfer and bus reset events.
+func (hw *USB) ServiceInterrupts() {
+	defer reg.Or(hw.sts, (1<<USBSTS_URI | 1<<USBSTS_UI))
+
+	if hw.Device == nil {
+		return
+	}
+
+	// check for bus reset
+	if reg.Get(hw.sts, USBSTS_URI, 1) == 1 {
+		// set inactive configuration
+		hw.Device.ConfigurationValue = 0
+
+		// perform controller reset procedure
+		hw.Reset()
+	}
+
+	// check for setup packet
+	if reg.Get(hw.setup, 0, 1) == 1 {
+		if conf, _ := hw.handleSetup(); conf != 0 {
+			// stop configuration endpoints
+			if hw.done != nil {
+				close(hw.done)
+				hw.wg.Wait()
+			}
+
+			// set interrupt event announcement
+			hw.event = sync.NewCond(hw)
+
+			// start configuration endpoints
+			hw.startEndpoints()
+		}
+	}
+
+	if hw.event != nil {
+		// announce interrupt event to endpoints waiting transfer
+		hw.event.Broadcast()
 	}
 }

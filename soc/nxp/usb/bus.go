@@ -150,8 +150,12 @@ type USB struct {
 	// USB device configuration
 	Device *Device
 
-	// signal for EP1-N cancellation
+	// EP1-N transfer completion rendezvous point
+	event *sync.Cond
+	// EP1-N cancellation signal
 	done chan bool
+	// EP-1-N completion synchronization
+	wg sync.WaitGroup
 
 	// control registers
 	ctrl     uint32

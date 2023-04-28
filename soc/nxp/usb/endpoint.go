@@ -123,6 +123,8 @@ func (hw *USB) initQH() {
 func (hw *USB) set(n int, dir int, max int, zlt bool, mult int) {
 	dqh := dQH{}
 
+	// Mult
+	bits.SetN(&dqh.Info, INFO_MULT, 0b11, uint32(mult))
 	// Maximum Packet Length
 	bits.SetN(&dqh.Info, INFO_MPL, 0x7ff, uint32(max))
 
@@ -131,9 +133,6 @@ func (hw *USB) set(n int, dir int, max int, zlt bool, mult int) {
 		// requests.
 		bits.SetN(&dqh.Info, INFO_ZLT, 1, 1)
 	}
-
-	// Mult
-	bits.SetN(&dqh.Info, INFO_MULT, 0b11, uint32(mult))
 
 	if n == 0 {
 		// interrupt on setup (ios)
@@ -259,17 +258,13 @@ func buildDTD(n int, dir int, addr uint32, size int) (dtd *dTD) {
 // checkDTD verifies transfer descriptor completion as describe in
 // p3800, 56.4.6.4.1 Interrupt/Bulk Endpoint Operational Model, IMX6ULLRM
 // p3811, 56.4.6.6.4 Transfer Completion, IMX6ULLRM.
-func checkDTD(n int, dir int, dtds []*dTD, done chan bool) (size int, err error) {
+func (hw *USB) checkDTD(n int, dir int, dtds []*dTD) (size int, err error) {
 	for i, dtd := range dtds {
 		// treat dtd.token as a register within the dtd DMA buffer
 		token := dtd._dtd + DTD_TOKEN
 
-		// Wait indefinitely for active bit to be cleared.
-		if n == 0 {
-			reg.Wait(token, TOKEN_ACTIVE, 1, 0)
-		} else {
-			reg.WaitSignal(done, token, TOKEN_ACTIVE, 1, 0)
-		}
+		// wait for active bit to be cleared
+		reg.WaitSignal(hw.done, token, TOKEN_ACTIVE, 1, 0)
 
 		dtdToken := reg.Read(token)
 
@@ -352,17 +347,22 @@ func (hw *USB) transfer(n int, dir int, buf []byte) (out []byte, err error) {
 	// wait for priming completion
 	reg.Wait(hw.prime, pos, 1, 0)
 
-	// wait for completion
-	if n == 0 {
-		reg.Wait(hw.complete, pos, 1, 1)
+	if hw.event != nil && n != 0 {
+		// wait for completion (event)
+		for reg.Get(hw.complete, pos, 1) != 1 {
+			hw.event.L.Lock()
+			hw.event.Wait()
+			hw.event.L.Unlock()
+		}
 	} else {
+		// wait for completion (poll)
 		reg.WaitSignal(hw.done, hw.complete, pos, 1, 1)
 	}
 
 	// clear completion
 	reg.Write(hw.complete, 1<<pos)
 
-	size, err := checkDTD(n, dir, dtds, hw.done)
+	size, err := hw.checkDTD(n, dir, dtds)
 
 	if n != 0 && dir == OUT && buf != nil {
 		out = buf[0:size]
