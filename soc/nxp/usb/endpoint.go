@@ -135,7 +135,7 @@ func (hw *USB) set(n int, dir int, max int, zlt bool, mult int) {
 	// Mult
 	bits.SetN(&dqh.Info, INFO_MULT, 0b11, uint32(mult))
 
-	if n == 0 && dir == IN {
+	if n == 0 {
 		// interrupt on setup (ios)
 		bits.Set(&dqh.Info, INFO_IOS)
 	}

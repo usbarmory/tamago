@@ -10,7 +10,6 @@
 package usb
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -57,15 +56,19 @@ func (hw *USB) DeviceMode() {
 // Start waits and handles configured USB endpoints in device mode, it should
 // never return. Note that isochronous endpoints are not supported.
 func (hw *USB) Start(dev *Device) {
-	var conf uint8
 	var wg sync.WaitGroup
+
+	if dev == nil {
+		return
+	}
+
+	hw.Device = dev
 
 	for {
 		// check for bus reset
 		if reg.Get(hw.sts, USBSTS_URI, 1) == 1 {
 			// set inactive configuration
-			conf = 0
-			dev.ConfigurationValue = 0
+			hw.Device.ConfigurationValue = 0
 
 			// perform controller reset procedure
 			hw.Reset()
@@ -76,16 +79,8 @@ func (hw *USB) Start(dev *Device) {
 			continue
 		}
 
-		// handle setup packet
-		if err := hw.handleSetup(dev, hw.getSetup()); err != nil {
-			log.Printf("usb: setup error, %v", err)
-		}
-
-		// check if configuration reload is required
-		if dev.ConfigurationValue == conf {
+		if conf, _ := hw.handleSetup(); conf == 0 {
 			continue
-		} else {
-			conf = dev.ConfigurationValue
 		}
 
 		// stop configuration endpoints
@@ -95,6 +90,6 @@ func (hw *USB) Start(dev *Device) {
 		}
 
 		// start configuration endpoints
-		hw.startEndpoints(&wg, dev, conf)
+		hw.startEndpoints(&wg)
 	}
 }

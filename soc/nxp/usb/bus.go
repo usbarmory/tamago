@@ -147,6 +147,9 @@ type USB struct {
 	// PLL enable function
 	EnablePLL func(index int) error
 
+	// USB device configuration
+	Device *Device
+
 	// signal for EP1-N cancellation
 	done chan bool
 

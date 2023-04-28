@@ -10,7 +10,6 @@
 package usb
 
 import (
-	"log"
 	"runtime"
 	"sync"
 
@@ -18,7 +17,7 @@ import (
 )
 
 // Endpoint represents a USB 2.0 endpoint.
-type Endpoint struct {
+type endpoint struct {
 	sync.Mutex
 
 	bus  *USB
@@ -27,10 +26,39 @@ type Endpoint struct {
 
 	n   int
 	dir int
+
+	res  []byte
+	err  error
+}
+
+func (ep *endpoint) rx() {
+	var buf []byte
+
+	buf, ep.err = ep.bus.rx(ep.n, ep.res)
+
+	if ep.err == nil && len(buf) != 0 {
+		ep.res, ep.err = ep.desc.Function(buf, ep.err)
+	}
+
+	if ep.err != nil {
+		ep.Flush()
+	}
+}
+
+func (ep *endpoint) tx() {
+	ep.res, ep.err = ep.desc.Function(nil, ep.err)
+
+	if ep.err == nil && len(ep.res) != 0 {
+		ep.err = ep.bus.tx(ep.n, ep.res)
+	}
+
+	if ep.err != nil {
+		ep.Flush()
+	}
 }
 
 // Init initializes an endpoint.
-func (ep *Endpoint) Init() {
+func (ep *endpoint) Init() {
 	ep.n = ep.desc.Number()
 	ep.dir = ep.desc.Direction()
 
@@ -39,16 +67,12 @@ func (ep *Endpoint) Init() {
 }
 
 // Flush clears the endpoint receive and transmit buffers.
-func (ep *Endpoint) Flush() {
+func (ep *endpoint) Flush() {
 	reg.Set(ep.bus.flush, (ep.dir*16)+ep.n)
 }
 
 // Start initializes and runs an USB endpoint.
-func (ep *Endpoint) Start() {
-	var err error
-	var buf []byte
-	var res []byte
-
+func (ep *endpoint) Start() {
 	if ep.desc.Function == nil {
 		return
 	}
@@ -67,22 +91,9 @@ func (ep *Endpoint) Start() {
 		runtime.Gosched()
 
 		if ep.dir == OUT {
-			buf, err = ep.bus.rx(ep.n, res)
-
-			if err == nil && len(buf) != 0 {
-				res, err = ep.desc.Function(buf, err)
-			}
+			ep.rx()
 		} else {
-			res, err = ep.desc.Function(nil, err)
-
-			if err == nil && len(res) != 0 {
-				err = ep.bus.tx(ep.n, res)
-			}
-		}
-
-		if err != nil {
-			ep.Flush()
-			log.Printf("usb: EP%d.%d transfer error, %v", ep.n, ep.dir, err)
+			ep.tx()
 		}
 
 		select {
@@ -93,21 +104,21 @@ func (ep *Endpoint) Start() {
 	}
 }
 
-func (hw *USB) startEndpoints(wg *sync.WaitGroup, dev *Device, configurationValue uint8) {
-	if configurationValue == 0 {
+func (hw *USB) startEndpoints(wg *sync.WaitGroup) {
+	if hw.Device.ConfigurationValue == 0 {
 		return
 	}
 
 	hw.done = make(chan bool)
 
-	for _, conf := range dev.Configurations {
-		if configurationValue != conf.ConfigurationValue {
+	for _, conf := range hw.Device.Configurations {
+		if hw.Device.ConfigurationValue != conf.ConfigurationValue {
 			continue
 		}
 
 		for _, iface := range conf.Interfaces {
 			for _, desc := range iface.Endpoints {
-				ep := &Endpoint{
+				ep := &endpoint{
 					wg:   wg,
 					bus:  hw,
 					desc: desc,
@@ -115,7 +126,7 @@ func (hw *USB) startEndpoints(wg *sync.WaitGroup, dev *Device, configurationValu
 
 				wg.Add(1)
 
-				go func(ep *Endpoint) {
+				go func(ep *endpoint) {
 					ep.Start()
 				}(ep)
 			}
