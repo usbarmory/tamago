@@ -264,7 +264,7 @@ func (hw *USB) checkDTD(n int, dir int, dtds []*dTD) (size int, err error) {
 		token := dtd._dtd + DTD_TOKEN
 
 		// wait for active bit to be cleared
-		reg.WaitSignal(hw.done, token, TOKEN_ACTIVE, 1, 0)
+		reg.WaitSignal(hw.exit, token, TOKEN_ACTIVE, 1, 0)
 
 		dtdToken := reg.Read(token)
 
@@ -356,7 +356,7 @@ func (hw *USB) transfer(n int, dir int, buf []byte) (out []byte, err error) {
 		}
 	} else {
 		// wait for completion (poll)
-		reg.WaitSignal(hw.done, hw.complete, pos, 1, 1)
+		reg.WaitSignal(hw.exit, hw.complete, pos, 1, 1)
 	}
 
 	// clear completion

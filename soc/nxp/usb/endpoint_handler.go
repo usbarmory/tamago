@@ -96,7 +96,7 @@ func (ep *endpoint) Start() {
 		}
 
 		select {
-		case <-ep.bus.done:
+		case <-ep.bus.exit:
 			return
 		default:
 		}
@@ -108,7 +108,7 @@ func (hw *USB) startEndpoints() {
 		return
 	}
 
-	hw.done = make(chan bool)
+	hw.exit = make(chan bool)
 
 	for _, conf := range hw.Device.Configurations {
 		if hw.Device.ConfigurationValue != conf.ConfigurationValue {

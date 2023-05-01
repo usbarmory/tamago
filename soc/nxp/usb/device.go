@@ -82,8 +82,8 @@ func (hw *USB) Start(dev *Device) {
 		}
 
 		// stop configuration endpoints
-		if hw.done != nil {
-			close(hw.done)
+		if hw.exit != nil {
+			close(hw.exit)
 			hw.wg.Wait()
 		}
 
@@ -113,8 +113,8 @@ func (hw *USB) ServiceInterrupts() {
 	if reg.Get(hw.setup, 0, 1) == 1 {
 		if conf, _ := hw.handleSetup(); conf != 0 {
 			// stop configuration endpoints
-			if hw.done != nil {
-				close(hw.done)
+			if hw.exit != nil {
+				close(hw.exit)
 				hw.wg.Wait()
 			}
 

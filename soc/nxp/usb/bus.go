@@ -153,7 +153,7 @@ type USB struct {
 	// EP1-N transfer completion rendezvous point
 	event *sync.Cond
 	// EP1-N cancellation signal
-	done chan bool
+	exit chan bool
 	// EP-1-N completion synchronization
 	wg sync.WaitGroup
 
