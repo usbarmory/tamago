@@ -20,19 +20,6 @@ import (
 // On the UA-MKII-LAN the ENET2 MAC is connected to a DP83825I PHY, this board
 // package configures it at 100 Mbps / Full-duplex mode.
 const (
-	PHY_ADDR = 0
-
-	DP_CTRL     = 0x00
-	CTRL_RESET  = 15
-	CTRL_SPEED  = 13
-	CTRL_DUPLEX = 8
-
-	DP_RCSR      = 0x17
-	RCSR_RMII_CS = 7
-	RCSR_RX_BUF  = 0
-)
-
-const (
 	// ENET2 MUX
 	IOMUXC_SW_MUX_CTL_PAD_ENET2_RX_DATA0 = 0x020e00e4
 	IOMUXC_SW_MUX_CTL_PAD_ENET2_RX_DATA1 = 0x020e00e8
@@ -71,6 +58,37 @@ const (
 
 	DAISY_ENET2_TX_CLK_ALT4     = 0b10
 	DAISY_ENET2_GPIO1_IO06_ALT0 = 0
+)
+
+// DP83825I PHY registers
+const (
+	PHY_ADDR = 0
+
+	DP_CTRL     = 0x00
+	CTRL_RESET  = 15
+	CTRL_SPEED  = 13
+	CTRL_DUPLEX = 8
+
+	DP_REGCR = 0xd
+	DP_ADDAR = 0xe
+
+	DP_RCSR      = 0x17
+	RCSR_RMII_CS = 7
+	RCSR_RX_BUF  = 0
+
+	DP_LEDCR1           = 0x18
+	LEDCR1_LINK_LED_DRV = 4
+	LEDCR1_LINK_LED_OFF = 1
+
+	DP_LEDCR2            = 0x469
+	LEDCR2_LED2_DRV_VAL  = 5
+	LEDCR2_LED2_DRV_EN   = 4
+)
+
+// Table 22–9, MMD access control register bit definitions, 802.3-2008
+const (
+	MMD_FN_ADDR = 0b00
+	MMD_FN_DATA = 0b01
 )
 
 func init() {

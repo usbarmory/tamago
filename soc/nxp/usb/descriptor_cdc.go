@@ -16,24 +16,51 @@ import (
 
 // CDC descriptor constants
 const (
+	// p39, Table 14: Communication Device Class Code
+	// USB Class Definitions for Communication Devices 1.1
+	COMMUNICATION_DEVICE_CLASS = 0x02
+
+	// p39, Table 15: Communication Interface Class Code
+	// USB Class Definitions for Communication Devices 1.1
+	COMMUNICATION_INTERFACE_CLASS = 0x02
+
+	// p40, Table 17: Data Interface Class Code
+	// USB Class Definitions for Communication Devices 1.1
+	DATA_INTERFACE_CLASS = 0x0a
+
 	// p44, Table 24: Type Values for the bDescriptorType Field,
 	// USB Class Definitions for Communication Devices 1.1
 	CS_INTERFACE = 0x24
-
-	HEADER_LENGTH              = 5
-	UNION_LENGTH               = 5
-	ETHERNET_NETWORKING_LENGTH = 13
 
 	// p64, Table 46: Class-Specific Request Codes,
 	// USB Class Definitions for Communication Devices 1.1
 	SET_ETHERNET_PACKET_FILTER = 0x43
 
-	HEADER              = 0
-	UNION               = 6
-	ETHERNET_NETWORKING = 15
-
 	// Maximum Segment Size
 	MSS = 1500 + 14
+)
+
+// p39, Table 16: Communication Interface Class SubClass Codes,
+// USB Class Definitions for Communication Devices 1.1
+const (
+	ACM_SUBCLASS = 0x02
+	ETH_SUBCLASS = 0x06
+)
+
+// p40, Table 17: Communication Interface Class Control Protocol Codes,
+// USB Class Definitions for Communication Devices 1.1
+const (
+	AT_COMMAND_PROTOCOL = 0x01
+)
+
+// p44, Table 25: bDescriptor SubType in Functional Descriptors,
+// USB Class Definitions for Communication Devices 1.1
+const (
+	HEADER                      = 0x00
+	CALL_MANAGEMENT             = 0x01
+	ABSTRACT_CONTROL_MANAGEMENT = 0x02
+	UNION                       = 0x06
+	ETHERNET_NETWORKING         = 0x0f
 )
 
 // CDCHeaderDescriptor implements
@@ -49,7 +76,7 @@ type CDCHeaderDescriptor struct {
 // SetDefaults initializes default values for the USB CDC Header Functional
 // Descriptor.
 func (d *CDCHeaderDescriptor) SetDefaults() {
-	d.Length = HEADER_LENGTH
+	d.Length = 5
 	d.DescriptorType = CS_INTERFACE
 	d.DescriptorSubType = HEADER
 	// CDC 1.10
@@ -58,6 +85,57 @@ func (d *CDCHeaderDescriptor) SetDefaults() {
 
 // Bytes converts the descriptor structure to byte array format.
 func (d *CDCHeaderDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, d)
+	return buf.Bytes()
+}
+
+// CDCCallManagementDescriptor implements
+// p45, Table 27: Call Management Functional Descriptor, USB Class Definitions
+// for Communication Devices 1.1.
+type CDCCallManagementDescriptor struct {
+	Length            uint8
+	DescriptorType    uint8
+	DescriptorSubType uint8
+	Capabilities      uint8
+	DataInterface     uint8
+}
+
+// SetDefaults initializes default values for the USB CDC Call Management
+// Descriptor.
+func (d *CDCCallManagementDescriptor) SetDefaults() {
+	d.Length = 5
+	d.DescriptorType = CS_INTERFACE
+	d.DescriptorSubType = CALL_MANAGEMENT
+}
+
+// Bytes converts the descriptor structure to byte array format.
+func (d *CDCCallManagementDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, d)
+	return buf.Bytes()
+}
+
+// CDCAbstractCallManagementDescriptor implements
+// p46, Table 28: Abstract Control Management Functional Descriptor, USB Class
+// Definitions for Communication Devices 1.1.
+type CDCAbstractControlManagementDescriptor struct {
+	Length            uint8
+	DescriptorType    uint8
+	DescriptorSubType uint8
+	Capabilities      uint8
+}
+
+// SetDefaults initializes default values for the USB CDC Abstract Control
+// Management Descriptor.
+func (d *CDCAbstractControlManagementDescriptor) SetDefaults() {
+	d.Length = 4
+	d.DescriptorType = CS_INTERFACE
+	d.DescriptorSubType = ABSTRACT_CONTROL_MANAGEMENT
+}
+
+// Bytes converts the descriptor structure to byte array format.
+func (d *CDCAbstractControlManagementDescriptor) Bytes() []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, d)
 	return buf.Bytes()
@@ -77,7 +155,7 @@ type CDCUnionDescriptor struct {
 // SetDefaults initializes default values for the USB CDC Union Functional
 // Descriptor.
 func (d *CDCUnionDescriptor) SetDefaults() {
-	d.Length = UNION_LENGTH
+	d.Length = 5
 	d.DescriptorType = CS_INTERFACE
 	d.DescriptorSubType = UNION
 }
@@ -106,7 +184,7 @@ type CDCEthernetDescriptor struct {
 // SetDefaults initializes default values for the USB CDC Ethernet Networking
 // Functional Descriptor.
 func (d *CDCEthernetDescriptor) SetDefaults() {
-	d.Length = ETHERNET_NETWORKING_LENGTH
+	d.Length = 13
 	d.DescriptorType = CS_INTERFACE
 	d.DescriptorSubType = ETHERNET_NETWORKING
 	d.MaxSegmentSize = MSS

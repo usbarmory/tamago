@@ -49,6 +49,8 @@ const (
 	USBSTS_URI      = 6
 	USBSTS_UI       = 0
 
+	USB_UOGx_USBINTR = 0x148
+
 	USB_UOGx_DEVICEADDR = 0x154
 	DEVICEADDR_USBADR   = 25
 	DEVICEADDR_USBADRA  = 24
@@ -100,6 +102,30 @@ const (
 	ENDPTCTRL_RXS      = 0
 )
 
+// USB interrupt events
+const (
+	// p3848, 56.6.19 Interrupt Status Register (USB_nUSBSTS),  IMX6ULLRM
+	// p3852, 56.6.20 Interrupt Enable Register (USB_nUSBINTR), IMX6ULLRM
+
+	IRQ_TI1   = 25
+	IRQ_TI0   = 24
+	IRQ_NAKI  = 16
+	IRQ_AS    = 15
+	IRQ_PS    = 14
+	IRQ_RCP   = 13
+	IRQ_HCH   = 12
+	IRQ_ULPII = 10
+	IRQ_SLI   = 8
+	IRQ_SRI   = 7
+	IRQ_URI   = 6
+	IRQ_AAI   = 5
+	IRQ_SEI   = 4
+	IRQ_FRI   = 3
+	IRQ_PCI   = 2
+	IRQ_UEI   = 1
+	IRQ_UI    = 0
+)
+
 // USB represents a USB controller instance.
 type USB struct {
 	sync.Mutex
@@ -116,11 +142,20 @@ type USB struct {
 	Analog uint32
 	// PHY base register
 	PHY uint32
+	// Interrupt ID
+	IRQ int
 	// PLL enable function
 	EnablePLL func(index int) error
 
-	// signal for EP1-N cancellation
-	done chan bool
+	// USB device configuration
+	Device *Device
+
+	// EP1-N transfer completion rendezvous point
+	event *sync.Cond
+	// EP1-N cancellation signal
+	exit chan bool
+	// EP-1-N completion synchronization
+	wg sync.WaitGroup
 
 	// control registers
 	ctrl     uint32
@@ -131,6 +166,7 @@ type USB struct {
 	cmd      uint32
 	addr     uint32
 	sts      uint32
+	intr     uint32
 	sc       uint32
 	eplist   uint32
 	setup    uint32
@@ -163,6 +199,7 @@ func (hw *USB) Init() {
 	hw.cmd = hw.Base + USB_UOGx_USBCMD
 	hw.addr = hw.Base + USB_UOGx_DEVICEADDR
 	hw.sts = hw.Base + USB_UOGx_USBSTS
+	hw.intr = hw.Base + USB_UOGx_USBINTR
 	hw.sc = hw.Base + USB_UOGx_PORTSC1
 	hw.eplist = hw.Base + USB_UOGx_ENDPTLISTADDR
 	hw.setup = hw.Base + USB_UOGx_ENDPTSETUPSTAT
@@ -251,4 +288,14 @@ func (hw *USB) Reset() {
 
 	// clear reset
 	reg.Or(hw.sts, (1<<USBSTS_URI | 1<<USBSTS_UI))
+}
+
+// EnableInterrupt enables interrupt generation for a specific event.
+func (hw *USB) EnableInterrupt(event int) {
+	reg.Set(hw.intr, event)
+}
+
+// ClearInterrupt clears the interrupt corresponding to a specific event.
+func (hw *USB) ClearInterrupt(event int) {
+	reg.Set(hw.sts, event)
 }

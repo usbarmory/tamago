@@ -92,27 +92,27 @@ func (hw *USB) getSetup() (setup *SetupData) {
 	return
 }
 
-func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
+func (hw *USB) getDescriptor(setup *SetupData) (err error) {
 	bDescriptorType := setup.Value & 0xff
 	index := setup.Value >> 8
 
 	switch bDescriptorType {
 	case DEVICE:
-		err = hw.tx(0, false, trim(dev.Descriptor.Bytes(), setup.Length))
+		err = hw.tx(0, trim(hw.Device.Descriptor.Bytes(), setup.Length))
 	case CONFIGURATION:
 		var conf []byte
-		if conf, err = dev.Configuration(index); err == nil {
-			err = hw.tx(0, false, trim(conf, setup.Length))
+		if conf, err = hw.Device.Configuration(index); err == nil {
+			err = hw.tx(0, trim(conf, setup.Length))
 		}
 	case STRING:
-		if int(index+1) > len(dev.Strings) {
+		if int(index+1) > len(hw.Device.Strings) {
 			hw.stall(0, IN)
 			err = fmt.Errorf("invalid string descriptor index %d", index)
 		} else {
-			err = hw.tx(0, false, trim(dev.Strings[index], setup.Length))
+			err = hw.tx(0, trim(hw.Device.Strings[index], setup.Length))
 		}
 	case DEVICE_QUALIFIER:
-		err = hw.tx(0, false, dev.Qualifier.Bytes())
+		err = hw.tx(0, hw.Device.Qualifier.Bytes())
 	default:
 		hw.stall(0, IN)
 		err = fmt.Errorf("unsupported descriptor type: %#x", bDescriptorType)
@@ -121,32 +121,34 @@ func (hw *USB) getDescriptor(dev *Device, setup *SetupData) (err error) {
 	return
 }
 
-func (hw *USB) handleSetup(dev *Device, setup *SetupData) (err error) {
+func (hw *USB) handleSetup() (conf uint8, err error) {
+	setup := hw.getSetup()
+
 	if setup == nil {
 		return
 	}
 
-	if dev.Setup != nil {
-		in, ack, done, err := dev.Setup(setup)
+	if hw.Device.Setup != nil {
+		in, ack, done, err := hw.Device.Setup(setup)
 
 		if err != nil {
 			hw.stall(0, IN)
-			return err
+			return 0, err
 		} else if len(in) != 0 {
-			err = hw.tx(0, false, in)
+			err = hw.tx(0, in)
 		} else if ack {
 			err = hw.ack(0)
 		}
 
 		if done || err != nil {
-			return err
+			return 0, err
 		}
 	}
 
 	switch setup.Request {
 	case GET_STATUS:
 		// no meaningful status to report for now
-		err = hw.tx(0, false, []byte{0x00, 0x00})
+		err = hw.tx(0, []byte{0x00, 0x00})
 	case CLEAR_FEATURE:
 		switch setup.Value {
 		case ENDPOINT_HALT:
@@ -166,16 +168,23 @@ func (hw *USB) handleSetup(dev *Device, setup *SetupData) (err error) {
 
 		err = hw.ack(0)
 	case GET_DESCRIPTOR:
-		err = hw.getDescriptor(dev, setup)
+		err = hw.getDescriptor(setup)
 	case GET_CONFIGURATION:
-		err = hw.tx(0, false, []byte{dev.ConfigurationValue})
+		err = hw.tx(0, []byte{hw.Device.ConfigurationValue})
 	case SET_CONFIGURATION:
-		dev.ConfigurationValue = uint8(setup.Value >> 8)
+		conf = uint8(setup.Value >> 8)
+
+		if hw.Device.ConfigurationValue != conf {
+			hw.Device.ConfigurationValue = conf
+		} else {
+			conf = 0
+		}
+
 		err = hw.ack(0)
 	case GET_INTERFACE:
-		err = hw.tx(0, false, []byte{dev.AlternateSetting})
+		err = hw.tx(0, []byte{hw.Device.AlternateSetting})
 	case SET_INTERFACE:
-		dev.AlternateSetting = uint8(setup.Value >> 8)
+		hw.Device.AlternateSetting = uint8(setup.Value >> 8)
 		err = hw.ack(0)
 	case SET_ETHERNET_PACKET_FILTER:
 		// no meaningful action for now

@@ -81,8 +81,8 @@ const (
 	ENET2_BASE = 0x020b4000
 
 	// Ethernet MAC interrupts
-	ENET1_IRQ = 32 + 118
-	ENET2_IRQ = 32 + 120
+	ENET1_IRQ  = 32 + 118
+	ENET2_IRQ  = 32 + 120
 
 	// I2C
 	I2C1_BASE = 0x021a0000
@@ -116,7 +116,7 @@ const (
 	UART3_BASE = 0x021ec000
 	UART4_BASE = 0x021f0000
 
-	// USB 2.0
+	// USB 2.0 controller
 	USB_ANALOG1_BASE   = 0x020c81a0
 	USB_ANALOG2_BASE   = 0x020c8200
 	USB_ANALOG_DIGPROG = 0x020c8260
@@ -124,6 +124,10 @@ const (
 	USBPHY2_BASE       = 0x020ca000
 	USB1_BASE          = 0x02184000
 	USB2_BASE          = 0x02184200
+
+	// USB 2.0 controller interrupts
+	USB1_IRQ           = 32 + 43
+	USB2_IRQ           = 32 + 42
 
 	// SD/MMC
 	USDHC1_BASE = 0x02190000
@@ -135,9 +139,9 @@ const (
 	WDOG3_BASE = 0x021e4000
 
 	// Watchdog Timer interrupts
-	WDOG1_IRQ = 32 + 80
-	WDOG2_IRQ = 32 + 81
-	WDOG3_IRQ = 32 + 11
+	WDOG1_IRQ  = 32 + 80
+	WDOG2_IRQ  = 32 + 81
+	WDOG3_IRQ  = 32 + 11
 )
 
 // Peripheral instances
@@ -283,6 +287,7 @@ var (
 		CG:        CCGRx_CG0,
 		Analog:    USB_ANALOG1_BASE,
 		PHY:       USBPHY1_BASE,
+		IRQ:       USB1_IRQ,
 		EnablePLL: EnableUSBPLL,
 	}
 
@@ -294,6 +299,7 @@ var (
 		CG:        CCGRx_CG0,
 		Analog:    USB_ANALOG2_BASE,
 		PHY:       USBPHY2_BASE,
+		IRQ:       USB2_IRQ,
 		EnablePLL: EnableUSBPLL,
 	}
 

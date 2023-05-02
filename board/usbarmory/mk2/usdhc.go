@@ -30,8 +30,8 @@ var MMC = USDHC2
 //   - uSD:  High Speed (HS)      25MB/s, 50MHz, 3.3V, 4-bit data bus
 //   - eMMC: High Speed (HS) DDR 104MB/s, 52MHz, 3.3V, 8-bit data bus
 //
-// On the USB armory Mk II γ revision (and UA-MKII-LAN for eMMC only) the
-// maximum achievable theoretical speed modes are:
+// On the USB armory Mk II γ revision and LAN version (eMMC only) the maximum
+// achievable theoretical speed modes are:
 //   - uSD:  SDR104  75MB/s, 150MHz, 1.8V, 4-bit data bus
 //   - eMMC: HS200  150MB/s, 150MHz, 1.8V, 8-bit data bus
 const (
