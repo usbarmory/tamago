@@ -155,6 +155,7 @@ Applications using TamaGo
 External drivers using TamaGo
 =============================
 
+* [imx-usbserial](https://github.com/usbarmory/imx-usbserial) - i.MX Serial over USB driver
 * [imx-usbnet](https://github.com/usbarmory/imx-usbnet) - i.MX Ethernet over USB driver
 * [imx-enet](https://github.com/usbarmory/imx-enet) - i.MX Ethernet driver
 
