@@ -99,9 +99,12 @@ func (hw *USB) getDescriptor(setup *SetupData) (err error) {
 	switch bDescriptorType {
 	case DEVICE:
 		err = hw.tx(0, trim(hw.Device.Descriptor.Bytes(), setup.Length))
-	case CONFIGURATION:
-		var conf []byte
-		if conf, err = hw.Device.Configuration(index); err == nil {
+	case CONFIGURATION, OTHER_SPEED_CONFIGURATION:
+		if conf, err := hw.Device.Configuration(index); err == nil {
+			if bDescriptorType == OTHER_SPEED_CONFIGURATION {
+				conf[1] = byte(bDescriptorType)
+			}
+
 			err = hw.tx(0, trim(conf, setup.Length))
 		}
 	case STRING:
@@ -113,12 +116,6 @@ func (hw *USB) getDescriptor(setup *SetupData) (err error) {
 		}
 	case DEVICE_QUALIFIER:
 		err = hw.tx(0, hw.Device.Qualifier.Bytes())
-	case OTHER_SPEED_CONFIGURATION: // Win10+ requests this
-		var conf []byte
-		if conf, err = dev.Configuration(index); err == nil {
-			conf[1] = OTHER_SPEED_CONFIGURATION // adjust descriptor type
-			err = hw.tx(0, false, trim(conf, setup.Length))
-		}
 	default:
 		hw.stall(0, IN)
 		err = fmt.Errorf("unsupported descriptor type: %#x", bDescriptorType)
