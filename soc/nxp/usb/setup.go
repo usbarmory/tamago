@@ -99,9 +99,12 @@ func (hw *USB) getDescriptor(setup *SetupData) (err error) {
 	switch bDescriptorType {
 	case DEVICE:
 		err = hw.tx(0, trim(hw.Device.Descriptor.Bytes(), setup.Length))
-	case CONFIGURATION:
-		var conf []byte
-		if conf, err = hw.Device.Configuration(index); err == nil {
+	case CONFIGURATION, OTHER_SPEED_CONFIGURATION:
+		if conf, err := hw.Device.Configuration(index); err == nil {
+			if bDescriptorType == OTHER_SPEED_CONFIGURATION {
+				conf[1] = byte(bDescriptorType)
+			}
+
 			err = hw.tx(0, trim(conf, setup.Length))
 		}
 	case STRING:

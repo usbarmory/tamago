@@ -56,29 +56,6 @@ func (d *CCIDDescriptor) SetDefaults() {
 	d.Length = CCID_DESCRIPTOR_LENGTH
 	d.DescriptorType = CCID_INTERFACE
 	d.CCID = 0x0110
-	// all voltages
-	d.VoltageSupport = 0x7
-	// T=1
-	d.Protocols = 0x2
-	d.DefaultClock = 0x4000
-	d.MaximumClock = 0x4000
-	d.DataRate = 0x4b000
-	d.MaxDataRate = 0x4b000
-	d.MaxIFSD = 0xfe
-	// Features:
-	//   Auto configuration based on ATR
-	//   Auto activation on insert
-	//   Auto voltage selection
-	//   Auto clock change
-	//   Auto baud rate change
-	//   Auto parameter negotiation made by CCID
-	//   Short and extended APDU level exchange
-	d.Features = 0x400fe
-	d.MaxCCIDMessageLength = DTD_PAGES * DTD_PAGE_SIZE
-	// echo
-	d.ClassGetResponse = 0xff
-	d.ClassEnvelope = 0xff
-	d.MaxCCIDBusySlots = 1
 }
 
 // Bytes converts the descriptor structure to byte array format.
