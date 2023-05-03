@@ -59,22 +59,23 @@ func (d *CCIDDescriptor) SetDefaults() {
 	// all voltages
 	d.VoltageSupport = 0x7
 	// T=1
-	d.Protocols = 0x2
-	d.DefaultClock = 0x4000
-	d.MaximumClock = 0x4000
-	d.DataRate = 0x4b000
-	d.MaxDataRate = 0x4b000
-	d.MaxIFSD = 0xfe
+	d.Protocols = 0x3 // support T=0 and T=1
+
+	d.DefaultClock = 4000  // 4 MHz
+	d.MaximumClock = 5000  // 5 MHz
+	d.DataRate = 9600      // default on power-up
+	d.MaxDataRate = 625000 // maximum@5MHz according to ISO7816-3
 	// Features:
-	//   Auto configuration based on ATR
-	//   Auto activation on insert
-	//   Auto voltage selection
-	//   Auto clock change
-	//   Auto baud rate change
-	//   Auto parameter negotiation made by CCID
-	//   Short and extended APDU level exchange
-	d.Features = 0x400fe
+	//   0x02 Auto configuration based on ATR
+	//   0x04 Auto activation on insert
+	//   0x08 Auto voltage selection
+	//   0x10 Auto clock change
+	//   0x20 Auto baud rate change
+	//   0x40 Auto parameter negotiation made by CCID
+	//   0x40000 Short and extended APDU level exchange
+	d.Features = 0x4007E // 0x40 and 0x80 cannot be present at same time
 	d.MaxCCIDMessageLength = DTD_PAGES * DTD_PAGE_SIZE
+	d.MaxIFSD = d.MaxCCIDMessageLength // max block size = max message size
 	// echo
 	d.ClassGetResponse = 0xff
 	d.ClassEnvelope = 0xff
