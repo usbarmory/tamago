@@ -38,10 +38,6 @@ func (ep *endpoint) rx() {
 	if ep.err == nil && len(buf) != 0 {
 		ep.res, ep.err = ep.desc.Function(buf, ep.err)
 	}
-
-	if ep.err != nil {
-		ep.Flush()
-	}
 }
 
 func (ep *endpoint) tx() {
@@ -49,10 +45,6 @@ func (ep *endpoint) tx() {
 
 	if ep.err == nil && len(ep.res) != 0 {
 		ep.err = ep.bus.tx(ep.n, ep.res)
-	}
-
-	if ep.err != nil {
-		ep.Flush()
 	}
 }
 
@@ -93,6 +85,10 @@ func (ep *endpoint) Start() {
 			ep.rx()
 		} else {
 			ep.tx()
+		}
+
+		if ep.err != nil {
+			ep.bus.stall(ep.n, ep.dir)
 		}
 
 		select {

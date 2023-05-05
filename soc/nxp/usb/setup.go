@@ -16,6 +16,11 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
+// Format of Setup Data (p276, Table 9-2, USB2.0)
+const (
+	REQUEST_TYPE_DIR = 7
+)
+
 // Standard request codes (p279, Table 9-4, USB2.0)
 const (
 	GET_STATUS        = 0
@@ -155,8 +160,8 @@ func (hw *USB) handleSetup() (conf uint8, err error) {
 	case CLEAR_FEATURE:
 		switch setup.Value {
 		case ENDPOINT_HALT:
-			n := int(setup.Index & 0b1111)
-			dir := int(setup.Index&0b10000000) / 0b10000000
+			n := int(setup.Index & 0xf)
+			dir := int(setup.Index&0x80) / 0x80
 
 			hw.reset(n, dir)
 			err = hw.ack(0)
@@ -193,7 +198,8 @@ func (hw *USB) handleSetup() (conf uint8, err error) {
 		// no meaningful action for now
 		err = hw.ack(0)
 	default:
-		hw.stall(0, IN)
+		dir := (setup.RequestType >> REQUEST_TYPE_DIR) & 1
+		hw.stall(0, int(dir))
 		err = fmt.Errorf("unsupported request code: %#x", setup.Request)
 	}
 
