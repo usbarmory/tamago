@@ -130,14 +130,7 @@ func irq(gicd uint32, m int, secure bool, enable bool) {
 	i := m % 32
 
 	if enable {
-		addr = gicd + GICD_IGROUPR + 4*n
-
-		if !secure {
-			reg.Set(addr, i)
-		} else {
-			reg.Clear(addr, i)
-		}
-
+		reg.SetTo(gicd + GICD_IGROUPR + 4*n, i, !secure)
 		addr = gicd + GICD_ISENABLER + 4*n
 	} else {
 		addr = gicd + GICD_ICENABLER + 4*n
