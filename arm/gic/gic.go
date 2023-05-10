@@ -110,7 +110,7 @@ func (hw *GIC) Init(secure bool, fiqen bool) {
 	// of the priority range.
 	reg.Write(hw.gicc+GICC_PMR, 0x80)
 
-	reg.SetTo(hw.gicc+GICC_CTLR, GICC_CTLR_FIQEN, fiq)
+	reg.SetTo(hw.gicc+GICC_CTLR, GICC_CTLR_FIQEN, fiqen)
 
 	reg.Set(hw.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP1)
 	reg.Set(hw.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP0)
