@@ -165,6 +165,9 @@ func (hw *ENET) Init() {
 	if hw.MAC == nil {
 		hw.MAC = make([]byte, 6)
 		rand.Read(hw.MAC)
+		// flag address as unicast and locally administered
+		hw.MAC[0] &= 0xfe
+		hw.MAC[0] |= 0x02
 	} else if len(hw.MAC) != 6 {
 		panic("invalid ENET hardware address")
 	}
