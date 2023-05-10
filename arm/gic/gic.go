@@ -77,7 +77,7 @@ type GIC struct {
 }
 
 // InitGIC initializes the ARM Generic Interrupt Controller (GIC).
-func (hw *GIC) Init(secure bool, fiq bool) {
+func (hw *GIC) Init(secure bool, fiqen bool) {
 	if hw.Base == 0 {
 		panic("invalid GIC instance")
 	}
@@ -117,6 +117,16 @@ func (hw *GIC) Init(secure bool, fiq bool) {
 
 	reg.Set(hw.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP1)
 	reg.Set(hw.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP0)
+}
+
+// FIQEn controls whether Group 0 (Secure) interrupts should be signalled as
+// IRQ or FIQ requests.
+func (hw *GIC) FIQEn(fiq bool) {
+	if hw.gicc == 0 {
+		return
+	}
+
+	reg.SetTo(hw.gicc+GICC_CTLR, GICC_CTLR_FIQEN, fiq)
 }
 
 func irq(gicd uint32, m int, secure bool, enable bool) {
