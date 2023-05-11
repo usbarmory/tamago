@@ -198,8 +198,12 @@ func (hw *USB) handleSetup() (conf uint8, err error) {
 		// no meaningful action for now
 		err = hw.ack(0)
 	default:
-		dir := (setup.RequestType >> REQUEST_TYPE_DIR) & 1
-		hw.stall(0, int(dir))
+		if (setup.RequestType >> REQUEST_TYPE_DIR) & 1 == OUT {
+			hw.stall(0, OUT)
+		}
+
+		hw.stall(0, IN)
+
 		err = fmt.Errorf("unsupported request code: %#x", setup.Request)
 	}
 
