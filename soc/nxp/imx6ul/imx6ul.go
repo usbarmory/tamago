@@ -88,6 +88,9 @@ const (
 	I2C1_BASE = 0x021a0000
 	I2C2_BASE = 0x021a4000
 
+	// Multi Mode DDR Controller
+	MMDC_BASE = 0x80000000
+
 	// On-Chip OTP Controller
 	OCOTP_BASE      = 0x021bc000
 	OCOTP_BANK_BASE = 0x021bc400
