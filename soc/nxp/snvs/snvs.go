@@ -8,7 +8,7 @@
 // that can be found in the LICENSE file.
 
 // Package snvs implements helpers for NXP Secure Non-Volatile Storage (SNVS)
-// configuration adopting the the following reference specifications:
+// configuration adopting the following reference specifications:
 //   - IMX6ULLRM  - i.MX 6ULL Applications Processor Reference Manual          - Rev 1 2017/11
 //   - IMX6ULLSRM - i.MX 6ULL Applications Processor Security Reference Manual - Rev 0 2016/09
 //
