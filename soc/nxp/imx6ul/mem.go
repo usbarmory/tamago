@@ -17,4 +17,4 @@ import (
 )
 
 //go:linkname ramStart runtime.ramStart
-var ramStart uint32 = MMCD_BASE
+var ramStart uint32 = MMDC_BASE
