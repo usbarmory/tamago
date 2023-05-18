@@ -57,7 +57,7 @@ type CAAM struct {
 	rtenta uint32
 }
 
-// Init initializes the DCP module.
+// Init initializes the CAAM module.
 func (hw *CAAM) Init() {
 	hw.Lock()
 	defer hw.Unlock()
