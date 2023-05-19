@@ -11,8 +11,6 @@
 // Assurance Module (CAAM) adopting the following reference specifications:
 //   - IMX6ULSRM - i.MX6UL Security Reference Manual - Rev 0 04/2016
 //
-// Only support for random number generation is currently implemented.
-//
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
 // https://github.com/usbarmory/tamago.
@@ -49,12 +47,19 @@ type CAAM struct {
 	CG int
 
 	// control registers
+	jrstart uint32
 	rtmctl  uint32
 	rtent0  uint32
 	rtent15 uint32
 
 	// current RTENTa register
 	rtenta uint32
+
+	// current job ring interface base address
+	jr uint32
+
+	input  jobRing
+	output jobRing
 }
 
 // Init initializes the CAAM module.
@@ -73,11 +78,11 @@ func (hw *CAAM) Init() {
 	// enable clock
 	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
 
-	// entre program mode
+	// enter program mode
 	reg.Set(hw.rtmctl, RTMCTL_PRGM)
-
 	// reset defaults
 	reg.Set(hw.rtmctl, RTMCTL_RST_DEF)
+
 	// enable entropy generation
 	hw.rtenta = hw.rtent0
 	reg.Set(hw.rtmctl, RTMCTL_TRNG_ACC)
