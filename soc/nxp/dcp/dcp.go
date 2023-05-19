@@ -132,7 +132,7 @@ type DCP struct {
 	// The DeriveKey() function uses DeriveKeyMemory only if the default
 	// DMA region start does not overlap with it.
 	//
-	// Applications can override the region with an arbitrary one when the iRAM
+	// Applications can override the region with an arbitrary one when iRAM
 	// needs to be avoided or is already used as non-default DMA region.
 	DeriveKeyMemory *dma.Region
 

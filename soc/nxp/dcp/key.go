@@ -85,7 +85,7 @@ func (hw *DCP) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, 
 	}
 
 	if index >= 0 {
-		return nil, hw.setKeyData(index, nil, pkt.SourceBufferAddress)
+		return nil, hw.setKeyData(index, nil, pkt.DestinationBufferAddress)
 	} else {
 		region.Read(sourceBufferAddress, 0, key)
 	}
