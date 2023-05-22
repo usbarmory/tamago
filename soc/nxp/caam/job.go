@@ -43,15 +43,16 @@ const (
 
 type jobRing struct {
 	buf  []byte
-	addr uint
+	addr uint32
 }
 
-func (ring *jobRing) init(words int, size int) (ptr uint32) {
-	ring.addr, ring.buf = dma.Reserve(size*words*4, 0)
-	return uint32(ring.addr)
+func (ring *jobRing) init(words int, size int) uint32 {
+	addr := dma.Alloc(make([]byte, size*words*4), 0)
+	ring.addr = uint32(addr)
+	return ring.addr
 }
 
-func (hw *CAAM) initJobRing(off int, size int) {
+func (hw *CAAM) initJobRing(off int, size uint32) {
 	hw.jrstart = hw.Base + CAAM_JRSTART
 	hw.jr = hw.Base + uint32(off)
 
@@ -62,14 +63,14 @@ func (hw *CAAM) initJobRing(off int, size int) {
 
 	// input ring
 	reg.Write(hw.jr+CAAM_IRBAR_JRx, hw.input.init(inputRingWords, jobRingSize))
-	reg.Write(hw.jr+CAAM_IRSR_JRx, uint32(size))
+	reg.Write(hw.jr+CAAM_IRSR_JRx, size)
 
 	// output ring
 	reg.Write(hw.jr+CAAM_ORBAR_JRx, hw.output.init(outputRingWords, jobRingSize))
-	reg.Write(hw.jr+CAAM_ORSR_JRx, uint32(size))
+	reg.Write(hw.jr+CAAM_ORSR_JRx, size)
 }
 
-func (hw *CAAM) job(jd []byte) (err error) {
+func (hw *CAAM) job(hdr *Header, jd []byte) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
@@ -77,17 +78,29 @@ func (hw *CAAM) job(jd []byte) (err error) {
 		hw.initJobRing(jobRingInterface, jobRingSize)
 	}
 
+	if hdr == nil {
+		hdr = &Header{}
+		hdr.SetDefaults()
+		hdr.Length(1 + len(jd)/4)
+	}
+
+	jd = append(hdr.Bytes(), jd...)
+
 	ptr := dma.Alloc(jd, 0)
 	defer dma.Free(ptr)
 
-	reg.Write(uint32(hw.input.addr), uint32(ptr))
+	reg.Write(hw.input.addr, uint32(ptr))
 
 	reg.Write(hw.jr+CAAM_IRJAR_JRx, 1)
 	defer reg.Write(hw.jr+CAAM_ORJRR_JRx, 1)
 
 	reg.Wait(hw.jr+CAAM_ORSFR_JRx, 0, 0x3ff, 1)
 
-	if status := reg.Read(uint32(hw.output.addr) + 4); status != 0 {
+	if reg.Read(hw.output.addr) != uint32(ptr) {
+		return fmt.Errorf("CAAM job error, invalid output descriptor (%#x != %#x)", ptr, hw.output.addr)
+	}
+
+	if status := reg.Read(hw.output.addr + 4); status != 0 {
 		return fmt.Errorf("CAAM job error, status:%#x", status)
 	}
 

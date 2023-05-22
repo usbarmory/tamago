@@ -21,33 +21,25 @@ import (
 // *WARNING*: when SNVS is not enabled a default non-unique test vector is used
 // and therefore key derivation is *unsafe*, see snvs.Available().
 func (hw *CAAM) MasterKeyVerification() (key []byte, err error) {
-	key = make([]byte, sha256.Size)
-
-	destinationBufferAddress := dma.Alloc(key, len(key))
-	defer dma.Free(destinationBufferAddress)
-
-	// output sequence start address
-	dst := SeqOutPtr{}
-	dst.SetDefaults()
-	dst.Length(len(key))
-	dst.Pointer(destinationBufferAddress)
-
 	// Encapsulation protocol, Master Key Verification Blob
 	op := Operation{}
 	op.SetDefaults()
 	op.OpType(OPTYPE_PROT_ENC)
 	op.Protocol(PROTID_BLOB, (BLOB_FORMAT_MKV << PROTINFO_BLOB_FORMAT))
 
+	key = make([]byte, sha256.Size)
+	destinationBufferAddress := dma.Alloc(key, len(key))
+	defer dma.Free(destinationBufferAddress)
+
+	// output sequence start address
+	dst := SeqOutPtr{}
+	dst.SetDefaults()
+	dst.Pointer(destinationBufferAddress, len(key))
+
 	jd := dst.Bytes()
 	jd = append(jd, op.Bytes()...)
 
-	hdr := Header{}
-	hdr.SetDefaults()
-	hdr.Length(1 + len(jd)/4)
-
-	jd = append(hdr.Bytes(), jd...)
-
-	if err = hw.job(jd); err != nil {
+	if err = hw.job(nil, jd); err != nil {
 		return
 	}
 
