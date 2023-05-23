@@ -10,6 +10,7 @@
 package dcp
 
 import (
+	"bytes"
 	"crypto/aes"
 	"encoding/binary"
 	"errors"
@@ -133,4 +134,20 @@ func (hw *DCP) setKeyData(index int, key []byte, addr uint32) (err error) {
 // key RAM.
 func (hw *DCP) SetKey(index int, key []byte) (err error) {
 	return hw.setKeyData(index, key, 0)
+}
+
+func pad(buf []byte, extraBlock bool) []byte {
+	padLen := 0
+	r := len(buf) % aes.BlockSize
+
+	if r != 0 {
+		padLen = aes.BlockSize - r
+	} else if extraBlock {
+		padLen = aes.BlockSize
+	}
+
+	padding := []byte{(byte)(padLen)}
+	padding = bytes.Repeat(padding, padLen)
+
+	return append(buf, padding...)
 }

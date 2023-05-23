@@ -10,7 +10,6 @@
 package dcp
 
 import (
-	"bytes"
 	"crypto/aes"
 	"errors"
 
@@ -153,20 +152,4 @@ func (hw *DCP) CipherChain(buf []byte, ivs []byte, count int, size int, index in
 	dma.Read(src, 0, buf)
 
 	return
-}
-
-func pad(buf []byte, extraBlock bool) []byte {
-	padLen := 0
-	r := len(buf) % aes.BlockSize
-
-	if r != 0 {
-		padLen = aes.BlockSize - r
-	} else if extraBlock {
-		padLen = aes.BlockSize
-	}
-
-	padding := []byte{(byte)(padLen)}
-	padding = bytes.Repeat(padding, padLen)
-
-	return append(buf, padding...)
 }
