@@ -28,7 +28,7 @@ func (hw *CAAM) MasterKeyVerification() (key []byte, err error) {
 	op.Protocol(PROTID_BLOB, (BLOB_FORMAT_MKV << PROTINFO_BLOB_FORMAT))
 
 	key = make([]byte, sha256.Size)
-	destinationBufferAddress := dma.Alloc(key, len(key))
+	destinationBufferAddress := dma.Alloc(key, 4)
 	defer dma.Free(destinationBufferAddress)
 
 	// output sequence start address
