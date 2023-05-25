@@ -89,9 +89,10 @@ func (hw *CAAM) cipher(buf []byte, key []byte, iv []byte, mode int, enc bool) (e
 // should be the AES key, either 16, 24, or 32 bytes to select AES-128,
 // AES-192, or AES-256.
 //
-// All input buffers are copied to reserved DMA regions, buffers previously
-// created with dma.Reserve() can be used to avoid external RAM exposure as
-// their pointers are directly passed to the CAAM without copy.
+// All argument buffers are copied to reserved buffers in the default DMA
+// region, buffers previously created with dma.Reserve() can be used to avoid
+// external RAM exposure, when placed in iRAM, as their pointers are directly
+// passed to the CAAM without access by the Go runtime.
 func (hw *CAAM) Encrypt(buf []byte, key []byte, iv []byte) (err error) {
 	return hw.cipher(buf, key, iv, AAI_AES_CBC, true)
 }
@@ -100,9 +101,10 @@ func (hw *CAAM) Encrypt(buf []byte, key []byte, iv []byte) (err error) {
 // should be the AES key, either 16, 24, or 32 bytes to select AES-128,
 // AES-192, or AES-256.
 //
-// All input buffers are copied to reserved DMA regions, buffers previously
-// created with dma.Reserve() can be used to avoid external RAM exposure as
-// their pointers are directly passed to the CAAM without copy.
+// All argument buffers are copied to reserved buffers in the default DMA
+// region, buffers previously created with dma.Reserve() can be used to avoid
+// external RAM exposure, when placed in iRAM, as their pointers are directly
+// passed to the CAAM without access by the Go runtime.
 func (hw *CAAM) Decrypt(buf []byte, key []byte, iv []byte) (err error) {
 	return hw.cipher(buf, key, iv, AAI_AES_CBC, false)
 }
