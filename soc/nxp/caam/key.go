@@ -21,7 +21,6 @@ import (
 // *WARNING*: when SNVS is not enabled a default non-unique test vector is used
 // and therefore key derivation is *unsafe*, see snvs.Available().
 func (hw *CAAM) MasterKeyVerification() (key []byte, err error) {
-	// Encapsulation protocol, Master Key Verification Blob
 	op := Operation{}
 	op.SetDefaults()
 	op.OpType(OPTYPE_PROT_ENC)
@@ -31,7 +30,6 @@ func (hw *CAAM) MasterKeyVerification() (key []byte, err error) {
 	destinationBufferAddress := dma.Alloc(key, 4)
 	defer dma.Free(destinationBufferAddress)
 
-	// output sequence start address
 	dst := SeqOutPtr{}
 	dst.SetDefaults()
 	dst.Pointer(destinationBufferAddress, len(key))

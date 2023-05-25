@@ -23,7 +23,7 @@ func (pkt *WorkPacket) SetHashDefaults() {
 	pkt.Control1 |= HASH_SELECT_SHA256 << DCP_CTRL1_HASH_SELECT
 }
 
-func (hw *DCP) hash(buf []byte, mode uint32, init bool, term bool) (sum []byte, err error) {
+func (hw *DCP) hash(buf []byte, mode int, size int, init bool, term bool) (sum []byte, err error) {
 	sourceBufferAddress := dma.Alloc(buf, 4)
 	defer dma.Free(sourceBufferAddress)
 
@@ -37,8 +37,7 @@ func (hw *DCP) hash(buf []byte, mode uint32, init bool, term bool) (sum []byte, 
 	}
 
 	if term {
-		// output is always 32 bytes, regardless of mode
-		sum = make([]byte, 32)
+		sum = make([]byte, size)
 
 		payloadPointer := dma.Alloc(sum, 4)
 		defer dma.Free(payloadPointer)
@@ -55,7 +54,7 @@ func (hw *DCP) hash(buf []byte, mode uint32, init bool, term bool) (sum []byte, 
 		}()
 	}
 
-	pkt.Control1 |= mode << DCP_CTRL1_HASH_SELECT
+	pkt.Control1 |= uint32(mode) << DCP_CTRL1_HASH_SELECT
 
 	ptr := dma.Alloc(pkt.Bytes(), 4)
 	defer dma.Free(ptr)

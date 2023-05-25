@@ -17,8 +17,6 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-const blockSize = 64
-
 // A single CAAM job ring is used for all operations, this entails that only
 // one digest state can be kept at any given time.
 var sem = semaphore.NewWeighted(1)
@@ -48,6 +46,7 @@ type Hash interface {
 type digest struct {
 	caam *CAAM
 	mode int
+	n    int
 	bs   int
 	init bool
 	buf  []byte
@@ -78,7 +77,7 @@ func (d *digest) Write(p []byte) (n int, err error) {
 	d.buf = append(d.buf, p[:cut]...)
 	p = p[cut:]
 
-	if _, err = d.caam.hash(d.buf, d.mode, d.init, false); err != nil {
+	if _, err = d.caam.hash(d.buf, d.mode, d.n, d.init, false); err != nil {
 		return
 	}
 
@@ -90,7 +89,7 @@ func (d *digest) Write(p []byte) (n int, err error) {
 	if l := len(p); l > d.bs {
 		r := l % d.bs
 
-		if _, err = d.caam.hash(p[:l-r], d.mode, d.init, false); err != nil {
+		if _, err = d.caam.hash(p[:l-r], d.mode, d.n, d.init, false); err != nil {
 			return
 		}
 
@@ -116,7 +115,7 @@ func (d *digest) Sum(in []byte) (sum []byte, err error) {
 	if d.init && len(d.buf) == 0 {
 		d.sum = sha256.New().Sum(nil)
 	} else {
-		s, err := d.caam.hash(d.buf, ALG_SHA256, d.init, true)
+		s, err := d.caam.hash(d.buf, ALG_SHA256, d.n, d.init, true)
 
 		if err != nil {
 			return nil, err
@@ -149,9 +148,10 @@ func (hw *CAAM) New256() (Hash, error) {
 	d := &digest{
 		caam: hw,
 		mode: ALG_SHA256,
-		bs:   blockSize,
+		n:    sha256.Size,
+		bs:   sha256.BlockSize,
 		init: true,
-		buf:  make([]byte, 0, blockSize),
+		buf:  make([]byte, 0, sha256.BlockSize),
 	}
 
 	return d, nil
@@ -162,7 +162,7 @@ func (hw *CAAM) New256() (Hash, error) {
 // There must be sufficient DMA memory allocated to hold the data, otherwise
 // the function will panic.
 func (hw *CAAM) Sum256(data []byte) (sum [32]byte, err error) {
-	s, err := hw.hash(data, ALG_SHA256, true, true)
+	s, err := hw.hash(data, ALG_SHA256, len(sum), true, true)
 
 	if err != nil {
 		return

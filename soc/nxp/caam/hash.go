@@ -13,14 +13,14 @@ import (
 	"github.com/usbarmory/tamago/dma"
 )
 
-func (hw *CAAM) hash(buf []byte, mode int, init bool, term bool) (sum []byte, err error) {
-	sourceBufferAddress := dma.Alloc(buf, len(buf))
+func (hw *CAAM) hash(buf []byte, mode int, size int, init bool, term bool) (sum []byte, err error) {
+	sourceBufferAddress := dma.Alloc(buf, 4)
 	defer dma.Free(sourceBufferAddress)
 
 	op := Operation{}
 	op.SetDefaults()
 	op.OpType(OPTYPE_ALG_CLASS2)
-	op.Algorithm(mode)
+	op.Algorithm(mode, 0)
 
 	switch {
 	case init && term:
@@ -35,7 +35,7 @@ func (hw *CAAM) hash(buf []byte, mode int, init bool, term bool) (sum []byte, er
 
 	src := FIFOLoad{}
 	src.SetDefaults()
-	src.Class(CLASS_2CHA)
+	src.Class(2)
 	src.DataType(INPUT_DATA_TYPE_MESSAGE_DATA | INPUT_DATA_TYPE_LC2)
 	src.Pointer(sourceBufferAddress, len(buf))
 
@@ -43,17 +43,15 @@ func (hw *CAAM) hash(buf []byte, mode int, init bool, term bool) (sum []byte, er
 	jd = append(jd, src.Bytes()...)
 
 	if term {
-		// output is always 32 bytes, regardless of mode
-		sum = make([]byte, 32)
+		sum = make([]byte, size)
 
-		destinationBufferAddress := dma.Alloc(sum, len(sum))
+		destinationBufferAddress := dma.Alloc(sum, 4)
 		defer dma.Free(destinationBufferAddress)
 
-		// output sequence start address
 		dst := Store{}
 		dst.SetDefaults()
-		dst.Class(CLASS_2CCB)
-		dst.Source(SRC_CTX)
+		dst.Class(2)
+		dst.Source(CTX)
 		dst.Pointer(destinationBufferAddress, len(sum))
 
 		jd = append(jd, dst.Bytes()...)

@@ -20,38 +20,47 @@ import (
 const (
 	CTYPE = 27
 
+	CTYPE_KEY         = 0b00000
+	CTYPE_LOAD        = 0b00010
 	CTYPE_FIFO_LOAD   = 0b00100
 	CTYPE_STORE       = 0b01010
+	CTYPE_FIFO_STORE  = 0b01100
 	CTYPE_OPERATION   = 0b10000
 	CTYPE_HEADER      = 0b10110
 	CTYPE_SEQ_IN_PTR  = 0b11110
 	CTYPE_SEQ_OUT_PTR = 0b11111
+)
 
-	// ALGORITHM, PROTOCOL, PKHA OPERATION
+// Fields common across multiple commands
+const (
+	// KEY, LOAD, STORE commands
+	CLASS = 25
+
+	// ALGORITHM, PROTOCOL, PKHA OPERATION commands
 	OPERATION_OPTYPE = 24
+
+	// LOAD, STORE commands
+	EXT       = 22
+	DATA_TYPE = 16
+	LENGTH    = 0
+)
+
+// Field values common across multiple commands
+const (
+	// LOAD, STORE commands
+	CTX = 0x20
 )
 
 // p296, 6.6.11 FIFO LOAD command, IMX6ULSRM
+// p313, 6.6.14 FIFO STORE command, IMX6ULSRM
 const (
-	FIFO_LOAD_CLASS = 25
-	CLASS_2CHA      = 0b10
-
-	FIFO_LOAD_EXT             = 22
-	FIFO_LOAD_INPUT_DATA_TYPE = 16
-
+	INPUT_DATA_TYPE_PKHA_Ax      = 0b000000
+	INPUT_DATA_TYPE_IV           = 0b100000
 	INPUT_DATA_TYPE_MESSAGE_DATA = 0b010000
-	INPUT_DATA_TYPE_LC2          = 0b000100
-)
+	INPUT_DATA_TYPE_LC2          = 1 << 2
+	INPUT_DATA_TYPE_LC1          = 1 << 1
 
-// p306, 6.6.13 STORE command, IMX6ULSRM
-const (
-	STORE_CLASS = 25
-	CLASS_2CCB  = 0b10
-
-	STORE_SRC = 16
-	SRC_CTX   = 0x20
-
-	STORE_LENGTH = 0
+	OUTPUT_DATA_TYPE_MESSAGE_DATA = 0x30
 )
 
 // p328, 6.6.16 ALGORITHM OPERATION command, IMX6ULSRM
@@ -60,12 +69,19 @@ const (
 	OPTYPE_ALG_CLASS2 = 0b100
 
 	OPERATION_ALG = 16
+	ALG_AES       = 0x10
 	ALG_SHA256    = 0x43
+	ALG_SHA512    = 0x45
+
+	OPERATION_AAI = 4
+	AAI_AES_CBC   = 0x10
 
 	OPERATION_AS  = 2
 	AS_UPDATE     = 0b00
 	AS_INITIALIZE = 0b01
 	AS_FINALIZE   = 0b10
+
+	OPERATION_ENC = 0
 )
 
 // p333, 6.6.17 PROTOCOL OPERATION command, IMX6ULSRM
@@ -86,28 +102,23 @@ const (
 	HEADER_DESCLEN = 0
 )
 
-// p372, 6.6.22 SEQ  IN PTR command, IMX6ULSRM
-// p375, 6.6.23 SEQ OUT PTR command, IMX6ULSRM
-const (
-	SEQ_PTR_LENGTH = 0
-)
-
 // Command represents a CAAM command
 // (p266, 6.6.7.3 Command types, IMX6ULSRM).
 type Command struct {
-	// CTYPE field
-	Type uint32
 	// Main fields
 	Word0 uint32
 	// Optional words
 	Words []uint32
 }
 
+// Class sets the command CLASS field.
+func (c *Command) Class(class int) {
+	bits.SetN(&c.Word0, CLASS, 0b11, uint32(class))
+}
+
 // Bytes converts the descriptor non-optional words structure to byte array
 // format.
 func (c *Command) Bytes() []byte {
-	bits.SetN(&c.Word0, CTYPE, 0x1f, c.Type)
-
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, c.Word0)
 	binary.Write(buf, binary.LittleEndian, c.Words)
@@ -115,59 +126,105 @@ func (c *Command) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// FIFOLoad represents a FIFO LOAD command.
-type FIFOLoad struct {
+// LengthCommand represents a CAAM command with Length and Pointer fields.
+type LengthCommand struct {
 	Command
 }
 
-// SetDefaults initializes default values for the FIFO LOAD command.
-func (c *FIFOLoad) SetDefaults() {
-	c.Type = CTYPE_FIFO_LOAD
+// Pointer sets the command POINTER and EXT LENGTH fields.
+func (c *LengthCommand) Pointer(addr uint, n int) {
+	bits.SetN(&c.Word0, LENGTH, 0xff, uint32(n))
+	c.Words = []uint32{uint32(addr)}
 }
 
-// Class sets the FIFO LOAD command CLASS field.
-func (c *FIFOLoad) Class(class int) {
-	bits.SetN(&c.Word0, FIFO_LOAD_CLASS, 0b11, uint32(class))
+// ExtendedLengthCommand represents a CAAM command with Extended Length and
+// Pointer fields.
+type ExtendedLengthCommand struct {
+	Command
 }
 
-// DataType sets the FIFO LOAD command INPUT DATA TYPE field.
-func (c *FIFOLoad) DataType(dt int) {
-	bits.SetN(&c.Word0, FIFO_LOAD_INPUT_DATA_TYPE, 0x3f, uint32(dt))
-}
-
-// Pointer sets the FIFO LOAD command POINTER and EXT LENGTH fields.
-func (c *FIFOLoad) Pointer(addr uint, n int) {
-	bits.Set(&c.Word0, FIFO_LOAD_EXT)
+// Pointer sets the command POINTER and EXT LENGTH fields.
+func (c *ExtendedLengthCommand) Pointer(addr uint, n int) {
+	bits.Set(&c.Word0, EXT)
 	c.Words = []uint32{
 		uint32(addr),
 		uint32(n),
 	}
 }
 
-// Store represents a STORE command.
+// Key represents a KEY command
+// (p281, 6.6.9 KEY commands, IMX6ULSRM).
+type Key struct {
+	LengthCommand
+}
+
+// SetDefaults initializes default values for the KEY command.
+func (c *Key) SetDefaults() {
+	bits.SetN(&c.Word0, CTYPE, 0x1f, CTYPE_KEY)
+}
+
+// Load represents a LOAD command
+// (p285, 6.6.10 LOAD commands, IMX6ULSRM).
+type Load struct {
+	LengthCommand
+}
+
+// SetDefaults initializes default values for the LOAD command.
+func (c *Load) SetDefaults() {
+	bits.SetN(&c.Word0, CTYPE, 0x1f, CTYPE_LOAD)
+}
+
+// Destination sets the LOAD command DST field.
+func (c *Load) Destination(dst int) {
+	bits.SetN(&c.Word0, DATA_TYPE, 0x7f, uint32(dst))
+}
+
+// FIFOLoad represents a FIFO LOAD command
+// (p296, 6.6.11 FIFO LOAD command, IMX6ULSRM).
+type FIFOLoad struct {
+	ExtendedLengthCommand
+}
+
+// SetDefaults initializes default values for the FIFO LOAD command.
+func (c *FIFOLoad) SetDefaults() {
+	bits.SetN(&c.Word0, CTYPE, 0x1f, CTYPE_FIFO_LOAD)
+}
+
+// DataType sets the FIFO LOAD command INPUT DATA TYPE field.
+func (c *FIFOLoad) DataType(dt int) {
+	bits.SetN(&c.Word0, DATA_TYPE, 0x3f, uint32(dt))
+}
+
+// Store represents a STORE command
+// (p306, 6.6.13 STORE command, IMX6ULSRM).
 type Store struct {
-	Command
+	LengthCommand
 }
 
 // SetDefaults initializes default values for the STORE command.
 func (c *Store) SetDefaults() {
-	c.Type = CTYPE_STORE
-}
-
-// Class sets the STORE command CLASS field.
-func (c *Store) Class(class int) {
-	bits.SetN(&c.Word0, STORE_CLASS, 0b11, uint32(class))
+	bits.SetN(&c.Word0, CTYPE, 0x1f, CTYPE_STORE)
 }
 
 // Source sets the STORE command SRC field.
 func (c *Store) Source(src int) {
-	bits.SetN(&c.Word0, STORE_SRC, 0x7f, uint32(src))
+	bits.SetN(&c.Word0, DATA_TYPE, 0x7f, uint32(src))
 }
 
-// Pointer sets the STORE command LENGTH and POINTER fields.
-func (c *Store) Pointer(addr uint, n int) {
-	bits.SetN(&c.Word0, STORE_LENGTH, 0xff, uint32(n))
-	c.Words = []uint32{uint32(addr)}
+// FIFOStore represents a FIFO STORE command
+// (p313, 6.6.14 FIFO STORE command, IMX6ULSRM).
+type FIFOStore struct {
+	ExtendedLengthCommand
+}
+
+// SetDefaults initializes default values for the FIFO STORE command.
+func (c *FIFOStore) SetDefaults() {
+	bits.SetN(&c.Word0, CTYPE, 0x1f, CTYPE_FIFO_STORE)
+}
+
+// DataType sets the FIFO STORE command OUTPUT DATA TYPE field.
+func (c *FIFOStore) DataType(dt int) {
+	bits.SetN(&c.Word0, DATA_TYPE, 0x3f, uint32(dt))
 }
 
 // Operation represents a CAAM OPERATION command.
@@ -177,7 +234,7 @@ type Operation struct {
 
 // SetDefaults initializes default values for the OPERATION command.
 func (c *Operation) SetDefaults() {
-	c.Type = CTYPE_OPERATION
+	bits.SetN(&c.Word0, CTYPE, 0x1f, CTYPE_OPERATION)
 }
 
 // OpType sets the OPERATION command OPTYPE field.
@@ -185,9 +242,10 @@ func (c *Operation) OpType(op int) {
 	bits.SetN(&c.Word0, OPERATION_OPTYPE, 0b111, uint32(op))
 }
 
-// Algorithm sets the ALGORITHM OPERATION command ALG field.
-func (c *Operation) Algorithm(alg int) {
+// Algorithm sets the ALGORITHM OPERATION command ALG and AAI fields.
+func (c *Operation) Algorithm(alg int, aai int) {
 	bits.SetN(&c.Word0, OPERATION_ALG, 0xff, uint32(alg))
+	bits.SetN(&c.Word0, OPERATION_AAI, 0x1ff, uint32(aai))
 }
 
 // Algorithm sets the ALGORITHM OPERATION command AS field.
@@ -195,10 +253,15 @@ func (c *Operation) State(as int) {
 	bits.SetN(&c.Word0, OPERATION_AS, 0b11, uint32(as))
 }
 
+// Algorithm sets the ALGORITHM OPERATION command ENC field.
+func (c *Operation) Encrypt(enc bool) {
+	bits.SetTo(&c.Word0, OPERATION_ENC, enc)
+}
+
 // Protocol sets the PROTOCOL OPERATION command PROTID and PROTINFO fields.
-func (c *Operation) Protocol(id int, info uint32) {
+func (c *Operation) Protocol(id int, info int) {
 	bits.SetN(&c.Word0, OPERATION_PROTID, 0b111, uint32(id))
-	bits.SetN(&c.Word0, OPERATION_PROTINFO, 0xffff, info)
+	bits.SetN(&c.Word0, OPERATION_PROTINFO, 0xffff, uint32(info))
 }
 
 // Header represents a CAAM HEADER command.
@@ -209,7 +272,7 @@ type Header struct {
 
 // SetDefaults initializes default values for the HEADER command.
 func (c *Header) SetDefaults() {
-	c.Type = CTYPE_HEADER
+	bits.SetN(&c.Word0, CTYPE, 0x1f, CTYPE_HEADER)
 	bits.Set(&c.Word0, HEADER_ONE)
 }
 
@@ -218,34 +281,24 @@ func (c *Header) Length(words int) {
 	bits.SetN(&c.Word0, HEADER_DESCLEN, 0x7f, uint32(words))
 }
 
-// SeqInPtr represents a CAAM SEQ IN PTR command.
+// SeqInPtr represents a CAAM SEQ IN PTR command
+// (p372, 6.6.22 SEQ  IN PTR command, IMX6ULSRM).
 type SeqInPtr struct {
-	Command
+	ExtendedLengthCommand
 }
 
 // SetDefaults initializes default values for the SEQ IN PTR command.
 func (c *SeqInPtr) SetDefaults() {
-	c.Type = CTYPE_SEQ_IN_PTR
+	bits.SetN(&c.Word0, CTYPE, 0x1f, CTYPE_SEQ_IN_PTR)
 }
 
-// Pointer sets the SEQ IN PTR command LENGHT and POINTER fields.
-func (c *SeqInPtr) Pointer(addr uint, n int) {
-	bits.SetN(&c.Word0, SEQ_PTR_LENGTH, 0xffff, uint32(n))
-	c.Words = append(c.Words, uint32(addr))
-}
-
-// SeqOutPtr represents a CAAM SEQ OUT PTR command.
+// SeqOutPtr represents a CAAM SEQ OUT PTR command
+// (p375, 6.6.23 SEQ OUT PTR command, IMX6ULSRM).
 type SeqOutPtr struct {
-	Command
+	ExtendedLengthCommand
 }
 
 // SetDefaults initializes default values for the SEQ OUT PTR command.
 func (c *SeqOutPtr) SetDefaults() {
-	c.Type = CTYPE_SEQ_OUT_PTR
-}
-
-// Pointer sets the SEQ OUT PTR command LENGTH and POINTER fields.
-func (c *SeqOutPtr) Pointer(addr uint, n int) {
-	bits.SetN(&c.Word0, SEQ_PTR_LENGTH, 0xffff, uint32(n))
-	c.Words = []uint32{uint32(addr)}
+	bits.SetN(&c.Word0, CTYPE, 0x1f, CTYPE_SEQ_OUT_PTR)
 }
