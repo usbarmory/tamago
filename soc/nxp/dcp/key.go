@@ -23,8 +23,8 @@ import (
 // DeriveKey derives a hardware unique key in a manner equivalent to PKCS#11
 // C_DeriveKey with CKM_AES_CBC_ENCRYPT_DATA.
 //
-// The diversifier is AES-CBC encrypted using the internal OTPMK (when SNVS is
-// enabled).
+// The diversifier is AES-128-CBC encrypted using the internal OTPMK (when SNVS
+// is enabled).
 //
 // *WARNING*: when SNVS is not enabled a default non-unique test vector is used
 // and therefore key derivation is *unsafe*, see snvs.Available().
@@ -32,11 +32,9 @@ import (
 // A negative index argument results in the derived key being computed and
 // returned.
 //
-// An index argument equal or greater than 0 moves the derived key directly to
-// the corresponding internal DCP key RAM slot (see SetKey()). This is
-// accomplished through an iRAM reserved DMA buffer, to ensure that the key is
-// never exposed to external RAM or the Go runtime. In this case no key is
-// returned by the function.
+// An index argument equal or greater than 0 moves the derived key, through
+// DeriveKeyMemory, to the corresponding internal DCP key RAM slot (see
+// SetKey()). In this case no key is returned by the function.
 func (hw *DCP) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, err error) {
 	if len(iv) != aes.BlockSize {
 		return nil, errors.New("invalid IV size")

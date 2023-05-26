@@ -127,13 +127,10 @@ type DCP struct {
 	// slot. The memory region must be initialized before DeriveKey().
 	//
 	// It is recommended to use a DMA region within the internal RAM (e.g.
-	// i.MX6 On-Chip OCRAM/iRAM) to avoid passing through external RAM.
+	// i.MX6 On-Chip OCRAM/iRAM) to avoid exposure to external RAM.
 	//
 	// The DeriveKey() function uses DeriveKeyMemory only if the default
 	// DMA region start does not overlap with it.
-	//
-	// Applications can override the region with an arbitrary one when iRAM
-	// needs to be avoided or is already used as non-default DMA region.
 	DeriveKeyMemory *dma.Region
 
 	// control registers
