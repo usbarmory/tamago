@@ -75,6 +75,7 @@ const (
 
 	OPERATION_AAI = 4
 	AAI_AES_CBC   = 0x10
+	AAI_AES_CMAC  = 0x60
 
 	OPERATION_AS  = 2
 	AS_UPDATE     = 0b00

@@ -19,6 +19,7 @@ package caam
 import (
 	"sync"
 
+	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -45,6 +46,19 @@ type CAAM struct {
 	CCGR uint32
 	// Clock gate
 	CG int
+
+	// DeriveKeyMemory represents the DMA memory region where the CAAM blob
+	// key encryption key (BKEK), derived from the hardware unique key, is
+	// placed to derive diversified keys. The memory region must be
+	// initialized before DeriveKey().
+	//
+	// When BEE is not used to encrypt external RAM it is recommended to
+	// use a DMA region within the internal RAM (e.g. i.MX6 On-Chip
+	// OCRAM/iRAM).
+	//
+	// The DeriveKey() function uses DeriveKeyMemory only if the default
+	// DMA region start does not overlap with it.
+	DeriveKeyMemory *dma.Region
 
 	// control registers
 	jrstart uint32
