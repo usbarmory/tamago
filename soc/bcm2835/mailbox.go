@@ -52,7 +52,7 @@ var Mailbox = mailbox{}
 func init() {
 	// We don't use this region for DMA, but dma package provides a convenient
 	// block allocation system.
-	Mailbox.Region, _ = dma.NewRegion(MAILBOX_REGION_BASE|DRAM_FLAG_NOCACHE, MAILBOX_REGION_SIZE)
+	Mailbox.Region, _ = dma.NewRegion(MAILBOX_REGION_BASE|DRAM_FLAG_NOCACHE, MAILBOX_REGION_SIZE, false)
 }
 
 type MailboxTag struct {
@@ -119,7 +119,7 @@ func (mb *mailbox) Call(channel int, message *MailboxMessage) {
 	// terminating null tag
 	binary.LittleEndian.PutUint32(buf[offset:], 0x0)
 
-	mb.exchangeMessage(channel, addr)
+	mb.exchangeMessage(channel, uint32(addr))
 
 	message.Tags = make([]MailboxTag, 0, len(message.Tags))
 	message.Code = binary.LittleEndian.Uint32(buf[4:])

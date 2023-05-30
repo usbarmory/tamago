@@ -296,7 +296,7 @@ func (ch *DMAChannel) Copy(from uint32, size int, to uint32) {
 
 	reg.Write(ch.base+DMA_CH_REG_CS, DMA_CS_RESET)
 	reg.Write(ch.base+DMA_CH_REG_DEBUG, 0x7) // Clear Errors
-	reg.Write(ch.base+DMA_CH_REG_CONBLK_AD, cbAddr)
+	reg.Write(ch.base+DMA_CH_REG_CONBLK_AD, uint32(cbAddr))
 	reg.Write(ch.base+DMA_CH_REG_CS, DMA_CS_ACTIVE)
 
 	for (reg.Read(ch.base+DMA_CH_REG_CS) & DMA_CS_END) == 0 {
