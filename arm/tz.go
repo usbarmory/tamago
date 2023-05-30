@@ -17,7 +17,7 @@ import (
 
 // defined in tz.s
 func read_scr() uint32
-func write_nsacr(uint32)
+func write_nsacr(scr uint32)
 
 // NonSecure returns whether the processor security mode is non-secure (e.g.
 // TrustZone Normal World.
