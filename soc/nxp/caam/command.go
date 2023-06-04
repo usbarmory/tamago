@@ -26,6 +26,7 @@ const (
 	CTYPE_STORE       = 0b01010
 	CTYPE_FIFO_STORE  = 0b01100
 	CTYPE_OPERATION   = 0b10000
+	CTYPE_JUMP        = 0b10100
 	CTYPE_HEADER      = 0b10110
 	CTYPE_SEQ_IN_PTR  = 0b11110
 	CTYPE_SEQ_OUT_PTR = 0b11111
@@ -33,7 +34,7 @@ const (
 
 // Fields common across multiple commands
 const (
-	// KEY, LOAD, STORE commands
+	// KEY, LOAD, STORE, JUMP commands
 	CLASS = 25
 
 	// ALGORITHM, PROTOCOL, PKHA OPERATION commands
@@ -48,7 +49,13 @@ const (
 // Field values common across multiple commands
 const (
 	// LOAD, STORE commands
-	CTX = 0x20
+	CLRW = 0x08
+	CTX  = 0x20
+)
+
+// p285, 6.6.10 JUMP command, IMX6ULSRM
+const (
+	LOAD_IMM = 23
 )
 
 // p296, 6.6.11 FIFO LOAD command, IMX6ULSRM
@@ -72,10 +79,12 @@ const (
 	ALG_AES       = 0x10
 	ALG_SHA256    = 0x43
 	ALG_SHA512    = 0x45
+	ALG_RNG       = 0x50
 
 	OPERATION_AAI = 4
 	AAI_AES_CBC   = 0x10
 	AAI_AES_CMAC  = 0x60
+	AAI_RNG_SK    = 8
 
 	OPERATION_AS  = 2
 	AS_UPDATE     = 0b00
@@ -87,20 +96,32 @@ const (
 
 // p333, 6.6.17 PROTOCOL OPERATION command, IMX6ULSRM
 const (
+	OPTYPE_PROT_UNI = 0b000
+	OPTYPE_PROT_DEC = 0b110
 	OPTYPE_PROT_ENC = 0b111
 
-	OPERATION_PROTID = 16
-	PROTID_BLOB      = 0x0d
+	OPERATION_PROTID  = 16
+	PROTID_BLOB       = 0x0d
+	PROTID_ECDSA_SIGN = 0x15
 
-	OPERATION_PROTINFO   = 0
+	OPERATION_PROTINFO = 0
+
 	PROTINFO_BLOB_FORMAT = 0
 	BLOB_FORMAT_MKV      = 0b10
+
+	PROTINFO_ECC = 1
+)
+
+// p356, 6.6.20 JUMP command, IMX6ULSRM
+const (
+	JUMP_OFFSET = 0
 )
 
 // p276, 6.6.8 HEADER command, IMX6ULSRM
 const (
-	HEADER_ONE     = 23
-	HEADER_DESCLEN = 0
+	HEADER_ONE         = 23
+	HEADER_START_INDEX = 16
+	HEADER_DESCLEN     = 0
 )
 
 // Command represents a CAAM command
@@ -180,6 +201,13 @@ func (c *Load) Destination(dst int) {
 	bits.SetN(&c.Word0, DATA_TYPE, 0x7f, uint32(dst))
 }
 
+// Immediate sets the LOAD command IMM, LENGTH and Value fields.
+func (c *Load) Immediate(imm uint32) {
+	bits.Set(&c.Word0, LOAD_IMM)
+	bits.SetN(&c.Word0, LENGTH, 0xff, 4)
+	c.Words = []uint32{imm}
+}
+
 // FIFOLoad represents a FIFO LOAD command
 // (p296, 6.6.11 FIFO LOAD command, IMX6ULSRM).
 type FIFOLoad struct {
@@ -244,9 +272,9 @@ func (c *Operation) OpType(op int) {
 }
 
 // Algorithm sets the ALGORITHM OPERATION command ALG and AAI fields.
-func (c *Operation) Algorithm(alg int, aai int) {
+func (c *Operation) Algorithm(alg int, aai uint32) {
 	bits.SetN(&c.Word0, OPERATION_ALG, 0xff, uint32(alg))
-	bits.SetN(&c.Word0, OPERATION_AAI, 0x1ff, uint32(aai))
+	bits.SetN(&c.Word0, OPERATION_AAI, 0x1ff, aai)
 }
 
 // Algorithm sets the ALGORITHM OPERATION command AS field.
@@ -260,9 +288,9 @@ func (c *Operation) Encrypt(enc bool) {
 }
 
 // Protocol sets the PROTOCOL OPERATION command PROTID and PROTINFO fields.
-func (c *Operation) Protocol(id int, info int) {
+func (c *Operation) Protocol(id int, info uint32) {
 	bits.SetN(&c.Word0, OPERATION_PROTID, 0b111, uint32(id))
-	bits.SetN(&c.Word0, OPERATION_PROTINFO, 0xffff, uint32(info))
+	bits.SetN(&c.Word0, OPERATION_PROTINFO, 0xffff, info)
 }
 
 // Header represents a CAAM HEADER command.
@@ -280,6 +308,27 @@ func (c *Header) SetDefaults() {
 // Length sets the HEADER command DESCLEN field.
 func (c *Header) Length(words int) {
 	bits.SetN(&c.Word0, HEADER_DESCLEN, 0x7f, uint32(words))
+}
+
+// StartIndex sets the HEADER command START INDEX field.
+func (c *Header) StartIndex(off int) {
+	bits.SetN(&c.Word0, HEADER_START_INDEX, 0x3f, uint32(off))
+}
+
+// Jump represents a CAAM JUMP command.
+// (p356, 6.6.20 JUMP command, IMX6ULSRM).
+type Jump struct {
+	Command
+}
+
+// SetDefaults initializes default values for the JUMP command.
+func (c *Jump) SetDefaults() {
+	bits.SetN(&c.Word0, CTYPE, 0x1f, CTYPE_JUMP)
+}
+
+// Offset sets the JUMP command LOCAL OFFSET field.
+func (c *Jump) Offset(off int) {
+	bits.SetN(&c.Word0, JUMP_OFFSET, 0xff, uint32(off))
 }
 
 // SeqInPtr represents a CAAM SEQ IN PTR command

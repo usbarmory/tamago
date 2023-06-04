@@ -10,6 +10,7 @@
 // Package caam implements a driver for the NXP Cryptographic Acceleration and
 // Assurance Module (CAAM) adopting the following reference specifications:
 //   - IMX6ULSRM - i.MX6UL Security Reference Manual - Rev 0 04/2016
+//   - IMX7DSSRM - i.MX7DS Security Reference Manual - Rev 0 03/2017
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
@@ -33,6 +34,9 @@ const (
 
 	CAAM_RTENT0  = 0x640
 	CAAM_RTENT15 = 0x67c
+
+	CAAM_C0CWR = 0x8044
+	C0CWR_C1M  = 0
 )
 
 // CAAM represents the Cryptographic Acceleration and Assurance Module
@@ -69,6 +73,9 @@ type CAAM struct {
 	// current RTENTa register
 	rtenta uint32
 
+	// volatile keys initialization state
+	init bool
+
 	// current job ring interface base address
 	jr uint32
 
@@ -103,4 +110,6 @@ func (hw *CAAM) Init() {
 
 	// enable run mode
 	reg.Clear(hw.rtmctl, RTMCTL_PRGM)
+
+	// TODO: tune TRNG frequency
 }

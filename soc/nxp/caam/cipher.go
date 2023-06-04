@@ -16,7 +16,7 @@ import (
 	"github.com/usbarmory/tamago/dma"
 )
 
-func (hw *CAAM) cipher(buf []byte, key []byte, iv []byte, mode int, enc bool) (err error) {
+func (hw *CAAM) cipher(buf []byte, key []byte, iv []byte, mode uint32, enc bool) (err error) {
 	if len(buf)%aes.BlockSize != 0 {
 		return errors.New("invalid input size")
 	}

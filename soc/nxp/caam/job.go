@@ -10,6 +10,7 @@
 package caam
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/usbarmory/tamago/dma"
@@ -42,7 +43,6 @@ const (
 )
 
 type jobRing struct {
-	buf  []byte
 	addr uint32
 }
 
@@ -74,6 +74,10 @@ func (hw *CAAM) job(hdr *Header, jd []byte) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
+	if hw.Base == 0 {
+		return errors.New("co-processor is not initialized")
+	}
+
 	if hw.jr == 0 {
 		hw.initJobRing(jobRingInterface, jobRingSize)
 	}
@@ -88,6 +92,11 @@ func (hw *CAAM) job(hdr *Header, jd []byte) (err error) {
 
 	ptr := dma.Alloc(jd, 4)
 	defer dma.Free(ptr)
+
+	// TRNG access through RTENT registers prevents RNG to the CAAM system,
+	// disable while executing jobs.
+	reg.Clear(hw.rtmctl, RTMCTL_TRNG_ACC)
+	defer reg.Set(hw.rtmctl, RTMCTL_TRNG_ACC)
 
 	// add job descriptor to input ring
 	reg.Write(hw.input.addr, uint32(ptr))
