@@ -46,8 +46,8 @@
 // limits apply:
 //   - eMMC  HS200: 150MB/s - 150MHz (instead of 200MB/s - 200MHz), supported
 //   - eMMC  DDR52:  90MB/s -  45MHz (instead of 104MB/s -  52MHz), supported
-//   - SD SDR104:  75MB/s - 150MHz (instead of 104MB/s - 208MHz), supported
-//   - SD  DDR50:  45MB/s -  45MHz (instead of  50MB/s -  50MHz), unsupported
+//   - SD   SDR104:  75MB/s - 150MHz (instead of 104MB/s - 208MHz), supported
+//   - SD    DDR50:  45MB/s -  45MHz (instead of  50MB/s -  50MHz), unsupported
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go on ARM SoCs, see
