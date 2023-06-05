@@ -103,11 +103,10 @@ func (hw *CAAM) job(hdr *Header, jd []byte) (err error) {
 
 	// signal job addition
 	reg.Write(hw.jr+CAAM_IRJAR_JRx, 1)
-	// remove job upon completion
-	defer reg.Write(hw.jr+CAAM_ORJRR_JRx, 1)
 
 	// wait for job completion
 	reg.Wait(hw.jr+CAAM_ORSFR_JRx, 0, 0x3ff, 1)
+	reg.Write(hw.jr+CAAM_ORJRR_JRx, 1)
 
 	if reg.Read(hw.output.addr) != uint32(ptr) {
 		return fmt.Errorf("CAAM job error, invalid output descriptor (%#x != %#x)", ptr, hw.output.addr)

@@ -21,9 +21,6 @@ import (
 	"github.com/usbarmory/tamago/bits"
 )
 
-// The i.MX7 SRM is referenced because the i.MX6 SRM is not consistent with its
-// actual CAAM implementation.
-
 // p451, Table 8-112, IMX7DSSRM
 const (
 	DSA_SIG_PDB_PD     = 22
@@ -67,7 +64,6 @@ func (pdb *SignPDB) Init(priv *ecdsa.PrivateKey) (err error) {
 	pdb.s = dma.Alloc(make([]byte, pdb.n), 4)
 	dma.Write(pdb.s, 0, priv.D.Bytes())
 
-	pdb.f = dma.Alloc(make([]byte, pdb.n), 4)
 	pdb.c = dma.Alloc(make([]byte, pdb.n), 4)
 	pdb.d = dma.Alloc(make([]byte, pdb.n), 4)
 
@@ -75,7 +71,7 @@ func (pdb *SignPDB) Init(priv *ecdsa.PrivateKey) (err error) {
 }
 
 func (pdb *SignPDB) Hash(hash []byte) {
-	dma.Write(pdb.f, 0, hash)
+	pdb.f = dma.Alloc(hash, 4)
 }
 
 // Bytes converts the PDB to byte array format.
@@ -106,9 +102,12 @@ func (pdb *SignPDB) Free() {
 }
 
 // Sign signs a hash (which should be the result of hashing a larger message)
-// using the private key, priv. An initialized sign protocol data block (see
-// SignPDB.Init()) may be passed to use cached private key initialization, in
-// this case priv is ignored.
+// using the private key, priv. If the hash is longer than the bit-length of
+// the private key's curve order, the hash will be truncated to that length. It
+// returns the signature as a pair of integers.
+//
+// A previously initialized sign protocol data block (see SignPDB.Init()) may
+// be passed to cache private key initialization, in this case priv is ignored.
 func (hw *CAAM) Sign(priv *ecdsa.PrivateKey, hash []byte, pdb *SignPDB) (r, s *big.Int, err error) {
 	if !hw.init {
 		// initialize RNG, JDKEK, TDKEK and TDSK
@@ -148,11 +147,13 @@ func (hw *CAAM) Sign(priv *ecdsa.PrivateKey, hash []byte, pdb *SignPDB) (r, s *b
 
 	c := make([]byte, pdb.n)
 	dma.Read(pdb.c, 0, c)
-	r = &big.Int{}
-	r.SetBytes(c)
 
 	d := make([]byte, pdb.n)
 	dma.Read(pdb.d, 0, d)
+
+	r = &big.Int{}
+	r.SetBytes(c)
+
 	s = &big.Int{}
 	s.SetBytes(d)
 
