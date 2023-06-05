@@ -114,20 +114,19 @@ func (hw *CAAM) Sign(priv *ecdsa.PrivateKey, hash []byte, pdb *SignPDB) (r, s *b
 		hw.initRNG()
 	}
 
-	if pdb == nil || pdb.n == 0 {
+	if pdb == nil {
 		pdb = &SignPDB{}
 		defer pdb.Free()
 
 		if err = pdb.Init(priv); err != nil {
 			return
 		}
+	} else if pdb.n == 0 {
+		return nil, nil, errors.New("pdb is not initialized")
 	}
 
 	pdb.Hash(hash)
 	jd := pdb.Bytes()
-
-	pdbBufferAddress := dma.Alloc(jd, 4)
-	defer dma.Free(pdbBufferAddress)
 
 	op := Operation{}
 	op.SetDefaults()
