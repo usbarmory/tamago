@@ -64,6 +64,7 @@ func (pdb *SignPDB) Init(priv *ecdsa.PrivateKey) (err error) {
 	pdb.s = dma.Alloc(make([]byte, pdb.n), 4)
 	dma.Write(pdb.s, 0, priv.D.Bytes())
 
+	pdb.f, _ = dma.Reserve(pdb.n, 4)
 	pdb.c = dma.Alloc(make([]byte, pdb.n), 4)
 	pdb.d = dma.Alloc(make([]byte, pdb.n), 4)
 
@@ -71,7 +72,7 @@ func (pdb *SignPDB) Init(priv *ecdsa.PrivateKey) (err error) {
 }
 
 func (pdb *SignPDB) Hash(hash []byte) {
-	pdb.f = dma.Alloc(hash, 4)
+	dma.Write(pdb.f, 0, hash[0:pdb.n])
 }
 
 // Bytes converts the PDB to byte array format.
@@ -97,7 +98,7 @@ func (pdb *SignPDB) Bytes() []byte {
 func (pdb *SignPDB) Free() {
 	dma.Free(pdb.d)
 	dma.Free(pdb.c)
-	dma.Free(pdb.f)
+	dma.Release(pdb.f)
 	dma.Free(pdb.s)
 }
 
