@@ -59,6 +59,11 @@ func (hw *CAAM) GetRandomData(b []byte) {
 	hw.Lock()
 	defer hw.Unlock()
 
+	// TRNG access through RTENT registers prevents RNG in CAAM jobs,
+	// enable only as needed.
+	reg.Set(hw.rtmctl, RTMCTL_TRNG_ACC)
+	defer reg.Clear(hw.rtmctl, RTMCTL_TRNG_ACC)
+
 	read := 0
 	need := len(b)
 

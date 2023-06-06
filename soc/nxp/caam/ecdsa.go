@@ -14,6 +14,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/usbarmory/tamago/dma"
@@ -30,7 +31,8 @@ const (
 // p443, Table 8-101, IMX7DSSRM
 const (
 	// Table 8-101
-	ECDSEL_P256 = 0x02
+	ECDSEL_P256   = 0x02
+	ECDSEL_P256K1 = 0x20
 )
 
 // SignPDB represents an ECDSA sign protocol data block (PDB).
@@ -51,12 +53,17 @@ type SignPDB struct {
 
 // Init initializes a PDB for ECDSA signing.
 func (pdb *SignPDB) Init(priv *ecdsa.PrivateKey) (err error) {
-	switch priv.PublicKey.Curve.Params().Name {
+	name := priv.PublicKey.Curve.Params().Name
+
+	switch name {
 	case "P-256":
 		pdb.n = 32
 		pdb.ecdsel = ECDSEL_P256
+	case "P-256k1":
+		pdb.n = 32
+		pdb.ecdsel = ECDSEL_P256K1
 	default:
-		return errors.New("unsupported curve")
+		return fmt.Errorf("unsupported curve %s", name)
 	}
 
 	pdb.n = priv.PublicKey.Curve.Params().BitSize / 8

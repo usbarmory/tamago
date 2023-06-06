@@ -93,11 +93,6 @@ func (hw *CAAM) job(hdr *Header, jd []byte) (err error) {
 	ptr := dma.Alloc(jd, 4)
 	defer dma.Free(ptr)
 
-	// TRNG access through RTENT registers prevents RNG to the CAAM system,
-	// disable while executing jobs.
-	reg.Clear(hw.rtmctl, RTMCTL_TRNG_ACC)
-	defer reg.Set(hw.rtmctl, RTMCTL_TRNG_ACC)
-
 	// add job descriptor to input ring
 	reg.Write(hw.input.addr, uint32(ptr))
 
