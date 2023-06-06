@@ -26,6 +26,10 @@ import (
 
 // CAAM registers
 const (
+	CAAM_SCFGR     = 0xc
+	SCFGR_RNGSH0   = 9
+	SCFGR_RANDDPAR = 8
+
 	CAAM_RTMCTL     = 0x600
 	RTMCTL_PRGM     = 16
 	RTMCTL_ENT_VAL  = 10
@@ -65,7 +69,7 @@ type CAAM struct {
 	DeriveKeyMemory *dma.Region
 
 	// control registers
-	jrstart uint32
+	scfgr   uint32
 	rtmctl  uint32
 	rtent0  uint32
 	rtent15 uint32
@@ -92,6 +96,7 @@ func (hw *CAAM) Init() {
 		panic("invalid CAAM instance")
 	}
 
+	hw.scfgr = hw.Base + CAAM_SCFGR
 	hw.rtmctl = hw.Base + CAAM_RTMCTL
 	hw.rtent0 = hw.Base + CAAM_RTENT0
 	hw.rtent15 = hw.Base + CAAM_RTENT15
@@ -110,6 +115,11 @@ func (hw *CAAM) Init() {
 	// force entropy re-generation
 	reg.Set(hw.rtmctl, RTMCTL_TRNG_ACC)
 	defer reg.Clear(hw.rtmctl, RTMCTL_TRNG_ACC)
+
+	// disable RNG deterministic mode
+	reg.Set(hw.scfgr, SCFGR_RNGSH0)
+	// enable Random Differential Power Analysis Resistance
+	reg.Set(hw.scfgr, SCFGR_RANDDPAR)
 
 	// enable run mode
 	reg.Clear(hw.rtmctl, RTMCTL_PRGM)
