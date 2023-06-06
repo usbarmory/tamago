@@ -110,6 +110,4 @@ func (hw *CAAM) Init() {
 
 	// enable run mode
 	reg.Clear(hw.rtmctl, RTMCTL_PRGM)
-
-	// TODO: tune TRNG frequency
 }
