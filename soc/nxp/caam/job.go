@@ -53,13 +53,13 @@ func (ring *jobRing) init(words int, size int) uint32 {
 }
 
 func (hw *CAAM) initJobRing(off int, size uint32) {
-	hw.jrstart = hw.Base + CAAM_JRSTART
+	jrstart := hw.Base + CAAM_JRSTART
 	hw.jr = hw.Base + uint32(off)
 
 	// start is required before accessing the following registers
 	n := (off >> 12) - 1
-	reg.Clear(hw.jrstart, n)
-	reg.Set(hw.jrstart, n)
+	reg.Clear(jrstart, n)
+	reg.Set(jrstart, n)
 
 	// input ring
 	reg.Write(hw.jr+CAAM_IRBAR_JRx, hw.input.init(inputRingWords, jobRingSize))
