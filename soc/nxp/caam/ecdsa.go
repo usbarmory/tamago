@@ -45,10 +45,13 @@ type SignPDB struct {
 	s uint
 	// message hash
 	f uint
-	// signature buffer (1st part, n length)
+	// signature buffer
 	c uint
 	// signature buffer (2nd part, n length)
 	d uint
+
+	// DMA buffer
+	sig []byte
 }
 
 // Init initializes a PDB for ECDSA signing.
@@ -72,8 +75,9 @@ func (pdb *SignPDB) Init(priv *ecdsa.PrivateKey) (err error) {
 	dma.Write(pdb.s, 0, priv.D.Bytes())
 
 	pdb.f, _ = dma.Reserve(pdb.n, 4)
-	pdb.c = dma.Alloc(make([]byte, pdb.n), 4)
-	pdb.d = dma.Alloc(make([]byte, pdb.n), 4)
+
+	pdb.c, pdb.sig = dma.Reserve(pdb.n*2, 4)
+	pdb.d = pdb.c + uint(pdb.n)
 
 	return
 }
@@ -103,8 +107,7 @@ func (pdb *SignPDB) Bytes() []byte {
 
 // Free frees the memory allocated by the PDB.
 func (pdb *SignPDB) Free() {
-	dma.Free(pdb.d)
-	dma.Free(pdb.c)
+	dma.Release(pdb.c)
 	dma.Release(pdb.f)
 	dma.Free(pdb.s)
 }
@@ -152,17 +155,11 @@ func (hw *CAAM) Sign(priv *ecdsa.PrivateKey, hash []byte, pdb *SignPDB) (r, s *b
 		return
 	}
 
-	c := make([]byte, pdb.n)
-	dma.Read(pdb.c, 0, c)
-
-	d := make([]byte, pdb.n)
-	dma.Read(pdb.d, 0, d)
-
 	r = &big.Int{}
-	r.SetBytes(c)
+	r.SetBytes(pdb.sig[0:pdb.n])
 
 	s = &big.Int{}
-	s.SetBytes(d)
+	s.SetBytes(pdb.sig[pdb.n:])
 
 	return
 }

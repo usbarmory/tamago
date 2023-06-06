@@ -121,6 +121,6 @@ func (hw *CAAM) Init() {
 	// enable Random Differential Power Analysis Resistance
 	reg.Set(hw.scfgr, SCFGR_RANDDPAR)
 
-	// enable run mode
+	// enter run mode
 	reg.Clear(hw.rtmctl, RTMCTL_PRGM)
 }
