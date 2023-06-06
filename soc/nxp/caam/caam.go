@@ -106,7 +106,10 @@ func (hw *CAAM) Init() {
 
 	// enable entropy generation
 	hw.rtenta = hw.rtent0
+
+	// force entropy re-generation
 	reg.Set(hw.rtmctl, RTMCTL_TRNG_ACC)
+	defer reg.Clear(hw.rtmctl, RTMCTL_TRNG_ACC)
 
 	// enable run mode
 	reg.Clear(hw.rtmctl, RTMCTL_PRGM)
