@@ -49,9 +49,7 @@ func (hw *CAAM) initRNG() {
 	jd = append(jd, c1m.Bytes()...)
 	jd = append(jd, op2.Bytes()...)
 
-	if err := hw.job(nil, jd); err == nil {
-		hw.init = true
-	}
+	hw.jr.add(nil, jd)
 }
 
 // GetRandomData returns len(b) random bytes gathered from the CAAM TRNG.
@@ -59,8 +57,8 @@ func (hw *CAAM) GetRandomData(b []byte) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	// TRNG access through RTENT registers prevents RNG in CAAM jobs,
-	// enable only as needed.
+	// TRNG access through RTENT registers prevents RNG access in CAAM
+	// commands, enable only as needed.
 	reg.Set(hw.rtmctl, RTMCTL_TRNG_ACC)
 	defer reg.Clear(hw.rtmctl, RTMCTL_TRNG_ACC)
 

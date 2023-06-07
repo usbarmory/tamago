@@ -77,14 +77,8 @@ type CAAM struct {
 	// current RTENTa register
 	rtenta uint32
 
-	// volatile keys initialization state
-	init bool
-
-	// current job ring interface base address
-	jr uint32
-
-	input  jobRing
-	output jobRing
+	// default job ring
+	jr *jobRing
 }
 
 // Init initializes the CAAM module.

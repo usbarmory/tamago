@@ -10,8 +10,8 @@
 package caam
 
 import (
-	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
@@ -37,51 +37,52 @@ const (
 const (
 	jobRingInterface = CAAM_JR0_BASE
 	jobRingSize      = 1
-
-	inputRingWords  = 1
-	outputRingWords = 3
+	jobWords         = 1
+	jobResultWords   = 2
 )
 
+var once sync.Once
+
 type jobRing struct {
-	addr uint32
+	// base register
+	base uint32
+
+	// control registers
+	irjar uint32
+	orjrr uint32
+	orsfr uint32
+
+	// input/output ring size
+	size int
+	// job queue
+	input uint32
+	// results queue
+	output uint32
 }
 
-func (ring *jobRing) init(words int, size int) uint32 {
-	addr := dma.Alloc(make([]byte, size*words*4), 4)
-	ring.addr = uint32(addr)
-	return ring.addr
+func (ring *jobRing) initQueue(words int, size int) uint32 {
+	buf := make([]byte, size*words*4)
+	return uint32(dma.Alloc(buf, 4))
 }
 
-func (hw *CAAM) initJobRing(off int, size uint32) {
-	jrstart := hw.Base + CAAM_JRSTART
-	hw.jr = hw.Base + uint32(off)
+func (ring *jobRing) init(base uint32, size int) {
+	ring.base = base
+	ring.irjar = ring.base + CAAM_IRJAR_JRx
+	ring.orjrr = ring.base + CAAM_ORJRR_JRx
+	ring.orsfr = ring.base + CAAM_ORSFR_JRx
 
-	// start is required before accessing the following registers
-	n := (off >> 12) - 1
-	reg.Clear(jrstart, n)
-	reg.Set(jrstart, n)
+	ring.size = size
+	ring.input = ring.initQueue(jobWords, ring.size)
+	ring.output = ring.initQueue(jobResultWords, ring.size)
 
-	// input ring
-	reg.Write(hw.jr+CAAM_IRBAR_JRx, hw.input.init(inputRingWords, jobRingSize))
-	reg.Write(hw.jr+CAAM_IRSR_JRx, size)
+	reg.Write(ring.base+CAAM_IRBAR_JRx, ring.input)
+	reg.Write(ring.base+CAAM_IRSR_JRx, uint32(ring.size))
 
-	// output ring
-	reg.Write(hw.jr+CAAM_ORBAR_JRx, hw.output.init(outputRingWords, jobRingSize))
-	reg.Write(hw.jr+CAAM_ORSR_JRx, size)
+	reg.Write(ring.base+CAAM_ORBAR_JRx, ring.output)
+	reg.Write(ring.base+CAAM_ORSFR_JRx, uint32(ring.size))
 }
 
-func (hw *CAAM) job(hdr *Header, jd []byte) (err error) {
-	hw.Lock()
-	defer hw.Unlock()
-
-	if hw.Base == 0 {
-		return errors.New("co-processor is not initialized")
-	}
-
-	if hw.jr == 0 {
-		hw.initJobRing(jobRingInterface, jobRingSize)
-	}
-
+func (ring *jobRing) add(hdr *Header, jd []byte) (err error) {
 	if hdr == nil {
 		hdr = &Header{}
 		hdr.SetDefaults()
@@ -94,22 +95,42 @@ func (hw *CAAM) job(hdr *Header, jd []byte) (err error) {
 	defer dma.Free(ptr)
 
 	// add job descriptor to input ring
-	reg.Write(hw.input.addr, uint32(ptr))
+	reg.Write(ring.input, uint32(ptr))
 
 	// signal job addition
-	reg.Write(hw.jr+CAAM_IRJAR_JRx, 1)
+	reg.Write(ring.irjar, 1)
+	defer reg.Write(ring.orjrr, 1)
 
 	// wait for job completion
-	reg.Wait(hw.jr+CAAM_ORSFR_JRx, 0, 0x3ff, 1)
-	reg.Write(hw.jr+CAAM_ORJRR_JRx, 1)
+	reg.Wait(ring.orsfr, 0, 0x3ff, 1)
 
-	if reg.Read(hw.output.addr) != uint32(ptr) {
-		return fmt.Errorf("CAAM job error, invalid output descriptor (%#x != %#x)", ptr, hw.output.addr)
+	if res := reg.Read(ring.output); res != uint32(ptr) {
+		return fmt.Errorf("CAAM job error, invalid output descriptor (%x)", res)
 	}
 
-	if status := reg.Read(hw.output.addr + 4); status != 0 {
+	if status := reg.Read(ring.output + 4); status != 0 {
 		return fmt.Errorf("CAAM job error, status:%#x", status)
 	}
 
 	return
+}
+
+func (hw *CAAM) initJobRing() {
+	// start is required to enable access to job ring registers
+	startJRx := (jobRingInterface >> 12) - 1
+
+	jrstart := hw.Base + CAAM_JRSTART
+	reg.Clear(jrstart, startJRx)
+	reg.Set(jrstart, startJRx)
+
+	hw.jr = &jobRing{}
+	hw.jr.init(hw.Base+jobRingInterface, jobRingSize)
+
+	// initialize internal RNG access, required for certain CAAM commands
+	hw.initRNG()
+}
+
+func (hw *CAAM) job(hdr *Header, jd []byte) (err error) {
+	once.Do(hw.initJobRing)
+	return hw.jr.add(hdr, jd)
 }

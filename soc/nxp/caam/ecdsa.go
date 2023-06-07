@@ -120,11 +120,6 @@ func (pdb *SignPDB) Free() {
 // A previously initialized sign protocol data block (see SignPDB.Init()) may
 // be passed to cache private key initialization, in this case priv is ignored.
 func (hw *CAAM) Sign(priv *ecdsa.PrivateKey, hash []byte, pdb *SignPDB) (r, s *big.Int, err error) {
-	if !hw.init {
-		// initialize RNG, JDKEK, TDKEK and TDSK
-		hw.initRNG()
-	}
-
 	if pdb == nil {
 		pdb = &SignPDB{}
 		defer pdb.Free()
