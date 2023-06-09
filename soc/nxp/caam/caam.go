@@ -68,6 +68,9 @@ type CAAM struct {
 	// DMA region start does not overlap with it.
 	DeriveKeyMemory *dma.Region
 
+	// Disable Timing Equalization protections (when supported)
+	DisableTimingEqualization bool
+
 	// control registers
 	scfgr   uint32
 	rtmctl  uint32

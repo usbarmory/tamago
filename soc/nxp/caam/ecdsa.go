@@ -134,10 +134,14 @@ func (hw *CAAM) Sign(priv *ecdsa.PrivateKey, hash []byte, pdb *SignPDB) (r, s *b
 	pdb.Hash(hash)
 	jd := pdb.Bytes()
 
+	var info uint32
+	bits.Set(&info, PROTINFO_ECC)
+	bits.SetTo(&info, PROTINFO_SIGN_NO_TEQ, hw.DisableTimingEqualization)
+
 	op := Operation{}
 	op.SetDefaults()
 	op.OpType(OPTYPE_PROT_UNI)
-	op.Protocol(PROTID_ECDSA_SIGN, (1 << PROTINFO_ECC))
+	op.Protocol(PROTID_ECDSA_SIGN, info)
 
 	hdr := &Header{}
 	hdr.SetDefaults()
