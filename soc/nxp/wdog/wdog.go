@@ -36,6 +36,7 @@ const (
 	WDOGx_WICR = 0x06
 	WICR_WIE   = 15
 	WICR_WTIS  = 14
+	WICR_WICT  = 0
 
 	WDOGx_WMCR = 0x08
 	WMCR_PDE   = 0
@@ -92,9 +93,12 @@ func (hw *WDOG) Init() {
 	reg.Clear16(hw.wmcr, WMCR_PDE)
 }
 
-// EnableInterrupt enables interrupt generation on timeout events.
-func (hw *WDOG) EnableInterrupt() {
+// EnableInterrupt enables interrupt generation before the Watchdog timeout
+// event per argument delay. The delay must be specified in milliseconds with
+// 127500 as maximum value, the timeout resolution is 500ms.
+func (hw *WDOG) EnableInterrupt(delay int) {
 	reg.Set16(hw.wicr, WICR_WIE)
+	reg.SetN16(hw.wicr, WICR_WICT, 0xff, uint16(delay/500))
 }
 
 // ClearInterrupt clears the interrupt status register.
