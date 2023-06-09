@@ -44,6 +44,8 @@ const (
 var once sync.Once
 
 type jobRing struct {
+	sync.Mutex
+
 	// base register
 	base uint32
 
@@ -93,6 +95,9 @@ func (ring *jobRing) add(hdr *Header, jd []byte) (err error) {
 
 	ptr := dma.Alloc(jd, 4)
 	defer dma.Free(ptr)
+
+	ring.Lock()
+	defer ring.Unlock()
 
 	// add job descriptor to input ring
 	reg.Write(ring.input, uint32(ptr))
