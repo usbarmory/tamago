@@ -11,20 +11,47 @@ package dma
 
 import (
 	"container/list"
-	"reflect"
 	"sync"
 	"unsafe"
 )
+
+// Block represents a memory I/O allocation block.
+type Block interface {
+	// Address returns the block address.
+	Address() uint
+
+	// Size returns the block length.
+	Size() uint
+
+	// Grow increases the block length by the size argument.
+	Grow(size uint)
+
+	// Shrink reduces the block length by the size argument shifting its
+	// address by the specified offset.
+	Shrink(off uint, size uint)
+
+	// Read reads up to len(buf) into buf from the block address offset.
+	Read(off uint, buf []byte)
+
+	// Write writes len(buf) bytes from buf to the block address offset.
+	Write(off uint, buf []byte)
+
+	// Slice returns a slice whose underlying array starts at the block
+	// pointer and whose length and capacity match the block size.
+	Slice() []byte
+}
 
 // Region represents a memory region allocated for DMA purposes.
 type Region struct {
 	sync.Mutex
 
+	Block func(addr uint, size uint) Block
+
 	start uint
 	size  uint
 
 	freeBlocks *list.List
-	usedBlocks map[uint]*block
+	usedBlocks map[uint]Block
 }
 
 var dma *Region
@@ -34,19 +61,33 @@ func Default() *Region {
 	return dma
 }
 
+// Init initializes a memory region with a single block to fit all available
+// memory.
+func (r *Region) Init(start uint, size uint) {
+	r.start = start
+	r.size = size
+
+	b := r.Block(start, size)
+
+	r.freeBlocks = list.New()
+	r.freeBlocks.PushFront(b)
+
+	r.usedBlocks = make(map[uint]Block)
+}
+
 // Start returns the DMA region start address.
-func (dma *Region) Start() uint {
-	return dma.start
+func (r *Region) Start() uint {
+	return r.start
 }
 
 // End returns the DMA region end address.
-func (dma *Region) End() uint {
-	return dma.start + dma.size
+func (r *Region) End() uint {
+	return r.start + r.size
 }
 
 // Size returns the DMA region size.
-func (dma *Region) Size() uint {
-	return dma.size
+func (r *Region) Size() uint {
+	return r.size
 }
 
 // Reserve allocates a slice of bytes for DMA purposes, by placing its data
@@ -65,35 +106,30 @@ func (dma *Region) Size() uint {
 //
 // The optional alignment must be a power of 2 and word alignment is always
 // enforced (0 == 4).
-func (dma *Region) Reserve(size int, align int) (addr uint, buf []byte) {
+func (r *Region) Reserve(size int, align int) (addr uint, buf []byte) {
 	if size == 0 {
 		return
 	}
 
-	dma.Lock()
-	defer dma.Unlock()
+	r.Lock()
+	defer r.Unlock()
 
-	b := dma.alloc(uint(size), uint(align))
-	b.res = true
+	b := r.alloc(uint(size), uint(align))
+	addr = b.Address()
 
-	dma.usedBlocks[b.addr] = b
+	r.usedBlocks[addr] = b
 
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&buf))
-	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr)))
-	hdr.Len = size
-	hdr.Cap = hdr.Len
-
-	return b.addr, buf
+	return addr, b.Slice()
 }
 
 // Reserved returns whether a slice of bytes data is allocated within the DMA
 // buffer region, it is used to determine whether the passed buffer has been
 // previously allocated by this package with Reserve().
-func (dma *Region) Reserved(buf []byte) (res bool, addr uint) {
-	ptr := uint(uintptr(unsafe.Pointer(&buf[0])))
-	res = ptr >= dma.start && ptr+uint(len(buf)) <= dma.start+dma.size
+func (r *Region) Reserved(buf []byte) (res bool, addr uint) {
+	addr = uint(uintptr(unsafe.Pointer(&buf[0])))
+	res = addr >= r.start && addr+uint(len(buf)) <= r.start+r.size
 
-	return res, ptr
+	return
 }
 
 // Alloc reserves a memory region for DMA purposes, copying over a buffer and
@@ -105,7 +141,7 @@ func (dma *Region) Reserved(buf []byte) (res bool, addr uint) {
 //
 // The optional alignment must be a power of 2 and word alignment is always
 // enforced (0 == 4).
-func (dma *Region) Alloc(buf []byte, align int) (addr uint) {
+func (r *Region) Alloc(buf []byte, align int) (addr uint) {
 	size := len(buf)
 
 	if size == 0 {
@@ -116,15 +152,16 @@ func (dma *Region) Alloc(buf []byte, align int) (addr uint) {
 		return addr
 	}
 
-	dma.Lock()
-	defer dma.Unlock()
+	r.Lock()
+	defer r.Unlock()
 
-	b := dma.alloc(uint(size), uint(align))
-	b.write(0, buf)
+	b := r.alloc(uint(size), uint(align))
+	b.Write(0, buf)
+	addr = b.Address()
 
-	dma.usedBlocks[b.addr] = b
+	r.usedBlocks[addr] = b
 
-	return b.addr
+	return
 }
 
 // Read reads exactly len(buf) bytes from a memory region address into a
@@ -137,7 +174,7 @@ func (dma *Region) Alloc(buf []byte, align int) (addr uint) {
 // If the argument is a buffer previously created with Reserve(), then the
 // function returns without modifying it, as it is assumed for the buffer to be
 // already updated.
-func (dma *Region) Read(addr uint, off int, buf []byte) {
+func (r *Region) Read(addr uint, off int, buf []byte) {
 	size := len(buf)
 
 	if addr == 0 || size == 0 {
@@ -148,20 +185,20 @@ func (dma *Region) Read(addr uint, off int, buf []byte) {
 		return
 	}
 
-	dma.Lock()
-	defer dma.Unlock()
+	r.Lock()
+	defer r.Unlock()
 
-	b, ok := dma.usedBlocks[addr]
+	b, ok := r.usedBlocks[addr]
 
 	if !ok {
 		panic("read of unallocated pointer")
 	}
 
-	if uint(off+size) > b.size {
+	if uint(off+size) > b.Size() {
 		panic("invalid read parameters")
 	}
 
-	b.read(uint(off), buf)
+	b.Read(uint(off), buf)
 }
 
 // Write writes buffer contents to a memory region address, the region must
@@ -170,63 +207,63 @@ func (dma *Region) Read(addr uint, off int, buf []byte) {
 // An offset can be passed to write a slice of the memory region, a panic
 // occurs if the offset is not compatible with the initial allocation for the
 // address.
-func (dma *Region) Write(addr uint, off int, buf []byte) {
+func (r *Region) Write(addr uint, off int, buf []byte) {
 	size := len(buf)
 
 	if addr == 0 || size == 0 {
 		return
 	}
 
-	dma.Lock()
-	defer dma.Unlock()
+	r.Lock()
+	defer r.Unlock()
 
-	b, ok := dma.usedBlocks[addr]
+	b, ok := r.usedBlocks[addr]
 
 	if !ok {
 		return
 	}
 
-	if uint(off+size) > b.size {
+	if uint(off+size) > b.Size() {
 		panic("invalid write parameters")
 	}
 
-	b.write(uint(off), buf)
+	b.Write(uint(off), buf)
 }
 
 // Free frees the memory region stored at the passed address, the region must
 // have been previously allocated with Alloc().
-func (dma *Region) Free(addr uint) {
-	dma.freeBlock(addr, false)
+func (r *Region) Free(addr uint) {
+	r.freeBlock(addr)
 }
 
 // Release frees the memory region stored at the passed address, the region
 // must have been previously allocated with Reserve().
-func (dma *Region) Release(addr uint) {
-	dma.freeBlock(addr, true)
+func (r *Region) Release(addr uint) {
+	r.freeBlock(addr)
 }
 
-func (dma *Region) defrag() {
-	var prevBlock *block
+func (r *Region) defrag() {
+	var prevBlock Block
 
 	// find contiguous free blocks and combine them
-	for e := dma.freeBlocks.Front(); e != nil; e = e.Next() {
-		b := e.Value.(*block)
+	for e := r.freeBlocks.Front(); e != nil; e = e.Next() {
+		b := e.Value.(Block)
 
 		if prevBlock != nil {
-			if prevBlock.addr+prevBlock.size == b.addr {
-				prevBlock.size += b.size
-				defer dma.freeBlocks.Remove(e)
+			if prevBlock.Address()+prevBlock.Size() == b.Address() {
+				prevBlock.Grow(b.Size())
+				defer r.freeBlocks.Remove(e)
 				continue
 			}
 		}
 
-		prevBlock = e.Value.(*block)
+		prevBlock = e.Value.(Block)
 	}
 }
 
-func (dma *Region) alloc(size uint, align uint) *block {
+func (r *Region) alloc(size uint, align uint) Block {
 	var e *list.Element
-	var freeBlock *block
+	var freeBlock Block
 	var pad uint
 
 	if align == 0 {
@@ -235,15 +272,15 @@ func (dma *Region) alloc(size uint, align uint) *block {
 	}
 
 	// find suitable block
-	for e = dma.freeBlocks.Front(); e != nil; e = e.Next() {
-		b := e.Value.(*block)
+	for e = r.freeBlocks.Front(); e != nil; e = e.Next() {
+		b := e.Value.(Block)
 
 		// pad to required alignment
-		pad = -b.addr & (align - 1)
-		size += pad
+		pad = -b.Address() & (align - 1)
 
-		if b.size >= size {
+		if b.Size() >= size+pad {
 			freeBlock = b
+			size += pad
 			break
 		}
 	}
@@ -253,66 +290,55 @@ func (dma *Region) alloc(size uint, align uint) *block {
 	}
 
 	// allocate block from free linked list
-	defer dma.freeBlocks.Remove(e)
+	defer r.freeBlocks.Remove(e)
 
 	// adjust block to desired size, add new block for remainder
-	if r := freeBlock.size - size; r != 0 {
-		newBlockAfter := &block{
-			addr: freeBlock.addr + size,
-			size: r,
-		}
+	if n := freeBlock.Size() - size; n != 0 {
+		newBlockAfter := r.Block(freeBlock.Address()+size, n)
 
-		freeBlock.size = size
-		dma.freeBlocks.InsertAfter(newBlockAfter, e)
+		freeBlock.Shrink(0, n)
+		r.freeBlocks.InsertAfter(newBlockAfter, e)
 	}
 
 	if pad != 0 {
 		// claim padding space
-		newBlockBefore := &block{
-			addr: freeBlock.addr,
-			size: pad,
-		}
+		newBlockBefore := r.Block(freeBlock.Address(), pad)
 
-		freeBlock.addr += pad
-		freeBlock.size -= pad
-		dma.freeBlocks.InsertBefore(newBlockBefore, e)
+		freeBlock.Shrink(pad, pad)
+		r.freeBlocks.InsertBefore(newBlockBefore, e)
 	}
 
 	return freeBlock
 }
 
-func (dma *Region) free(usedBlock *block) {
-	for e := dma.freeBlocks.Front(); e != nil; e = e.Next() {
-		b := e.Value.(*block)
+func (r *Region) free(usedBlock Block) {
+	for e := r.freeBlocks.Front(); e != nil; e = e.Next() {
+		b := e.Value.(Block)
 
-		if b.addr > usedBlock.addr {
-			dma.freeBlocks.InsertBefore(usedBlock, e)
-			dma.defrag()
+		if b.Address() > usedBlock.Address() {
+			r.freeBlocks.InsertBefore(usedBlock, e)
+			r.defrag()
 			return
 		}
 	}
 
-	dma.freeBlocks.PushBack(usedBlock)
+	r.freeBlocks.PushBack(usedBlock)
 }
 
-func (dma *Region) freeBlock(addr uint, res bool) {
+func (r *Region) freeBlock(addr uint) {
 	if addr == 0 {
 		return
 	}
 
-	dma.Lock()
-	defer dma.Unlock()
+	r.Lock()
+	defer r.Unlock()
 
-	b, ok := dma.usedBlocks[addr]
+	b, ok := r.usedBlocks[addr]
 
 	if !ok {
 		return
 	}
 
-	if b.res != res {
-		return
-	}
-
-	dma.free(b)
-	delete(dma.usedBlocks, addr)
+	r.free(b)
+	delete(r.usedBlocks, addr)
 }

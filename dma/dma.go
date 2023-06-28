@@ -17,7 +17,6 @@
 package dma
 
 import (
-	"container/list"
 	"fmt"
 	"runtime"
 )
@@ -29,7 +28,7 @@ import (
 //
 // To allow allocation of DMA buffers within Go runtime memory the unsafe flag
 // must be set.
-func NewRegion(addr uint, size int, unsafe bool) (dma *Region, err error) {
+func NewRegion(addr uint, size int, unsafe bool) (r *Region, err error) {
 	start := uint(addr)
 	end := uint(start) + uint(size)
 
@@ -45,21 +44,10 @@ func NewRegion(addr uint, size int, unsafe bool) (dma *Region, err error) {
 		return nil, fmt.Errorf("DMA within Go runtime memory (%#x-%#x) is not allowed", ramStart, ramEnd)
 	}
 
-	dma = &Region{
-		start: start,
-		size:  uint(size),
+	r = &Region{
+		Block: newMemoryBlock,
 	}
-
-	// initialize a single block to fit all available memory
-	b := &block{
-		addr: dma.start,
-		size: dma.size,
-	}
-
-	dma.freeBlocks = list.New()
-	dma.freeBlocks.PushFront(b)
-
-	dma.usedBlocks = make(map[uint]*block)
+	r.Init(start, uint(size))
 
 	return
 }
