@@ -64,7 +64,7 @@ func (r *Region) Size() uint {
 	return r.size
 }
 
-// FreeBlocks returns the DMA region unallocated blocks.
+// FreeBlocks returns the DMA region free blocks addresses and size.
 func (r *Region) FreeBlocks() map[uint]uint {
 	m := make(map[uint]uint)
 
@@ -76,7 +76,7 @@ func (r *Region) FreeBlocks() map[uint]uint {
 	return m
 }
 
-// UsedBlocks returns the DMA region allocated blocks.
+// UsedBlocks returns the DMA region allocated blocks addresses and size.
 func (r *Region) UsedBlocks() map[uint]uint {
 	m := make(map[uint]uint)
 
