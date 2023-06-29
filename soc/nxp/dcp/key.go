@@ -53,7 +53,7 @@ func (hw *DCP) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, 
 
 		// Use DeriveKeyMemory only if the default DMA region start
 		// does not overlap with it.
-		if !(region.Start() > memory.Start() && region.Start() < memory.End()) {
+		if !(region.Start() >= memory.Start() && region.Start() < memory.End()) {
 			region = memory
 		}
 	}
