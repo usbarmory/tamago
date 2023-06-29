@@ -44,7 +44,7 @@ func NewRegion(addr uint, size int, unsafe bool) (r *Region, err error) {
 		return nil, fmt.Errorf("DMA within Go runtime memory (%#x-%#x) is not allowed", ramStart, ramEnd)
 	}
 
-	r = &Region{Block: newMemoryBlock}
+	r = &Region{}
 	r.Init(start, uint(size))
 
 	return

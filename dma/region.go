@@ -15,43 +15,15 @@ import (
 	"unsafe"
 )
 
-// Block represents a memory I/O allocation block.
-type Block interface {
-	// Address returns the block address.
-	Address() uint
-
-	// Size returns the block length.
-	Size() uint
-
-	// Grow increases the block length by the size argument.
-	Grow(size uint)
-
-	// Shrink reduces the block length by the size argument shifting its
-	// address by the specified offset.
-	Shrink(off uint, size uint)
-
-	// Read reads up to len(buf) into buf from the block address offset.
-	Read(off uint, buf []byte)
-
-	// Write writes len(buf) bytes from buf to the block address offset.
-	Write(off uint, buf []byte)
-
-	// Slice returns a slice whose underlying array starts at the block
-	// pointer and whose length and capacity match the block size.
-	Slice() []byte
-}
-
 // Region represents a memory region allocated for DMA purposes.
 type Region struct {
 	sync.Mutex
-
-	Block func(addr uint, size uint) Block
 
 	start uint
 	size  uint
 
 	freeBlocks *list.List
-	usedBlocks map[uint]Block
+	usedBlocks map[uint]*block
 }
 
 var dma *Region
@@ -66,12 +38,15 @@ func (r *Region) Init(start uint, size uint) {
 	r.start = start
 	r.size = size
 
-	b := r.Block(start, size)
+	b := &block{
+		addr: start,
+		size: size,
+	}
 
 	r.freeBlocks = list.New()
 	r.freeBlocks.PushFront(b)
 
-	r.usedBlocks = make(map[uint]Block)
+	r.usedBlocks = make(map[uint]*block)
 }
 
 // Start returns the DMA region start address.
@@ -90,23 +65,29 @@ func (r *Region) Size() uint {
 }
 
 // FreeBlocks returns the DMA region unallocated blocks.
-func (r *Region) FreeBlocks() map[uint]Block {
-	freeBlocks := make(map[uint]Block)
+func (r *Region) FreeBlocks() map[uint]uint {
+	m := make(map[uint]uint)
 
 	for e := r.freeBlocks.Front(); e != nil; e = e.Next() {
-		b := e.Value.(Block)
-		freeBlocks[b.Address()] = b
+		b := e.Value.(*block)
+		m[b.addr] = b.size
 	}
 
-	return freeBlocks
+	return m
 }
 
 // UsedBlocks returns the DMA region allocated blocks.
-func (r *Region) UsedBlocks() map[uint]Block {
-	return r.usedBlocks
+func (r *Region) UsedBlocks() map[uint]uint {
+	m := make(map[uint]uint)
+
+	for addr, b := range r.usedBlocks {
+		m[addr] = b.size
+	}
+
+	return m
 }
 
-// Reserve allocates a slice of bytes for DMA purposes, by placing its data
+// Reserve allocates a Slice of bytes for DMA purposes, by placing its data
 // within the DMA region, with optional alignment. It returns the slice along
 // with its data allocation address. The buffer can be freed up with Release().
 //
@@ -131,15 +112,11 @@ func (r *Region) Reserve(size int, align int) (addr uint, buf []byte) {
 	defer r.Unlock()
 
 	b := r.alloc(uint(size), uint(align))
+	b.res = true
 
-	if mb, ok := b.(*memoryBlock); ok {
-		mb.res = true
-	}
+	r.usedBlocks[b.addr] = b
 
-	addr = b.Address()
-	r.usedBlocks[addr] = b
-
-	return addr, b.Slice()
+	return b.addr, b.slice()
 }
 
 // Reserved returns whether a slice of bytes data is allocated within the DMA
@@ -176,12 +153,11 @@ func (r *Region) Alloc(buf []byte, align int) (addr uint) {
 	defer r.Unlock()
 
 	b := r.alloc(uint(size), uint(align))
-	b.Write(0, buf)
-	addr = b.Address()
+	b.write(0, buf)
 
-	r.usedBlocks[addr] = b
+	r.usedBlocks[b.addr] = b
 
-	return
+	return b.addr
 }
 
 // Read reads exactly len(buf) bytes from a memory region address into a
@@ -214,11 +190,11 @@ func (r *Region) Read(addr uint, off int, buf []byte) {
 		panic("read of unallocated pointer")
 	}
 
-	if uint(off+size) > b.Size() {
+	if uint(off+size) > b.size {
 		panic("invalid read parameters")
 	}
 
-	b.Read(uint(off), buf)
+	b.read(uint(off), buf)
 }
 
 // Write writes buffer contents to a memory region address, the region must
@@ -243,11 +219,11 @@ func (r *Region) Write(addr uint, off int, buf []byte) {
 		return
 	}
 
-	if uint(off+size) > b.Size() {
+	if uint(off+size) > b.size {
 		panic("invalid write parameters")
 	}
 
-	b.Write(uint(off), buf)
+	b.write(uint(off), buf)
 }
 
 // Free frees the memory region stored at the passed address, the region must
@@ -263,27 +239,27 @@ func (r *Region) Release(addr uint) {
 }
 
 func (r *Region) defrag() {
-	var prevBlock Block
+	var prevBlock *block
 
 	// find contiguous free blocks and combine them
 	for e := r.freeBlocks.Front(); e != nil; e = e.Next() {
-		b := e.Value.(Block)
+		b := e.Value.(*block)
 
 		if prevBlock != nil {
-			if prevBlock.Address()+prevBlock.Size() == b.Address() {
-				prevBlock.Grow(b.Size())
+			if prevBlock.addr+prevBlock.size == b.addr {
+				prevBlock.size += b.size
 				defer r.freeBlocks.Remove(e)
 				continue
 			}
 		}
 
-		prevBlock = e.Value.(Block)
+		prevBlock = e.Value.(*block)
 	}
 }
 
-func (r *Region) alloc(size uint, align uint) Block {
+func (r *Region) alloc(size uint, align uint) *block {
 	var e *list.Element
-	var freeBlock Block
+	var freeBlock *block
 	var pad uint
 
 	if align == 0 {
@@ -293,12 +269,12 @@ func (r *Region) alloc(size uint, align uint) Block {
 
 	// find suitable block
 	for e = r.freeBlocks.Front(); e != nil; e = e.Next() {
-		b := e.Value.(Block)
+		b := e.Value.(*block)
 
 		// pad to required alignment
-		pad = -b.Address() & (align - 1)
+		pad = -b.addr & (align - 1)
 
-		if b.Size() >= size+pad {
+		if b.size >= size+pad {
 			freeBlock = b
 			size += pad
 			break
@@ -313,29 +289,36 @@ func (r *Region) alloc(size uint, align uint) Block {
 	defer r.freeBlocks.Remove(e)
 
 	// adjust block to desired size, add new block for remainder
-	if n := freeBlock.Size() - size; n != 0 {
-		newBlockAfter := r.Block(freeBlock.Address()+size, n)
+	if n := freeBlock.size - size; n != 0 {
+		newBlockAfter := &block{
+			addr: freeBlock.addr + size,
+			size: n,
+		}
 
-		freeBlock.Shrink(0, n)
+		freeBlock.size = size
 		r.freeBlocks.InsertAfter(newBlockAfter, e)
 	}
 
 	if pad != 0 {
 		// claim padding space
-		newBlockBefore := r.Block(freeBlock.Address(), pad)
+		newBlockBefore := &block{
+			addr: freeBlock.addr,
+			size: pad,
+		}
 
-		freeBlock.Shrink(pad, pad)
+		freeBlock.addr += pad
+		freeBlock.size -= pad
 		r.freeBlocks.InsertBefore(newBlockBefore, e)
 	}
 
 	return freeBlock
 }
 
-func (r *Region) free(usedBlock Block) {
+func (r *Region) free(usedBlock *block) {
 	for e := r.freeBlocks.Front(); e != nil; e = e.Next() {
-		b := e.Value.(Block)
+		b := e.Value.(*block)
 
-		if b.Address() > usedBlock.Address() {
+		if b.addr > usedBlock.addr {
 			r.freeBlocks.InsertBefore(usedBlock, e)
 			r.defrag()
 			return
@@ -359,10 +342,8 @@ func (r *Region) freeBlock(addr uint, res bool) {
 		return
 	}
 
-	if mb, ok := b.(*memoryBlock); ok {
-		if mb.res != res {
-			return
-		}
+	if b.res != res {
+		return
 	}
 
 	r.free(b)
