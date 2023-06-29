@@ -61,8 +61,7 @@ func Default() *Region {
 	return dma
 }
 
-// Init initializes a memory region with a single block to fit all available
-// memory.
+// Init initializes a memory region with a single block that fits it.
 func (r *Region) Init(start uint, size uint) {
 	r.start = start
 	r.size = size
@@ -90,6 +89,23 @@ func (r *Region) Size() uint {
 	return r.size
 }
 
+// FreeBlocks returns the DMA region unallocated blocks.
+func (r *Region) FreeBlocks() map[uint]Block {
+	freeBlocks := make(map[uint]Block)
+
+	for e := r.freeBlocks.Front(); e != nil; e = e.Next() {
+		b := e.Value.(Block)
+		freeBlocks[b.Address()] = b
+	}
+
+	return freeBlocks
+}
+
+// UsedBlocks returns the DMA region allocated blocks.
+func (r *Region) UsedBlocks() map[uint]Block {
+	return r.usedBlocks
+}
+
 // Reserve allocates a slice of bytes for DMA purposes, by placing its data
 // within the DMA region, with optional alignment. It returns the slice along
 // with its data allocation address. The buffer can be freed up with Release().
@@ -115,8 +131,12 @@ func (r *Region) Reserve(size int, align int) (addr uint, buf []byte) {
 	defer r.Unlock()
 
 	b := r.alloc(uint(size), uint(align))
-	addr = b.Address()
 
+	if mb, ok := b.(*memoryBlock); ok {
+		mb.res = true
+	}
+
+	addr = b.Address()
 	r.usedBlocks[addr] = b
 
 	return addr, b.Slice()
@@ -233,13 +253,13 @@ func (r *Region) Write(addr uint, off int, buf []byte) {
 // Free frees the memory region stored at the passed address, the region must
 // have been previously allocated with Alloc().
 func (r *Region) Free(addr uint) {
-	r.freeBlock(addr)
+	r.freeBlock(addr, false)
 }
 
 // Release frees the memory region stored at the passed address, the region
 // must have been previously allocated with Reserve().
 func (r *Region) Release(addr uint) {
-	r.freeBlock(addr)
+	r.freeBlock(addr, true)
 }
 
 func (r *Region) defrag() {
@@ -325,7 +345,7 @@ func (r *Region) free(usedBlock Block) {
 	r.freeBlocks.PushBack(usedBlock)
 }
 
-func (r *Region) freeBlock(addr uint) {
+func (r *Region) freeBlock(addr uint, res bool) {
 	if addr == 0 {
 		return
 	}
@@ -337,6 +357,12 @@ func (r *Region) freeBlock(addr uint) {
 
 	if !ok {
 		return
+	}
+
+	if mb, ok := b.(*memoryBlock); ok {
+		if mb.res != res {
+			return
+		}
 	}
 
 	r.free(b)

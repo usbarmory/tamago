@@ -19,6 +19,9 @@ type memoryBlock struct {
 	addr uint
 	// buffer size
 	size uint
+	// distinguish regular (`Alloc`/`Free`) and reserved
+	// (`Reserve`/`Release`) blocks.
+	res bool
 }
 
 func newMemoryBlock(addr uint, size uint) Block {
