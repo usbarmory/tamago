@@ -29,6 +29,7 @@ const (
 	WCR_SRE   = 6
 	WCR_WDA   = 5
 	WCR_SRS   = 4
+	WCR_WDT   = 3
 	WCR_WDE   = 2
 
 	WDOGx_WSR = 0x02
@@ -115,6 +116,7 @@ func (hw *WDOG) EnableTimeout(timeout int) {
 	defer hw.Unlock()
 
 	reg.SetN16(hw.wcr, WCR_WT, 0xff, uint16(timeout/500-1))
+	reg.Set16(hw.wcr, WCR_WDT)
 	reg.Set16(hw.wcr, WCR_WDE)
 }
 
