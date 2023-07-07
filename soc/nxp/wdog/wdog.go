@@ -32,7 +32,12 @@ const (
 	WCR_WDT   = 3
 	WCR_WDE   = 2
 
-	WDOGx_WSR = 0x02
+	WDOGx_WSR  = 0x02
+
+	WDOGx_WRSR = 0x04
+	WRSR_POR   = 4
+	WRSR_TOUT  = 1
+	WRSR_SFTW  = 0
 
 	WDOGx_WICR = 0x06
 	WICR_WIE   = 15
@@ -67,6 +72,7 @@ type WDOG struct {
 	// control registers
 	wcr  uint32
 	wsr  uint32
+	wrsr uint32
 	wicr uint32
 	wmcr uint32
 }
@@ -82,8 +88,9 @@ func (hw *WDOG) Init() {
 		panic("invalid WDOG module instance")
 	}
 
-	hw.wcr = hw.Base + WDOGx_WCR
-	hw.wsr = hw.Base + WDOGx_WSR
+	hw.wcr  = hw.Base + WDOGx_WCR
+	hw.wsr  = hw.Base + WDOGx_WSR
+	hw.wrsr = hw.Base + WDOGx_WRSR
 	hw.wicr = hw.Base + WDOGx_WICR
 	hw.wmcr = hw.Base + WDOGx_WMCR
 
@@ -152,4 +159,10 @@ func (hw *WDOG) Reset() {
 func (hw *WDOG) SoftwareReset() {
 	reg.Set16(hw.wcr, WCR_SRE)
 	reg.Clear16(hw.wcr, WCR_SRS)
+}
+
+// ResetSource reads the watchdog reset status register which records the
+// source of the output reset assertion.
+func (hw *WDOG) ResetSource() uint16 {
+	return reg.Read16(hw.wrsr)
 }
