@@ -17,14 +17,21 @@
 // https://github.com/usbarmory/tamago.
 package riscv
 
+import "runtime"
+
 // This package supports 64-bit cores.
 const XLEN = 64
 
 // CPU instance
 type CPU struct{}
 
+// defined in riscv.s
+func halt()
+
 // Init performs initialization of an RV64 core instance in machine mode.
 func (cpu *CPU) Init() {
+	runtime.Exit = halt
+
 	cpu.SetExceptionHandler(DefaultExceptionHandler)
 }
 
