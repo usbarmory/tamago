@@ -17,6 +17,8 @@
 // https://github.com/usbarmory/tamago.
 package arm
 
+import "runtime"
+
 // ARM processor modes
 // (Table B1-1, ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition).
 const (
@@ -61,9 +63,12 @@ type CPU struct {
 
 // defined in arm.s
 func read_cpsr() uint32
+func halt()
 
 // Init performs initialization of an ARM core instance.
 func (cpu *CPU) Init() {
+	runtime.Exit = halt
+
 	cpu.initFeatures()
 	cpu.initVectorTable()
 }
