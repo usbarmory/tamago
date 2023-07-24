@@ -70,6 +70,10 @@ func (hw *CAAM) DeriveKey(diversifier []byte, key []byte) (err error) {
 		return errors.New("invalid diversifier size")
 	}
 
+	if len(key) != sha256.Size {
+		return errors.New("invalid key size")
+	}
+
 	region := dma.Default()
 	memory := hw.DeriveKeyMemory
 
