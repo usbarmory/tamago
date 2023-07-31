@@ -58,17 +58,21 @@ func model() uint32 {
 
 // Model returns the USB armory model name, to further detect SoC variants
 // imx6ul.Model() can be used.
-func Model() string {
-	switch model() {
+func Model() (m uint32, s string) {
+	m = model()
+
+	switch m {
 	case BETA:
-		return "UA-MKII-β"
+		s = "UA-MKII-β"
 	case GAMMA:
-		return "UA-MKII-γ"
+		s = "UA-MKII-γ"
 	case LAN:
-		return "UA-MKII-LAN"
+		s = "UA-MKII-LAN"
 	default:
-		return "unknown"
+		s = "unknown"
 	}
+
+	return
 }
 
 // Init takes care of the lower level SoC initialization triggered early in
