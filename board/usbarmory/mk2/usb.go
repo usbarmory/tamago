@@ -52,6 +52,11 @@ const (
 // port controller.
 func FrontPortMode() (mode int, err error) {
 	t, err := I2C1.Read(TUSB320_ADDR, TUSB320_CSR_2, 1, 1)
+
+	if err != nil {
+		return
+	}
+
 	return int(t[0] >> CSR_ATTACHED_STATE), err
 }
 
@@ -72,6 +77,11 @@ func EnableReceptacleController() (err error) {
 // receptacle USB port controller.
 func ReceptacleMode() (mode int, err error) {
 	t, err := I2C1.Read(FUSB303_ADDR, FUSB303_TYPE, 1, 1)
+
+	if err != nil {
+		return
+	}
+
 	return int(t[0]), err
 }
 
