@@ -53,7 +53,7 @@ type bufferDescriptor struct {
 	buf []byte
 }
 
-func (bd *bufferDescriptor) Bytes() []byte {
+func (bd *bufferDescriptor) bytes() []byte {
 	buf := new(bytes.Buffer)
 
 	binary.Write(buf, binary.LittleEndian, bd.Length)
@@ -63,7 +63,7 @@ func (bd *bufferDescriptor) Bytes() []byte {
 	return buf.Bytes()
 }
 
-func (bd *bufferDescriptor) Data() (buf []byte) {
+func (bd *bufferDescriptor) data() (buf []byte) {
 	buf = make([]byte, bd.Length-4)
 	copy(buf, bd.buf)
 	return
@@ -99,7 +99,7 @@ func (ring *bufferDescriptorRing) init(rx bool, size int) (ptr uint32) {
 	ring.addr, ring.buf = dma.Reserve(len(ring.bds)*8, bufferAlign)
 
 	for i, bd := range ring.bds {
-		copy(ring.buf[i*8:], bd.Bytes())
+		copy(ring.buf[i*8:], bd.bytes())
 	}
 
 	return uint32(ring.addr)
@@ -117,7 +117,7 @@ func (ring *bufferDescriptorRing) next() (wrap bool) {
 	return
 }
 
-func (ring *bufferDescriptorRing) pop() (bd bufferDescriptor) {
+func (ring *bufferDescriptorRing) pop() (bd bufferDescriptor, data []byte) {
 	off := ring.index * 8
 	bd = ring.bds[ring.index]
 
@@ -130,6 +130,8 @@ func (ring *bufferDescriptorRing) pop() (bd bufferDescriptor) {
 	if bd.Status&(1<<BD_RX_ST_E) != 0 {
 		return
 	}
+
+	data = bd.data()
 
 	// set empty
 	ring.buf[off+3] |= (1 << BD_RX_ST_E) >> 8
@@ -164,7 +166,7 @@ func (hw *ENET) Rx() (buf []byte) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	bd := hw.rx.pop()
+	bd, data := hw.rx.pop()
 
 	if bd.Status&(1<<BD_RX_ST_E) != 0 {
 		return
@@ -183,7 +185,7 @@ func (hw *ENET) Rx() (buf []byte) {
 	}
 
 	if bd.Status&(1<<BD_RX_ST_CR) == 0 {
-		buf = bd.Data()
+		buf = data
 	}
 
 	return
