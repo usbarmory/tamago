@@ -129,6 +129,8 @@ type ENET struct {
 	MAC net.HardwareAddr
 	// Incoming packet handler
 	RxHandler func([]byte)
+	// Descriptor ring size
+	RingSize int
 
 	// control registers
 	eir  uint32
@@ -170,6 +172,10 @@ func (hw *ENET) Init() {
 		hw.MAC[0] |= 0x02
 	} else if len(hw.MAC) != 6 {
 		panic("invalid ENET hardware address")
+	}
+
+	if hw.RingSize == 0 {
+		hw.RingSize = defaultRingSize
 	}
 
 	hw.eir = hw.Base + ENETx_EIR
@@ -260,8 +266,8 @@ func (hw *ENET) SetMAC(mac net.HardwareAddr) {
 // (when set), it should never return.
 func (hw *ENET) Start(rx bool) {
 	// set receive and transmit descriptors
-	reg.Write(hw.rdsr, hw.rx.init(true))
-	reg.Write(hw.tdsr, hw.tx.init(false))
+	reg.Write(hw.rdsr, hw.rx.init(true, hw.RingSize))
+	reg.Write(hw.tdsr, hw.tx.init(false, hw.RingSize))
 
 	reg.Set(hw.rdar, RDAR_ACTIVE)
 

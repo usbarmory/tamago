@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	MTU         = 1518
-	bufferCount = 16
-	bufferAlign = 64
+	MTU             = 1518
+	defaultRingSize = 16
+	bufferAlign     = 64
 )
 
 // Common buffer descriptor fields
@@ -70,15 +70,19 @@ func (bd *bufferDescriptor) Data() (buf []byte) {
 }
 
 type bufferDescriptorRing struct {
-	bds   [bufferCount]bufferDescriptor
+	bds   []bufferDescriptor
 	index int
+	size  int
 
 	// DMA buffer
 	buf  []byte
 	addr uint
 }
 
-func (ring *bufferDescriptorRing) init(rx bool) (ptr uint32) {
+func (ring *bufferDescriptorRing) init(rx bool, size int) (ptr uint32) {
+	ring.size = size
+	ring.bds = make([]bufferDescriptor, size)
+
 	for i := 0; i < len(ring.bds); i++ {
 		ptr, buf := dma.Reserve(MTU, bufferAlign)
 
@@ -102,7 +106,7 @@ func (ring *bufferDescriptorRing) init(rx bool) (ptr uint32) {
 }
 
 func (ring *bufferDescriptorRing) next() (wrap bool) {
-	wrap = ring.index == (bufferCount - 1)
+	wrap = ring.index == (ring.size - 1)
 
 	if wrap {
 		ring.index = 0
@@ -144,14 +148,14 @@ func (ring *bufferDescriptorRing) push(bd bufferDescriptor) {
 	ring.buf[off+2] = byte((bd.Status & 0xff))
 	ring.buf[off+3] = byte((bd.Status & 0xff00) >> 8)
 
-	// set ready
-	ring.buf[off+3] |= (1 << BD_TX_ST_R) >> 8
-
 	copy(ring.bds[ring.index].buf, bd.buf)
 
 	if ring.next() {
 		ring.buf[off+3] |= (1 << BD_ST_W) >> 8
 	}
+
+	// set ready
+	ring.buf[off+3] |= (1 << BD_TX_ST_R) >> 8
 }
 
 // Rx receives a single Ethernet frame, excluding the checksum, from the MAC
@@ -169,11 +173,13 @@ func (hw *ENET) Rx() (buf []byte) {
 	reg.Set(hw.rdar, RDAR_ACTIVE)
 
 	if bd.Length > MTU {
-		panic("frame > MTU")
+		print("enet: frame > MTU\n")
+		return
 	}
 
 	if bd.Status&(1<<BD_ST_L) == 0 {
-		panic("frame not last")
+		print("enet: frame not last\n")
+		return
 	}
 
 	if bd.Status&(1<<BD_RX_ST_CR) == 0 {
