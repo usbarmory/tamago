@@ -83,15 +83,18 @@ func (ring *bufferDescriptorRing) init(rx bool, size int) (ptr uint32) {
 	ring.size = size
 	ring.bds = make([]bufferDescriptor, size)
 
+	n := MTU + (bufferAlign - (MTU % bufferAlign))
+	addr, buf := dma.Reserve(size*n, bufferAlign)
+
 	for i := 0; i < len(ring.bds); i++ {
-		ptr, buf := dma.Reserve(MTU, bufferAlign)
+		off := n * i
 
 		if rx {
 			ring.bds[i].Status |= 1 << BD_RX_ST_E
 		}
 
-		ring.bds[i].Addr = uint32(ptr)
-		ring.bds[i].buf = buf
+		ring.bds[i].Addr = uint32(addr) + uint32(off)
+		ring.bds[i].buf = buf[off:off+n]
 	}
 
 	ring.bds[len(ring.bds)-1].Status |= 1 << BD_ST_W
