@@ -104,7 +104,7 @@ func (hw *USB) startEndpoints() {
 		return
 	}
 
-	hw.exit = make(chan bool)
+	hw.exit = make(chan struct{})
 
 	for _, conf := range hw.Device.Configurations {
 		if hw.Device.ConfigurationValue != conf.ConfigurationValue {

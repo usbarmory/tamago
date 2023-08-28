@@ -162,8 +162,8 @@ func (hw *GIC) DisableInterrupt(id int) {
 }
 
 // GetInterrupt obtains and acknowledges a signaled interrupt, the end of its
-// handling must be signaled through the returned channel.
-func (hw *GIC) GetInterrupt(secure bool) (id int, end chan bool) {
+// handling must be signaled by closing the returned channel.
+func (hw *GIC) GetInterrupt(secure bool) (id int, end chan struct{}) {
 	if hw.gicc == 0 {
 		return
 	}
@@ -177,7 +177,7 @@ func (hw *GIC) GetInterrupt(secure bool) (id int, end chan bool) {
 	}
 
 	if m < 1020 {
-		end = make(chan bool)
+		end = make(chan struct{})
 
 		go func() {
 			<-end

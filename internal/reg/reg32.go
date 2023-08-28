@@ -135,7 +135,7 @@ func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) 
 // match a value. The return boolean indicates whether the wait condition was
 // checked (true) or cancelled (false). This function cannot be used before
 // runtime initialization.
-func WaitSignal(exit chan bool, addr uint32, pos int, mask int, val uint32) bool {
+func WaitSignal(exit chan struct{}, addr uint32, pos int, mask int, val uint32) bool {
 	for Get(addr, pos, mask) != val {
 		// tamago is single-threaded, give other goroutines a chance
 		runtime.Gosched()
