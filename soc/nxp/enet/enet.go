@@ -225,7 +225,7 @@ func (hw *ENET) setup() {
 	// set receive buffer size and maximum frame length
 	size := MTU + (bufferAlign - (MTU % bufferAlign))
 	reg.Write(hw.mrbr, uint32(size))
-	reg.SetN(hw.rcr, RCR_MAX_FL, 0x3fff, uint32(size))
+	reg.SetN(hw.rcr, RCR_MAX_FL, 0x3fff, MTU)
 
 	// set physical address
 	hw.SetMAC(hw.MAC)

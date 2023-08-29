@@ -38,7 +38,6 @@ const (
 // p1017, Table 22-37. Enhanced transmit buffer descriptor field definitions, IMX6ULLRM
 const (
 	BD_TX_ST_R  = 15 // Ready
-	BD_TX_ST_W  = 13 // Wrap
 	BD_TX_ST_TC = 10 // Transmit CRC
 )
 
@@ -49,11 +48,12 @@ type bufferDescriptor struct {
 	Status uint16
 	Addr   uint32
 
-	// DMA buffer
-	buf []byte
+	// DMA buffers
+	desc []byte
+	data []byte
 }
 
-func (bd *bufferDescriptor) bytes() []byte {
+func (bd *bufferDescriptor) Bytes() []byte {
 	buf := new(bytes.Buffer)
 
 	binary.Write(buf, binary.LittleEndian, bd.Length)
@@ -63,49 +63,56 @@ func (bd *bufferDescriptor) bytes() []byte {
 	return buf.Bytes()
 }
 
-func (bd *bufferDescriptor) data() (buf []byte) {
+func (bd *bufferDescriptor) Data() (buf []byte) {
 	buf = make([]byte, bd.Length-4)
-	copy(buf, bd.buf)
+	copy(buf, bd.data)
 	return
 }
 
 type bufferDescriptorRing struct {
-	bds   []bufferDescriptor
+	bds   []*bufferDescriptor
 	index int
 	size  int
-
-	// DMA buffer
-	buf  []byte
-	addr uint
 }
 
-func (ring *bufferDescriptorRing) init(rx bool, size int) (ptr uint32) {
-	ring.size = size
-	ring.bds = make([]bufferDescriptor, size)
+func (ring *bufferDescriptorRing) init(rx bool, n int) uint32 {
+	ring.size = n
+	ring.bds = make([]*bufferDescriptor, n)
 
-	n := MTU + (bufferAlign - (MTU % bufferAlign))
-	addr, buf := dma.Reserve(size*n, bufferAlign)
+	// To avoid excessive DMA region fragmentation, a single allocation
+	// reserves all descriptors and data pointers which are slices for each
+	// entry.
 
-	for i := 0; i < len(ring.bds); i++ {
-		off := n * i
+	descSize := len((&bufferDescriptor{}).Bytes())
+	ptr, desc := dma.Reserve(n*descSize, bufferAlign)
 
-		if rx {
-			ring.bds[i].Status |= 1 << BD_RX_ST_E
+	dataSize := MTU + (bufferAlign - (MTU % bufferAlign))
+	addr, data := dma.Reserve(n*dataSize, bufferAlign)
+
+	for i := 0; i < n; i++ {
+		off := dataSize * i
+
+		bd := &bufferDescriptor{
+			Addr: uint32(addr) + uint32(off),
+			data: data[off : off+dataSize],
 		}
 
-		ring.bds[i].Addr = uint32(addr) + uint32(off)
-		ring.bds[i].buf = buf[off:off+n]
+		if rx {
+			bd.Status |= 1 << BD_RX_ST_E
+		}
+
+		if i == n-1 {
+			bd.Status |= 1 << BD_ST_W
+		}
+
+		off = descSize * i
+		bd.desc = desc[off : off+descSize]
+		copy(bd.desc, bd.Bytes())
+
+		ring.bds[i] = bd
 	}
 
-	ring.bds[len(ring.bds)-1].Status |= 1 << BD_ST_W
-
-	ring.addr, ring.buf = dma.Reserve(len(ring.bds)*8, bufferAlign)
-
-	for i, bd := range ring.bds {
-		copy(ring.buf[i*8:], bd.bytes())
-	}
-
-	return uint32(ring.addr)
+	return uint32(ptr)
 }
 
 func (ring *bufferDescriptorRing) next() (wrap bool) {
@@ -120,47 +127,63 @@ func (ring *bufferDescriptorRing) next() (wrap bool) {
 	return
 }
 
-func (ring *bufferDescriptorRing) pop() (bd bufferDescriptor, data []byte) {
-	off := ring.index * 8
-	bd = ring.bds[ring.index]
+func (ring *bufferDescriptorRing) pop() (data []byte) {
+	bd := ring.bds[ring.index]
 
-	bd.Length = uint16(ring.buf[off+0])
-	bd.Length |= uint16(ring.buf[off+1]) << 8
+	bd.Length = uint16(bd.desc[0])
+	bd.Length |= uint16(bd.desc[1]) << 8
 
-	bd.Status = uint16(ring.buf[off+2])
-	bd.Status |= uint16(ring.buf[off+3]) << 8
+	bd.Status = uint16(bd.desc[2])
+	bd.Status |= uint16(bd.desc[3]) << 8
 
 	if bd.Status&(1<<BD_RX_ST_E) != 0 {
 		return
 	}
 
-	data = bd.data()
-
 	// set empty
-	ring.buf[off+3] |= (1 << BD_RX_ST_E) >> 8
+	bd.desc[3] |= (1 << BD_RX_ST_E) >> 8
 
 	ring.next()
+
+	if bd.Length > MTU {
+		print("enet: frame > MTU\n")
+	}
+
+	if bd.Status&(1<<BD_ST_L) == 0 {
+		print("enet: frame not last\n")
+	}
+
+	if bd.Status&(1<<BD_RX_ST_CR) == 0 {
+		return bd.Data()
+	}
 
 	return
 }
 
-func (ring *bufferDescriptorRing) push(bd bufferDescriptor) {
-	off := ring.index * 8
+func (ring *bufferDescriptorRing) push(data []byte) {
+	bd := ring.bds[ring.index]
 
-	ring.buf[off+0] = byte((len(bd.buf) & 0xff))
-	ring.buf[off+1] = byte((len(bd.buf) & 0xff00) >> 8)
+	if uint16(bd.desc[3]<<8)&(1<<BD_TX_ST_R) != 0 {
+		print("enet: frame not sent\n")
+	}
 
-	ring.buf[off+2] = byte((bd.Status & 0xff))
-	ring.buf[off+3] = byte((bd.Status & 0xff00) >> 8)
+	bd.Length = uint16(len(data))
+	bd.Status = (1 << BD_ST_L) | (1 << BD_TX_ST_TC)
 
-	copy(ring.bds[ring.index].buf, bd.buf)
+	bd.desc[0] = byte(bd.Length & 0xff)
+	bd.desc[1] = byte((bd.Length & 0xff00) >> 8)
+
+	bd.desc[2] = byte((bd.Status & 0xff))
+	bd.desc[3] = byte((bd.Status & 0xff00) >> 8)
+
+	copy(bd.data, data)
 
 	if ring.next() {
-		ring.buf[off+3] |= (1 << BD_ST_W) >> 8
+		bd.desc[3] |= (1 << BD_ST_W) >> 8
 	}
 
 	// set ready
-	ring.buf[off+3] |= (1 << BD_TX_ST_R) >> 8
+	bd.desc[3] |= (1 << BD_TX_ST_R) >> 8
 }
 
 // Rx receives a single Ethernet frame, excluding the checksum, from the MAC
@@ -169,27 +192,8 @@ func (hw *ENET) Rx() (buf []byte) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	bd, data := hw.rx.pop()
-
-	if bd.Status&(1<<BD_RX_ST_E) != 0 {
-		return
-	}
-
+	buf = hw.rx.pop()
 	reg.Set(hw.rdar, RDAR_ACTIVE)
-
-	if bd.Length > MTU {
-		print("enet: frame > MTU\n")
-		return
-	}
-
-	if bd.Status&(1<<BD_ST_L) == 0 {
-		print("enet: frame not last\n")
-		return
-	}
-
-	if bd.Status&(1<<BD_RX_ST_CR) == 0 {
-		buf = data
-	}
 
 	return
 }
@@ -204,13 +208,6 @@ func (hw *ENET) Tx(buf []byte) {
 		return
 	}
 
-	bd := bufferDescriptor{
-		Length: uint16(len(buf)),
-		Status: (1 << BD_ST_L) | (1 << BD_TX_ST_TC),
-		buf:    buf,
-	}
-
-	hw.tx.push(bd)
-
+	hw.tx.push(buf)
 	reg.Set(hw.tdar, TDAR_ACTIVE)
 }
