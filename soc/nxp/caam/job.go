@@ -19,6 +19,12 @@ import (
 
 // CAAM Job Ring registers
 const (
+	CAAM_JR0_MIDR_MS = 0x10
+	CAAM_JR1_MIDR_MS = 0x18
+	CAAM_JR2_MIDR_MS = 0x20
+
+	JRxMIDR_MS_JROWN_NS = 3
+
 	CAAM_JRSTART = 0x5c
 
 	CAAM_JR0_BASE = 0x1000
@@ -138,4 +144,11 @@ func (hw *CAAM) initJobRing() {
 func (hw *CAAM) job(hdr *Header, jd []byte) (err error) {
 	once.Do(hw.initJobRing)
 	return hw.jr.add(hdr, jd)
+}
+
+// SetOwner defines the bus master that is permitted to access CAAM job ring
+// registers. The argument defines either secure (e.g. TrustZone Secure World)
+// or non-secure (e.g. TrustZone Normal World) ownership.
+func (hw *CAAM) SetOwner(secure bool) {
+	reg.SetTo(hw.Base+CAAM_JR0_MIDR_MS, JRxMIDR_MS_JROWN_NS, !secure)
 }
