@@ -38,17 +38,12 @@ type Rng struct {
 	ctrl   uint32
 }
 
-// RNG (Random Number Generator) instance
-var RNG = &Rng{}
-
 //go:linkname initRNG runtime.initRNG
 func initRNG() {
-	RNG.Init()
-}
+	r := &Rng{}
+	r.Init()
 
-//go:linkname getRandomData runtime.getRandomData
-func getRandomData(b []byte) {
-	RNG.getRandomData(b)
+	rng.GetRandomDataFn = r.getRandomData
 }
 
 // Init initializes the RNG by discarding 'warmup bytes'.
