@@ -94,7 +94,6 @@ func (cpu *CPU) ConfigureMMU(start uint32, end uint32, alias uint32, flags uint3
 	}
 
 	cpu.FlushDataCache()
-	set_ttbr0(l1pageTableStart)
 }
 
 // InitMMU initializes the first-level translation tables for all available
@@ -104,10 +103,10 @@ func (cpu *CPU) ConfigureMMU(start uint32, end uint32, alias uint32, flags uint3
 // trap null pointers, applications that need to make use of this memory space
 // must use ConfigureMMU to reconfigure as required.
 func (cpu *CPU) InitMMU() {
-	start, end := runtime.MemRegion()
+	ramStart, ramEnd := runtime.MemRegion()
 
-	l1pageTableStart := start + l1pageTableOffset
-	l2pageTableStart := start + l2pageTableOffset
+	l1pageTableStart := ramStart + l1pageTableOffset
+	l2pageTableStart := ramStart + l2pageTableOffset
 
 	// First level address translation
 	// 9.4, ARM® Cortex™ -A Series Programmer’s Guide
@@ -125,7 +124,7 @@ func (cpu *CPU) InitMMU() {
 		page := l1pageTableStart + 4*i
 		pa := i << 20
 
-		if pa >= start && pa < end {
+		if pa >= ramStart && pa < ramEnd {
 			reg.Write(page, pa|memAttr)
 		} else {
 			reg.Write(page, pa|devAttr)
@@ -145,7 +144,7 @@ func (cpu *CPU) InitMMU() {
 		page := l2pageTableStart + 4*i
 		pa := i << 12
 
-		if pa >= start && pa < end {
+		if pa >= ramStart && pa < ramEnd {
 			reg.Write(page, pa|memAttr)
 		} else {
 			reg.Write(page, pa|devAttr)
