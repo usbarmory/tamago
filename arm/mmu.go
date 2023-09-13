@@ -59,24 +59,35 @@ const (
 func set_ttbr0(addr uint32)
 
 // ConfigureMMU (re)configures the first-level translation tables for the
-// provided memory range with the passed attribute flags.
-func (cpu *CPU) ConfigureMMU(start uint32, end uint32, flags uint32) {
+// provided memory range with the passed attribute flags. An alias argument
+// greater than zero specifies the physical address corresponding to the start
+// argument in case virtual memory is required, otherwise a flat 1:1 mapping is
+// set.
+func (cpu *CPU) ConfigureMMU(start uint32, end uint32, alias uint32, flags uint32) {
 	ramStart, _ := runtime.MemRegion()
 	l1pageTableStart := ramStart + l1pageTableOffset
 
 	start = start >> 20
 	end = end >> 20
+	alias = alias >> 20
+
+	var pa uint32
 
 	for i := uint32(0); i < l1pageTableSize/4; i++ {
-		page := l1pageTableStart + 4*i
-		pa := i << 20
-
 		if i < start {
 			continue
 		}
 
 		if i >= end {
 			break
+		}
+
+		page := l1pageTableStart + 4*i
+
+		if alias > 0 {
+			pa = (alias + i - start) << 20
+		} else {
+			pa = i << 20
 		}
 
 		reg.Write(page, pa|flags)
