@@ -166,6 +166,10 @@ func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 		return fmt.Errorf("region1 error: %v", err)
 	}
 
+	if hw.addr0 == 0 {
+		return errors.New("invalid BEE instance")
+	}
+
 	reg.Write(hw.addr0, region0>>16)
 	reg.Write(hw.addr1, region1>>16)
 
