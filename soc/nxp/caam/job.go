@@ -79,6 +79,11 @@ func (ring *jobRing) init(base uint32, size int) {
 	ring.orjrr = ring.base + CAAM_ORJRR_JRx
 	ring.orsfr = ring.base + CAAM_ORSFR_JRx
 
+	if ring.size > 0 {
+		dma.Free(uint(ring.input))
+		dma.Free(uint(ring.output))
+	}
+
 	ring.size = size
 	ring.input = ring.initQueue(jobWords, ring.size)
 	ring.output = ring.initQueue(jobResultWords, ring.size)
@@ -116,7 +121,7 @@ func (ring *jobRing) add(hdr *Header, jd []byte) (err error) {
 	reg.Wait(ring.orsfr, 0, 0x3ff, 1)
 
 	if res := reg.Read(ring.output); res != uint32(ptr) {
-		return fmt.Errorf("CAAM job error, invalid output descriptor (%x)", res)
+		return fmt.Errorf("CAAM job error, invalid output descriptor")
 	}
 
 	if status := reg.Read(ring.output + 4); status != 0 {
@@ -151,4 +156,5 @@ func (hw *CAAM) job(hdr *Header, jd []byte) (err error) {
 // or non-secure (e.g. TrustZone Normal World) ownership.
 func (hw *CAAM) SetOwner(secure bool) {
 	reg.SetTo(hw.Base+CAAM_JR0_MIDR_MS, JRxMIDR_MS_JROWN_NS, !secure)
+	hw.initJobRing()
 }
