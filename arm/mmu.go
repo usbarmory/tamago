@@ -56,6 +56,7 @@ const (
 )
 
 // defined in mmu.s
+func flush_tlb()
 func set_ttbr0(addr uint32)
 
 // ConfigureMMU (re)configures the first-level translation tables for the
@@ -94,6 +95,7 @@ func (cpu *CPU) ConfigureMMU(start uint32, end uint32, alias uint32, flags uint3
 	}
 
 	cpu.FlushDataCache()
+	flush_tlb()
 }
 
 // InitMMU initializes the first-level translation tables for all available
