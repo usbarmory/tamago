@@ -94,20 +94,6 @@ Native hardware: imx image
 Follow [these instructions](https://github.com/usbarmory/usbarmory/wiki/Boot-Modes-(Mk-II)#flashing-bootable-images-on-externalinternal-media)
 using the built `imx` image.
 
-Native hardware: existing bootloader
-------------------------------------
-
-Copy the built ELF binary on an external microSD card (replace `$dev` with `0`)
-or the internal eMMC (replace `$dev` with `1`), then launch it from the U-Boot
-console as follows:
-
-```
-ext2load mmc $dev:1 0x90000000 example
-bootelf -p 0x90000000
-```
-
-For non-interactive execution modify the U-Boot configuration accordingly.
-
 Standard output
 ---------------
 

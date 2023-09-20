@@ -115,20 +115,6 @@ mode:
 | 3      | ON       |
 | 4      | OFF      |
 
-
-Native hardware: existing bootloader
-------------------------------------
-
-Copy the built ELF binary on an external microSD card then launch it from the
-U-Boot console as follows:
-
-```
-ext2load mmc 1:1 0x90000000 example
-bootelf -p 0x90000000
-```
-
-For non-interactive execution modify the U-Boot configuration accordingly.
-
 Standard output
 ---------------
 
