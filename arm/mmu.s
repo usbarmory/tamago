@@ -29,8 +29,6 @@ TEXT ·flush_tlb(SB),NOSPLIT,$0
 
 // func set_ttbr0(addr uint32)
 TEXT ·set_ttbr0(SB),NOSPLIT,$0-4
-	CALL	·flush_tlb(SB)
-
 	// Set TTBR0
 	MOVW	addr+0(FP), R0
 	MCR	15, 0, R0, C2, C0, 0
@@ -47,5 +45,7 @@ TEXT ·set_ttbr0(SB),NOSPLIT,$0-4
 	MRC	15, 0, R0, C1, C0, 0
 	ORR	$1, R0
 	MCR	15, 0, R0, C1, C0, 0
+
+	CALL	·flush_tlb(SB)
 
 	RET

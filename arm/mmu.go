@@ -65,8 +65,7 @@ func set_ttbr0(addr uint32)
 // argument in case virtual memory is required, otherwise a flat 1:1 mapping is
 // set.
 func (cpu *CPU) ConfigureMMU(start uint32, end uint32, alias uint32, flags uint32) {
-	ramStart, _ := runtime.MemRegion()
-	l1pageTableStart := ramStart + l1pageTableOffset
+	l1pageTableStart := vecTableStart + l1pageTableOffset
 
 	start = start >> 20
 	end = end >> 20
@@ -95,7 +94,7 @@ func (cpu *CPU) ConfigureMMU(start uint32, end uint32, alias uint32, flags uint3
 	}
 
 	cpu.FlushDataCache()
-	flush_tlb()
+	cpu.FlushTLBs()
 }
 
 // InitMMU initializes the first-level translation tables for all available
@@ -107,8 +106,8 @@ func (cpu *CPU) ConfigureMMU(start uint32, end uint32, alias uint32, flags uint3
 func (cpu *CPU) InitMMU() {
 	ramStart, ramEnd := runtime.MemRegion()
 
-	l1pageTableStart := ramStart + l1pageTableOffset
-	l2pageTableStart := ramStart + l2pageTableOffset
+	l1pageTableStart := vecTableStart + l1pageTableOffset
+	l2pageTableStart := vecTableStart + l2pageTableOffset
 
 	// First level address translation
 	// 9.4, ARM® Cortex™ -A Series Programmer’s Guide

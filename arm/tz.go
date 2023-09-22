@@ -10,8 +10,6 @@
 package arm
 
 import (
-	"runtime"
-
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -26,8 +24,7 @@ func (cpu *CPU) NonSecure() bool {
 		return false
 	}
 
-	ramStart, _ := runtime.MemRegion()
-	vecTable := ramStart + vecTableOffset + 8*4
+	vecTable := vecTableStart + 8*4
 	undefinedHandler := reg.Read(vecTable + UNDEFINED)
 
 	// NonSecure World cannot read the NS bit, the only way to infer it

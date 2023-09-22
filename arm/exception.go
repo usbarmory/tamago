@@ -10,7 +10,6 @@
 package arm
 
 import (
-	"runtime"
 	"unsafe"
 
 	"github.com/usbarmory/tamago/internal/reg"
@@ -28,14 +27,14 @@ const (
 	FIQ            = 0x1c
 )
 
+// set by cpu.Init()
+var vecTableStart uint32
+
 const (
-	vecTableJump uint32 = 0xe59ff018 // ldr pc, [pc, #24]
-
-	vecTableOffset = 0
-	vecTableSize   = 0x4000 // 16 kB
-
-	excStackOffset = 0x8000 // 32 kB
-	excStackSize   = 0x4000 // 16 kB
+	vecTableJump   = 0xe59ff018 // ldr pc, [pc, #24]
+	vecTableSize   = 0x4000     // 16 kB
+	excStackOffset = 0x8000     // 32 kB
+	excStackSize   = 0x4000     // 16 kB
 )
 
 // defined in exception.s
@@ -124,8 +123,7 @@ func VectorName(off int) string {
 // SetVectorTable updates the CPU exception handling vector table with the
 // addresses of the functions defined in the passed structure.
 func SetVectorTable(t VectorTable) {
-	ramStart, _ := runtime.MemRegion()
-	vecTable := ramStart + vecTableOffset + 8*4
+	vecTable := vecTableStart + 8*4
 
 	// set handler pointers
 	// Table 11-1 ARM® Cortex™ -A Series Programmer’s Guide
@@ -141,9 +139,6 @@ func SetVectorTable(t VectorTable) {
 
 //go:nosplit
 func (cpu *CPU) initVectorTable() {
-	ramStart, _ := runtime.MemRegion()
-	vecTableStart := ramStart + vecTableOffset
-
 	// initialize jump table
 	// Table 11-1 ARM® Cortex™ -A Series Programmer’s Guide
 	for i := uint32(0); i < 8; i++ {
@@ -163,6 +158,6 @@ func (cpu *CPU) initVectorTable() {
 
 	// Set the stack pointer for exception modes to provide a stack when
 	// summoned by exception vectors.
-	excStackStart := ramStart + excStackOffset
+	excStackStart := vecTableStart + excStackOffset
 	set_exc_stack(excStackStart + excStackSize)
 }

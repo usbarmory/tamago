@@ -51,3 +51,8 @@ func (cpu *CPU) FlushDataCache() {
 func (cpu *CPU) FlushInstructionCache() {
 	cache_flush_instruction()
 }
+
+// FlushTLBs flushes the ARM Translation Lookaside Buffers.
+func (cpu *CPU) FlushTLBs() {
+	flush_tlb()
+}

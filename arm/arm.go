@@ -65,9 +65,17 @@ type CPU struct {
 func read_cpsr() uint32
 func halt()
 
-// Init performs initialization of an ARM core instance.
-func (cpu *CPU) Init() {
+// Init performs initialization of an ARM core instance, the argument must be a
+// pointer to a 64 kB memory area which will be reserved for storing the
+// exception vector table, L1/L2 page tables and the exception stack
+// (see https://github.com/usbarmory/tamago/wiki/Internals#memory-layout).
+func (cpu *CPU) Init(base uint32) {
 	runtime.Exit = halt
+
+	// the application is allowed to override the reserved area
+	if vecTableStart == 0 {
+		vecTableStart = base
+	}
 
 	cpu.initFeatures()
 	cpu.initVectorTable()
