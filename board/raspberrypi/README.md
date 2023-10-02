@@ -38,12 +38,12 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC     | Board                | SoC package                                                            | Board package                                                                         |
-|---------|----------------------|------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| BCM2835 | Pi Zero              | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pizero) |
-| BCM2835 | Pi 1 Model A+ (v1.2) | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi1)       |
-| BCM2835 | Pi 1 Model B+ (v1.2) | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi1)       |
-| BCM2836 | Pi 2 Model B (v1.1)  | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi2)       |
+| SoC              | Board                | SoC package                                                            | Board package                                                                         |
+|------------------|----------------------|------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| Broadcom BCM2835 | Pi Zero              | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pizero](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pizero) |
+| Broadcom BCM2835 | Pi 1 Model A+ (v1.2) | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi1)       |
+| Broadcom BCM2835 | Pi 1 Model B+ (v1.2) | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi1)       |
+| Broadcom BCM2836 | Pi 2 Model B (v1.1)  | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835) | [pi/pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi2)       |
 
 Compiling
 =========

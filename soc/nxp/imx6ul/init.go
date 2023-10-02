@@ -100,10 +100,9 @@ func init() {
 	case "i.MX6ULL", "i.MX6ULZ":
 		// Data Co-Processor
 		DCP = &dcp.DCP{
-			Base: DCP_BASE,
-			CCGR: CCM_CCGR0,
-			CG:   CCGRx_CG5,
-			// assign internal OCRAM to DCP internal key exchange
+			Base:            DCP_BASE,
+			CCGR:            CCM_CCGR0,
+			CG:              CCGRx_CG5,
 			DeriveKeyMemory: dma.Default(),
 		}
 

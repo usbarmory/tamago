@@ -16,7 +16,6 @@ import (
 	"errors"
 
 	"github.com/usbarmory/tamago/bits"
-	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -43,18 +42,11 @@ func (hw *DCP) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, 
 	// prepare diversifier for in-place encryption
 	key = pad(diversifier, false)
 
-	region := dma.Default()
-	memory := hw.DeriveKeyMemory
+	region := hw.DeriveKeyMemory
 
 	if index >= 0 {
-		if memory == nil {
+		if region == nil {
 			return nil, errors.New("invalid DeriveKeyMemory")
-		}
-
-		// Use DeriveKeyMemory only if the default DMA region start
-		// does not overlap with it.
-		if !(region.Start() >= memory.Start() && region.Start() < memory.End()) {
-			region = memory
 		}
 	}
 

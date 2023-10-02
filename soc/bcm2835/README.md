@@ -31,10 +31,10 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC     | Related board packages                                                             | Peripheral drivers |
-|---------|------------------------------------------------------------------------------------|--------------------|
-| BCM2835 | [pizero](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pizero) | RNG, UART, GPIO    |
-| BCM2836 | [pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi2)       | RNG, UART, GPIO    |
+| SoC              | Related board packages                                                             | Peripheral drivers |
+|------------------|------------------------------------------------------------------------------------|--------------------|
+| Broadcom BCM2835 | [pizero](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pizero) | RNG, UART, GPIO    |
+| Broadcom BCM2836 | [pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi/pi2)       | RNG, UART, GPIO    |
 
 See the [pi](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi) package
 for documentation on compiling and executing on these boards.

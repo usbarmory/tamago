@@ -43,9 +43,10 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC           | Board                                                           | SoC package                                                              | Board package                                                                        |
-|---------------|-----------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
-| NXP i.MX6ULZ  | [USB armory Mk II](https://github.com/usbarmory/usbarmory/wiki) | [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul) | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory/mk2) |
+| SoC                  | Board                                                                              | SoC package                                                              | Board package                                                                        |
+|----------------------|------------------------------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| NXP i.MX6ULZ/i.MX6UL | [USB armory Mk II](https://github.com/usbarmory/usbarmory/wiki/Mk-II-Introduction) | [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul) | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory/mk2) |
+| NXP i.MX6ULL/i.MX6UL | [USB armory Mk II LAN](https://github.com/usbarmory/usbarmory/wiki/Mk-II-LAN)      | [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul) | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory/mk2) |
 
 Compiling
 =========

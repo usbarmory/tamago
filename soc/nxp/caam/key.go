@@ -74,10 +74,9 @@ func (hw *CAAM) DeriveKey(diversifier []byte, key []byte) (err error) {
 		return errors.New("invalid key size")
 	}
 
-	region := dma.Default()
-	memory := hw.DeriveKeyMemory
+	region := hw.DeriveKeyMemory
 
-	if memory == nil {
+	if region == nil {
 		return errors.New("invalid DeriveKeyMemory")
 	}
 
@@ -89,12 +88,6 @@ func (hw *CAAM) DeriveKey(diversifier []byte, key []byte) (err error) {
 	// padding is added by the CAAM
 	d1 := append([]byte{0x41}, diversifier...)
 	d2 := append([]byte{0x42}, diversifier...)
-
-	// Use DeriveKeyMemory only if the default DMA region start
-	// does not overlap with it.
-	if !(region.Start() > memory.Start() && region.Start() < memory.End()) {
-		region = memory
-	}
 
 	mkvBufferAddress, mkv := region.Reserve(sha256.Size, 4)
 	defer region.Release(mkvBufferAddress)
