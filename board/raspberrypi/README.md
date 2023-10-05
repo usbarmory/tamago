@@ -110,12 +110,13 @@ generates with `GOARM=6`.  Using `GOARM=5` causes Go to include a software float
 Executing
 =========
 
-There are two options for executing compiled binaries.  The direct approach is to convert Go binaries
-to emulate the Linux boot protocol and have the Pi firmware load and execute the binary as a Linux kernel.
-The U-boot method enables ELF binaries to be loaded and executed directly.
+Compiled binaries can be executed by converting Go binaries to emulate the
+Linux boot protocol and have the Pi firmware load and execute the binary as a
+Linux kernel.
 
-In both cases a minimal set of Raspberry Pi firmware must be present on the SD card that initializes the
-Raspberry Pi using the VideoCore GPU.  The following minimum files are required:
+A minimal set of Raspberry Pi firmware must be present on the SD card to
+initialize the Raspberry Pi using the VideoCore GPU. The following minimum
+files are required:
 
 * bootcode.bin
 * fixup.dat
@@ -198,58 +199,6 @@ Direct: Executing
 -----------------
 
 Copy the binary and config.txt to an SD card alongside the Pi firmware binaries and power-up the Pi.
-
-U-Boot
-------
-
-For the U-Boot method, configure, compile and copy [U-Boot](https://www.denx.de/wiki/U-Boot) onto an
-existing Raspberry Pi bootable SD card (see above for minimum context of the card).
-
-```sh
-    cd u-boot
-
-    # Config:
-    # - use rpi_0_w_defconfig for Pi Zero
-    # - use rpi_defconfig     for Pi 1
-    # - use rpi_2_defconfig   for Pi 2
-    make rpi_0_w_defconfig
-
-    # Build
-    make
-
-    # Copy
-    cp u-boot.bin <path_to_sdcard>
-```
-
-U-Boot: Configuring the firmware
---------------------------------
-
-The Raspberry Pi firmware must be configured to use U-Boot. Enabling the
-[UART](https://www.raspberrypi.org/documentation/configuration/uart.md) is
-recommended to diagnose boot issues.
-
-These settings work well in `config.txt`:
-
-```text
-enable_uart=1
-uart_2ndstage=1
-dtparam=uart0=on
-kernel=u-boot.bin
-core_freq=250
-```
-
-U-Boot: Executing
------------------
-
-Copy the built ELF binary on an existing bootable Raspberry Pi SD card, then
-launch it from the U-Boot console as follows:
-
-```sh
-ext2load mmc 0:1 0x8000000 example
-bootelf 0x8000000
-```
-
-For non-interactive execution modify the U-Boot configuration accordingly.
 
 Debugging: Standard output
 ==========================
