@@ -30,6 +30,7 @@ const (
 	TTE_BUFFERABLE    uint32 = (1 << 2)
 	TTE_CACHEABLE     uint32 = (1 << 3)
 	TTE_EXECUTE_NEVER uint32 = (1 << 4)
+	TTE_DOMAIN        uint32 = (1 << 5)
 	TTE_SUPERSECTION  uint32 = (1 << 18) | (1 << 1)
 	TTE_NS            uint32 = (1 << 19)
 )
