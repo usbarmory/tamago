@@ -14,6 +14,7 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/arm"
+	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/soc/nxp/bee"
@@ -90,10 +91,17 @@ func init() {
 
 	switch model {
 	case "i.MX6UL":
-		// Bus Encryption Engine
-		BEE = &bee.BEE{
-			Base: BEE_BASE,
-			SNVS: SNVS,
+		// Configuration and Manufacturing Info
+		// p2203, 35.5.15 OCOTP_CFG3, IMX6ULRM
+		cfg3, _ := OCOTP.Read(0, 4)
+
+		// BEE_UNAVAILABLE
+		if bits.Get(&cfg3, 25, 1) == 0 {
+			// Bus Encryption Engine
+			BEE = &bee.BEE{
+				Base: BEE_BASE,
+				SNVS: SNVS,
+			}
 		}
 
 		OCOTP.Banks = 16
