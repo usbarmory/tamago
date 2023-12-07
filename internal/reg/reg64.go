@@ -13,6 +13,13 @@ import (
 	"unsafe"
 )
 
+func IsSet64(addr uint64, pos int) bool {
+	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
+	r := atomic.LoadUint64(reg)
+
+	return (int(r) >> pos) & 1 == 1
+}
+
 func Read64(addr uint64) uint64 {
 	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
 	return atomic.LoadUint64(reg)
