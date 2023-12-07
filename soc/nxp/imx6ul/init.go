@@ -102,6 +102,8 @@ func init() {
 				Base: BEE_BASE,
 				SNVS: SNVS,
 			}
+
+			SNVS.DryIce = SNVS_LP_BASE
 		}
 
 		OCOTP.Banks = 16
@@ -141,6 +143,9 @@ func init() {
 			EnablePLL: EnableENETPLL,
 		}
 	}
+
+	// initialize security state machine (SSM)
+	SNVS.Init()
 
 	if !Native || ARM.NonSecure() {
 		return

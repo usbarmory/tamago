@@ -103,7 +103,8 @@ const (
 	RNGB_BASE = 0x02284000
 
 	// Secure Non-Volatile Storage
-	SNVS_BASE = 0x020cc000
+	SNVS_HP_BASE = 0x020cc000
+	SNVS_LP_BASE = 0x020b0000
 
 	// Temperature Monitor
 	TEMPMON_BASE = 0x020c8180
@@ -246,7 +247,7 @@ var (
 
 	// Secure Non-Volatile Storage
 	SNVS = &snvs.SNVS{
-		Base: SNVS_BASE,
+		Base: SNVS_HP_BASE,
 		CCGR: CCM_CCGR5,
 		CG:   CCGRx_CG9,
 	}
