@@ -147,7 +147,7 @@ func init() {
 	// initialize security state machine (SSM)
 	SNVS.Init()
 
-	if !Native || ARM.NonSecure() {
+	if ARM.NonSecure() {
 		return
 	}
 
