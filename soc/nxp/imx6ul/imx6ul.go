@@ -398,9 +398,3 @@ func Model() (model string) {
 
 	return
 }
-
-// HAB returns whether the SoC is in Trusted or Secure state (indicating that
-// Secure Boot is enabled).
-func HAB() bool {
-	return SNVS.Available()
-}

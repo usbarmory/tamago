@@ -42,9 +42,7 @@ const (
 	SNVS_HPHACIVR = 0x1c
 	SNVS_HPHACR   = 0x20
 
-	HPSR_SSM_STATE    = 8
-	SSM_STATE_TRUSTED = 0b1101
-	SSM_STATE_SECURE  = 0b1111
+	HPSR_SSM_STATE = 8
 
 	SNVS_LPTDCR  = 0x48
 	LPTDCR_VT_EN = 6
@@ -60,6 +58,17 @@ const (
 	SNVS_LPPGDR = 0x64
 	// Power Glitch Detector Register hardwired value
 	LPPGDR_PGD_VAL = 0x41736166
+)
+
+// System Security Monitor (SSM) states
+const (
+	SSM_STATE_INIT      = 0b0000
+	SSM_STATE_HARD_FAIL = 0b0001
+	SSM_STATE_SOFT_FAIL = 0b0011
+	SSM_STATE_CHECK     = 0b1001
+	SSM_STATE_NONSECURE = 0b1011
+	SSM_STATE_TRUSTED   = 0b1101
+	SSM_STATE_SECURE    = 0b1111
 )
 
 // DryIce registers
@@ -136,6 +145,10 @@ type SecurityPolicy struct {
 	// Assurance Counter, a delay in system clocks between a soft fail and
 	// a hard fail, or return the current HAC value.
 	HAC uint32
+
+	// State represents the System Security Monitor (SSM) State (used only
+	// when reporting, see Monitor()).
+	State uint8
 }
 
 // Init initializes the SNVS controller.
@@ -217,8 +230,8 @@ func (hw *SNVS) SetPolicy(sp SecurityPolicy) {
 	hw.sp = sp
 }
 
-// Monitor returns the SNVS tamper detection status, configured security
-// violation policy and the current High Assurance Counter value.
+// Monitor returns the SNVS tamper System Security Monitor (SSM) state, its
+// configured violation policy and the current High Assurance Counter value.
 func (hw *SNVS) Monitor() (violations SecurityPolicy) {
 	clk := reg.IsSet(hw.lpsr, LPSR_CTD)
 	tmp := reg.IsSet(hw.lpsr, LPSR_TTD)
@@ -238,6 +251,7 @@ func (hw *SNVS) Monitor() (violations SecurityPolicy) {
 		SecurityViolation: hw.sp.SecurityViolation,
 		HardFail:          hw.sp.HardFail,
 		HAC:               reg.Read(hw.hphacr),
+		State:             uint8(reg.Get(hw.hpsr, HPSR_SSM_STATE, 0b1111)),
 	}
 }
 
