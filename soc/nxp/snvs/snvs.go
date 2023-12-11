@@ -220,10 +220,20 @@ func (hw *SNVS) SetPolicy(sp SecurityPolicy) {
 // Monitor returns the SNVS tamper detection status, configured security
 // violation policy and the current High Assurance Counter value.
 func (hw *SNVS) Monitor() (violations SecurityPolicy) {
+	clk := reg.IsSet(hw.lpsr, LPSR_CTD)
+	tmp := reg.IsSet(hw.lpsr, LPSR_TTD)
+	vcc := reg.IsSet(hw.lpsr, LPSR_VTD)
+
+	if hw.DryIce > 0 {
+		clk = clk || reg.IsSet(hw.dtrr, DTRR_CTD)
+		tmp = tmp || reg.IsSet(hw.dtrr, DTRR_TTD)
+		vcc = vcc || reg.IsSet(hw.dtrr, DTRR_VTD)
+	}
+
 	return SecurityPolicy{
-		Clock:             reg.IsSet(hw.lpsr, LPSR_CTD) || reg.IsSet(hw.dtrr, DTRR_CTD),
-		Temperature:       reg.IsSet(hw.lpsr, LPSR_TTD) || reg.IsSet(hw.dtrr, DTRR_TTD),
-		Voltage:           reg.IsSet(hw.lpsr, LPSR_VTD) || reg.IsSet(hw.dtrr, DTRR_VTD),
+		Clock:             clk,
+		Temperature:       tmp,
+		Voltage:           vcc,
 		Power:             reg.IsSet(hw.lpsr, LPSR_PGD),
 		SecurityViolation: hw.sp.SecurityViolation,
 		HardFail:          hw.sp.HardFail,
