@@ -96,7 +96,7 @@ func init() {
 		cfg3, _ := OCOTP.Read(0, 4)
 
 		// BEE_UNAVAILABLE
-		if bits.Get(&cfg3, 25, 1) == 0 {
+		if Native && bits.Get(&cfg3, 25, 1) == 0 {
 			// Bus Encryption Engine
 			BEE = &bee.BEE{
 				Base: BEE_BASE,
