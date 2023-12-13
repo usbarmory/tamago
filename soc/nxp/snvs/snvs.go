@@ -76,15 +76,21 @@ const (
 	DRYICE_DTOCR    = 0x00
 	DTOCR_DRYICE_EN = 0
 
-	DRYICE_DTRR = 0x08
-	DTRR_CTD    = 2
-	DTRR_VTD    = 1
-	DTRR_TTD    = 0
+	DRYICE_DTMR        = 0x04
+	DTMR_TEMP_MON_TRIM = 22
+	DTMR_VOLT_MON_TRIM = 12
+	DTMR_BGR_TRIM      = 6
+	DTMR_PROG_TRIM     = 0
 
-	DRYICE_DMCR = 0x0c
-	DMCR_CT_EN  = 2
-	DMCR_VT_EN  = 1
-	DMCR_TT_EN  = 0
+	DRYICE_DTRR                  = 0x08
+	DTRR_SNVS_CLK_TAMP_DETECT    = 2
+	DTRR_DRYICE_TEMP_DETECT      = 1
+	DTRR_DRYICE_VOLT_TAMP_DETECT = 0
+
+	DRYICE_DMCR       = 0x0c
+	DMCR_CLOCK_DET_EN = 2
+	DMCR_VOLT_DET_EN  = 1
+	DMCR_TEMP_DET_EN  = 0
 )
 
 // SNVS represents the SNVS instance.
@@ -112,6 +118,7 @@ type SNVS struct {
 
 	// DryIce registers
 	dtocr uint32
+	dtmr  uint32
 	dtrr  uint32
 	dmcr  uint32
 
@@ -151,8 +158,22 @@ type SecurityPolicy struct {
 	State uint8
 }
 
-// Init initializes the SNVS controller.
-func (hw *SNVS) Init() {
+func (hw *SNVS) initDryIce(calibrationData uint32) {
+	hw.dtocr = hw.DryIce + DRYICE_DTOCR
+	hw.dtmr = hw.DryIce + DRYICE_DTMR
+	hw.dtrr = hw.DryIce + DRYICE_DTRR
+	hw.dmcr = hw.DryIce + DRYICE_DMCR
+
+	reg.SetN(hw.dtmr, DTMR_TEMP_MON_TRIM, 0x3ff, bits.Get(&calibrationData, 0, 0x3ff))
+	reg.SetN(hw.dtmr, DTMR_VOLT_MON_TRIM, 0x3ff, bits.Get(&calibrationData, 10, 0x3ff))
+	reg.SetN(hw.dtmr, DTMR_BGR_TRIM, 0x3f, bits.Get(&calibrationData, 20, 0x3f))
+	reg.SetN(hw.dtmr, DTMR_PROG_TRIM, 0x3f, bits.Get(&calibrationData, 26, 0x3f))
+}
+
+// Init initializes the SNVS controller, the calibration data is fused
+// individually for each part and is required for correct initialization of the
+// DryIce auxiliary logic (when available).
+func (hw *SNVS) Init(calibrationData uint32) {
 	if hw.Base == 0 || hw.CCGR == 0 {
 		panic("invalid SNVS instance")
 	}
@@ -170,10 +191,23 @@ func (hw *SNVS) Init() {
 	hw.lppgdr = hw.Base + SNVS_LPPGDR
 
 	if hw.DryIce > 0 {
-		hw.dtocr = hw.DryIce + DRYICE_DTOCR
-		hw.dtrr = hw.DryIce + DRYICE_DTRR
-		hw.dmcr = hw.DryIce + DRYICE_DMCR
+		hw.initDryIce(calibrationData)
 	}
+}
+
+func (hw *SNVS) setDryIcePolicy(sp SecurityPolicy) {
+	reg.Set(hw.dtocr, DTOCR_DRYICE_EN)
+	time.Sleep(1 * time.Millisecond)
+
+	reg.SetTo(hw.dmcr, DMCR_VOLT_DET_EN, sp.Voltage)
+	reg.SetTo(hw.dmcr, DMCR_TEMP_DET_EN, sp.Temperature)
+	reg.SetTo(hw.dmcr, DMCR_CLOCK_DET_EN, sp.Clock)
+	time.Sleep(1 * time.Millisecond)
+
+	// clear records
+	reg.Set(hw.dtrr, DTRR_DRYICE_TEMP_DETECT)
+	reg.Set(hw.dtrr, DTRR_DRYICE_VOLT_TAMP_DETECT)
+	reg.Set(hw.dtrr, DTRR_SNVS_CLK_TAMP_DETECT)
 }
 
 // SetPolicy configures the SNVS tamper detection and security violation
@@ -203,18 +237,7 @@ func (hw *SNVS) SetPolicy(sp SecurityPolicy) {
 	}
 
 	if hw.DryIce > 0 {
-		reg.Set(hw.dtocr, DTOCR_DRYICE_EN)
-		time.Sleep(1 * time.Millisecond)
-
-		reg.SetTo(hw.dmcr, DMCR_VT_EN, sp.Voltage)
-		reg.SetTo(hw.dmcr, DMCR_TT_EN, sp.Temperature)
-		reg.SetTo(hw.dmcr, DMCR_CT_EN, sp.Clock)
-		time.Sleep(1 * time.Millisecond)
-
-		// clear records
-		reg.Set(hw.dtrr, DTRR_VTD)
-		reg.Set(hw.dtrr, DTRR_TTD)
-		reg.Set(hw.dtrr, DTRR_CTD)
+		hw.setDryIcePolicy(sp)
 	}
 
 	// set tamper monitors
@@ -238,9 +261,9 @@ func (hw *SNVS) Monitor() (violations SecurityPolicy) {
 	vcc := reg.IsSet(hw.lpsr, LPSR_VTD)
 
 	if hw.DryIce > 0 {
-		clk = clk || reg.IsSet(hw.dtrr, DTRR_CTD)
-		tmp = tmp || reg.IsSet(hw.dtrr, DTRR_TTD)
-		vcc = vcc || reg.IsSet(hw.dtrr, DTRR_VTD)
+		clk = clk || reg.IsSet(hw.dtrr, DTRR_SNVS_CLK_TAMP_DETECT)
+		tmp = tmp || reg.IsSet(hw.dtrr, DTRR_DRYICE_VOLT_TAMP_DETECT)
+		vcc = vcc || reg.IsSet(hw.dtrr, DTRR_DRYICE_TEMP_DETECT)
 	}
 
 	return SecurityPolicy{

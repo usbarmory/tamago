@@ -144,9 +144,6 @@ func init() {
 		}
 	}
 
-	// initialize security state machine (SSM)
-	SNVS.Init()
-
 	if ARM.NonSecure() {
 		return
 	}
@@ -154,7 +151,14 @@ func init() {
 	// OCOTP_ANA1 Temperature Sensor Calibration Data
 	// p3531, 52.2 Software Usage Guidelines, IMX6ULLRM
 	ana1, _ := OCOTP.Read(1, 6)
+	// initialize temperature monitor
 	TEMPMON.Init(ana1)
+
+	// DryIce Trim Values
+	// p1060, 8.5.2 DryIce Trim Value Register, IMX6ULSRM
+	mem1, _ := OCOTP.Read(1, 1)
+	// initialize security state machine (SSM)
+	SNVS.Init(mem1)
 
 	// On the i.MX6UL family the only way to detect if we are booting
 	// through Serial Download Mode over USB is to check whether the USB
