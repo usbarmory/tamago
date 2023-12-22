@@ -167,7 +167,7 @@ func (cpu *CPU) updateMMU(start uint32, end uint32, pos int, mask int, val uint3
 // SetAccessPermissions (re)configures the first-level translation tables for
 // the provided memory range with the argument domain and access permissions.
 func (cpu *CPU) SetAccessPermissions(start, end, ap, domain uint32) {
-	cpu.updateMMU(start, end, 5, 0b1101111, (ap<<5)|domain)
+	cpu.updateMMU(start, end, 5, 0b1101111, (ap<<5)|(domain&0xf))
 }
 
 // SetFlags (re)configures the first-level translation tables for the provided
