@@ -88,6 +88,10 @@ func (hw *TEMPMON) Read() float32 {
 	hw.Lock()
 	defer hw.Unlock()
 
+	if hw.sense0 == 0 {
+		return 0
+	}
+
 	// enable sensor only during single measurement
 	reg.Set(hw.sense0_clr, TEMPSENSE0_POWER_DOWN)
 	defer reg.Set(hw.sense0_set, TEMPSENSE0_POWER_DOWN)

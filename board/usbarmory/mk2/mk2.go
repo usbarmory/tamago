@@ -50,6 +50,10 @@ var (
 )
 
 func model() uint32 {
+	if !imx6ul.Native {
+		return 0
+	}
+
 	// WithSecure burns model information in the MSB of OTP fuses bank 4
 	// word 2 (OCOTP_MAC0).
 	mac0, _ := imx6ul.OCOTP.Read(4, 2)

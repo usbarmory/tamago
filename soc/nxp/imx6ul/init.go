@@ -14,6 +14,7 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/arm"
+	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/soc/nxp/bee"
@@ -90,10 +91,21 @@ func init() {
 
 	switch model {
 	case "i.MX6UL":
-		// Bus Encryption Engine
-		BEE = &bee.BEE{
-			Base: BEE_BASE,
-			SNVS: SNVS,
+		if Native {
+			// Configuration and Manufacturing Info
+			// p2203, 35.5.15 OCOTP_CFG3, IMX6ULRM
+			cfg3, _ := OCOTP.Read(0, 4)
+
+			// BEE_UNAVAILABLE
+			if bits.Get(&cfg3, 25, 1) == 0 {
+				// Bus Encryption Engine
+				BEE = &bee.BEE{
+					Base: BEE_BASE,
+					SNVS: SNVS,
+				}
+
+				SNVS.DryIce = SNVS_LP_BASE
+			}
 		}
 
 		OCOTP.Banks = 16
@@ -141,7 +153,14 @@ func init() {
 	// OCOTP_ANA1 Temperature Sensor Calibration Data
 	// p3531, 52.2 Software Usage Guidelines, IMX6ULLRM
 	ana1, _ := OCOTP.Read(1, 6)
+	// initialize temperature monitor
 	TEMPMON.Init(ana1)
+
+	// DryIce Trim Values
+	// p1060, 8.5.2 DryIce Trim Value Register, IMX6ULSRM
+	mem1, _ := OCOTP.Read(1, 1)
+	// initialize security state machine (SSM)
+	SNVS.Init(mem1)
 
 	// On the i.MX6UL family the only way to detect if we are booting
 	// through Serial Download Mode over USB is to check whether the USB

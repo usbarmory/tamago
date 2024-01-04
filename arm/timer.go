@@ -63,14 +63,17 @@ func (cpu *CPU) InitGenericTimers(base uint32, freq int32) {
 	if freq != 0 && cpu.Secure() {
 		// set base frequency
 		write_cntfrq(freq)
-		reg.Write(base+CNTFID0, uint32(freq))
 
-		// set system counter to base frequency
-		reg.Set(base+CNTCR, CNTCR_FCREQ0)
-		// stop system counter on debug
-		reg.Set(base+CNTCR, CNTCR_HDBG)
-		// start system counter
-		reg.Set(base+CNTCR, CNTCR_EN)
+		if base != 0 {
+			reg.Write(base+CNTFID0, uint32(freq))
+
+			// set system counter to base frequency
+			reg.Set(base+CNTCR, CNTCR_FCREQ0)
+			// stop system counter on debug
+			reg.Set(base+CNTCR, CNTCR_HDBG)
+			// start system counter
+			reg.Set(base+CNTCR, CNTCR_EN)
+		}
 
 		// grant PL0 access
 		write_cntkctl(1 << CNTKCTL_PL0PCTEN)
