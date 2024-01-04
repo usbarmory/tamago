@@ -21,7 +21,7 @@ func initTimers() {
 	case IMX6UL, IMX6ULL:
 		if !Native {
 			// use QEMU fixed CNTFRQ value (62.5MHz)
-			ARM.InitGenericTimers(SYS_CNT_BASE, 62500000)
+			ARM.InitGenericTimers(0, 62500000)
 		} else {
 			// U-Boot value for i.MX6 family (8.0MHz)
 			ARM.InitGenericTimers(SYS_CNT_BASE, 8000000)

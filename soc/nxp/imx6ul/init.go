@@ -91,19 +91,21 @@ func init() {
 
 	switch model {
 	case "i.MX6UL":
-		// Configuration and Manufacturing Info
-		// p2203, 35.5.15 OCOTP_CFG3, IMX6ULRM
-		cfg3, _ := OCOTP.Read(0, 4)
+		if Native {
+			// Configuration and Manufacturing Info
+			// p2203, 35.5.15 OCOTP_CFG3, IMX6ULRM
+			cfg3, _ := OCOTP.Read(0, 4)
 
-		// BEE_UNAVAILABLE
-		if Native && bits.Get(&cfg3, 25, 1) == 0 {
-			// Bus Encryption Engine
-			BEE = &bee.BEE{
-				Base: BEE_BASE,
-				SNVS: SNVS,
+			// BEE_UNAVAILABLE
+			if bits.Get(&cfg3, 25, 1) == 0 {
+				// Bus Encryption Engine
+				BEE = &bee.BEE{
+					Base: BEE_BASE,
+					SNVS: SNVS,
+				}
+
+				SNVS.DryIce = SNVS_LP_BASE
 			}
-
-			SNVS.DryIce = SNVS_LP_BASE
 		}
 
 		OCOTP.Banks = 16
@@ -144,7 +146,7 @@ func init() {
 		}
 	}
 
-	if ARM.NonSecure() {
+	if !Native || ARM.NonSecure() {
 		return
 	}
 
