@@ -84,15 +84,15 @@ func (hw *USB) getSetup() (setup *SetupData) {
 
 	// p3801, 56.4.6.4.2.1 Setup Phase, IMX6ULLRM
 
+	*setup = hw.qh(0, OUT).Setup
+	setup.swap()
+
 	// clear setup status
-	reg.Set(hw.setup, 0)
+	reg.WriteBack(hw.setup)
 	// flush EP0 IN
 	reg.Set(hw.flush, ENDPTFLUSH_FETB+0)
 	// flush EP0 OUT
 	reg.Set(hw.flush, ENDPTFLUSH_FERB+0)
-
-	*setup = hw.qh(0, OUT).Setup
-	setup.swap()
 
 	return
 }

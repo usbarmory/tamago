@@ -94,7 +94,7 @@ func (hw *USB) Start(dev *Device) {
 
 // ServiceInterrupts services pending endpoint transfer and bus reset events.
 func (hw *USB) ServiceInterrupts() {
-	defer reg.Or(hw.sts, (1<<USBSTS_URI | 1<<USBSTS_UI))
+	defer reg.WriteBack(hw.sts)
 
 	if hw.Device == nil {
 		return
@@ -109,8 +109,8 @@ func (hw *USB) ServiceInterrupts() {
 		hw.Reset()
 	}
 
-	// check for setup packet
-	if reg.Get(hw.setup, 0, 1) == 1 {
+	// process setup packets
+	for reg.Read(hw.setup) != 0 {
 		if conf, _ := hw.handleSetup(); conf != 0 {
 			// stop configuration endpoints
 			if hw.exit != nil {
