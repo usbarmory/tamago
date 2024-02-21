@@ -136,7 +136,7 @@ func (hw *OCOTP) Blow(bank int, word int, value uint32) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if !reg.WaitFor(Timeout, hw.ctrl, CTRL_BUSY, 1, 0) {
+	if !reg.WaitFor(hw.Timeout, hw.ctrl, CTRL_BUSY, 1, 0) {
 		return errors.New("OCOTP controller busy")
 	}
 
@@ -168,7 +168,7 @@ func (hw *OCOTP) Blow(bank int, word int, value uint32) (err error) {
 }
 
 func (hw *OCOTP) checkOp() (err error) {
-	if !reg.WaitFor(Timeout, hw.ctrl, CTRL_BUSY, 1, 0) {
+	if !reg.WaitFor(hw.Timeout, hw.ctrl, CTRL_BUSY, 1, 0) {
 		return errors.New("operation timeout")
 	}
 
@@ -182,7 +182,7 @@ func (hw *OCOTP) checkOp() (err error) {
 // shadowReload reloads memory mapped shadow registers from OTP fuse banks
 // (p2383, 37.3.1.1 Shadow Register Reload, IMX6ULLRM).
 func (hw *OCOTP) shadowReload() (err error) {
-	if !reg.WaitFor(Timeout, hw.ctrl, CTRL_BUSY, 1, 0) {
+	if !reg.WaitFor(hw.Timeout, hw.ctrl, CTRL_BUSY, 1, 0) {
 		return errors.New("OCOTP controller busy")
 	}
 
