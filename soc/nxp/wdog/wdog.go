@@ -105,8 +105,7 @@ func (hw *WDOG) Init() {
 // event per argument delay. The delay must be specified in milliseconds with
 // 127500 as maximum value, the timeout resolution is 500ms.
 func (hw *WDOG) EnableInterrupt(delay int) {
-	reg.Set16(hw.wicr, WICR_WIE)
-	reg.SetN16(hw.wicr, WICR_WICT, 0xff, uint16(delay/500))
+	reg.SetN16(hw.wicr, WICR_WICT, 0xffff, 1 << WICR_WIE | uint16(delay/500))
 }
 
 // ClearInterrupt clears the interrupt status register.
