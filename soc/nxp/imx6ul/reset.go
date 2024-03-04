@@ -19,14 +19,13 @@ const (
 	SCR_WARM_RESET_ENABLE = 0
 )
 
-// Reset asserts the global watchdog reset causing the SoC to restart (warm
-// reset).
+// Reset asserts the global watchdog reset causing the SoC to restart.
 //
 // Note that only the SoC itself is guaranteed to restart as, depending on the
 // board hardware layout, the system might remain powered (which might not be
 // desirable). See respective board packages for cold reset options.
 func Reset() {
-	// enable warm reset
+	// disable warm reset
 	reg.Clear(SRC_SCR, SCR_WARM_RESET_ENABLE)
 
 	// assert software reset
