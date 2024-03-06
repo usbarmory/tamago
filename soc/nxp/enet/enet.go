@@ -155,8 +155,8 @@ type ENET struct {
 	tx bufferDescriptorRing
 }
 
-// Init initializes and enables the Ethernet MAC controller for 100 Mbps
-// full-duplex operation.
+// Init initializes and enables the Ethernet MAC controller for 100 Mbps full
+// duplex operation with Auto-Negotiation enabled.
 func (hw *ENET) Init() {
 	hw.Lock()
 
