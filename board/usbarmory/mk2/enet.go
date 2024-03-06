@@ -67,6 +67,7 @@ const (
 	DP_CTRL     = 0x00
 	CTRL_RESET  = 15
 	CTRL_SPEED  = 13
+	CTRL_ANEG   = 12
 	CTRL_DUPLEX = 8
 
 	DP_REGCR = 0xd
@@ -211,8 +212,8 @@ func EnablePHY(eth *enet.ENET) error {
 
 	// Software reset
 	eth.WritePHYRegister(PHY_ADDR, DP_CTRL, (1 << CTRL_RESET))
-	// 100 Mbps, Full-duplex
-	eth.WritePHYRegister(PHY_ADDR, DP_CTRL, (1<<CTRL_SPEED)|(1<<CTRL_DUPLEX))
+	// 100 Mbps, Auto-Negotiation, Full-duplex
+	eth.WritePHYRegister(PHY_ADDR, DP_CTRL, (1<<CTRL_SPEED)|(1<<CTRL_ANEG)|(1<<CTRL_DUPLEX))
 	// 50MHz RMII Reference Clock Select, 2 bit tolerance Receive Elasticity Buffer Size
 	eth.WritePHYRegister(PHY_ADDR, DP_RCSR, (1<<RCSR_RMII_CS)|(1<<RCSR_RX_BUF))
 
