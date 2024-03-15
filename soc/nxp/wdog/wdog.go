@@ -154,7 +154,7 @@ func (hw *WDOG) Reset() {
 	reg.Clear16(hw.wcr, WCR_WDA)
 }
 
-// SoftwareReset asserts the watchdog softwarw reset signal.
+// SoftwareReset asserts the watchdog software reset signal.
 func (hw *WDOG) SoftwareReset() {
 	reg.Set16(hw.wcr, WCR_SRE)
 	reg.Clear16(hw.wcr, WCR_SRS)
