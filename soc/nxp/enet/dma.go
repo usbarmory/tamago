@@ -33,11 +33,11 @@ const (
 // p1014, Table 22-35. Receive buffer descriptor field definitions, IMX6ULLRM
 const (
 	BD_RX_ST_E  = 15 // Empty
-	BD_RX_ST_LG = 5  // Receive frame length too large
-	BD_RX_ST_NO = 4  // Receive non-octet aligned frame
-	BD_RX_ST_CR = 2  // Receive CRC or frame error
-	BD_RX_ST_OV = 1  // Receive FIFO overrun
-	BD_RX_ST_TR = 0  // Receive frame truncated
+	BD_RX_ST_LG = 5  // Frame length violation
+	BD_RX_ST_NO = 4  // Non-octet aligned frame
+	BD_RX_ST_CR = 2  // CRC or frame error
+	BD_RX_ST_OV = 1  // Overrun
+	BD_RX_ST_TR = 0  // Frame truncated
 
 	frameErrorMask = 1<<BD_RX_ST_CR | 1<<BD_RX_ST_LG | 1<<BD_RX_ST_NO | 1<<BD_RX_ST_OV | 1<<BD_RX_ST_TR
 )
@@ -115,13 +115,12 @@ type bufferDescriptorRing struct {
 	bds   []*bufferDescriptor
 	index int
 	size  int
-
 	stats *Stats
 }
 
 func (ring *bufferDescriptorRing) init(rx bool, n int, s *Stats) uint32 {
-	ring.size = n
 	ring.bds = make([]*bufferDescriptor, n)
+	ring.size = n
 	ring.stats = s
 
 	// To avoid excessive DMA region fragmentation, a single allocation
