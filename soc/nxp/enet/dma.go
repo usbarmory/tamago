@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	MTU             = 1518
-	defaultRingSize = 16
-	bufferAlign     = 64
+	MTU               = 1518
+	minFrameSizeBytes = 42
+	defaultRingSize   = 16
+	bufferAlign       = 64
 )
 
 // Common buffer descriptor fields
@@ -32,7 +33,13 @@ const (
 // p1014, Table 22-35. Receive buffer descriptor field definitions, IMX6ULLRM
 const (
 	BD_RX_ST_E  = 15 // Empty
+	BD_RX_ST_LG = 5  // Receive frame length too large
+	BD_RX_ST_NO = 4  // Receive non-octet aligned frame
 	BD_RX_ST_CR = 2  // Receive CRC or frame error
+	BD_RX_ST_OV = 1  // Receive FIFO overrun
+	BD_RX_ST_TR = 0  // Receive frame truncated
+
+	frameErrorMask = 1<<BD_RX_ST_CR | 1<<BD_RX_ST_LG | 1<<BD_RX_ST_NO | 1<<BD_RX_ST_OV | 1<<BD_RX_ST_TR
 )
 
 // p1017, Table 22-37. Enhanced transmit buffer descriptor field definitions, IMX6ULLRM
@@ -47,6 +54,8 @@ type bufferDescriptor struct {
 	Length uint16
 	Status uint16
 	Addr   uint32
+
+	stats *Stats
 
 	// DMA buffers
 	desc []byte
@@ -69,15 +78,51 @@ func (bd *bufferDescriptor) Data() (buf []byte) {
 	return
 }
 
+func (bd *bufferDescriptor) Valid() bool {
+	valid := true
+
+	if bd.Status&(1<<BD_ST_L) != 0 {
+		if bd.Status&frameErrorMask != 0 {
+			// Something wrong with the received frame, drop it.
+			valid = false
+			bd.stats.MACErrors.Add(1)
+		}
+	} else {
+		// This is probably part of a jumbo frame or some other weirdness from the MAC.
+		// We can't handle it, so drop it.
+		valid = false
+	}
+
+	if bd.Length > MTU {
+		// If bd.Length is larger than MTU, this probably means that we've been receiving
+		// buffers with BD_ST_L set to zero indicating that they are chunks of a frame larger
+		// than our ring-buffer data buffers can hold, and we're now processing the "final" buffer
+		// of this frame.
+		// In this case, bd.Length represents the length of the *whole frame* rather than the
+		// length of data in this buffer, so we MUST NOT call db.Data below, as this situation is
+		// not currently handled.
+		valid = false
+		bd.stats.FramesTooLarge.Add(1)
+	} else if bd.Length < minFrameSizeBytes {
+		valid = false
+		bd.stats.FramesTooSmall.Add(1)
+	}
+
+	return valid
+}
+
 type bufferDescriptorRing struct {
 	bds   []*bufferDescriptor
 	index int
 	size  int
+
+	stats *Stats
 }
 
-func (ring *bufferDescriptorRing) init(rx bool, n int) uint32 {
+func (ring *bufferDescriptorRing) init(rx bool, n int, s *Stats) uint32 {
 	ring.size = n
 	ring.bds = make([]*bufferDescriptor, n)
+	ring.stats = s
 
 	// To avoid excessive DMA region fragmentation, a single allocation
 	// reserves all descriptors and data pointers which are slices for each
@@ -93,8 +138,9 @@ func (ring *bufferDescriptorRing) init(rx bool, n int) uint32 {
 		off := dataSize * i
 
 		bd := &bufferDescriptor{
-			Addr: uint32(addr) + uint32(off),
-			data: data[off : off+dataSize],
+			Addr:  uint32(addr) + uint32(off),
+			data:  data[off : off+dataSize],
+			stats: ring.stats,
 		}
 
 		if rx {
@@ -137,25 +183,18 @@ func (ring *bufferDescriptorRing) pop() (data []byte) {
 	bd.Status |= uint16(bd.desc[3]) << 8
 
 	if bd.Status&(1<<BD_RX_ST_E) != 0 {
+		bd.stats.EmptyFrames.Add(1)
 		return
+	}
+
+	ring.next()
+
+	if bd.Valid() {
+		data = bd.Data()
 	}
 
 	// set empty
 	bd.desc[3] |= (1 << BD_RX_ST_E) >> 8
-
-	ring.next()
-
-	if bd.Length > MTU {
-		print("enet: frame > MTU\n")
-	}
-
-	if bd.Status&(1<<BD_ST_L) == 0 {
-		print("enet: frame not last\n")
-	}
-
-	if bd.Status&(1<<BD_RX_ST_CR) == 0 {
-		return bd.Data()
-	}
 
 	return
 }
