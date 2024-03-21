@@ -15,7 +15,7 @@ func mulDiv(x, m, d uint64) uint64 {
 	return divx*m + modx*divm + modx*modm/d
 }
 
-// Nanotime returns the number of nanoseconds counted from the RTCLLK input
+// Nanotime returns the number of nanoseconds counted from the RTCCLK input
 // plus the timer offset.
 func (hw *CLINT) Nanotime() int64 {
 	return int64(mulDiv(hw.Mtime(), 1e9, hw.RTCCLK)) + hw.TimerOffset
