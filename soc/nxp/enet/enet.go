@@ -22,6 +22,7 @@ import (
 	"net"
 	"runtime"
 	"sync"
+	"sync/atomic"
 
 	"github.com/usbarmory/tamago/internal/reg"
 )
@@ -103,6 +104,13 @@ const (
 	IRQ_TS_TIMER = 15
 )
 
+type Stats struct {
+	EmptyFrames    atomic.Uint32
+	MACErrors      atomic.Uint32
+	FramesTooLarge atomic.Uint32
+	FramesTooSmall atomic.Uint32
+}
+
 // ENET represents an Ethernet MAC instance.
 type ENET struct {
 	sync.Mutex
@@ -131,6 +139,8 @@ type ENET struct {
 	RxHandler func([]byte)
 	// Descriptor ring size
 	RingSize int
+	// Statistics about the MAC
+	Stats Stats
 
 	// control registers
 	eir  uint32
@@ -266,8 +276,8 @@ func (hw *ENET) SetMAC(mac net.HardwareAddr) {
 // (when set), it should never return.
 func (hw *ENET) Start(rx bool) {
 	// set receive and transmit descriptors
-	reg.Write(hw.rdsr, hw.rx.init(true, hw.RingSize))
-	reg.Write(hw.tdsr, hw.tx.init(false, hw.RingSize))
+	reg.Write(hw.rdsr, hw.rx.init(true, hw.RingSize, &hw.Stats))
+	reg.Write(hw.tdsr, hw.tx.init(false, hw.RingSize, &hw.Stats))
 
 	reg.Set(hw.rdar, RDAR_ACTIVE)
 
