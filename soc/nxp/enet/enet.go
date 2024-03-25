@@ -22,7 +22,6 @@ import (
 	"net"
 	"runtime"
 	"sync"
-	"sync/atomic"
 
 	"github.com/usbarmory/tamago/internal/reg"
 )
@@ -73,12 +72,13 @@ const (
 
 	ENETx_PALR = 0x00e4
 	ENETx_PAUR = 0x00e8
-
 	ENETx_RDSR = 0x0180
 	ENETx_TDSR = 0x0184
+	ENETx_MRBR = 0x0188
+	ENETx_FTRL = 0x01b0
 
-	ENETx_MRBR      = 0x0188
-	MRBR_R_BUF_SIZE = 4
+	ENETx_RACC   = 0x01c4
+	RACC_LINEDIS = 6
 )
 
 // ENET interrupt events
@@ -105,10 +105,14 @@ const (
 )
 
 type Stats struct {
-	EmptyFrames    atomic.Uint32
-	MACErrors      atomic.Uint32
-	FramesTooLarge atomic.Uint32
-	FramesTooSmall atomic.Uint32
+	// The following MAC receive errors are tracked only if
+	// ENET.DiscardErrors is false at its initialization.
+	FrameLengthViolation uint32
+	NonOctetAlignedFrame uint32
+	CRCOrFrameError      uint32
+	Overrun              uint32
+	FrameTooSmall        uint32
+	FrameTooLarge        uint32
 }
 
 // ENET represents an Ethernet MAC instance.
@@ -139,6 +143,9 @@ type ENET struct {
 	RxHandler func([]byte)
 	// Descriptor ring size
 	RingSize int
+
+	// Discard MAC layer errors
+	DiscardErrors bool
 	// Statistics about the MAC
 	Stats Stats
 
@@ -158,6 +165,8 @@ type ENET struct {
 	rdsr uint32
 	tdsr uint32
 	mrbr uint32
+	ftrl uint32
+	racc uint32
 
 	// receive data buffers
 	rx bufferDescriptorRing
@@ -203,6 +212,8 @@ func (hw *ENET) Init() {
 	hw.rdsr = hw.Base + ENETx_RDSR
 	hw.tdsr = hw.Base + ENETx_TDSR
 	hw.mrbr = hw.Base + ENETx_MRBR
+	hw.ftrl = hw.Base + ENETx_FTRL
+	hw.racc = hw.Base + ENETx_RACC
 
 	hw.setup()
 
@@ -235,7 +246,12 @@ func (hw *ENET) setup() {
 	// set receive buffer size and maximum frame length
 	size := MTU + (bufferAlign - (MTU % bufferAlign))
 	reg.Write(hw.mrbr, uint32(size))
+	reg.Write(hw.ftrl, MTU)
 	reg.SetN(hw.rcr, RCR_MAX_FL, 0x3fff, MTU)
+
+	if hw.DiscardErrors {
+		reg.Set(hw.racc, RACC_LINEDIS)
+	}
 
 	// set physical address
 	hw.SetMAC(hw.MAC)
@@ -249,8 +265,8 @@ func (hw *ENET) setup() {
 	reg.Clear(hw.rcr, RCR_LOOP)
 
 	// set MII clock
-	reg.SetN(hw.mscr, MSCR_MII_SPEED, 0x3f, hw.Clock()/5000000)
 	reg.SetN(hw.mscr, MSCR_HOLDTIME, 0b111, 1)
+	reg.SetN(hw.mscr, MSCR_MII_SPEED, 0x3f, hw.Clock()/(2*2500000))
 
 	// enable Ethernet MAC
 	reg.Set(hw.ecr, ECR_ETHEREN)

@@ -79,36 +79,30 @@ func (bd *bufferDescriptor) Data() (buf []byte) {
 }
 
 func (bd *bufferDescriptor) Valid() bool {
-	valid := true
+	s := uint32(bd.Status)
 
-	if bd.Status&(1<<BD_ST_L) != 0 {
-		if bd.Status&frameErrorMask != 0 {
-			// Something wrong with the received frame, drop it.
-			valid = false
-			bd.stats.MACErrors.Add(1)
+	switch {
+	case s&(1<<BD_ST_L) == 0:
+		return false
+	case s&frameErrorMask != 0:
+		if (s>>BD_RX_ST_OV)&1 == 1 {
+			bd.stats.Overrun += 1
+		} else {
+			bd.stats.FrameLengthViolation += (s >> BD_RX_ST_LG) & 1
+			bd.stats.NonOctetAlignedFrame += (s >> BD_RX_ST_NO) & 1
+			bd.stats.CRCOrFrameError += (s >> BD_RX_ST_CR) & 1
 		}
-	} else {
-		// This is probably part of a jumbo frame or some other weirdness from the MAC.
-		// We can't handle it, so drop it.
-		valid = false
+
+		return false
+	case bd.Length < minFrameSizeBytes:
+		bd.stats.FrameTooSmall += 1
+		return false
+	case bd.Length > MTU:
+		bd.stats.FrameTooLarge += 1
+		return false
 	}
 
-	if bd.Length > MTU {
-		// If bd.Length is larger than MTU, this probably means that we've been receiving
-		// buffers with BD_ST_L set to zero indicating that they are chunks of a frame larger
-		// than our ring-buffer data buffers can hold, and we're now processing the "final" buffer
-		// of this frame.
-		// In this case, bd.Length represents the length of the *whole frame* rather than the
-		// length of data in this buffer, so we MUST NOT call db.Data below, as this situation is
-		// not currently handled.
-		valid = false
-		bd.stats.FramesTooLarge.Add(1)
-	} else if bd.Length < minFrameSizeBytes {
-		valid = false
-		bd.stats.FramesTooSmall.Add(1)
-	}
-
-	return valid
+	return true
 }
 
 type bufferDescriptorRing struct {
@@ -121,7 +115,6 @@ type bufferDescriptorRing struct {
 func (ring *bufferDescriptorRing) init(rx bool, n int, s *Stats) uint32 {
 	ring.bds = make([]*bufferDescriptor, n)
 	ring.size = n
-	ring.stats = s
 
 	// To avoid excessive DMA region fragmentation, a single allocation
 	// reserves all descriptors and data pointers which are slices for each
@@ -139,7 +132,7 @@ func (ring *bufferDescriptorRing) init(rx bool, n int, s *Stats) uint32 {
 		bd := &bufferDescriptor{
 			Addr:  uint32(addr) + uint32(off),
 			data:  data[off : off+dataSize],
-			stats: ring.stats,
+			stats: s,
 		}
 
 		if rx {
@@ -182,7 +175,6 @@ func (ring *bufferDescriptorRing) pop() (data []byte) {
 	bd.Status |= uint16(bd.desc[3]) << 8
 
 	if bd.Status&(1<<BD_RX_ST_E) != 0 {
-		bd.stats.EmptyFrames.Add(1)
 		return
 	}
 
