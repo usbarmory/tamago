@@ -17,9 +17,10 @@ import (
 
 const (
 	l1pageTableOffset = 0x4000
-	l1pageTableSize   = 0x4000
+	l1pageTableSize   = 4096
+
 	l2pageTableOffset = 0xc000
-	l2pageTableSize   = 0x4000
+	l2pageTableSize   = 256
 )
 
 // Memory region attributes
@@ -56,57 +57,84 @@ const (
 func flush_tlb()
 func set_ttbr0(addr uint32)
 
+// First level address translation
+// 9.4, ARM® Cortex™ -A Series Programmer’s Guide
+func (cpu *CPU) initL1Table(entry int, ttbr uint32, section uint32) {
+	ramStart, ramEnd := runtime.MemRegion()
+	textStart, textEnd := runtime.TextRegion()
+
+	for i := uint32(entry); i < l1pageTableSize; i++ {
+		page := ttbr + 4*i
+		addr := section + (i << 20)
+
+		switch {
+		case addr < textEnd && (addr+(1<<20)) > textEnd:
+			// skip first L2 table, reserved to trap null pointers
+			l2pageTableStart := cpu.vbar + l2pageTableOffset
+			base := l2pageTableStart + l2pageTableSize*4
+
+			// use L2 table to end non-executable boundary
+			// precisely at textStart
+			reg.Write(page, base|TTE_PAGE_TABLE)
+			cpu.initL2Table(0, base, addr)
+		case addr >= ramStart && addr < textEnd:
+			reg.Write(page, addr|MemoryRegion)
+		case addr >= ramStart && addr < ramEnd:
+			reg.Write(page, addr|MemoryRegion|TTE_EXECUTE_NEVER)
+		default:
+			reg.Write(page, addr|DeviceRegion|TTE_EXECUTE_NEVER)
+		}
+	}
+}
+
+// Level 2 translation tables
+// 9.5, ARM® Cortex™ -A Series Programmer’s Guide
+func (cpu *CPU) initL2Table(entry int, base uint32, section uint32) {
+	ramStart, ramEnd := runtime.MemRegion()
+	textStart, textEnd := runtime.TextRegion()
+
+	memoryRegion := TTE_AP_001<<4 | TTE_CACHEABLE | TTE_BUFFERABLE | TTE_SECTION
+	deviceRegion := TTE_AP_001<<4 | TTE_SECTION
+
+	for i := uint32(entry); i < l2pageTableSize; i++ {
+		page := base + 4*i
+		addr := section + (i << 12)
+
+		switch {
+		case addr >= ramStart && addr < textEnd:
+			reg.Write(page, addr|memoryRegion)
+		case addr >= ramStart && addr < ramEnd:
+			reg.Write(page, addr|memoryRegion|TTE_EXECUTE_NEVER)
+		default:
+			reg.Write(page, addr|deviceRegion|TTE_EXECUTE_NEVER)
+		}
+	}
+}
+
 // InitMMU initializes the first-level translation tables for all available
 // memory with a flat mapping and privileged attribute flags.
 //
 // The first 4096 bytes (0x00000000 - 0x00001000) are flagged as invalid to
 // trap null pointers, applications that need to make use of this memory space
 // must use ConfigureMMU to reconfigure as required.
+//
+// All available memory is marked as non-executable except for the range
+// returned by runtime.TextRegion().
 func (cpu *CPU) InitMMU() {
-	ramStart, ramEnd := runtime.MemRegion()
+	l1pageTableStart := cpu.vbar + l1pageTableOffset
+	l2pageTableStart := cpu.vbar + l2pageTableOffset
 
-	l1pageTableStart := vecTableStart + l1pageTableOffset
-	l2pageTableStart := vecTableStart + l2pageTableOffset
-
-	// First level address translation
-	// 9.4, ARM® Cortex™ -A Series Programmer’s Guide
-
-	// The first section is mapped with an L2 entry as we need to map the
-	// smallest possible section starting from 0x0 as invalid to trap null
-	// pointers.
+	// Map the first L1 entry to an L2 table to trap null pointers within
+	// the smallest possible section (4KB starting from 0x00000000).
 	firstSection := l2pageTableStart | TTE_PAGE_TABLE
 	reg.Write(l1pageTableStart, firstSection)
 
-	for i := uint32(1); i < l1pageTableSize/4; i++ {
-		page := l1pageTableStart + 4*i
-		pa := i << 20
-
-		if pa >= ramStart && pa < ramEnd {
-			reg.Write(page, pa|MemoryRegion)
-		} else {
-			reg.Write(page, pa|DeviceRegion)
-		}
-	}
-
-	// Level 2 translation tables
-	// 9.5, ARM® Cortex™ -A Series Programmer’s Guide
-
-	memoryRegion := TTE_AP_001<<4 | TTE_CACHEABLE | TTE_BUFFERABLE | TTE_SECTION
-	deviceRegion := TTE_AP_001<<4 | TTE_SECTION
-
-	// trap nil pointers by setting the first 4KB section as invalid
+	// set first L2 entry as invalid
 	reg.Write(l2pageTableStart, 0)
 
-	for i := uint32(1); i < 256; i++ {
-		page := l2pageTableStart + 4*i
-		pa := i << 12
-
-		if pa >= ramStart && pa < ramEnd {
-			reg.Write(page, pa|memoryRegion)
-		} else {
-			reg.Write(page, pa|deviceRegion)
-		}
-	}
+	// set remaining entries with flat mapping
+	cpu.initL1Table(1, l1pageTableStart, 0)
+	cpu.initL2Table(1, l2pageTableStart, 0)
 
 	set_ttbr0(l1pageTableStart)
 }
@@ -117,7 +145,7 @@ func (cpu *CPU) InitMMU() {
 // argument in case virtual memory is required, otherwise a flat 1:1 mapping is
 // set.
 func (cpu *CPU) ConfigureMMU(start, end, alias, flags uint32) {
-	l1pageTableStart := vecTableStart + l1pageTableOffset
+	l1pageTableStart := cpu.vbar + l1pageTableOffset
 
 	start = start >> 20
 	end = end >> 20
@@ -125,7 +153,7 @@ func (cpu *CPU) ConfigureMMU(start, end, alias, flags uint32) {
 
 	var pa uint32
 
-	for i := start; i < l1pageTableSize/4; i++ {
+	for i := start; i < l1pageTableSize; i++ {
 		if i >= end {
 			break
 		}
@@ -146,12 +174,12 @@ func (cpu *CPU) ConfigureMMU(start, end, alias, flags uint32) {
 }
 
 func (cpu *CPU) updateMMU(start uint32, end uint32, pos int, mask int, val uint32) {
-	l1pageTableStart := vecTableStart + l1pageTableOffset
+	l1pageTableStart := cpu.vbar + l1pageTableOffset
 
 	start = start >> 20
 	end = end >> 20
 
-	for i := start; i < l1pageTableSize/4; i++ {
+	for i := start; i < l1pageTableSize; i++ {
 		if i >= end {
 			break
 		}

@@ -24,7 +24,7 @@ func (cpu *CPU) NonSecure() bool {
 		return false
 	}
 
-	vecTable := vecTableStart + 8*4
+	vecTable := cpu.vbar + 8*4
 	undefinedHandler := reg.Read(vecTable + UNDEFINED)
 
 	// NonSecure World cannot read the NS bit, the only way to infer it

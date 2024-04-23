@@ -27,7 +27,7 @@ const (
 	FIQ            = 0x1c
 )
 
-// set by cpu.Init()
+// set by application or, if not previously defined, by cpu.Init()
 var vecTableStart uint32
 
 const (
@@ -122,8 +122,8 @@ func VectorName(off int) string {
 
 // SetVectorTable updates the CPU exception handling vector table with the
 // addresses of the functions defined in the passed structure.
-func SetVectorTable(t VectorTable) {
-	vecTable := vecTableStart + 8*4
+func (cpu *CPU) SetVectorTable(t VectorTable) {
+	vecTable := cpu.vbar + 8*4
 
 	// set handler pointers
 	// Table 11-1 ARM® Cortex™ -A Series Programmer’s Guide
@@ -138,26 +138,28 @@ func SetVectorTable(t VectorTable) {
 }
 
 //go:nosplit
-func (cpu *CPU) initVectorTable() {
+func (cpu *CPU) initVectorTable(vbar uint32) {
+	cpu.vbar = vbar
+
 	// initialize jump table
 	// Table 11-1 ARM® Cortex™ -A Series Programmer’s Guide
 	for i := uint32(0); i < 8; i++ {
-		reg.Write(vecTableStart+4*i, vecTableJump)
+		reg.Write(cpu.vbar+4*i, vecTableJump)
 	}
 
 	// set exception handlers
-	SetVectorTable(SystemVectorTable())
+	cpu.SetVectorTable(SystemVectorTable())
 
 	// set vector base address register
-	set_vbar(vecTableStart)
+	set_vbar(cpu.vbar)
 
 	if cpu.Secure() {
 		// set monitor vector base address register
-		set_mvbar(vecTableStart)
+		set_mvbar(cpu.vbar)
 	}
 
 	// Set the stack pointer for exception modes to provide a stack when
 	// summoned by exception vectors.
-	excStackStart := vecTableStart + excStackOffset
+	excStackStart := cpu.vbar + excStackOffset
 	set_exc_stack(excStackStart + excStackSize)
 }
