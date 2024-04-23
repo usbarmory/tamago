@@ -19,7 +19,7 @@ import (
 
 // CAAM RTIC tuning
 var (
-	// RTICThrottle defines the clock cycles between RTIC hashing operations
+	// RTICThrottle defines the clock cycles between RTIC hash operations
 	RTICThrottle uint32 = 0x000000ff
 	// RTICWatchdog defines the starting value for the RTIC Watchdog Timer
 	RTICWatchdog uint64 = 0x0000ffffffffffff
@@ -62,7 +62,7 @@ const (
 	CS_ERR
 )
 
-// MemoryBlock represents a memory region for RTIC monitoring
+// MemoryBlock represents a memory region for RTIC monitoring.
 type MemoryBlock struct {
 	Address uint32
 	Length  uint32
