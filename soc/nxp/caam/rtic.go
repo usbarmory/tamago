@@ -110,8 +110,8 @@ func (hw *CAAM) initRTIC(blocks []MemoryBlock) error {
 // SHA256 hashing and raising a security violation (see RSTA()) in case of
 // mismatch with the first computed hash.
 //
-// Any security violation or memory block reconfiguration require a hardware
-// reset.
+// Any security violation (which also affects the SNVS SSM) or memory block
+// reconfiguration require a hardware reset.
 func (hw *CAAM) EnableRTIC(blocks []MemoryBlock) (err error) {
 	if err = hw.initRTIC(blocks); err != nil {
 		return
