@@ -61,7 +61,7 @@ func set_ttbr0(addr uint32)
 // 9.4, ARM® Cortex™ -A Series Programmer’s Guide
 func (cpu *CPU) initL1Table(entry int, ttbr uint32, section uint32) {
 	ramStart, ramEnd := runtime.MemRegion()
-	textStart, textEnd := runtime.TextRegion()
+	_, textEnd := runtime.TextRegion()
 
 	for i := uint32(entry); i < l1pageTableSize; i++ {
 		page := ttbr + 4*i
@@ -91,7 +91,7 @@ func (cpu *CPU) initL1Table(entry int, ttbr uint32, section uint32) {
 // 9.5, ARM® Cortex™ -A Series Programmer’s Guide
 func (cpu *CPU) initL2Table(entry int, base uint32, section uint32) {
 	ramStart, ramEnd := runtime.MemRegion()
-	textStart, textEnd := runtime.TextRegion()
+	_, textEnd := runtime.TextRegion()
 
 	memoryRegion := TTE_AP_001<<4 | TTE_CACHEABLE | TTE_BUFFERABLE | TTE_SECTION
 	deviceRegion := TTE_AP_001<<4 | TTE_SECTION
