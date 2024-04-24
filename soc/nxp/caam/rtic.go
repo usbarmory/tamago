@@ -78,9 +78,9 @@ func (hw *CAAM) RSTA() (cs uint32, err error) {
 	case bits.Get(&rsta, RSTA_MIS, 0xf) != 0:
 		err = errors.New("memory block corruption")
 	case bits.Get(&rsta, RSTA_HE, 1) != 0:
-		err = errors.New("hash mismatch")
+		err = errors.New("hashing error")
 	case bits.Get(&rsta, RSTA_SV, 1) != 0:
-		err = errors.New("hash mismatch")
+		err = errors.New("security violation")
 	case bits.Get(&rsta, RSTA_BSY, 1) != 0:
 		err = errors.New("RTIC busy")
 	}
@@ -113,18 +113,19 @@ func (hw *CAAM) initRTIC(blocks []MemoryBlock) error {
 // Any security violation (which also affects the SNVS SSM) or memory block
 // reconfiguration require a hardware reset.
 func (hw *CAAM) EnableRTIC(blocks []MemoryBlock) (err error) {
+	hw.Lock()
+	defer hw.Unlock()
+
+	if hw.Base == 0 || hw.CCGR == 0 {
+		return errors.New("invalid CAAM instance")
+	}
+
 	if err = hw.initRTIC(blocks); err != nil {
 		return
 	}
 
-	cs, err := hw.RSTA()
-
-	if err != nil {
-		return
-	}
-
-	if cs != CS_IDLE {
-		return fmt.Errorf("invalid state (%d)", cs)
+	if cs, err := hw.RSTA(); err != nil || cs != CS_IDLE {
+		return fmt.Errorf("invalid state (cs:%d, err:%v)", cs, err)
 	}
 
 	// hash maximum number of blocks at each iteration
