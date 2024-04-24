@@ -28,7 +28,7 @@ var (
 // CAAM RTIC registers
 const (
 	CAAM_RSTA = 0x6004
-	RSTA_CS   = 26
+	RSTA_CS   = 25
 	RSTA_AE   = 8
 	RSTA_MIS  = 4
 	RSTA_HE   = 3
