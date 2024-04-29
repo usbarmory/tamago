@@ -17,9 +17,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/usbarmory/tamago/dma"
-
 	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/dma"
 )
 
 // p451, Table 8-112, IMX7DSSRM
