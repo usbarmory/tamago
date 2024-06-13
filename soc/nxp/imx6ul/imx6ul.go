@@ -95,10 +95,6 @@ const (
 	OCOTP_BASE      = 0x021bc000
 	OCOTP_BANK_BASE = 0x021bc400
 
-	// On-Chip Random-Access Memory
-	OCRAM_START = 0x00900000
-	OCRAM_SIZE  = 0x20000
-
 	// True Random Number Generator (ULL/ULZ only)
 	RNGB_BASE = 0x02284000
 

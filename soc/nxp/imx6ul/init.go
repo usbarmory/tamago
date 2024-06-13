@@ -83,9 +83,6 @@ func init() {
 	WDOG2.Init()
 	WDOG3.Init()
 
-	// use internal OCRAM (iRAM) as default DMA region
-	dma.Init(OCRAM_START, OCRAM_SIZE)
-
 	OCOTP.Init()
 	model := Model()
 
