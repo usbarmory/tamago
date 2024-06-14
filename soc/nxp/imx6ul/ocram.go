@@ -12,7 +12,6 @@ package imx6ul
 import (
 	"errors"
 
-	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -26,11 +25,6 @@ const (
 	GPR10_OCRAM_TZ_ADDR = 11
 	GPR10_OCRAM_TZ_EN   = 10
 )
-
-func init() {
-	// use internal OCRAM (iRAM) as default DMA region
-	dma.Init(OCRAM_START, OCRAM_SIZE)
-}
 
 // SetOCRAMProtection defines the OCRAM memory region subject to TrustZone
 // protection by means of CSU Peripheral Access Policy.
