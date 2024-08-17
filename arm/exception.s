@@ -112,10 +112,7 @@ TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
 
 	/* wake up IRQ handling goroutine */
 	MOVW	·irqHandlerG(SB), R0
-	MOVW	·irqHandlerP(SB), R1
 	CMP	$0, R0
-	B.EQ	done
-	CMP	$0, R1
 	B.EQ	done
 	CALL	runtime·WakeG(SB)
 
