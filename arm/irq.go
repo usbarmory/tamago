@@ -49,8 +49,8 @@ func (cpu *CPU) DisableFastInterrupts(saved bool) {
 }
 
 // ServiceInterrupts() puts the calling goroutine in wait state, its execution
-// is resumed when an IRQ exception is received, an argument function must be
-// set to to service it.
+// is resumed when an IRQ exception is received, an argument function can be
+// set to service signaled interrupts (see gic package).
 func ServiceInterrupts(isr func()) {
 	irqHandlerG, _ = runtime.GetG()
 
