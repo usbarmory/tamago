@@ -26,7 +26,7 @@ const XLEN = 64
 type CPU struct{}
 
 // defined in riscv.s
-func halt()
+func halt(int32)
 
 // Init performs initialization of an RV64 core instance in machine mode.
 func (cpu *CPU) Init() {

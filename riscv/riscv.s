@@ -7,7 +7,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// func halt()
-TEXT ·halt(SB),$0
+// func halt(int32)
+TEXT ·halt(SB),$0-8
 	// wait forever in low-power state
 	WORD $0x10500073 // wfi

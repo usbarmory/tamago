@@ -44,9 +44,9 @@ Current release level
 [![GitHub release](https://img.shields.io/github/v/release/usbarmory/tamago-go)](https://github.com/usbarmory/tamago-go/tree/latest) [![Build Status](https://github.com/usbarmory/tamago-go/workflows/Build%20Go%20compiler/badge.svg)](https://github.com/usbarmory/tamago-go/actions)
 
 The current release for the [TamaGo modified Go distribution](https://github.com/usbarmory/tamago-go) is
-[tamago1.23.0](https://github.com/usbarmory/tamago-go/tree/tamago1.23.0),
-which [adds](https://github.com/golang/go/compare/go1.23.0...usbarmory:tamago1.23.0)
-`GOOS=tamago` support to go1.23.0.
+[tamago1.23.1](https://github.com/usbarmory/tamago-go/tree/tamago1.23.1),
+which [adds](https://github.com/golang/go/compare/go1.23.1...usbarmory:tamago1.23.1)
+`GOOS=tamago` support to go1.23.1.
 
 Binary releases for amd64 and armv7l Linux hosts [are available](https://github.com/usbarmory/tamago-go/releases/latest).
 
@@ -166,7 +166,6 @@ Additional resources
 
 * [Package API](https://pkg.go.dev/github.com/usbarmory/tamago)
 * [Internals](https://github.com/usbarmory/tamago/wiki/Internals)
-* [Go stdlib support](https://github.com/usbarmory/tamago/wiki/Import-report)
 * [FAQ](https://github.com/usbarmory/tamago/wiki/Frequently-Asked-Questions-(FAQ))
 * [TamaGo presentation](https://github.com/abarisani/abarisani.github.io/tree/master/research/tamago)
 

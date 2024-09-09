@@ -66,7 +66,7 @@ type CPU struct {
 
 // defined in arm.s
 func read_cpsr() uint32
-func halt()
+func halt(int32)
 
 // Init performs initialization of an ARM core instance, the argument must be a
 // pointer to a 64 kB memory area which will be reserved for storing the
