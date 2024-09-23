@@ -140,7 +140,7 @@ func irq(gicd uint32, m int, secure bool, enable bool) {
 	i := m % 32
 
 	if enable {
-		reg.SetTo(gicd + GICD_IGROUPR + 4*n, i, !secure)
+		reg.SetTo(gicd+GICD_IGROUPR+4*n, i, !secure)
 		addr = gicd + GICD_ISENABLER + 4*n
 	} else {
 		addr = gicd + GICD_ICENABLER + 4*n
@@ -161,9 +161,8 @@ func (hw *GIC) DisableInterrupt(id int) {
 	irq(hw.gicd, id, false, false)
 }
 
-// GetInterrupt obtains and acknowledges a signaled interrupt, the end of its
-// handling must be signaled by closing the returned channel.
-func (hw *GIC) GetInterrupt(secure bool) (id int, end chan struct{}) {
+// GetInterrupt obtains and acknowledges a signaled interrupt.
+func (hw *GIC) GetInterrupt(secure bool) (id int) {
 	if hw.gicc == 0 {
 		return
 	}
@@ -177,20 +176,12 @@ func (hw *GIC) GetInterrupt(secure bool) (id int, end chan struct{}) {
 	}
 
 	if m < 1020 {
-		end = make(chan struct{})
-
-		go func() {
-			<-end
-
-			if secure {
-				reg.SetN(hw.gicc+GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
-			} else {
-				reg.SetN(hw.gicc+GICC_AEOIR, GICC_AEOIR_ID, 0x3ff, m)
-			}
-		}()
+		if secure {
+			reg.SetN(hw.gicc+GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
+		} else {
+			reg.SetN(hw.gicc+GICC_AEOIR, GICC_AEOIR_ID, 0x3ff, m)
+		}
 	}
 
-	id = int(m)
-
-	return
+	return int(m)
 }
