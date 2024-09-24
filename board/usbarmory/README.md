@@ -110,8 +110,15 @@ Debugging
 ---------
 
 The application can be debugged with GDB over JTAG using `openocd` (version >
-0.11.0) and the `gdbinit` debugging helper published
-[here](https://github.com/usbarmory/tamago/tree/master/_dev).
+0.11.0) and the following `gdbinit` debugging helper:
+
+```
+target remote localhost:3333
+set remote hardware-breakpoint-limit 6
+set remote hardware-watchpoint-limit 4
+```
+
+Example:
 
 ```
 # start openocd daemon
