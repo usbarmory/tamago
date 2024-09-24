@@ -198,11 +198,17 @@ func (cpu *CPU) SetAccessPermissions(start, end, ap, domain uint32) {
 	cpu.updateMMU(start, end, 5, 0b1101111, (ap<<5)|(domain&0xf))
 }
 
-// SetFlags (re)configures the first-level translation tables for the provided
-// memory range with the argument attribute flags.
+// SetAttributes (re)configures the first-level translation tables for the
+// provided memory range with the argument attribute flags.
 func (cpu *CPU) SetAttributes(start, end, flags uint32) {
 	mask := TTE_NS | TTE_SUPERSECTION | TTE_EXECUTE_NEVER | TTE_CACHEABLE |
 		TTE_BUFFERABLE | TTE_SECTION | TTE_PAGE_TABLE
 
 	cpu.updateMMU(start, end, 0, int(mask), flags)
+}
+
+// SetAttribute (re)configures a single attribute flag on the first-level
+// translation tables for the provided memory range.
+func (cpu *CPU) SetAttribute(start, end, pos, val uint32) {
+	cpu.updateMMU(start, end, 0, int(pos), val << pos)
 }
