@@ -66,6 +66,9 @@ const (
 	// Data Co-Processor (ULL/ULZ only)
 	DCP_BASE = 0x02280000
 
+	// Data Co-Processor interrupts
+	DCP_IRQ = 32 + 47
+
 	// General Interrupt Controller
 	GIC_BASE = 0x00a00000
 
@@ -81,8 +84,8 @@ const (
 	ENET2_BASE = 0x020b4000
 
 	// Ethernet MAC interrupts
-	ENET1_IRQ  = 32 + 118
-	ENET2_IRQ  = 32 + 120
+	ENET1_IRQ = 32 + 118
+	ENET2_IRQ = 32 + 120
 
 	// I2C
 	I2C1_BASE = 0x021a0000
@@ -126,8 +129,8 @@ const (
 	USB2_BASE          = 0x02184200
 
 	// USB 2.0 controller interrupts
-	USB1_IRQ           = 32 + 43
-	USB2_IRQ           = 32 + 42
+	USB1_IRQ = 32 + 43
+	USB2_IRQ = 32 + 42
 
 	// SD/MMC
 	USDHC1_BASE = 0x02190000
@@ -139,9 +142,9 @@ const (
 	WDOG3_BASE = 0x021e4000
 
 	// Watchdog Timer interrupts
-	WDOG1_IRQ  = 32 + 80
-	WDOG2_IRQ  = 32 + 81
-	WDOG3_IRQ  = 32 + 11
+	WDOG1_IRQ = 32 + 80
+	WDOG2_IRQ = 32 + 81
+	WDOG3_IRQ = 32 + 11
 )
 
 // Peripheral instances
