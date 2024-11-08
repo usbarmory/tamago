@@ -52,6 +52,28 @@ import (
 	"github.com/usbarmory/tamago/soc/nxp/wdog"
 )
 
+// Interrupts
+const (
+	// The first 32 interrupts are private to the CPUs' interface.
+	BASE_IRQ = 32
+
+	// Data Co-Processor (ULL/ULZ only)
+	DCP_IRQ = BASE_IRQ + 47
+
+	// Ethernet MAC (UL/ULL only)
+	ENET1_IRQ = BASE_IRQ + 118
+	ENET2_IRQ = BASE_IRQ + 120
+
+	// USB 2.0 controller
+	USB1_IRQ = BASE_IRQ + 43
+	USB2_IRQ = BASE_IRQ + 42
+
+	// Watchdog Timers
+	WDOG1_IRQ = BASE_IRQ + 80
+	WDOG2_IRQ = BASE_IRQ + 81
+	WDOG3_IRQ = BASE_IRQ + 11
+)
+
 // Peripheral registers
 const (
 	// Bus Encryption Engine (UL only)
@@ -79,10 +101,6 @@ const (
 	// Ethernet MAC (UL/ULL only)
 	ENET1_BASE = 0x02188000
 	ENET2_BASE = 0x020b4000
-
-	// Ethernet MAC interrupts
-	ENET1_IRQ  = 32 + 118
-	ENET2_IRQ  = 32 + 120
 
 	// I2C
 	I2C1_BASE = 0x021a0000
@@ -125,10 +143,6 @@ const (
 	USB1_BASE          = 0x02184000
 	USB2_BASE          = 0x02184200
 
-	// USB 2.0 controller interrupts
-	USB1_IRQ           = 32 + 43
-	USB2_IRQ           = 32 + 42
-
 	// SD/MMC
 	USDHC1_BASE = 0x02190000
 	USDHC2_BASE = 0x02194000
@@ -137,11 +151,6 @@ const (
 	WDOG1_BASE = 0x020bc000
 	WDOG2_BASE = 0x020c0000
 	WDOG3_BASE = 0x021e4000
-
-	// Watchdog Timer interrupts
-	WDOG1_IRQ  = 32 + 80
-	WDOG2_IRQ  = 32 + 81
-	WDOG3_IRQ  = 32 + 11
 )
 
 // Peripheral instances

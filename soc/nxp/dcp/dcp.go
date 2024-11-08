@@ -30,9 +30,10 @@ import (
 
 // DCP registers
 const (
-	DCP_CTRL     = 0x00
-	CTRL_SFTRST  = 31
-	CTRL_CLKGATE = 30
+	DCP_CTRL                      = 0x00
+	CTRL_SFTRST                   = 31
+	CTRL_CLKGATE                  = 30
+	CTRL_CHANNEL_INTERRUPT_ENABLE = 0
 
 	DCP_STAT     = 0x10
 	DCP_STAT_CLR = 0x18
@@ -121,6 +122,8 @@ type DCP struct {
 	CCGR uint32
 	// Clock gate
 	CG int
+	// Interrupt ID
+	IRQ int
 
 	// DeriveKeyMemory represents the DMA memory region used for exchanging DCP
 	// derived keys when the derivation index points to an internal DCP key RAM
@@ -132,6 +135,9 @@ type DCP struct {
 	// The DeriveKey() function uses DeriveKeyMemory only if the default
 	// DMA region start does not overlap with it.
 	DeriveKeyMemory *dma.Region
+
+	// command completion signal
+	irq chan bool
 
 	// control registers
 	ctrl        uint32
@@ -202,8 +208,14 @@ func (hw *DCP) cmd(ptr uint, count int) (err error) {
 	reg.Write(hw.ch0cmdptr, uint32(ptr))
 	// activate channel
 	reg.SetN(hw.ch0sema, 0, 0xff, uint32(count))
+
 	// wait for completion
-	reg.Wait(hw.stat, DCP_STAT_IRQ, DCP_CHANNEL_0, 1)
+	if hw.irq != nil {
+		<-hw.irq
+	} else {
+		reg.Wait(hw.stat, DCP_STAT_IRQ, DCP_CHANNEL_0, 1)
+	}
+
 	// clear interrupt register
 	reg.Set(hw.stat_clr, DCP_CHANNEL_0)
 
@@ -217,4 +229,16 @@ func (hw *DCP) cmd(ptr uint, count int) (err error) {
 	}
 
 	return
+}
+
+// EnableInterrupt enables interrupt generation on command completion, when
+// enabled ServiceInterrupt() is required to finalize command processing.
+func (hw *DCP) EnableInterrupt() {
+	hw.irq = make(chan bool)
+	reg.SetN(hw.ctrl, CTRL_CHANNEL_INTERRUPT_ENABLE, 0xf, DCP_CHANNEL_0)
+}
+
+// ServiceInterrupt signals completion to pending commands.
+func (hw *DCP) ServiceInterrupt() {
+	hw.irq <- true
 }

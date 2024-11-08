@@ -347,15 +347,14 @@ func (hw *USB) transfer(n int, dir int, buf []byte) (out []byte, err error) {
 	// wait for priming completion
 	reg.Wait(hw.prime, pos, 1, 0)
 
+	// wait for completion
 	if hw.event != nil && n != 0 {
-		// wait for completion (event)
 		for reg.Get(hw.complete, pos, 1) != 1 {
 			hw.event.L.Lock()
 			hw.event.Wait()
 			hw.event.L.Unlock()
 		}
 	} else {
-		// wait for completion (poll)
 		reg.WaitSignal(hw.exit, hw.complete, pos, 1, 1)
 	}
 

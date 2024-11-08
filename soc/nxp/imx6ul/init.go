@@ -115,6 +115,7 @@ func init() {
 			Base:            DCP_BASE,
 			CCGR:            CCM_CCGR0,
 			CG:              CCGRx_CG5,
+			IRQ:             DCP_IRQ,
 			DeriveKeyMemory: dma.Default(),
 		}
 
