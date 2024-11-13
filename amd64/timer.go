@@ -1,4 +1,4 @@
-// QEMU sifive_u support for tamago/riscv64
+// x86-64 processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,17 +7,17 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-//go:build !linkprintk
-
-package sifive_u
+package amd64
 
 import (
 	_ "unsafe"
-
-	"github.com/usbarmory/tamago/soc/sifive/fu540"
 )
 
-//go:linkname printk runtime.printk
-func printk(c byte) {
-	fu540.UART0.Tx(c)
+// defined in timer.s
+func read_tsc() int64
+
+//go:linkname nanotime1 runtime.nanotime1
+func nanotime1() int64 {
+	return read_tsc()
 }
+

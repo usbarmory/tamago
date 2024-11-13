@@ -1,4 +1,3 @@
-// NXP i.MX6UL initialization
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,13 +6,17 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-//go:build !linkramstart
+// func Move(dst uint32, src uint32)
+TEXT ·Move(SB),$0-8
+	MOVW	dst+0(FP), AX
+	MOVW	src+4(FP), BX
 
-package imx6ul
+	// copy src to dst
+	MOVW	(AX), CX
+	MOVW	CX, (AX)
 
-import (
-	_ "unsafe"
-)
+	// zero out src
+	MOVW	$0, CX
+	MOVW	CX, (BX)
 
-//go:linkname ramStart runtime.ramStart
-var ramStart uint32 = MMDC_BASE
+	RET

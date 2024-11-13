@@ -1,4 +1,4 @@
-// QEMU sifive_u support for tamago/riscv64
+// QEMU microvm support for tamago/amd64
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -9,15 +9,13 @@
 
 //go:build !linkprintk
 
-package sifive_u
+package microvm
 
 import (
 	_ "unsafe"
-
-	"github.com/usbarmory/tamago/soc/sifive/fu540"
 )
 
 //go:linkname printk runtime.printk
 func printk(c byte) {
-	fu540.UART0.Tx(c)
+	// FIXME: implement COM1
 }

@@ -1,4 +1,4 @@
-// NXP i.MX6UL initialization
+// x86-64 processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,13 +7,11 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-//go:build !linkramstart
-
-package imx6ul
-
-import (
-	_ "unsafe"
-)
-
-//go:linkname ramStart runtime.ramStart
-var ramStart uint32 = MMDC_BASE
+// func read_tsc() int64
+TEXT ·read_tsc(SB),$0-8
+	// rdtsc
+	BYTE	$0x0f
+	BYTE	$0x31
+	MOVL	AX, ret+0(FP)
+	MOVL	DX, ret+4(FP)
+	RET

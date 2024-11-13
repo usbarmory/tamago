@@ -8,7 +8,6 @@
 // that can be found in the LICENSE file.
 
 //go:build !linkprintk
-// +build !linkprintk
 
 package mk2
 

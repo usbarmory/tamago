@@ -30,8 +30,8 @@ type board struct{}
 // Board provides access to the capabilities of the Pi2.
 var Board pi.Board = &board{}
 
-// Init takes care of the lower level SoC initialization triggered early in
-// runtime setup.
+// Init takes care of the lower level initialization triggered early in runtime
+// setup.
 //
 //go:linkname Init runtime.hwinit
 func Init() {

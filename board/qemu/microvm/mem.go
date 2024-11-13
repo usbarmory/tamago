@@ -1,4 +1,4 @@
-// MCIMX6ULL-EVK support for tamago/arm
+// QEMU microvm support for tamago/amd64
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -9,7 +9,7 @@
 
 //go:build !linkramsize
 
-package mx6ullevk
+package microvm
 
 import (
 	_ "unsafe"
@@ -20,7 +20,5 @@ import (
 // This is useful when large DMA descriptors are required to re-initialize
 // tamago `mem` package in external RAM.
 
-// The MCIMX6ULL-EVK features a single 512MB DDR3 RAM module.
-
 //go:linkname ramSize runtime.ramSize
-var ramSize uint32 = 0x20000000 // 512 MB
+var ramSize uint64 = 0x20000000 // 512 MB

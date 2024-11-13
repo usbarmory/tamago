@@ -8,7 +8,6 @@
 // that can be found in the LICENSE file.
 
 //go:build !linkramsize
-// +build !linkramsize
 
 package sifive_u
 

@@ -38,7 +38,7 @@ const (
 	refFreq int64 = 1000000000
 )
 
-// defined in timer_arm.s
+// defined in timer.s
 func read_gtc() int64
 func read_cntfrq() int32
 func write_cntfrq(freq int32)

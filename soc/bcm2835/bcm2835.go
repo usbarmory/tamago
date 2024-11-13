@@ -42,8 +42,8 @@ func nanotime1() int64 {
 	return read_systimer()*ARM.TimerMultiplier + ARM.TimerOffset
 }
 
-// Init takes care of the lower level SoC initialization triggered early in
-// runtime setup (e.g. runtime.hwinit).
+// Init takes care of the lower level initialization triggered early in runtime
+// setup (e.g. runtime.hwinit).
 func Init(base uint32) {
 	peripheralBase = base
 
