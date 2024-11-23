@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for ARM/RISC-V SoCs
-==========================================
+TamaGo - bare metal Go for AMD64/ARM/RISC-V processors
+======================================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -12,7 +12,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
+applications on bare metal AMD64/ARM/RISC-V processors.
 
 The projects spawns from the desire of reducing the attack surface of embedded
 systems firmware by removing any runtime dependency on C code and Operating
@@ -28,15 +28,17 @@ The TamaGo framework consists of the following components:
 
  - Go packages for board support.
 
-The modifications are meant to be minimal for both the Go distribution (< ~4000
-LOC changed) and the target application (one import required), with a clean
-separation from other architectures.
+The modifications are minimal against the original Go compiler, runtime and the
+target application (one import required), with a clean separation from other
+architectures.
 
 Strong emphasis is placed on code re-use from existing architectures already
 included within the standard Go runtime, see
 [Internals](https://github.com/usbarmory/tamago/wiki/Internals).
 
-Both aspects are motivated by the desire of providing a framework that allows
+The modifications maintain [complete standard library support](https://github.com/usbarmory/tamago/wiki/Compatibility).
+
+Such aspects are motivated by the desire of providing a framework that allows
 secure Go firmware development on embedded systems.
 
 Current release level
@@ -44,9 +46,9 @@ Current release level
 [![GitHub release](https://img.shields.io/github/v/release/usbarmory/tamago-go)](https://github.com/usbarmory/tamago-go/tree/latest) [![Build Status](https://github.com/usbarmory/tamago-go/workflows/Build%20Go%20compiler/badge.svg)](https://github.com/usbarmory/tamago-go/actions)
 
 The current release for the [TamaGo modified Go distribution](https://github.com/usbarmory/tamago-go) is
-[tamago1.23.3](https://github.com/usbarmory/tamago-go/tree/tamago1.23.3),
-which [adds](https://github.com/golang/go/compare/go1.23.3...usbarmory:tamago1.23.3)
-`GOOS=tamago` support to go1.23.3.
+[tamago1.23.4](https://github.com/usbarmory/tamago-go/tree/tamago1.23.4),
+which [adds](https://github.com/golang/go/compare/go1.23.4...usbarmory:tamago1.23.4)
+`GOOS=tamago` support to go1.23.4.
 
 Binary releases for amd64 and armv7l Linux hosts [are available](https://github.com/usbarmory/tamago-go/releases/latest).
 
@@ -59,9 +61,8 @@ The main documentation can be found on the
 The package API documentation can be found on
 [pkg.go.dev](https://pkg.go.dev/github.com/usbarmory/tamago).
 
-
-Supported ARM hardware 
-=======================
+Supported ARM targets
+=====================
 
 The following table summarizes currently supported ARM SoCs and boards
 (`GOOS=tamago GOARCH=arm`).
@@ -76,8 +77,8 @@ The following table summarizes currently supported ARM SoCs and boards
 | Broadcom BCM2835      | [Raspberry Pi 1 Model B+](https://www.raspberrypi.org/products/raspberry-pi-1-model-b-plus/)                                                                                         | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)   | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
 | Broadcom BCM2836      | [Raspberry Pi 2 Model B](https://www.raspberrypi.org/products/raspberry-pi-2-model-b)                                                                                                | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)   | [pi/pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
 
-Supported RISC-V hardware 
-==========================
+Supported RISC-V targets
+========================
 
 The following table summarizes currently supported RISC-V SoCs and boards
 (`GOOS=tamago GOARCH=riscv64`).
@@ -85,6 +86,14 @@ The following table summarizes currently supported RISC-V SoCs and boards
 | SoC          | Board                                                                        | SoC package                                                               | Board package                                                                        |
 |--------------|------------------------------------------------------------------------------|---------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
 | SiFive FU540 | [QEMU sifive_u](https://www.qemu.org/docs/master/system/riscv/sifive_u.html) | [fu540](https://github.com/usbarmory/tamago/tree/master/soc/sifive/fu540) | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u) |
+
+Supported AMD64 targets
+=======================
+
+The support for an actual target is work-in-progress, the
+[testing environment](https://github.com/usbarmory/tamago-go/blob/tamago1.23.4/src/testing/testing_tamago.go)
+is supported and all Go standard library packages are supported and
+[tested using original distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility).
 
 Compiling
 =========
@@ -166,8 +175,10 @@ Additional resources
 
 * [Package API](https://pkg.go.dev/github.com/usbarmory/tamago)
 * [Internals](https://github.com/usbarmory/tamago/wiki/Internals)
+* [Compatibility](https://github.com/usbarmory/tamago/wiki/Compatibility)
 * [FAQ](https://github.com/usbarmory/tamago/wiki/Frequently-Asked-Questions-(FAQ))
 * [TamaGo presentation](https://github.com/abarisani/abarisani.github.io/tree/master/research/tamago)
+* [ArmoredWitness presentation](https://github.com/abarisani/abarisani.github.io/tree/master/research/witness)
 
 Maintainers
 ===========
