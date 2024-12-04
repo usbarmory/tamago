@@ -12,7 +12,7 @@
 //   - IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package wdog
 

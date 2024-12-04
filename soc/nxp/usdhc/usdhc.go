@@ -50,7 +50,7 @@
 //   - SD    DDR50:  45MB/s -  45MHz (instead of  50MB/s -  50MHz), unsupported
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package usdhc
 

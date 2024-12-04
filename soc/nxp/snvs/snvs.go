@@ -13,7 +13,7 @@
 //   - IMX6ULLSRM - i.MX 6ULL Applications Processor Security Reference Manual - Rev 0 2016/09
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package snvs
 

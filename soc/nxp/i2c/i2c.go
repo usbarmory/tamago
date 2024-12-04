@@ -13,7 +13,7 @@
 //   - IMX6FG    - i.MX 6 Series Firmware Guide                      - Rev 0 2012/11
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package i2c
 
