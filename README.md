@@ -115,7 +115,7 @@ The following table summarizes currently available userspace support:
 
 | Operating System                             | `GOARCH`          | Runtime packages                                                                             |
 |----------------------------------------------|-------------------|----------------------------------------------------------------------------------------------|
-| [Linux](https://www.kernel.org/)             | amd64,arm,riscv64 | [linux](https://github.com/usbarmory/tamago/tree/development/user/linux)                     |
+| [Linux](https://www.kernel.org/)             | amd64,arm,riscv64 | [linux](https://github.com/usbarmory/tamago/tree/master/user/linux)                          |
 | [Linux](https://www.kernel.org/)             | amd64,arm,riscv64 | [testing](https://github.com/usbarmory/tamago-go/blob/latest/src/testing/testing_tamago.go)¹ |
 | [GoTEE](https://github.com/usbarmory/GoTEE/) |       arm,riscv64 | [applet](https://pkg.go.dev/github.com/usbarmory/GoTEE/applet)                               |
 
