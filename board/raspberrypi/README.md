@@ -89,7 +89,7 @@ ensuring that the required SoC and board packages are available in `GOPATH`:
 
 ```sh
 GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=5 GOARCH=arm \
-  ${TAMAGO} build -ldflags "-T 0x00010000 -E _rt0_arm_tamago -R 0x1000"
+  ${TAMAGO} build -ldflags "-T 0x00010000 -R 0x1000"
 ```
 
 GOARM & Examples

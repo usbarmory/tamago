@@ -95,6 +95,32 @@ The support for an actual target is work-in-progress, the
 is supported and all Go standard library packages are supported and
 [tested using original distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility).
 
+Userspace targets
+=================
+
+The execution of programs compiled with `GOOS=tamago` can also take place in
+user space by importing any package that implements the required
+[runtime changes](https://github.com/usbarmory/tamago/wiki/Internals#go-runtime-changes)
+with OS supervision instead of bare metal drivers.
+
+Compiling and running Go programs in user space as `GOOS=tamago` provides the
+benefit of system call isolation as the executable cannot leverage on the Go
+runtime to directly access OS resources, this results in:
+
+  * isolation from OS file system, through in-memory emulated disk
+  * isolation from OS networking, see [net.SocketFunc](https://github.com/usbarmory/tamago-go/blob/latest/src/net/net_tamago.go)
+  * API for custom networking, rng, time handlers
+
+The following table summarizes currently available userspace support:
+
+| Operating System                             | `GOARCH`          | Runtime packages                                                                             |
+|----------------------------------------------|-------------------|----------------------------------------------------------------------------------------------|
+| [Linux](https://www.kernel.org/)             | amd64,arm,riscv64 | [linux](https://github.com/usbarmory/tamago/tree/master/user/linux)                          |
+| [Linux](https://www.kernel.org/)             | amd64,arm,riscv64 | [testing](https://github.com/usbarmory/tamago-go/blob/latest/src/testing/testing_tamago.go)¹ |
+| [GoTEE](https://github.com/usbarmory/GoTEE/) |       arm,riscv64 | [applet](https://pkg.go.dev/github.com/usbarmory/GoTEE/applet)                               |
+
+¹ Used to run [standard distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility)
+
 Compiling
 =========
 
@@ -123,12 +149,13 @@ with the addition of a few flags/variables:
 
 ```
 # Example for USB armory Mk II
-GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm \
-  ${TAMAGO} build -ldflags "-T 0x80010000 -E _rt0_arm_tamago -R 0x1000"
+GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
 
 # Example for QEMU RISC-V sifive_u
-GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARCH=riscv64 \
-  ${TAMAGO} build -ldflags "-T 0x80010000 -E _rt0_riscv64_tamago -R 0x1000"
+GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
+
+# Example for Linux userspace
+GOOS=tamago ${TAMAGO} build main.go
 ```
 
 See the respective board package README file for compilation information for
