@@ -75,7 +75,7 @@ ensuring that the required SoC and board packages are available in `GOPATH`:
 
 ```
 GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARCH=riscv64 \
-  ${TAMAGO} build -ldflags "-T 0x80010000 -E _rt0_riscv64_tamago -R 0x1000"
+  ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000"
 ```
 
 An example application, targeting the QEMU sifive_u platform,
