@@ -88,8 +88,7 @@ previous step, but with the addition of the following flags/variables and
 ensuring that the required SoC and board packages are available in `GOPATH`:
 
 ```sh
-GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=5 GOARCH=arm \
-  ${TAMAGO} build -ldflags "-T 0x00010000 -R 0x1000"
+GOOS=tamago GOARM=5 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x00010000 -R 0x1000" main.go
 ```
 
 GOARM & Examples
