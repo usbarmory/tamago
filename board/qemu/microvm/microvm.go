@@ -25,6 +25,4 @@ import (
 // setup.
 //
 //go:linkname Init runtime.hwinit
-func Init() {
-	// FIXME: TODO
-}
+func Init() {}

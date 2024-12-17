@@ -53,6 +53,7 @@ const (
 	DriverFailed       = 0x80
 )
 
+// Ring represents a VirtIO Virtual Queue buffer
 type Buffer struct {
 	Address uint64
 	Length  uint32
@@ -60,6 +61,7 @@ type Buffer struct {
 	Next    uint16
 }
 
+// Available represents a VirtIO Virtual Queue Available ring buffer
 type Available struct {
 	Flags      uint16
 	Index      uint16
@@ -67,11 +69,13 @@ type Available struct {
 	EventIndex uint16
 }
 
+// Ring represents a VirtIO Virtual Queue buffer index
 type Ring struct {
 	Index  uint32
 	Length uint32
 }
 
+// Used represents a VirtIO Virtual Queue Used ring buffer
 type Used struct {
 	Flags  uint16
 	Index  uint16
@@ -82,6 +86,7 @@ type Used struct {
 	_ [2]byte
 }
 
+// VirtualQueue represents a VirtIO Virtual Queue Descriptor
 type VirtualQueue struct {
 	Buffers   []Buffer
 	Available Available
