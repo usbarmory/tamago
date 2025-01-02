@@ -54,16 +54,16 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 
 	// Enter long mode
 
-	MOVL	$(1<<7 | 1<<5), AX	// set PGE, PAE
+	MOVL	$(1<<7 | 1<<5), AX	// set CR4.(PGE|PAE)
 	MOVL	AX, CR4
 
 	MOVL	$MSR_EFER, CX
 	RDMSR
-	ORL	$(1<<8), AX		// set LME
+	ORL	$(1<<8), AX		// set MSR_EFER.LME
 	WRMSR
 
 	MOVL	CR0, BX
-	ORL	$(1<<31 | 1<<0), BX	// set PG, PE
+	ORL	$(1<<31 | 1<<0), BX	// set CR0.(PG|PE)
 	MOVL	BX, CR0
 
 	// Set Global Descriptor Table
@@ -75,7 +75,7 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	LGDT	(AX)
 
 	CALL	·getPC<>(SB)
-	MOVL	$·flush<>(SB), BX	// 32-bit mode: only PC offset is copied
+	MOVL	$·start<>(SB), BX	// 32-bit mode: only PC offset is copied
 	ADDL	$6, AX
 	ADDL	BX, AX
 
@@ -83,7 +83,18 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	PUSHQ	AX
 	RETFQ
 
-TEXT ·flush<>(SB),NOSPLIT|NOFRAME,$0
+TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
+	// Enable SSE
+
+	MOVL	CR0, BX
+	ANDL	$~(1<<2), BX		// clear CR0.EM
+	ORL	$(1<<1), BX		//   set CR0.MP
+	MOVL	BX, CR0
+
+	MOVL	CR4, BX
+	ORL	$(1<<10 | 1<<9), BX	// set CR4.(OSXMMEXCPT|OSFXSR)
+	MOVL	BX, CR4
+
 	JMP	_rt0_tamago_start(SB)
 
 TEXT ·getPC<>(SB),NOSPLIT|NOFRAME,$0
