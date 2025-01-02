@@ -13,9 +13,12 @@ package microvm
 
 import (
 	_ "unsafe"
+	"github.com/usbarmory/tamago/amd64"
 )
+
+const COM1 = 0x3f8
 
 //go:linkname printk runtime.printk
 func printk(c byte) {
-	// FIXME: implement COM1
+	amd64.Out(COM1, uint32(c))
 }
