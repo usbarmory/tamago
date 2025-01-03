@@ -62,9 +62,9 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	ORL	$(1<<8), AX		// set MSR_EFER.LME
 	WRMSR
 
-	MOVL	CR0, BX
-	ORL	$(1<<31 | 1<<0), BX	// set CR0.(PG|PE)
-	MOVL	BX, CR0
+	MOVL	CR0, AX
+	ORL	$(1<<31 | 1<<0), AX	// set CR0.(PG|PE)
+	MOVL	AX, CR0
 
 	// Set Global Descriptor Table
 
@@ -84,15 +84,15 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	RETFQ
 
 TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
-	// Enable SSE
-
-	MOVL	CR0, BX
-	ANDL	$~(1<<2), BX		// clear CR0.EM
-	ORL	$(1<<1), BX		//   set CR0.MP
-	MOVL	BX, CR0
-
+	MOVL	CR0, AX
 	MOVL	CR4, BX
-	ORL	$(1<<10 | 1<<9), BX	// set CR4.(OSXMMEXCPT|OSFXSR)
+
+	// Enable SSE
+	ANDL	$~(1<<2), AX		// clear CR0.EM
+	ORL	$(1<<1), AX		//   set CR0.MP
+	ORL	$(1<<10 | 1<<9), BX	//   set CR4.(OSXMMEXCPT|OSFXSR)
+
+	MOVL	AX, CR0
 	MOVL	BX, CR4
 
 	JMP	_rt0_tamago_start(SB)

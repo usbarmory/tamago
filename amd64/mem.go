@@ -1,4 +1,4 @@
-// x86-64 processor initialization
+// x86-64 processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
