@@ -18,11 +18,20 @@ package microvm
 import (
 	_ "unsafe"
 
-	_ "github.com/usbarmory/tamago/amd64"
+	"github.com/usbarmory/tamago/amd64"
+)
+
+// Peripheral instances
+var (
+	// AMD64 core
+	AMD64 = &amd64.CPU{}
 )
 
 // Init takes care of the lower level initialization triggered early in runtime
 // setup.
 //
 //go:linkname Init runtime.hwinit
-func Init() {}
+func Init() {
+	// initialize CPU
+	AMD64.Init()
+}

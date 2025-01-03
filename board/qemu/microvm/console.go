@@ -13,6 +13,7 @@ package microvm
 
 import (
 	_ "unsafe"
+
 	"github.com/usbarmory/tamago/amd64"
 )
 
