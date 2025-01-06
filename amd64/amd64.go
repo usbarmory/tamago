@@ -17,7 +17,13 @@
 // https://github.com/usbarmory/tamago.
 package amd64
 
-import "runtime"
+import (
+	"runtime"
+	_ "unsafe"
+)
+
+//go:linkname ramStackOffset runtime.ramStackOffset
+var ramStackOffset uint64 = 0x100000 // 1 MB
 
 // CPU instance
 type CPU struct{}
