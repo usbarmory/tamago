@@ -23,6 +23,7 @@ import "runtime"
 type CPU struct{}
 
 // defined in amd64.s
+func Fault()
 func halt(int32)
 
 // Init performs initialization of an AMD64 core instance.

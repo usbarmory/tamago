@@ -16,6 +16,7 @@
 package microvm
 
 import (
+	"runtime"
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/amd64"
@@ -45,4 +46,10 @@ func Init() {
 
 	// initialize serial console
 	UART0.Init()
+
+	runtime.Exit = func(_ int32) {
+		// On microvm the recommended way to trigger a guest-initiated
+		// shut down is by generating a triple-fault.
+		amd64.Fault()
+	}
 }
