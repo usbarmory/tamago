@@ -90,10 +90,9 @@ The following table summarizes currently supported RISC-V SoCs and boards
 Supported AMD64 targets
 =======================
 
-The support for an actual target is work-in-progress, the
-[testing environment](https://github.com/usbarmory/tamago-go/blob/tamago1.23.4/src/testing/testing_tamago.go)
-is supported and all Go standard library packages are supported and
-[tested using original distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility).
+| CPU              | Board                                                                | CPU package                                                    | Board package                                                                      |
+|------------------|----------------------------------------------------------------------|----------------------------------------------------------------|------------------------------------------------------------------------------------|
+| AMD/Intel 64-bit | [microvm](https://www.qemu.org/docs/master/system/i386/microvm.html) | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm) |
 
 Userspace targets
 =================

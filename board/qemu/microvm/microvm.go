@@ -21,10 +21,18 @@ import (
 	"github.com/usbarmory/tamago/amd64"
 )
 
+const COM1 = 0x3f8
+
 // Peripheral instances
 var (
 	// AMD64 core
 	AMD64 = &amd64.CPU{}
+
+	// legacy serial console
+	UART0 = &UART{
+		Index: 1,
+		Base:  COM1,
+	}
 )
 
 // Init takes care of the lower level initialization triggered early in runtime
@@ -34,4 +42,7 @@ var (
 func Init() {
 	// initialize CPU
 	AMD64.Init()
+
+	// initialize serial console
+	UART0.Init()
 }

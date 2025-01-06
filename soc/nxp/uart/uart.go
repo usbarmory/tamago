@@ -178,14 +178,6 @@ func (hw *UART) Init() {
 	hw.setup()
 }
 
-func (hw *UART) txFull() bool {
-	return reg.Get(hw.uts, UTS_TXFULL, 1) == 1
-}
-
-func (hw *UART) rxReady() bool {
-	return reg.Get(hw.usr2, USR2_RDR, 1) == 1
-}
-
 func (hw *UART) setup() {
 	// disable UART
 	reg.Write(hw.ucr1, 0)
@@ -289,15 +281,16 @@ func (hw *UART) Disable() {
 
 // Tx transmits a single character to the serial port.
 func (hw *UART) Tx(c byte) {
-	for hw.txFull() {
+	for reg.Get(hw.uts, UTS_TXFULL, 1) == 1 {
 		// wait for TX FIFO to have room for a character
 	}
+
 	reg.Write(hw.utxd, uint32(c))
 }
 
 // Rx receives a single character from the serial port.
 func (hw *UART) Rx() (c byte, valid bool) {
-	if !hw.rxReady() {
+	if reg.Get(hw.usr2, USR2_RDR, 1) != 1 {
 		return
 	}
 
