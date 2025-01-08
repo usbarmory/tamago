@@ -26,13 +26,28 @@ import (
 var ramStackOffset uint64 = 0x100000 // 1 MB
 
 // CPU instance
-type CPU struct{}
+type CPU struct {
+	// Timer multiplier
+	TimerMultiplier float64
+	// Timer offset in nanoseconds
+	TimerOffset int64
+	// Timer function
+	TimerFn func() int64
+}
 
 // defined in amd64.s
-func Fault()
 func halt(int32)
+// Fault generates a triple fault.
+func Fault()
 
 // Init performs initialization of an AMD64 core instance.
 func (cpu *CPU) Init() {
 	runtime.Exit = halt
+
+	cpu.initTimers()
+}
+
+// Name returns the CPU identifier.
+func (cpu *CPU) Name() string {
+	return runtime.CPU()
 }

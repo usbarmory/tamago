@@ -41,18 +41,18 @@ type CPU struct {
 	jazelle bool
 	thumbee bool
 
-	// extensions
+	// features
 	programmersModel bool
 	security         bool
 	mProfileModel    bool
 	virtualization   bool
 	genericTimer     bool
 
-	// timer multiplier
+	// Timer multiplier
 	TimerMultiplier int64
-	// timer offset in nanoseconds
+	// Timer offset in nanoseconds
 	TimerOffset int64
-	// timer function
+	// Timer function
 	TimerFn func() int64
 
 	// GIC Distributor base address

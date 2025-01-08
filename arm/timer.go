@@ -91,7 +91,7 @@ func (cpu *CPU) SetTimer(t int64) {
 		return
 	}
 
-	cpu.TimerOffset = t - int64(cpu.TimerFn()*cpu.TimerMultiplier)
+	cpu.TimerOffset = t - cpu.TimerFn()*cpu.TimerMultiplier
 }
 
 // SetDownCounter sets a physical countdown timer.

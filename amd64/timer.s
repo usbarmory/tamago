@@ -9,9 +9,7 @@
 
 // func read_tsc() int64
 TEXT ·read_tsc(SB),$0-8
-	// rdtsc
-	BYTE	$0x0f
-	BYTE	$0x31
+	RDTSCP
 	MOVL	AX, ret+0(FP)
 	MOVL	DX, ret+4(FP)
 	RET
