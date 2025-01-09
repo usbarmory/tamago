@@ -9,19 +9,17 @@
 // func In8(port uint16) (val uint8)
 TEXT ·In8(SB),$0-3
 	MOVW	port+0(FP), DX
-	// in ax, dx
-	BYTE	$0x66
-	BYTE	$0xed
-	MOVB	AX, ret+8(FP)
+	// in al, dx
+	BYTE	$0xec
+	MOVB	AL, ret+8(FP)
 	RET
 
 // func Out8(port uint16, val uint8)
 TEXT ·Out8(SB),$0-3
 	MOVW	port+0(FP), DX
-	MOVB	val+2(FP), AX
-	// out dx, ax
-	BYTE	$0x66
-	BYTE	$0xef
+	MOVB	val+2(FP), AL
+	// out dx, al
+	BYTE	$0xee
 	RET
 
 // func In32(port uint32) (val uint32)

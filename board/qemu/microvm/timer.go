@@ -26,7 +26,7 @@ type pvClockTimeInfo struct {
 	Multiplier uint32
 	Shift      int8
 	Flags      uint8
-	_          uint16
+	_          [2]uint8
 }
 
 //go:linkname nanotime1 runtime.nanotime1
@@ -79,6 +79,8 @@ func kvmClock() int64 {
 	return int64(r.Uint64() + timeInfo.SystemTime)
 }
 
+// As nanotime1() cannot malloc the sync needs to update asynchronously (or be
+// moved to Go assembly).
 func kvmClockSync() {
 	var version uint32
 
@@ -100,10 +102,15 @@ func init() {
 	features := AMD64.Features()
 
 	switch {
-	case features.InvariantTSC:
-		return
+	case features.InvariantTSC && !features.KVM:
+		// no action required
+	case features.InvariantTSC && features.KVM:
+		initTimeInfo(features.KVMClockMSR)
+		// sync to kvmclock once
+		AMD64.SetTimer(kvmClock())
 	case features.KVM && features.KVMClockMSR > 0:
 		initTimeInfo(features.KVMClockMSR)
+		// sync to kvmclock every TimeInfoUpdate
 		go kvmClockSync()
 	default:
 		panic("could not set system timer")

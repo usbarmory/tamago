@@ -32,6 +32,9 @@ var (
 	// AMD64 core
 	AMD64 = &amd64.CPU{}
 
+	// Real-Time Clock
+	RTC0 = &RTC{}
+
 	// Serial port
 	UART0 = &UART{
 		Index: 1,
