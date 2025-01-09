@@ -41,8 +41,8 @@ type RTC struct {
 	Location *time.Location
 }
 
-func (rtc *RTC) read(addr uint8) int {
-	reg.Out8(CMOS_RTC_OUT, addr)
+func (rtc *RTC) read(addr int) int {
+	reg.Out8(CMOS_RTC_OUT, uint8(addr))
 	return int(reg.In8(CMOS_RTC_IN))
 }
 

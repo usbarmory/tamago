@@ -13,7 +13,6 @@ import (
 	"encoding/binary"
 	"math/big"
 	"time"
-	_ "unsafe"
 
 	"github.com/usbarmory/tamago/dma"
 )
@@ -29,19 +28,15 @@ type pvClockTimeInfo struct {
 	_          [2]uint8
 }
 
-//go:linkname nanotime1 runtime.nanotime1
-func nanotime1() int64 {
-	return int64(float64(AMD64.TimerFn())*AMD64.TimerMultiplier) + AMD64.TimerOffset
-}
-
 // defined in timer.s
 func pvclock(msr uint32) (ptr uint32)
 
 var (
 	// TimeInfoUpdate is the kvmclock sync interval
 	TimeInfoUpdate time.Duration = 1 * time.Second
+
+	// host shared DMA buffer
 	timeInfoBuffer []byte
-	timeInfo       *pvClockTimeInfo
 )
 
 func initTimeInfo(msr uint32) {
@@ -55,12 +50,14 @@ func initTimeInfo(msr uint32) {
 	}
 
 	_, timeInfoBuffer = r.Reserve(size, 0)
-	timeInfo = &pvClockTimeInfo{}
 }
 
-func kvmClock() int64 {
-	binary.Decode(timeInfoBuffer, binary.LittleEndian, timeInfo)
+func kvmClock(timeInfo *pvClockTimeInfo) int64 {
+	if timeInfo == nil {
+		timeInfo = &pvClockTimeInfo{}
+	}
 
+	binary.Decode(timeInfoBuffer, binary.LittleEndian, timeInfo)
 	delta := AMD64.TimerFn() - timeInfo.Timestamp
 
 	if timeInfo.Shift < 0 {
@@ -79,10 +76,9 @@ func kvmClock() int64 {
 	return int64(r.Uint64() + timeInfo.SystemTime)
 }
 
-// As nanotime1() cannot malloc the sync needs to update asynchronously (or be
-// moved to Go assembly).
 func kvmClockSync() {
-	var version uint32
+	version := uint32(0)
+	timeInfo := &pvClockTimeInfo{}
 
 	for {
 		time.Sleep(TimeInfoUpdate)
@@ -94,7 +90,7 @@ func kvmClockSync() {
 		}
 
 		version = timeInfo.Version
-		AMD64.SetTimer(kvmClock())
+		AMD64.SetTimer(kvmClock(timeInfo))
 	}
 }
 
@@ -103,14 +99,21 @@ func init() {
 
 	switch {
 	case features.InvariantTSC && !features.KVM:
-		// no action required
-	case features.InvariantTSC && features.KVM:
+		// no action required as TSC is reliable
+	case features.InvariantTSC && features.KVM && features.KVMClockMSR > 0:
+		// no action required as TSC is reliable but we
+		// opportunistically adjust once with kvmclock
 		initTimeInfo(features.KVMClockMSR)
-		// sync to kvmclock once
-		AMD64.SetTimer(kvmClock())
+		AMD64.SetTimer(kvmClock(nil))
 	case features.KVM && features.KVMClockMSR > 0:
+		// TSC must be adjusted as it is not reliable through state
+		// changes.
+		//
+		// As nanotime1() cannot malloc we cannot override it rather we
+		// adjust asynchronously with kvmclock every TimeInfoUpdate
+		// interval. If ever required kvmClockSync() can be moved to Go
+		// assembly.
 		initTimeInfo(features.KVMClockMSR)
-		// sync to kvmclock every TimeInfoUpdate
 		go kvmClockSync()
 	default:
 		panic("could not set system timer")

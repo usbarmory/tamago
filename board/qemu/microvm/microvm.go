@@ -42,6 +42,11 @@ var (
 	}
 )
 
+//go:linkname nanotime1 runtime.nanotime1
+func nanotime1() int64 {
+	return int64(float64(AMD64.TimerFn())*AMD64.TimerMultiplier) + AMD64.TimerOffset
+}
+
 // Init takes care of the lower level initialization triggered early in runtime
 // setup.
 //
