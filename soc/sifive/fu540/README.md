@@ -21,7 +21,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
+applications on bare metal AMD64/ARM/RISC-V processors.
 
 The [fu540](https://github.com/usbarmory/tamago/tree/master/soc/sifive/fu540) package
 provides support for the SiFive FU540 System-on-Chip (SoCs).

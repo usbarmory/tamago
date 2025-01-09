@@ -14,7 +14,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
+applications on bare metal AMD64/ARM/RISC-V processors.
 
 The [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)
 package provides support for the Broadcom BCM2835 series of SoC.
