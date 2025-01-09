@@ -9,32 +9,28 @@
 
 package amd64
 
-import (
-	"github.com/usbarmory/tamago/bits"
-)
-
 const (
 	// nanoseconds
 	refFreq uint32 = 1000000000
 )
 
 // defined in timer.s
-func read_tsc() int64
+func read_tsc() uint64
 
 func (cpu *CPU) initTimers() {
 	var timerFreq uint32
 
-	_, _, _, apmFeatures := cpuid(CPUID_APM, 0x0)
-
-	if !bits.IsSet(&apmFeatures, APM_TSC_INVARIANT) {
-		panic("TSC is not invariant")
-	}
-
 	if denominator, numerator, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0x00); nominalFreq != 0 {
 		timerFreq = (numerator * nominalFreq) / denominator
-	} else if khz, _, _, _ := cpuid(CPUID_HYP_TSC_KHZ, 0x00); khz != 0 {
-		timerFreq = khz * 1000
-	} else {
+	}
+
+	if cpu.kvm {
+		if khz, _, _, _ := cpuid(KVM_CPUID_TSC_KHZ, 0x00); khz != 0 {
+			timerFreq = khz * 1000
+		}
+	}
+
+	if timerFreq == 0 {
 		panic("TSC frequency is unavailable")
 	}
 

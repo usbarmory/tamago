@@ -1,4 +1,4 @@
-// QEMU microvm support for tamago/amd64
+// microvm support for tamago/amd64
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -22,14 +22,17 @@ import (
 	"github.com/usbarmory/tamago/amd64"
 )
 
-const COM1 = 0x3f8
+// Peripheral registers
+const (
+	COM1 = 0x3f8
+)
 
 // Peripheral instances
 var (
 	// AMD64 core
 	AMD64 = &amd64.CPU{}
 
-	// legacy serial console
+	// Serial port
 	UART0 = &UART{
 		Index: 1,
 		Base:  COM1,
@@ -52,9 +55,4 @@ func Init() {
 		// shut down is by generating a triple-fault.
 		amd64.Fault()
 	}
-}
-
-//go:linkname nanotime1 runtime.nanotime1
-func nanotime1() int64 {
-	return int64(float64(AMD64.TimerFn())*AMD64.TimerMultiplier) + AMD64.TimerOffset
 }

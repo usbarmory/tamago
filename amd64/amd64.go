@@ -27,16 +27,22 @@ var ramStackOffset uint64 = 0x100000 // 1 MB
 
 // CPU instance
 type CPU struct {
+	// features
+	invariant bool
+	kvm       bool
+	kvmclock  uint32
+
 	// Timer multiplier
 	TimerMultiplier float64
 	// Timer offset in nanoseconds
 	TimerOffset int64
 	// Timer function
-	TimerFn func() int64
+	TimerFn func() uint64
 }
 
 // defined in amd64.s
 func halt(int32)
+
 // Fault generates a triple fault.
 func Fault()
 
@@ -44,6 +50,7 @@ func Fault()
 func (cpu *CPU) Init() {
 	runtime.Exit = halt
 
+	cpu.initFeatures()
 	cpu.initTimers()
 }
 
