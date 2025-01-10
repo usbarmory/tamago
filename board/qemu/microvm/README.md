@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for RISC-V SoCs - QEMU sifive_u support
-==============================================================
+TamaGo - bare metal Go for AMD64 CPUs - QEMU microvm support
+============================================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -23,9 +23,9 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal AMD64/ARM/RISC-V processors.
 
-The [sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u)
-package provides support for the [QEMU sifive_u](https://www.qemu.org/docs/master/system/riscv/sifive_u.html)
-emulated machine configured with a single U54 core.
+The [microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)
+package provides support for the [QEMU microvm](https://www.qemu.org/docs/master/system/i386/microvm.html)
+emulated machine configured with a single AMD64 core.
 
 Documentation
 =============
@@ -35,7 +35,8 @@ For more information about TamaGo see its
 [project wiki](https://github.com/usbarmory/tamago/wiki).
 
 For the underlying driver support for this board see package
-[fu540](https://github.com/usbarmory/tamago/tree/master/soc/sifive/fu540).
+[amd64](https://github.com/usbarmory/tamago/tree/master/amd64) and
+[microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm).
 
 The package API documentation can be found on
 [pkg.go.dev](https://pkg.go.dev/github.com/usbarmory/tamago).
@@ -43,9 +44,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC          | Board                                                                        | SoC package                                                               | Board package                                                                        |
-|--------------|------------------------------------------------------------------------------|---------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
-| SiFive FU540 | [QEMU sifive_u](https://www.qemu.org/docs/master/system/riscv/sifive_u.html) | [fu540](https://github.com/usbarmory/tamago/tree/master/soc/sifive/fu540) | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u) |
+| CPU              | Board                                                                | CPU package                                                    | Board package                                                                      |
+|------------------|----------------------------------------------------------------------|----------------------------------------------------------------|------------------------------------------------------------------------------------|
+| AMD/Intel 64-bit | [microvm](https://www.qemu.org/docs/master/system/i386/microvm.html) | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm) |
 
 Compiling
 =========
@@ -55,7 +56,7 @@ ensure that hardware initialization and runtime support take place:
 
 ```golang
 import (
-	_ "github.com/usbarmory/tamago/board/qemu/sifive_u"
+	_ "github.com/usbarmory/tamago/board/qemu/microvm"
 )
 ```
 
@@ -90,29 +91,20 @@ well as emulated execution.
 QEMU
 ----
 
-The target can be executed under emulation as follows:
-
 ```
-dtc -I dts -O dtb qemu-riscv64-sifive_u.dts -o qemu-riscv54-sifive_u.dtb
-
-qemu-system-riscv64 \
-	-machine sifive_u -m 512M \
-	-nographic -monitor none -serial stdio -net none \
-	-dtb qemu-riscv64-sifive_u.dtb \
-	-bios bios.bin
+qemu-system-x86_64 \
+	-machine microvm,x-option-roms=on,pit=off,pic=off,rtc=on \
+	-enable-kvm -cpu host,invtsc=on,kvmclock=on -no-reboot \
+	-m 1G -nographic -monitor none -serial stdio \
+	-kernel example
 ```
-
-At this time a bios is required to jump to the correct entry point of the ELF
-image, the [example application](https://github.com/usbarmory/tamago-example)
-includes a minimal bios which is configured and compiled for all riscv64 `qemu`
-targets.
 
 The emulated target can be debugged with GDB by adding the `-S -s` flags to the
 previous execution command, this will make qemu waiting for a GDB connection
 that can be launched as follows:
 
 ```
-riscv64-elf-gdb -ex "target remote 127.0.0.1:1234" example
+gdb -ex "target remote 127.0.0.1:1234" example
 ```
 
 Breakpoints can be set in the usual way:

@@ -145,7 +145,7 @@ The target can be executed under emulation as follows:
 ```
 qemu-system-arm \
 	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M \
-	-nographic -monitor none -serial null -serial stdio -net none \
+	-nographic -monitor none -serial null -serial stdio \
 	-kernel example -semihosting
 ```
 
