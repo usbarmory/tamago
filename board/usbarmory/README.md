@@ -52,7 +52,7 @@ Compiling
 =========
 
 Go applications are simply required to import, the relevant board package to
-ensure that hardware initialization and runtime support takes place:
+ensure that hardware initialization and runtime support take place:
 
 ```golang
 import (
