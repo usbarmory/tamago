@@ -24,7 +24,7 @@ TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal AMD64/ARM/RISC-V processors.
 
 The [sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u)
-package provides support for the [QEMU sifive_u](https://qemu.readthedocs.io/en/latest/system/riscv/sifive_u.html)
+package provides support for the [QEMU sifive_u](https://www.qemu.org/docs/master/system/riscv/sifive_u.html)
 emulated machine configured with a single U54 core.
 
 Documentation
