@@ -7,7 +7,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package amd64 provides support for RISC-V architecture specific operations.
+// Package amd64 provides support for AMD64 architecture specific operations.
 //
 // The following architectures/cores are supported/tested:
 //   - AMD64 (single-core)
