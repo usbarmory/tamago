@@ -109,10 +109,11 @@ func init() {
 		// TSC must be adjusted as it is not reliable through state
 		// changes.
 		//
-		// As nanotime1() cannot malloc we cannot override it rather we
-		// adjust asynchronously with kvmclock every TimeInfoUpdate
-		// interval. If ever required kvmClockSync() can be moved to Go
-		// assembly.
+		// As nanotime1() cannot malloc we cannot override it, rather
+		// we adjust asynchronously with kvmclock every TimeInfoUpdate
+		// interval.
+		//
+		// If ever required kvmClockSync() can be moved to Go assembly.
 		initTimeInfo(features.KVMClockMSR)
 		go kvmClockSync()
 	default:

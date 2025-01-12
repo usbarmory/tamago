@@ -55,6 +55,10 @@ func (cpu *CPU) initFeatures() {
 	_, kvmk, _, _ := cpuid(KVM_CPUID_SIGNATURE, 0x00)
 	cpu.kvm = kvmk == KVM_SIGNATURE
 
+	if !cpu.kvm {
+		return
+	}
+
 	kvmFeatures, _, _, _ := cpuid(KVM_CPUID_FEATURES, 0x00)
 
 	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE) {

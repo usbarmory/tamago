@@ -153,6 +153,9 @@ GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000
 # Example for QEMU RISC-V sifive_u
 GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
 
+# Example for QEMU AMD64 sifive_u
+GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
+
 # Example for Linux userspace
 GOOS=tamago ${TAMAGO} build main.go
 ```
