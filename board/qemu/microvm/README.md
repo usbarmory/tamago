@@ -75,7 +75,7 @@ previous step, but with the addition of the following flags/variables and
 ensuring that the required SoC and board packages are available in `GOPATH`:
 
 ```
-GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
+GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 ```
 
 An example application, targeting the QEMU sifive_u platform,
