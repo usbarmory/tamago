@@ -25,7 +25,7 @@ applications on bare metal AMD64/ARM/RISC-V processors.
 
 The [microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)
 package provides support for the [QEMU microvm](https://www.qemu.org/docs/master/system/i386/microvm.html)
-emulated machine configured with a single AMD64 core.
+paravirtualized machine configured with a single AMD64 core.
 
 Documentation
 =============
@@ -75,7 +75,7 @@ previous step, but with the addition of the following flags/variables and
 ensuring that the required SoC and board packages are available in `GOPATH`:
 
 ```
-GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
+GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 ```
 
 An example application, targeting the QEMU sifive_u platform,
@@ -86,7 +86,7 @@ Executing and debugging
 
 The [example application](https://github.com/usbarmory/tamago-example) provides
 reference usage and a Makefile target for automatic creation of an ELF image as
-well as emulated execution.
+well as paravirtualized execution.
 
 QEMU
 ----
@@ -99,9 +99,9 @@ qemu-system-x86_64 \
 	-kernel example
 ```
 
-The emulated target can be debugged with GDB by adding the `-S -s` flags to the
-previous execution command, this will make qemu waiting for a GDB connection
-that can be launched as follows:
+The paravirtualized target can be debugged with GDB by adding the `-S -s` flags
+to the previous execution command, this will make qemu waiting for a GDB
+connection that can be launched as follows:
 
 ```
 gdb -ex "target remote 127.0.0.1:1234" example
