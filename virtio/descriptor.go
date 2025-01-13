@@ -1,4 +1,4 @@
-// VirtIO Queue Descriptor support
+// VirtIO descriptor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,41 +7,39 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// https://wiki.osdev.org/Virtio
 package virtio
 
 import (
-	"fmt"
-	"runtime"
-	"time"
-
-	"github.com/usbarmory/tamago/dma"
+	"bytes"
+	"encoding/binary"
 )
 
 // VirtIO device types
 const (
-	NetworkCard     = 0x01
-	BlockDevice     = 0x02
-	Console         = 0x03
-	EntropySource   = 0x04
-	MemoryBalloning = 0x05
-	IOMemory        = 0x06
-	RPMSG           = 0x07
-	SCSIHost        = 0x08
-	P9Transport     = 0x09
-	MAC80211WLAN    = 0x10
+	NetworkCard = 0x01
 )
 
-// VirtIO I/O Registers
+// VirtIO MMIO Device Registers
 const (
-	DeviceFeatures = 0x00
-	GuestFeatures  = 0x04
-	QueueAddress   = 0x08
-	QueueSize      = 0x0c
-	QueueSelect    = 0x0e
-	QueueNotify    = 0x10
-	DeviceStatus   = 0x12
-	ISRStatus      = 0x13
+	Magic             = 0x000
+	Version           = 0x004
+	DeviceID          = 0x008
+	VendorID          = 0x00c
+	DeviceFeatures    = 0x010
+	DeviceFeaturesSel = 0x014
+	DriverFeatures    = 0x020
+	DriverFeaturesSel = 0x024
+	QueueSel          = 0x030
+	QueueNumMax       = 0x034
+	QueueNum          = 0x038
+	QueueReady        = 0x044
+	QueueNotify       = 0x050
+	InterruptStatus   = 0x060
+	InterruptACK      = 0x064
+	Status            = 0x070
+	QueueDesc         = 0x080
+	QueueDriver       = 0x090
+	QueueDevice       = 0x0a0
 )
 
 // VirtIO Device Status
@@ -61,12 +59,35 @@ type Buffer struct {
 	Next    uint16
 }
 
+// Bytes converts the descriptor structure to byte array format.
+func (d *Buffer) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, d)
+	return buf.Bytes()
+}
+
 // Available represents a VirtIO Virtual Queue Available ring buffer
 type Available struct {
 	Flags      uint16
 	Index      uint16
-	Ring       [8]uint16
+	Ring       []uint16
 	EventIndex uint16
+}
+
+// Bytes converts the descriptor structure to byte array format.
+func (d *Available) Bytes() []byte {
+	buf := new(bytes.Buffer)
+
+	binary.Write(buf, binary.LittleEndian, d.Flags)
+	binary.Write(buf, binary.LittleEndian, d.Index)
+
+	for _, ring := range d.Ring {
+		binary.Write(buf, binary.LittleEndian, ring)
+	}
+
+	binary.Write(buf, binary.LittleEndian, d.EventIndex)
+
+	return buf.Bytes()
 }
 
 // Ring represents a VirtIO Virtual Queue buffer index
@@ -75,15 +96,37 @@ type Ring struct {
 	Length uint32
 }
 
+// Bytes converts the descriptor structure to byte array format.
+func (d *Ring) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, d)
+	return buf.Bytes()
+}
+
 // Used represents a VirtIO Virtual Queue Used ring buffer
 type Used struct {
-	Flags  uint16
-	Index  uint16
-	_ [2]byte
-
-	Ring []Ring
+	Flags      uint16
+	Index      uint16
+	Pad        [2]byte
+	Ring       []Ring
 	AvailEvent uint16
-	_ [2]byte
+}
+
+// Bytes converts the descriptor structure to byte array format.
+func (d *Used) Bytes() []byte {
+	buf := new(bytes.Buffer)
+
+	binary.Write(buf, binary.LittleEndian, d.Flags)
+	binary.Write(buf, binary.LittleEndian, d.Index)
+	binary.Write(buf, binary.LittleEndian, d.Pad)
+
+	for _, ring := range d.Ring {
+		buf.Write(ring.Bytes())
+	}
+
+	binary.Write(buf, binary.LittleEndian, d.AvailEvent)
+
+	return buf.Bytes()
 }
 
 // VirtualQueue represents a VirtIO Virtual Queue Descriptor
@@ -91,4 +134,19 @@ type VirtualQueue struct {
 	Buffers   []Buffer
 	Available Available
 	Used      Used
+}
+
+// Bytes converts the descriptor structure to byte array format.
+func (d *VirtualQueue) Bytes() []byte {
+	buf := new(bytes.Buffer)
+
+	for _, buffer := range d.Buffers {
+		buf.Write(buffer.Bytes())
+	}
+
+	buf.Write(d.Available.Bytes())
+	buf.Write(make([]byte, 4096-buf.Len()))
+	buf.Write(d.Used.Bytes())
+
+	return buf.Bytes()
 }

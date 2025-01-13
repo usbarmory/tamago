@@ -20,11 +20,15 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/amd64"
+	"github.com/usbarmory/tamago/virtio"
 )
 
 // Peripheral registers
 const (
-	COM1 = 0x3f8
+	COM1             = 0x3f8
+
+	VIRTIO_MMIO_BASE = 0xfeb00000
+	VIRTIO_NET_BASE  = VIRTIO_MMIO_BASE + 0x2e00
 )
 
 // Peripheral instances
@@ -39,6 +43,12 @@ var (
 	UART0 = &UART{
 		Index: 1,
 		Base:  COM1,
+	}
+
+	// VirtIO Network
+	VIRTIO_NET0 = &virtio.Net{
+		Index: 1,
+		Base: VIRTIO_NET_BASE,
 	}
 )
 
