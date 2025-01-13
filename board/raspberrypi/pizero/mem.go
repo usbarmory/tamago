@@ -15,4 +15,4 @@ import (
 )
 
 //go:linkname ramSize runtime.ramSize
-var ramSize uint32 = 0x20000000 - 0x04000000 // 512 MB - 64MB GPU (VideoCore)
+var ramSize uint32 = 0x20000000 - 0x04000000 // 512MB - 64MB GPU (VideoCore)
