@@ -95,7 +95,7 @@ QEMU
 qemu-system-x86_64 \
 	-machine microvm,x-option-roms=on,pit=off,pic=off,rtc=on \
 	-enable-kvm -cpu host,invtsc=on,kvmclock=on -no-reboot \
-	-m 1G -nographic -monitor none -serial stdio \
+	-m 1.25G -nographic -monitor none -serial stdio \
 	-kernel example
 ```
 

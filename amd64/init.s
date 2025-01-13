@@ -49,38 +49,19 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	MOVL	$PML4T, DI
 	MOVL	$(PDPT | 1<<1 | 1<<0), (DI)	// set R/W, P
 
-	// Map 1GB page entries until ramStart+ramSize
-
-	// get ramStart
-	CALL	·getPC<>(SB)
-	MOVL	$runtime·ramStart(SB), BX
-	ADDL	$6, AX
-	ADDL	BX, AX
-	MOVL	(AX), CX
-
-	// get ramSize
-	CALL	·getPC<>(SB)
-	MOVL	$runtime·ramSize(SB), BX
-	ADDL	$6, AX
-	ADDL	BX, AX
-	MOVL	(AX), AX
-
-	// (ramStart+ramSize) / (1 << 30)
-	ADDL	CX, AX
-	MOVL	$0, DX
-	MOVL	$(1 << 30), CX
-	DIVL	CX
-
-	// set loop counter
-	MOVL	AX, CX
-	ADDL	$1, CX
+	// Configure  Long-Mode Page Translation as follows:
+	//   0x00000000 - 0x3ffffffff (1GB) cacheable physical page
+	//   0x40000000 - 0x7ffffffff (1GB) cacheable physical page
+	//   0x80000000 - 0xbffffffff (1GB) cacheable physical page
+	//   0xc0000000 - 0xfffffffff (1GB) uncacheable physical page
 	MOVL	$PDPT, DI
-build_page:
-	MOVQ	$(1<<7 | 1<<1 | 1<<0), (DI)	// set PS, R/W, P
+	MOVQ	$(0 << 30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
 	ADDL	$8, DI
-	SUBL	$1, CX
-	CMPL	CX, $0
-	JA	build_page
+	MOVQ	$(1 << 30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+	ADDL	$8, DI
+	MOVQ	$(2 << 30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+	ADDL	$8, DI
+	MOVQ	$(3 << 30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
 
 	// Enter long mode
 
