@@ -190,7 +190,7 @@ func (hw *ENET) Init() {
 		hw.MAC[0] &= 0xfe
 		hw.MAC[0] |= 0x02
 	} else if len(hw.MAC) != 6 {
-		panic("invalid ENET hardware address")
+		panic("invalid MAC")
 	}
 
 	if hw.RingSize == 0 {
