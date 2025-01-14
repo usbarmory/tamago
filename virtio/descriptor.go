@@ -35,20 +35,29 @@ const (
 	QueueDesc         = 0x080
 	QueueDriver       = 0x090
 	QueueDevice       = 0x0a0
+	ConfigGeneration  = 0x0fc
+	Config            = 0x100
 )
 
-// VirtIO Device Status
+// Reserved Feature Bits
 const (
-	DeviceAcknowledged = 0x01
-	DriverLoaded       = 0x02
-	DriverReady        = 0x03
-	DeviceError        = 0x40
-	DriverFailed       = 0x80
+	F_RING_PACKED = 34
+)
+
+// VirtIO Device Status bits
+const (
+	Acknowledge      = 0
+	Driver           = 1
+	DriverOk         = 2
+	FeaturesOk       = 3
+	DeviceNeedsReset = 6
+	Failed           = 7
 )
 
 // Ring represents a VirtIO Virtual Queue buffer
 type Buffer struct {
-	Address uint64
+	
+Address uint64
 	Length  uint32
 	Flags   uint16
 	Next    uint16
@@ -103,7 +112,7 @@ type Used struct {
 	Flags      uint16
 	Index      uint16
 	Pad        [2]byte
-	Ring       []Ring
+	Ring       []Ring // FIXME: queue+size
 	AvailEvent uint16
 }
 
@@ -124,15 +133,25 @@ func (d *Used) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// VirtualQueue represents a VirtIO Virtual Queue Descriptor
+// VirtualQueue represents a VirtIO split Virtual Queue Descriptor
 type VirtualQueue struct {
 	Buffers   []Buffer
 	Available Available
 	Used      Used
 }
 
+// Init initializes a split Virtual Queue for the given size.
+func (d *VirtualQueue) Init(n uint32) {
+	d.Buffers = make([]Buffer, n)
+	d.Available.Ring = make([]uint16, n)
+	d.Used.Ring = make([]Ring, n)
+
+	// TODO: allocate DMA buffers
+}
+
 // Bytes converts the descriptor structure to byte array format.
 func (d *VirtualQueue) Bytes() []byte {
+	align := 4096
 	buf := new(bytes.Buffer)
 
 	for _, buffer := range d.Buffers {
@@ -140,7 +159,7 @@ func (d *VirtualQueue) Bytes() []byte {
 	}
 
 	buf.Write(d.Available.Bytes())
-	buf.Write(make([]byte, 4096-buf.Len()))
+	buf.Write(make([]byte, align-buf.Len()))
 	buf.Write(d.Used.Bytes())
 
 	return buf.Bytes()
