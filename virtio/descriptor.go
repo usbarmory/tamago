@@ -146,7 +146,7 @@ type VirtualQueue struct {
 }
 
 // Init initializes a split Virtual Queue for the given size.
-func (d *VirtualQueue) Init(n uint32) {
+func (d *VirtualQueue) Init(n int) {
 	d.Descriptors = make([]Descriptor, n)
 	d.Available.Ring = make([]uint16, n)
 	d.Used.Ring = make([]Ring, n)
@@ -155,6 +155,16 @@ func (d *VirtualQueue) Init(n uint32) {
 	d.addr, d.desc = dma.Reserve(len(buf), 16)
 
 	copy(d.desc, buf)
+}
+
+// Destroy removes a split virtual queue from physical memory.
+func (d *VirtualQueue) Destroy() {
+	dma.Release(d.addr)
+}
+
+// Address returns the Virtual Queue physical address.
+func (d *VirtualQueue) Address() uint {
+	return d.addr
 }
 
 // Bytes converts the descriptor structure to byte array format.

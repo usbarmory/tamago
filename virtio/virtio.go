@@ -115,26 +115,31 @@ func (io *VirtIO) SetDriverFeatures(features uint64) {
 }
 
 // QueueReady returns whether a queue is ready for use.
-func (io *VirtIO) QueueReady(index int) bool {
+func (io *VirtIO) QueueReady(index int) (ready bool) {
 	reg.Write(io.Base+QueueSel, uint32(index))
-	return reg.Read(io.Base+QueueReady) == 1
+	ready = reg.Read(io.Base+QueueReady) != 0
+	return
 }
 
 // MaxQueueSize returns the maximum virtual queue size for the indexed queue.
-func (io *VirtIO) MaxQueueSize() uint32 {
-	return reg.Read(io.Base + QueueNumMax)
+func (io *VirtIO) MaxQueueSize() int {
+	return int(reg.Read(io.Base + QueueNumMax))
 }
 
 // SetQueueSize sets the virtual queue size for the indexed queue.
-func (io *VirtIO) SetQueueSize(index int, n uint32) {
+func (io *VirtIO) SetQueueSize(index int, n int) {
 	reg.Write(io.Base+QueueSel, uint32(index))
-	reg.Write(io.Base+QueueNum, n)
+	reg.Write(io.Base+QueueNum, uint32(n))
 }
 
 // InterruptStatus returns the interrupt status and reason.
-func (io *VirtIO) InterruptStatus() (buffer bool, configuration bool) {
+func (io *VirtIO) InterruptStatus() (buffer bool, config bool) {
 	s := reg.Read(io.Base + InterruptStatus)
-	return bits.IsSet(&s, 0), bits.IsSet(&s, 1)
+
+	buffer = bits.IsSet(&s, 0)
+	config = bits.IsSet(&s, 1)
+
+	return
 }
 
 // Status returns the device status.
