@@ -21,13 +21,13 @@ const (
 
 // VirtIO represents a VirtIO device.
 type VirtIO struct {
-	// Base register
+	// MMIO base address
 	Base uint32
 	// Virtual Queue
 	Queue *VirtualQueue
 }
 
-// Init initializies a VirtIO instance.
+// Init initializies a VirtIO over MMIO device instance.
 func (io *VirtIO) Init() (err error) {
 	if io.Base == 0 || reg.Read(io.Base+Magic) != MAGIC {
 		return errors.New("invalid VirtIO instance")

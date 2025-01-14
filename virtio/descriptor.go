@@ -14,11 +14,6 @@ import (
 	"encoding/binary"
 )
 
-// VirtIO device types
-const (
-	NetworkCard = 0x01
-)
-
 // VirtIO MMIO Device Registers
 const (
 	Magic             = 0x000
