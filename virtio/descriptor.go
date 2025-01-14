@@ -12,6 +12,8 @@ package virtio
 import (
 	"bytes"
 	"encoding/binary"
+
+	"github.com/usbarmory/tamago/dma"
 )
 
 // VirtIO MMIO Device Registers
@@ -54,17 +56,16 @@ const (
 	Failed           = 7
 )
 
-// Ring represents a VirtIO Virtual Queue buffer
-type Buffer struct {
-	
-Address uint64
+// Ring represents a VirtIO Virtual Queue descriptor
+type Descriptor struct {
+	Address uint64
 	Length  uint32
 	Flags   uint16
 	Next    uint16
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (d *Buffer) Bytes() []byte {
+func (d *Descriptor) Bytes() []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, d)
 	return buf.Bytes()
@@ -112,7 +113,7 @@ type Used struct {
 	Flags      uint16
 	Index      uint16
 	Pad        [2]byte
-	Ring       []Ring // FIXME: queue+size
+	Ring       []Ring
 	AvailEvent uint16
 }
 
@@ -135,31 +136,37 @@ func (d *Used) Bytes() []byte {
 
 // VirtualQueue represents a VirtIO split Virtual Queue Descriptor
 type VirtualQueue struct {
-	Buffers   []Buffer
-	Available Available
-	Used      Used
+	Descriptors []Descriptor
+	Available   Available
+	Used        Used
+
+	// DMA buffer
+	addr uint
+	desc []byte
 }
 
 // Init initializes a split Virtual Queue for the given size.
 func (d *VirtualQueue) Init(n uint32) {
-	d.Buffers = make([]Buffer, n)
+	d.Descriptors = make([]Descriptor, n)
 	d.Available.Ring = make([]uint16, n)
 	d.Used.Ring = make([]Ring, n)
 
-	// TODO: allocate DMA buffers
+	buf := d.Bytes()
+	d.addr, d.desc = dma.Reserve(len(buf), 16)
+
+	copy(d.desc, buf)
 }
 
 // Bytes converts the descriptor structure to byte array format.
 func (d *VirtualQueue) Bytes() []byte {
-	align := 4096
 	buf := new(bytes.Buffer)
 
-	for _, buffer := range d.Buffers {
+	for _, buffer := range d.Descriptors {
 		buf.Write(buffer.Bytes())
 	}
 
 	buf.Write(d.Available.Bytes())
-	buf.Write(make([]byte, align-buf.Len()))
+	buf.Write(make([]byte, buf.Len()%4096))
 	buf.Write(d.Used.Bytes())
 
 	return buf.Bytes()

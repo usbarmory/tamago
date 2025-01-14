@@ -76,10 +76,6 @@ func (io *VirtIO) Init() (err error) {
 
 	_, io.Config = r.Reserve(io.ConfigSize, 0)
 
-	// initialize virtual queues
-	io.Queue = &VirtualQueue{}
-	io.Queue.Init(io.MaxQueueSize())
-
 	return
 }
 
@@ -118,9 +114,10 @@ func (io *VirtIO) SetDriverFeatures(features uint64) {
 	return
 }
 
-// SelectQueue selects the virtual queue index.
-func (io *VirtIO) SelectQueue(index uint32) {
-	reg.Write(io.Base+QueueSel, index)
+// QueueReady returns whether a queue is ready for use.
+func (io *VirtIO) QueueReady(index int) bool {
+	reg.Write(io.Base+QueueSel, uint32(index))
+	return reg.Read(io.Base+QueueReady) == 1
 }
 
 // MaxQueueSize returns the maximum virtual queue size for the indexed queue.
@@ -129,8 +126,15 @@ func (io *VirtIO) MaxQueueSize() uint32 {
 }
 
 // SetQueueSize sets the virtual queue size for the indexed queue.
-func (io *VirtIO) SetQueueSize(n uint32) {
+func (io *VirtIO) SetQueueSize(index int, n uint32) {
+	reg.Write(io.Base+QueueSel, uint32(index))
 	reg.Write(io.Base+QueueNum, n)
+}
+
+// InterruptStatus returns the interrupt status and reason.
+func (io *VirtIO) InterruptStatus() (buffer bool, configuration bool) {
+	s := reg.Read(io.Base + InterruptStatus)
+	return bits.IsSet(&s, 0), bits.IsSet(&s, 1)
 }
 
 // Status returns the device status.
