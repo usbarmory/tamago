@@ -94,6 +94,7 @@ QEMU
 ```
 qemu-system-x86_64 \
 	-machine microvm,x-option-roms=on,pit=off,pic=off,rtc=on \
+	-global virtio-mmio.force-legacy=false \
 	-enable-kvm -cpu host,invtsc=on,kvmclock=on -no-reboot \
 	-m 1.25G -nographic -monitor none -serial stdio \
 	-kernel example
