@@ -291,6 +291,8 @@ func (hw *ENET) SetMAC(mac net.HardwareAddr) {
 // function waits and handles received packets (see Rx()) through RxHandler()
 // (when set), it should never return.
 func (hw *ENET) Start(rx bool) {
+	var buf []byte
+
 	// set receive and transmit descriptors
 	reg.Write(hw.rdsr, hw.rx.init(true, hw.RingSize, &hw.Stats))
 	reg.Write(hw.tdsr, hw.tx.init(false, hw.RingSize, &hw.Stats))
@@ -300,8 +302,6 @@ func (hw *ENET) Start(rx bool) {
 	if !rx || hw.RxHandler == nil {
 		return
 	}
-
-	var buf []byte
 
 	for {
 		runtime.Gosched()
