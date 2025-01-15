@@ -1,4 +1,4 @@
-// VirtIO descriptor support
+// VirtIO Virtual Queue support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -12,6 +12,7 @@ package virtio
 import (
 	"bytes"
 	"encoding/binary"
+	"math/bits"
 
 	"github.com/usbarmory/tamago/dma"
 )
@@ -41,27 +42,52 @@ const (
 	Config            = 0x100
 )
 
-// Reserved Feature Bits
+// Reserved Feature bits
 const (
-	F_RING_PACKED = 34
+	Packed = 34
 )
 
-// VirtIO Device Status bits
+// Device Status bits
 const (
 	Acknowledge      = 0
 	Driver           = 1
 	DriverOk         = 2
 	FeaturesOk       = 3
-	DeviceNeedsReset = 6
+	DeviceneedsReset = 6
 	Failed           = 7
 )
 
-// Ring represents a VirtIO Virtual Queue descriptor
+// Descriptor Flags
+const (
+	Next     = 1
+	Write    = 2
+	Indirect = 3
+)
+
+// Ring represents a VirtIO virtual queue descriptor
 type Descriptor struct {
 	Address uint64
 	Length  uint32
 	Flags   uint16
 	Next    uint16
+
+	// DMA buffer
+	buf []byte
+}
+
+// Init initializes a virtual queue descriptor the given buffer length.
+func (d *Descriptor) Init(length int) {
+	addr, buf := dma.Reserve(length, 0)
+
+	d.Address = uint64(addr)
+	d.Length = uint32(length)
+
+	d.buf = buf
+}
+
+// Destroy removes a virtual queue descriptor from physical memory.
+func (d *Descriptor) Destroy() {
+	dma.Release(uint(d.Address))
 }
 
 // Bytes converts the descriptor structure to byte array format.
@@ -71,7 +97,7 @@ func (d *Descriptor) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// Available represents a VirtIO Virtual Queue Available ring buffer
+// Available represents a VirtIO virtual queue Available ring buffer
 type Available struct {
 	Flags      uint16
 	Index      uint16
@@ -95,7 +121,7 @@ func (d *Available) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// Ring represents a VirtIO Virtual Queue buffer index
+// Ring represents a VirtIO virtual queue buffer index
 type Ring struct {
 	Index  uint32
 	Length uint32
@@ -108,7 +134,7 @@ func (d *Ring) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// Used represents a VirtIO Virtual Queue Used ring buffer
+// Used represents a VirtIO virtual queue Used ring buffer
 type Used struct {
 	Flags      uint16
 	Index      uint16
@@ -134,7 +160,7 @@ func (d *Used) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// VirtualQueue represents a VirtIO split Virtual Queue Descriptor
+// VirtualQueue represents a VirtIO split virtual queue Descriptor
 type VirtualQueue struct {
 	Descriptors []Descriptor
 	Available   Available
@@ -142,29 +168,32 @@ type VirtualQueue struct {
 
 	// DMA buffer
 	addr uint
-	desc []byte
+	buf []byte
 }
 
-// Init initializes a split Virtual Queue for the given size.
-func (d *VirtualQueue) Init(n int) {
-	d.Descriptors = make([]Descriptor, n)
-	d.Available.Ring = make([]uint16, n)
-	d.Used.Ring = make([]Ring, n)
+// Init initializes a split virtual queue for the given size.
+func (d *VirtualQueue) Init(size int, length int) {
+	d.Descriptors = make([]Descriptor, size)
+	d.Available.Ring = make([]uint16, size)
+	d.Used.Ring = make([]Ring, size)
+
+	for _, d := range d.Descriptors {
+		d.Init(length)
+	}
 
 	buf := d.Bytes()
-	d.addr, d.desc = dma.Reserve(len(buf), 16)
+	d.addr, d.buf = dma.Reserve(len(buf), 16)
 
-	copy(d.desc, buf)
+	copy(d.buf, buf)
 }
 
 // Destroy removes a split virtual queue from physical memory.
 func (d *VirtualQueue) Destroy() {
-	dma.Release(d.addr)
-}
+	for _, d := range d.Descriptors {
+		d.Destroy()
+	}
 
-// Address returns the Virtual Queue physical address.
-func (d *VirtualQueue) Address() uint {
-	return d.addr
+	dma.Release(d.addr)
 }
 
 // Bytes converts the descriptor structure to byte array format.
@@ -180,4 +209,15 @@ func (d *VirtualQueue) Bytes() []byte {
 	buf.Write(d.Used.Bytes())
 
 	return buf.Bytes()
+}
+
+// Address returns the virtual queue physical address.
+func (d *VirtualQueue) Address() (desc uint, driver uint, device uint) {
+	ptrSize := uint(bits.UintSize) / 8
+
+	desc = d.addr
+	driver = desc + ptrSize
+	device = driver + ptrSize
+
+	return
 }

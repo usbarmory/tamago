@@ -27,9 +27,6 @@ const (
 type VirtIO struct {
 	// MMIO base address
 	Base uint32
-	// Virtual Queue
-	Queue *VirtualQueue
-
 	// ConfigSize is the device configuration size
 	ConfigSize int
 	// Config is a reserved DMA buffer for device configuration access and
@@ -55,7 +52,7 @@ func (io *VirtIO) Init() (err error) {
 
 	// set all features except packed virtual queues
 	features := io.DeviceFeatures()
-	bits.Clear64(&features, F_RING_PACKED)
+	bits.Clear64(&features, Packed)
 
 	io.SetDriverFeatures(features)
 	reg.Set(io.Base+Status, FeaturesOk)
@@ -121,12 +118,13 @@ func (io *VirtIO) QueueReady(index int) (ready bool) {
 	return
 }
 
-// MaxQueueSize returns the maximum virtual queue size for the indexed queue.
-func (io *VirtIO) MaxQueueSize() int {
+// MaxQueueSize returns the maximum virtual queue size.
+func (io *VirtIO) MaxQueueSize(index int) int {
+	reg.Write(io.Base+QueueSel, uint32(index))
 	return int(reg.Read(io.Base + QueueNumMax))
 }
 
-// SetQueueSize sets the virtual queue size for the indexed queue.
+// SetQueueSize sets the virtual queue size.
 func (io *VirtIO) SetQueueSize(index int, n int) {
 	reg.Write(io.Base+QueueSel, uint32(index))
 	reg.Write(io.Base+QueueNum, uint32(n))
@@ -145,6 +143,16 @@ func (io *VirtIO) InterruptStatus() (buffer bool, config bool) {
 // Status returns the device status.
 func (io *VirtIO) Status() uint32 {
 	return reg.Read(io.Base + Status)
+}
+
+// Notify notifies the device about the location of the indexed virtual queue.
+func (io *VirtIO) Notify(index int, queue *VirtualQueue) {
+	desc, driver, device := queue.Address()
+
+	reg.Write(io.Base+QueueSel, uint32(index))
+	reg.Write(io.Base+QueueDesc, uint32(desc))
+	reg.Write(io.Base+QueueDriver, uint32(driver))
+	reg.Write(io.Base+QueueDriver, uint32(device))
 }
 
 // ConfigVersion returns the device configuration (see Config field) version.
