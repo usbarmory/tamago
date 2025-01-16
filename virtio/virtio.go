@@ -23,6 +23,13 @@ const (
 	VERSION = 0x02
 )
 
+const (
+	// bits 0 to 23, and 50 to 63
+	deviceSpecificFeatureMask = 0xfffc000000ffffff
+	// bits 24 to 49
+	deviceReservedFeatureMask = 0x0003ffffff000000
+)
+
 // VirtIO represents a VirtIO device.
 type VirtIO struct {
 	// MMIO base address
@@ -34,8 +41,8 @@ type VirtIO struct {
 	Config []byte
 }
 
-// Init initializies a VirtIO over MMIO device instance.
-func (io *VirtIO) Init() (err error) {
+// Init initializes a VirtIO over MMIO device instance.
+func (io *VirtIO) Init(driverFeatures uint64) (err error) {
 	if io.Base == 0 || reg.Read(io.Base+Magic) != MAGIC {
 		return errors.New("invalid VirtIO instance")
 	}
@@ -53,6 +60,11 @@ func (io *VirtIO) Init() (err error) {
 	// set all features except packed virtual queues
 	features := io.DeviceFeatures()
 	bits.Clear64(&features, Packed)
+
+	// keep only reserved features, clear device type ones
+	features &= deviceReservedFeatureMask
+	// negotiate device type features from the driver
+	features &= driverFeatures
 
 	io.SetDriverFeatures(features)
 	reg.Set(io.Base+Status, FeaturesOk)
