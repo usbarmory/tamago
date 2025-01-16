@@ -1,4 +1,4 @@
-// VirtIO driver support
+// VirtIO driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -88,8 +88,33 @@ type VirtIO struct {
 	features uint64
 }
 
+func (io *VirtIO) negotiate(features uint64) (err error) {
+	// get offered features
+	io.features = io.DeviceFeatures()
+
+	// clear unsupported features
+	bits.Clear64(&io.features, Packed)
+	bits.Clear64(&io.features, NotificationData)
+
+	// keep all remaining reserved features, clear device type ones
+	io.features &= deviceReservedFeatureMask
+
+	// apply device type features from the driver
+	io.features &= features
+
+	// negotiate features
+	io.SetDriverFeatures(io.features)
+	reg.Set(io.Base+Status, FeaturesOk)
+
+	if !reg.IsSet(io.Base+Status, FeaturesOk) {
+		return errors.New("could not set features")
+	}
+
+	return
+}
+
 // Init initializes a VirtIO over MMIO device instance.
-func (io *VirtIO) Init(driverFeatures uint64) (err error) {
+func (io *VirtIO) Init(features uint64) (err error) {
 	if io.Base == 0 || reg.Read(io.Base+Magic) != MAGIC {
 		return errors.New("invalid VirtIO instance")
 	}
@@ -104,25 +129,8 @@ func (io *VirtIO) Init(driverFeatures uint64) (err error) {
 	// initialize driver
 	reg.Set(io.Base+Status, Driver|Acknowledge)
 
-	// get offered features
-	io.features = io.DeviceFeatures()
-
-	// clear unsupported features
-	bits.Clear64(&io.features, Packed)
-	bits.Clear64(&io.features, NotificationData)
-
-	// keep all remaining reserved features, clear device type ones
-	io.features &= deviceReservedFeatureMask
-
-	// apply device type features from the driver
-	io.features &= driverFeatures
-
-	// negotiate features
-	io.SetDriverFeatures(io.features)
-	reg.Set(io.Base+Status, FeaturesOk)
-
-	if !reg.IsSet(io.Base+Status, FeaturesOk) {
-		return errors.New("could not set features")
+	if err = io.negotiate(features); err != nil {
+		return
 	}
 
 	// finalize driver

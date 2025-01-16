@@ -181,18 +181,6 @@ func (d *VirtualQueue) Destroy() {
 	dma.Release(d.addr)
 }
 
-func (d *VirtualQueue) Debug() {
-	fmt.Printf("\n%+v\n", d)
-
-	for _, desc := range d.Descriptors {
-		fmt.Printf("%+v\n", desc)
-	}
-
-	for _, ring := range d.Used.Ring {
-		fmt.Printf("%+v\n", ring)
-	}
-}
-
 // Address returns the virtual queue physical address.
 func (d *VirtualQueue) Address() (desc uint, driver uint, device uint) {
 	descSize := len((&Descriptor{}).Bytes()) * len(d.Descriptors)
@@ -211,4 +199,16 @@ func (d *VirtualQueue) Next() {
 
 	d.Available.Ring[index] = index
 	d.Available.Index += 1
+}
+
+func (d *VirtualQueue) Debug() {
+	fmt.Printf("\n%+v\n", d)
+
+	for _, desc := range d.Descriptors {
+		fmt.Printf("%x\n", desc)
+	}
+
+	for _, ring := range d.Used.Ring {
+		fmt.Printf("%x\n", ring)
+	}
 }
