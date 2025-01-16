@@ -20,6 +20,13 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/amd64"
+	"github.com/usbarmory/tamago/dma"
+	"github.com/usbarmory/tamago/kvm/clock"
+)
+
+const (
+	dmaStart = 0x50000000
+	dmaSize  = 0x10000000 // 256MB
 )
 
 // Peripheral registers
@@ -48,6 +55,13 @@ var (
 //go:linkname nanotime1 runtime.nanotime1
 func nanotime1() int64 {
 	return int64(float64(AMD64.TimerFn())*AMD64.TimerMultiplier) + AMD64.TimerOffset
+}
+
+func init() {
+	dma.Init(dmaStart, dmaSize)
+
+	// initialize KVM clock as needed
+	kvmclock.Init(AMD64)
 }
 
 // Init takes care of the lower level initialization triggered early in runtime

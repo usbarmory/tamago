@@ -1,4 +1,4 @@
-// microvm support for tamago/amd64
+// KVM clock driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,13 +7,22 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package microvm
+// Package kvmclock implements a driver for the KVM specific paravirtualized
+// clocksource following the MSR_KVM_SYSTEM_TIME_NEW KVM-specific MSR as
+// described in:
+//   https://docs.kernel.org/virt/kvm/x86/msr.html
+//
+// This package is only meant to be used with `GOOS=tamago` as
+// supported by the TamaGo framework for bare metal Go, see
+// https://github.com/usbarmory/tamago.
+package kvmclock
 
 import (
 	"encoding/binary"
 	"math/big"
 	"time"
 
+	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/dma"
 )
 
@@ -52,13 +61,13 @@ func initTimeInfo(msr uint32) {
 	_, timeInfoBuffer = r.Reserve(size, 0)
 }
 
-func kvmClock(timeInfo *pvClockTimeInfo) int64 {
+func kvmClock(cpu *amd64.CPU, timeInfo *pvClockTimeInfo) int64 {
 	if timeInfo == nil {
 		timeInfo = &pvClockTimeInfo{}
 	}
 
 	binary.Decode(timeInfoBuffer, binary.LittleEndian, timeInfo)
-	delta := AMD64.TimerFn() - timeInfo.Timestamp
+	delta := cpu.TimerFn() - timeInfo.Timestamp
 
 	if timeInfo.Shift < 0 {
 		delta >>= -timeInfo.Shift
@@ -76,7 +85,7 @@ func kvmClock(timeInfo *pvClockTimeInfo) int64 {
 	return int64(r.Uint64() + timeInfo.SystemTime)
 }
 
-func kvmClockSync() {
+func kvmClockSync(cpu *amd64.CPU) {
 	version := uint32(0)
 	timeInfo := &pvClockTimeInfo{}
 
@@ -90,12 +99,12 @@ func kvmClockSync() {
 		}
 
 		version = timeInfo.Version
-		AMD64.SetTimer(kvmClock(timeInfo))
+		cpu.SetTimer(kvmClock(cpu, timeInfo))
 	}
 }
 
-func init() {
-	features := AMD64.Features()
+func Init(cpu *amd64.CPU) {
+	features := cpu.Features()
 
 	switch {
 	case features.InvariantTSC && !features.KVM:
@@ -104,7 +113,7 @@ func init() {
 		// no action required as TSC is reliable but we
 		// opportunistically adjust once with kvmclock
 		initTimeInfo(features.KVMClockMSR)
-		AMD64.SetTimer(kvmClock(nil))
+		cpu.SetTimer(kvmClock(cpu, nil))
 	case features.KVM && features.KVMClockMSR > 0:
 		// TSC must be adjusted as it is not reliable through state
 		// changes.
@@ -115,7 +124,7 @@ func init() {
 		//
 		// If ever required kvmClockSync() can be moved to Go assembly.
 		initTimeInfo(features.KVMClockMSR)
-		go kvmClockSync()
+		go kvmClockSync(cpu)
 	default:
 		panic("could not set system timer")
 	}

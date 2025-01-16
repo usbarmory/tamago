@@ -1,4 +1,4 @@
-// microvm support for tamago/amd64
+// KVM clock driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation

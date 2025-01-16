@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for AMD64 CPUs - QEMU microvm support
-============================================================
+TamaGo - bare metal Go for AMD64 CPUs - microVM support
+=======================================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -24,8 +24,9 @@ TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal AMD64/ARM/RISC-V processors.
 
 The [microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)
-package provides support for the [QEMU microvm](https://www.qemu.org/docs/master/system/i386/microvm.html)
-paravirtualized machine configured with a single AMD64 core.
+package provides support for the [microvm](https://www.qemu.org/docs/master/system/i386/microvm.html)
+paravirtualized Kernel-based Virtual Machine (KVM) configured with a single
+AMD64 core.
 
 Documentation
 =============
@@ -78,7 +79,7 @@ ensuring that the required SoC and board packages are available in `GOPATH`:
 GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 ```
 
-An example application, targeting the QEMU sifive_u platform,
+An example application, targeting the QEMU microvm platform,
 is [available](https://github.com/usbarmory/tamago-example).
 
 Executing and debugging
@@ -96,7 +97,7 @@ qemu-system-x86_64 \
 	-machine microvm,x-option-roms=on,pit=off,pic=off,rtc=on \
 	-global virtio-mmio.force-legacy=false \
 	-enable-kvm -cpu host,invtsc=on,kvmclock=on -no-reboot \
-	-m 1.25G -nographic -monitor none -serial stdio \
+	-m 4G -nographic -monitor none -serial stdio \
 	-kernel example
 ```
 

@@ -1,4 +1,4 @@
-// VirtIO driver
+// VirtIO driver support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,7 +7,13 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// https://wiki.osdev.org/Virtio
+// Package virtio implements a driver for Virtual I/O devices (VirtIO)
+// following reference specifications:
+//   - Virtual I/O Device (VIRTIO) - Version 1.2
+//
+// This package is only meant to be used with `GOOS=tamago` as
+// supported by the TamaGo framework for bare metal Go, see
+// https://github.com/usbarmory/tamago.
 package virtio
 
 import (
@@ -18,12 +24,51 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
+// VirtIO MMIO Device Registers
 const (
-	MAGIC   = 0x74726976 // "virt"
-	VERSION = 0x02
+	Magic             = 0x000
+	Version           = 0x004
+	DeviceID          = 0x008
+	VendorID          = 0x00c
+	DeviceFeatures    = 0x010
+	DeviceFeaturesSel = 0x014
+	DriverFeatures    = 0x020
+	DriverFeaturesSel = 0x024
+	QueueSel          = 0x030
+	QueueNumMax       = 0x034
+	QueueNum          = 0x038
+	QueueReady        = 0x044
+	QueueNotify       = 0x050
+	InterruptStatus   = 0x060
+	InterruptACK      = 0x064
+	Status            = 0x070
+	QueueDesc         = 0x080
+	QueueDriver       = 0x090
+	QueueDevice       = 0x0a0
+	ConfigGeneration  = 0x0fc
+	Config            = 0x100
+)
+
+// Reserved Feature bits
+const (
+	Packed           = 34
+	NotificationData = 38
+)
+
+// Device Status bits
+const (
+	Acknowledge      = 0
+	Driver           = 1
+	DriverOk         = 2
+	FeaturesOk       = 3
+	DeviceneedsReset = 6
+	Failed           = 7
 )
 
 const (
+	MAGIC   = 0x74726976 // "virt"
+	VERSION = 0x02
+
 	// bits 0 to 23, and 50 to 63
 	deviceSpecificFeatureMask = 0xfffc000000ffffff
 	// bits 24 to 49
@@ -39,6 +84,8 @@ type VirtIO struct {
 	// Config is a reserved DMA buffer for device configuration access and
 	// modification.
 	Config []byte
+
+	features uint64
 }
 
 // Init initializes a VirtIO over MMIO device instance.
@@ -57,16 +104,21 @@ func (io *VirtIO) Init(driverFeatures uint64) (err error) {
 	// initialize driver
 	reg.Set(io.Base+Status, Driver|Acknowledge)
 
-	// set all features except packed virtual queues
-	features := io.DeviceFeatures()
-	bits.Clear64(&features, Packed)
+	// get offered features
+	io.features = io.DeviceFeatures()
 
-	// keep only reserved features, clear device type ones
-	features &= deviceReservedFeatureMask
-	// negotiate device type features from the driver
-	features &= driverFeatures
+	// clear unsupported features
+	bits.Clear64(&io.features, Packed)
+	bits.Clear64(&io.features, NotificationData)
 
-	io.SetDriverFeatures(features)
+	// keep all remaining reserved features, clear device type ones
+	io.features &= deviceReservedFeatureMask
+
+	// apply device type features from the driver
+	io.features &= driverFeatures
+
+	// negotiate features
+	io.SetDriverFeatures(io.features)
 	reg.Set(io.Base+Status, FeaturesOk)
 
 	if !reg.IsSet(io.Base+Status, FeaturesOk) {
@@ -157,14 +209,20 @@ func (io *VirtIO) Status() uint32 {
 	return reg.Read(io.Base + Status)
 }
 
-// Notify notifies the device about the location of the indexed virtual queue.
-func (io *VirtIO) Notify(index int, queue *VirtualQueue) {
+// SetQueue registers the indexed virtual queue for device access.
+func (io *VirtIO) SetQueue(index int, queue *VirtualQueue) {
 	desc, driver, device := queue.Address()
 
 	reg.Write(io.Base+QueueSel, uint32(index))
 	reg.Write(io.Base+QueueDesc, uint32(desc))
 	reg.Write(io.Base+QueueDriver, uint32(driver))
-	reg.Write(io.Base+QueueDriver, uint32(device))
+	reg.Write(io.Base+QueueDevice, uint32(device))
+	reg.Write(io.Base+QueueReady, 1)
+}
+
+// QueueNotify notifies the device that a queue can be processed.
+func (io *VirtIO) QueueNotify(index int) {
+	reg.Write(io.Base+QueueNotify, uint32(index))
 }
 
 // ConfigVersion returns the device configuration (see Config field) version.
