@@ -21,7 +21,7 @@ import (
 )
 
 // nanos - should be same value as arm/timer.go refFreq
-const refFreq int64 = 1000000000
+const refFreq int64 = 1e9
 
 // DRAM_FLAG_NOCACHE disables caching by setting to high bits
 const DRAM_FLAG_NOCACHE = 0xC0000000

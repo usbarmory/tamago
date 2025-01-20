@@ -11,7 +11,7 @@ package amd64
 
 const (
 	// nanoseconds
-	refFreq uint32 = 1000000000
+	refFreq uint32 = 1e9
 )
 
 // defined in timer.s

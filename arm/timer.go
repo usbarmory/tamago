@@ -35,7 +35,7 @@ const (
 	CNTKCTL_PL0PCTEN = 0
 
 	// nanoseconds
-	refFreq int64 = 1000000000
+	refFreq int64 = 1e9
 )
 
 // defined in timer.s
