@@ -7,7 +7,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package riscv
+package riscv64
 
 import (
 	"errors"

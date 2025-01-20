@@ -12,7 +12,7 @@
 //   - IMX6ULSRM - i.MX6UL Security Reference Manual - Rev 0 04/2016
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package bee
 

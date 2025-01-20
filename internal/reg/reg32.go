@@ -10,8 +10,7 @@
 // registers.
 //
 // This package is only meant to be used with `GOOS=tamago` as supported by the
-// TamaGo framework for bare metal Go on ARM/RISC-V SoCs, see
-// https://github.com/usbarmory/tamago.
+// TamaGo framework for bare metal Go, see https://github.com/usbarmory/tamago.
 package reg
 
 import (

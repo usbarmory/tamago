@@ -16,7 +16,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
+applications on bare metal AMD64/ARM/RISC-V processors.
 
 The [pi](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)
 package provides support for the [Raspberry Pi](https://www.raspberrypi.org/)
@@ -49,7 +49,7 @@ Compiling
 =========
 
 Go applications are simply required to import, the relevant board package to
-ensure that hardware initialization and runtime support takes place:
+ensure that hardware initialization and runtime support take place:
 
 ```golang
 import (

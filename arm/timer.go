@@ -35,10 +35,10 @@ const (
 	CNTKCTL_PL0PCTEN = 0
 
 	// nanoseconds
-	refFreq int64 = 1000000000
+	refFreq int64 = 1e9
 )
 
-// defined in timer_arm.s
+// defined in timer.s
 func read_gtc() int64
 func read_cntfrq() int32
 func write_cntfrq(freq int32)
@@ -91,7 +91,7 @@ func (cpu *CPU) SetTimer(t int64) {
 		return
 	}
 
-	cpu.TimerOffset = t - int64(cpu.TimerFn()*cpu.TimerMultiplier)
+	cpu.TimerOffset = t - cpu.TimerFn()*cpu.TimerMultiplier
 }
 
 // SetDownCounter sets a physical countdown timer.

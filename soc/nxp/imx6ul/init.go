@@ -45,8 +45,8 @@ var (
 	SDP bool
 )
 
-// Init takes care of the lower level SoC initialization triggered early in
-// runtime setup (e.g. runtime.hwinit).
+// Init takes care of the lower level initialization triggered early in runtime
+// setup (e.g. runtime.hwinit).
 func Init() {
 	if ARM.Mode() != arm.SYS_MODE {
 		// initialization required only when in PL1

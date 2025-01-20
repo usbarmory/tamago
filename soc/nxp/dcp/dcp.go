@@ -12,7 +12,7 @@
 //   - MCIMX28RM - i.MX28 Applications Processor Reference Manual - Rev 2 2013/08
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package dcp
 

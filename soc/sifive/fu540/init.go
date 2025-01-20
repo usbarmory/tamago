@@ -16,8 +16,8 @@ import (
 //go:linkname ramStackOffset runtime.ramStackOffset
 var ramStackOffset uint64 = 0x100
 
-// Init takes care of the lower level SoC initialization triggered early in
-// runtime setup (e.g. runtime.hwinit).
+// Init takes care of the lower level initialization triggered early in runtime
+// setup (e.g. runtime.hwinit).
 func Init() {
 	RV64.Init()
 }

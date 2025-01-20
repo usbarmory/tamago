@@ -8,7 +8,6 @@
 // that can be found in the LICENSE file.
 
 //go:build !linkramsize
-// +build !linkramsize
 
 package mx6ullevk
 
@@ -19,9 +18,9 @@ import (
 // Applications can override ramSize with the `linkramsize` build tag.
 //
 // This is useful when large DMA descriptors are required to re-initialize
-// tamago `mem` package in external RAM.
+// tamago `dma` package in external RAM.
 
 // The MCIMX6ULL-EVK features a single 512MB DDR3 RAM module.
 
 //go:linkname ramSize runtime.ramSize
-var ramSize uint32 = 0x20000000 // 512 MB
+var ramSize uint32 = 0x20000000 // 512MB

@@ -22,7 +22,7 @@
 //   - IMX6ULZRM  - i.MX 6ULZ Applications Processor Reference Manual - Rev 0   2018/10
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package imx6ul
 

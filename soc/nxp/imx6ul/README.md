@@ -21,7 +21,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
+applications on bare metal AMD64/ARM/RISC-V processors.
 
 The [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul)
 package provides support for the NXP i.MX 6UL series of System-on-Chip (SoCs)

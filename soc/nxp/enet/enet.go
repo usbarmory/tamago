@@ -12,7 +12,7 @@
 //   - IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package enet
 
@@ -190,7 +190,7 @@ func (hw *ENET) Init() {
 		hw.MAC[0] &= 0xfe
 		hw.MAC[0] |= 0x02
 	} else if len(hw.MAC) != 6 {
-		panic("invalid ENET hardware address")
+		panic("invalid MAC")
 	}
 
 	if hw.RingSize == 0 {
@@ -291,6 +291,8 @@ func (hw *ENET) SetMAC(mac net.HardwareAddr) {
 // function waits and handles received packets (see Rx()) through RxHandler()
 // (when set), it should never return.
 func (hw *ENET) Start(rx bool) {
+	var buf []byte
+
 	// set receive and transmit descriptors
 	reg.Write(hw.rdsr, hw.rx.init(true, hw.RingSize, &hw.Stats))
 	reg.Write(hw.tdsr, hw.tx.init(false, hw.RingSize, &hw.Stats))
@@ -300,8 +302,6 @@ func (hw *ENET) Start(rx bool) {
 	if !rx || hw.RxHandler == nil {
 		return
 	}
-
-	var buf []byte
 
 	for {
 		runtime.Gosched()

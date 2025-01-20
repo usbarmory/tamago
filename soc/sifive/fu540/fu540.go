@@ -23,7 +23,7 @@ package fu540
 import (
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/riscv"
+	"github.com/usbarmory/tamago/riscv64"
 	"github.com/usbarmory/tamago/soc/sifive/clint"
 	"github.com/usbarmory/tamago/soc/sifive/uart"
 )
@@ -41,7 +41,7 @@ const (
 // Peripheral instances
 var (
 	// RISC-V core
-	RV64 = &riscv.CPU{}
+	RV64 = &riscv64.CPU{}
 
 	// Core-Local Interruptor
 	CLINT = &clint.CLINT{

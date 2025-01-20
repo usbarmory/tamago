@@ -11,7 +11,7 @@
 // for the NXP MCIMX6ULL-EVK evaluation board.
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package mx6ullevk
 
@@ -40,8 +40,8 @@ var (
 	USDHC2 = imx6ul.USDHC2
 )
 
-// Init takes care of the lower level SoC initialization triggered early in
-// runtime setup.
+// Init takes care of the lower level initialization triggered early in runtime
+// setup.
 //
 //go:linkname Init runtime.hwinit
 func Init() {

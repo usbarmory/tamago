@@ -13,7 +13,7 @@
 //   - ARMv7-A / Cortex-A7 (single-core)
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package arm
 
@@ -41,18 +41,18 @@ type CPU struct {
 	jazelle bool
 	thumbee bool
 
-	// extensions
+	// features
 	programmersModel bool
 	security         bool
 	mProfileModel    bool
 	virtualization   bool
 	genericTimer     bool
 
-	// timer multiplier
+	// Timer multiplier
 	TimerMultiplier int64
-	// timer offset in nanoseconds
+	// Timer offset in nanoseconds
 	TimerOffset int64
-	// timer function
+	// Timer function
 	TimerFn func() int64
 
 	// GIC Distributor base address

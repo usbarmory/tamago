@@ -46,9 +46,9 @@ Current release level
 [![GitHub release](https://img.shields.io/github/v/release/usbarmory/tamago-go)](https://github.com/usbarmory/tamago-go/tree/latest) [![Build Status](https://github.com/usbarmory/tamago-go/workflows/Build%20Go%20compiler/badge.svg)](https://github.com/usbarmory/tamago-go/actions)
 
 The current release for the [TamaGo modified Go distribution](https://github.com/usbarmory/tamago-go) is
-[tamago1.23.4](https://github.com/usbarmory/tamago-go/tree/tamago1.23.4),
-which [adds](https://github.com/golang/go/compare/go1.23.4...usbarmory:tamago1.23.4)
-`GOOS=tamago` support to go1.23.4.
+[tamago1.23.5](https://github.com/usbarmory/tamago-go/tree/tamago1.23.5),
+which [adds](https://github.com/golang/go/compare/go1.23.5...usbarmory:tamago1.23.5)
+`GOOS=tamago` support to go1.23.5.
 
 Binary releases for amd64 and armv7l Linux hosts [are available](https://github.com/usbarmory/tamago-go/releases/latest).
 
@@ -90,10 +90,9 @@ The following table summarizes currently supported RISC-V SoCs and boards
 Supported AMD64 targets
 =======================
 
-The support for an actual target is work-in-progress, the
-[testing environment](https://github.com/usbarmory/tamago-go/blob/tamago1.23.4/src/testing/testing_tamago.go)
-is supported and all Go standard library packages are supported and
-[tested using original distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility).
+| CPU              | Board                                                                | CPU package                                                    | Board package                                                                      |
+|------------------|----------------------------------------------------------------------|----------------------------------------------------------------|------------------------------------------------------------------------------------|
+| AMD/Intel 64-bit | [microvm](https://www.qemu.org/docs/master/system/i386/microvm.html) | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm) |
 
 Userspace targets
 =================
@@ -125,7 +124,7 @@ Compiling
 =========
 
 Go applications are simply required to import, the relevant board package to
-ensure that hardware initialization and runtime support takes place:
+ensure that hardware initialization and runtime support take place:
 
 ```golang
 import (
@@ -153,6 +152,9 @@ GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000
 
 # Example for QEMU RISC-V sifive_u
 GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
+
+# Example for QEMU AMD64 sifive_u
+GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 
 # Example for Linux userspace
 GOOS=tamago ${TAMAGO} build main.go

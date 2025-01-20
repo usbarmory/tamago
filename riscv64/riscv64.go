@@ -7,15 +7,16 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package riscv provides support for RISC-V architecture specific operations.
+// Package riscv64 provides support for RISC-V architecture specific
+// operations.
 //
 // The following architectures/cores are supported/tested:
 //   - RV64 (single-core)
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=riscv64` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
-package riscv
+package riscv64
 
 import "runtime"
 
@@ -25,7 +26,7 @@ const XLEN = 64
 // CPU instance
 type CPU struct{}
 
-// defined in riscv.s
+// defined in riscv64.s
 func halt(int32)
 
 // Init performs initialization of an RV64 core instance in machine mode.

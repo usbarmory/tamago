@@ -21,7 +21,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal ARM/RISC-V System-on-Chip (SoC) components.
+applications on bare metal AMD64/ARM/RISC-V processors.
 
 The [mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk)
 package provides support for the [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) development board.
@@ -50,7 +50,7 @@ Compiling
 =========
 
 Go applications are simply required to import, the relevant board package to
-ensure that hardware initialization and runtime support takes place:
+ensure that hardware initialization and runtime support take place:
 
 ```golang
 import (
@@ -164,7 +164,7 @@ The target can be executed under emulation as follows:
 ```
 qemu-system-arm \
 	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M \
-	-nographic -monitor none -serial null -serial stdio -net none \
+	-nographic -monitor none -serial null -serial stdio \
 	-kernel example -semihosting
 ```
 

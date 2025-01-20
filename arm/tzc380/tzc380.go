@@ -19,7 +19,7 @@
 //   - TZC-380 TRM - CoreLink™ TrustZone Address Space Controller TZC-380 - Revision: r0p1
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package tzc380
 

@@ -10,7 +10,7 @@
 // the Raspberry Pi 2 single board computer.
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package pi2
 
@@ -30,8 +30,8 @@ type board struct{}
 // Board provides access to the capabilities of the Pi2.
 var Board pi.Board = &board{}
 
-// Init takes care of the lower level SoC initialization triggered early in
-// runtime setup.
+// Init takes care of the lower level initialization triggered early in runtime
+// setup.
 //
 //go:linkname Init runtime.hwinit
 func Init() {

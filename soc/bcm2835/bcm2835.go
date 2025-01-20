@@ -10,7 +10,7 @@
 // the TamaGo framework on BCM2835/BCM2836 SoCs.
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go on ARM SoCs, see
+// supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package bcm2835
 
@@ -21,7 +21,7 @@ import (
 )
 
 // nanos - should be same value as arm/timer.go refFreq
-const refFreq int64 = 1000000000
+const refFreq int64 = 1e9
 
 // DRAM_FLAG_NOCACHE disables caching by setting to high bits
 const DRAM_FLAG_NOCACHE = 0xC0000000
@@ -42,8 +42,8 @@ func nanotime1() int64 {
 	return read_systimer()*ARM.TimerMultiplier + ARM.TimerOffset
 }
 
-// Init takes care of the lower level SoC initialization triggered early in
-// runtime setup (e.g. runtime.hwinit).
+// Init takes care of the lower level initialization triggered early in runtime
+// setup (e.g. runtime.hwinit).
 func Init(base uint32) {
 	peripheralBase = base
 

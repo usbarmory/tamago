@@ -8,7 +8,6 @@
 // that can be found in the LICENSE file.
 
 //go:build !linkramsize
-// +build !linkramsize
 
 package sifive_u
 
@@ -19,7 +18,7 @@ import (
 // Applications can override ramSize with the `linkramsize` build tag.
 //
 // This is useful when large DMA descriptors are required to re-initialize
-// tamago `mem` package in external RAM.
+// tamago `dma` package in external RAM.
 
 //go:linkname ramSize runtime.ramSize
-var ramSize uint64 = 0x20000000 // 512 MB
+var ramSize uint64 = 0x20000000 // 512MB

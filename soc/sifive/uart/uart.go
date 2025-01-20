@@ -66,15 +66,12 @@ func (hw *UART) Init() {
 	hw.rxctrl = hw.Base + UARTx_RXCTRL
 }
 
-func (hw *UART) txFull() bool {
-	return reg.Get(hw.txdata, TXDATA_FULL, 1) == 1
-}
-
 // Tx transmits a single character to the serial port.
 func (hw *UART) Tx(c byte) {
-	for hw.txFull() {
+	for reg.Get(hw.txdata, TXDATA_FULL, 1) == 1 {
 		// wait for TX FIFO to have room for a character
 	}
+
 	reg.Write(hw.txdata, uint32(c))
 }
 
