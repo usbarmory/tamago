@@ -12,7 +12,6 @@ package virtio
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"sync"
 
 	"github.com/usbarmory/tamago/dma"
@@ -323,24 +322,4 @@ func (d *VirtualQueue) Push(buf []byte) {
 	}
 
 	return
-}
-
-func (d *VirtualQueue) Debug() {
-	fmt.Printf("\n%+v\n", d)
-
-	for _, desc := range d.Descriptors {
-		fmt.Printf("%x\n", desc)
-	}
-
-	for _, ring := range d.Used.ring {
-		fmt.Printf("%x\n", ring)
-	}
-
-	descSize := len((&Descriptor{}).Bytes()) * len(d.Descriptors)
-	availSize := len(d.Available.Bytes())
-
-	driver := uint(descSize)
-	device := driver + uint(availSize)
-
-	fmt.Printf("%x", d.buf[device:])
 }
