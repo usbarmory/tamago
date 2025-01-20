@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for RISC-V SoCs - FU540 support
-======================================================
+TamaGo - bare metal Go - FU540 support
+======================================
 
 tamago | https://github.com/usbarmory/tamago  
 

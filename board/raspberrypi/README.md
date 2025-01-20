@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for ARM SoCs - Raspberry Pi Support
-==========================================================
+TamaGo - bare metal Go - Raspberry Pi Support
+=============================================
 
 tamago | https://github.com/usbarmory/tamago  
 

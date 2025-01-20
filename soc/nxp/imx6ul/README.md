@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for ARM SoCs - i.MX 6UL support
-======================================================
+TamaGo - bare metal Go - i.MX 6UL support
+=========================================
 
 tamago | https://github.com/usbarmory/tamago  
 

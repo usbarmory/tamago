@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for ARM SoCs - MCIMX6ULL-EVK support
-===========================================================
+TamaGo - bare metal Go - MCIMX6ULL-EVK support
+==============================================
 
 tamago | https://github.com/usbarmory/tamago  
 

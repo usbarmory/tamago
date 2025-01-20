@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for ARM SoCs - BCM2835 support
-=====================================================
+TamaGo - bare metal Go - BCM2835 support
+========================================
 
 tamago | https://github.com/usbarmory/tamago
 

@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for RISC-V SoCs - QEMU sifive_u support
-==============================================================
+TamaGo - bare metal Go - QEMU sifive_u support
+==============================================
 
 tamago | https://github.com/usbarmory/tamago  
 

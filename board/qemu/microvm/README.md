@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for AMD64 CPUs - microVM support
-=======================================================
+TamaGo - bare metal Go - microVM support
+========================================
 
 tamago | https://github.com/usbarmory/tamago  
 

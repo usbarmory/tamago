@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for ARM SoCs - USB armory support
-========================================================
+TamaGo - bare metal Go - USB armory support
+===========================================
 
 tamago | https://github.com/usbarmory/tamago  
 
