@@ -7,11 +7,11 @@
 // that can be found in the LICENSE file.
 
 // func In8(port uint16) (val uint8)
-TEXT ·In8(SB),$0-3
+TEXT ·In8(SB),$0-9
 	MOVW	port+0(FP), DX
 	// in al, dx
 	BYTE	$0xec
-	MOVB	AL, ret+8(FP)
+	MOVB	AL, val+8(FP)
 	RET
 
 // func Out8(port uint16, val uint8)
@@ -23,11 +23,11 @@ TEXT ·Out8(SB),$0-3
 	RET
 
 // func In32(port uint32) (val uint32)
-TEXT ·In32(SB),$0-8
+TEXT ·In32(SB),$0-12
 	MOVL	port+0(FP), DX
 	// in eax, dx
 	BYTE	$0xed
-	MOVL	AX, ret+8(FP)
+	MOVL	AX, val+8(FP)
 	RET
 
 // func Out32(port uint32, val uint32)

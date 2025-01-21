@@ -50,14 +50,6 @@ func (d *Descriptor) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// SetLength updates the descriptor length field.
-func (d *Descriptor) SetLength(length uint32) {
-	off := 8
-	binary.LittleEndian.PutUint32(d.buf[off:], length)
-
-	d.length = length
-}
-
 // Init initializes a virtual queue descriptor the given buffer length.
 func (d *Descriptor) Init(length int, flags uint16) {
 	addr, buf := dma.Reserve(length, 0)
@@ -72,6 +64,22 @@ func (d *Descriptor) Init(length int, flags uint16) {
 // Destroy removes a virtual queue descriptor from physical memory.
 func (d *Descriptor) Destroy() {
 	dma.Release(uint(d.Address))
+}
+
+// Read copies the contents of the descriptor buffer to b.
+func (d *Descriptor) Read(b []byte) {
+	copy(b, d.buf)
+}
+
+// Write copies the contents of b to the descriptor buffer, updating its length
+// field accordingly.
+func (d *Descriptor) Write(b []byte) {
+	off := 8
+	length := uint32(len(b))
+	binary.LittleEndian.PutUint32(d.buf[off:], length)
+
+	d.length = length
+	copy(d.buf, b)
 }
 
 // Available represents a VirtIO virtual queue Available ring buffer.
@@ -287,9 +295,9 @@ func (d *VirtualQueue) Pop() (buf []byte) {
 	}
 
 	avail := d.Used.Ring(d.Used.last % d.size)
-
 	buf = make([]byte, avail.Length)
-	copy(buf, d.Descriptors[avail.Index].buf)
+
+	d.Descriptors[avail.Index].Read(buf)
 
 	d.Available.index += 1
 	d.Available.SetRingIndex(d.Available.index%d.size, uint16(avail.Index))
@@ -305,21 +313,17 @@ func (d *VirtualQueue) Push(buf []byte) {
 	d.Lock()
 	defer d.Unlock()
 
-	length := len(buf)
 	index := d.Available.Ring(d.Available.index % d.size)
+	used := d.Used.Index() - d.Used.last
 
-	d.Descriptors[index].SetLength(uint32(length))
-	copy(d.Descriptors[index].buf, buf)
-
+	d.Descriptors[index].Write(buf)
 	d.Available.SetIndex(d.Available.index + 1)
 
-	for used := d.Used.Index() - d.Used.last; used > 0; used-- {
-		index = used - 1
-		avail := d.Used.Ring(used)
+	for i := used; i > 0; i-- {
+		avail := d.Used.Ring(i - 1)
 
 		d.Available.SetRingIndex(d.Available.index%d.size, uint16(avail.Index))
-		d.Used.last += 1
 	}
 
-	return
+	d.Used.last += used
 }

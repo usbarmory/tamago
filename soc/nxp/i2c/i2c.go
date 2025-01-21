@@ -276,7 +276,7 @@ func (hw *I2C) tx(buf []byte) (err error) {
 func (hw *I2C) start(repeat bool) (err error) {
 	var pos int
 
-	if repeat == false {
+	if !repeat {
 		// wait for bus to be free
 		if !reg.WaitFor16(hw.Timeout, hw.i2sr, I2SR_IBB, 1, 0) {
 			return errors.New("timeout waiting bus to be free")
@@ -296,7 +296,7 @@ func (hw *I2C) start(repeat bool) (err error) {
 		return errors.New("timeout waiting bus to be busy")
 	}
 
-	if repeat == false {
+	if !repeat {
 		// set Master Transmit mode
 		reg.Set16(hw.i2cr, I2CR_MTX)
 	}
