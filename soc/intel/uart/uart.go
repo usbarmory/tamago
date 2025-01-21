@@ -1,4 +1,4 @@
-// 16550A UART driver
+// 16550 Universal Asynchronous Receiver/Transmitter (UART) driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,7 +7,14 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package microvm
+// Package uart implements a driver for Intel Serial I/O UART controllers adopting the
+// following reference specifications:
+//   - PC16550D - Universal Asynchronous Receiver/Transmitter with FIFOs - June 1995
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=amd64` as
+// supported by the TamaGo framework for bare metal Go, see
+// https://github.com/usbarmory/tamago.
+package uart
 
 import (
 	"github.com/usbarmory/tamago/internal/reg"

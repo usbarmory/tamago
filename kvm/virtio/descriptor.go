@@ -320,9 +320,10 @@ func (d *VirtualQueue) Push(buf []byte) {
 	d.Available.SetIndex(d.Available.index + 1)
 
 	for i := used; i > 0; i-- {
+		n := d.Available.index % d.size
 		avail := d.Used.Ring(i - 1)
 
-		d.Available.SetRingIndex(d.Available.index%d.size, uint16(avail.Index))
+		d.Available.SetRingIndex(n, uint16(avail.Index))
 	}
 
 	d.Used.last += used

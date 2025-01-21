@@ -22,6 +22,8 @@ import (
 	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/kvm/clock"
+	"github.com/usbarmory/tamago/soc/intel/rtc"
+	"github.com/usbarmory/tamago/soc/intel/uart"
 )
 
 const (
@@ -31,10 +33,17 @@ const (
 
 // Peripheral registers
 const (
-	COM1             = 0x3f8
+	COM1 = 0x3f8
 
+	// Intel I/O Programmable Interrupt Controller
+	IOAPIC_BASE = 0xfec00000
+
+	// VirtIO Memory-mapped I/O
 	VIRTIO_MMIO_BASE = 0xfeb00000
-	VIRTIO_NET_BASE  = VIRTIO_MMIO_BASE + 0x2e00
+
+	// VirtIO Networking
+	VIRTIO_NET0_BASE = VIRTIO_MMIO_BASE + 0x2e00
+	VIRTIO_NET0_IRQ  = 23
 )
 
 // Peripheral instances
@@ -43,10 +52,10 @@ var (
 	AMD64 = &amd64.CPU{}
 
 	// Real-Time Clock
-	RTC0 = &RTC{}
+	RTC = &rtc.RTC{}
 
 	// Serial port
-	UART0 = &UART{
+	UART0 = &uart.UART{
 		Index: 1,
 		Base:  COM1,
 	}

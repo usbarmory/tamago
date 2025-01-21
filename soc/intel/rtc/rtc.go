@@ -1,4 +1,4 @@
-// MC146818A RTC driver
+// MC146818A Real Time Clock (RTC) driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -7,7 +7,14 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package microvm
+// Package rtc implements a driver for Real Time Clock devices adopting the
+// following reference specifications:
+//   - IBM PC AT Technical Reference - March 1984
+//
+// This package is only meant to be used with `GOOS=tamago GOARCH=amd64` as
+// supported by the TamaGo framework for bare metal Go, see
+// https://github.com/usbarmory/tamago.
+package rtc
 
 import (
 	"errors"
@@ -16,13 +23,14 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
-// RTC registers
-//
-// (IBM PC AT Technical Reference - March 1984)
+// CMOS registers
 const (
 	CMOS_RTC_OUT = 0x70
 	CMOS_RTC_IN  = 0x71
+)
 
+// RTC registers
+const (
 	SECONDS = 0x00
 	MINUTES = 0x02
 	HOURS   = 0x04
@@ -35,7 +43,7 @@ const (
 	STATUSA_UIP = 7
 )
 
-// RTC represents a Real-Time Clock instance.
+// RTC represents a Real Time Clock instance.
 type RTC struct {
 	// Time zone
 	Location *time.Location

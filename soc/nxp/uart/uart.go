@@ -1,4 +1,4 @@
-// NXP UART driver
+// NXP Universal Asynchronous Receiver/Transmitter (UART) driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation

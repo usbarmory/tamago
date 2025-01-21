@@ -38,9 +38,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| CPU              | Related board packages                                                             | Peripheral drivers                                                                                                                                                                                                                                                                 |
-|------------------|------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| AMD/Intel 64-bit | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm) | [kvmclock, VirtIO](https://github.com/usbarmory/tamago/tree/master/kvm), [RTC](https://github.com/usbarmory/tamago/blob/master/board/qemu/microvm/rtc.go), [UART](https://github.com/usbarmory/tamago/blob/master/board/qemu/microvm/uart.go)                                      |
+| CPU              | Related board packages                                                             | Peripheral drivers                                                                                                                              |
+|------------------|------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| AMD/Intel 64-bit | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm) | [kvmclock, VirtIO](https://github.com/usbarmory/tamago/tree/master/kvm), [RTC, UART](https://github.com/usbarmory/tamago/blob/master/soc/intel) |
 
 License
 =======
