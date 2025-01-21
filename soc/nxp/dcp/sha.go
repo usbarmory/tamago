@@ -13,13 +13,12 @@ import (
 	"crypto/sha256"
 	"errors"
 	"io"
-
-	"golang.org/x/sync/semaphore"
+	"sync"
 )
 
 // A single DCP channel is used for all operations, this entails that only one
 // digest state can be kept at any given time.
-var sem = semaphore.NewWeighted(1)
+var mux  sync.Mutex
 
 // Hash is the common interface to DCP hardware backed hash functions.
 //
@@ -110,7 +109,7 @@ func (d *digest) Sum(in []byte) (sum []byte, err error) {
 		return append(in, d.sum[:]...), nil
 	}
 
-	defer sem.Release(1)
+	defer mux.Unlock()
 
 	if d.init && len(d.buf) == 0 {
 		d.sum = sha256.New().Sum(nil)
@@ -141,7 +140,7 @@ func (d *digest) BlockSize() int {
 // The digest instance starts with New256() and terminates when when Sum() is
 // invoked, after which the digest state can no longer be changed.
 func (hw *DCP) New256() (Hash, error) {
-	if !sem.TryAcquire(1) {
+	if !mux.TryLock() {
 		return nil, errors.New("another digest instance is already in use")
 	}
 
