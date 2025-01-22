@@ -72,11 +72,6 @@ func DefaultSupervisorExceptionHandler() {
 	panic("unhandled exception")
 }
 
-//go:nosplit
-func (cpu *CPU) initExceptionHandler() {
-	set_mtvec(vector(DefaultExceptionHandler))
-}
-
 // SetExceptionHandler updates the CPU machine trap vector vector with the
 // address of the argument function.
 func (cpu *CPU) SetExceptionHandler(fn ExceptionHandler) {
