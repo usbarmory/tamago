@@ -48,11 +48,11 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	MOVL	$PML4T, DI
 	MOVL	$(PDPT | 1<<1 | 1<<0), (DI)	// set R/W, P
 
-	// Configure  Long-Mode Page Translation as follows:
-	//   0x00000000 - 0x3ffffffff (1GB) cacheable physical page
-	//   0x40000000 - 0x7ffffffff (1GB) cacheable physical page
-	//   0x80000000 - 0xbffffffff (1GB) cacheable physical page
-	//   0xc0000000 - 0xfffffffff (1GB) uncacheable physical page
+	// Configure Long-Mode Page Translation as follows:
+	//   0x00000000 - 0x3fffffff (1GB) cacheable   physical page
+	//   0x40000000 - 0x7fffffff (1GB) cacheable   physical page
+	//   0x80000000 - 0xbfffffff (1GB) cacheable   physical page
+	//   0xc0000000 - 0xffffffff (1GB) uncacheable physical page
 	MOVL	$PDPT, DI
 	MOVQ	$(0 << 30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
 	ADDL	$8, DI
