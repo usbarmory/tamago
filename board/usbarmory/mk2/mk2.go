@@ -2,7 +2,6 @@
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
-// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -54,9 +53,8 @@ func model() uint32 {
 		return 0
 	}
 
-	// WithSecure burns model information in the MSB of OTP fuses bank 4
-	// word 2 (OCOTP_MAC0).
 	mac0, _ := imx6ul.OCOTP.Read(4, 2)
+
 	return mac0 >> 24
 }
 

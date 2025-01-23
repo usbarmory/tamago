@@ -1,13 +1,13 @@
 // BCM2835 SoC Mailbox support
 // https://github.com/usbarmory/tamago
 //
+// Copyright (c) the bcm2835 package authors
+//
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-//
 // Mailboxes are used for inter-processor communication, in particular
 // the VideoCore processor.
-//
 
 package bcm2835
 

@@ -2,7 +2,6 @@
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
-// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -53,7 +52,7 @@ TEXT ·cache_enable(SB),$0
 	MCR	15, 0, R1, C1, C0, 0
 	RET
 
-// Taken from Linux /arch/arm/mm/cache-v7.S
+// Adapted from Linux /arch/arm/mm/cache-v7.S
 // Using R8 instead of R10 as the latter is g in go runtime.
 //
 // func cache_flush_data()
@@ -103,9 +102,6 @@ finished:
 	WORD	$0xf57ff06f			// ISB SY
 	RET
 
-// Taken from Linux /arch/arm/mm/cache-v7.S
-// Using R8 instead of R10 as the latter is g in go runtime.
-//
 // func cache_flush_instruction()
 TEXT ·cache_flush_instruction(SB),$0
 	MOVW	$0, R0

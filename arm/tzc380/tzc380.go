@@ -4,7 +4,6 @@
 // IP: ARM CoreLink™ TrustZone Address Space Controller TZC-380
 //
 // Copyright (c) WithSecure Corporation
-// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.

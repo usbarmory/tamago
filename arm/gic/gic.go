@@ -4,7 +4,6 @@
 // IP: ARM Generic Interrupt Controller version 2.0
 //
 // Copyright (c) WithSecure Corporation
-// https://foundry.withsecure.com
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
