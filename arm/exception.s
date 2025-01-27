@@ -81,7 +81,7 @@ TEXT ·set_mvbar(SB),NOSPLIT,$0-4
 	MOVW	R14, R3							\
 	CALL	runtime·CallOnG0(SB)					\
 									\
-	/* restore registers */						\
+	/* restore caller registers */					\
 	MOVM.IA.W	(R13), [R0-RN, R14]	/* pop {r0-rN, r14} */	\
 									\
 	/* restore PC from LR and mode */				\
@@ -103,27 +103,27 @@ TEXT ·dataAbortHandler(SB),NOSPLIT|NOFRAME,$0
 	EXCEPTION(const_DATA_ABORT, ·systemException, 8, R12, 56)
 
 TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
-	/* remove exception specific LR offset */
+	// remove exception specific LR offset
 	SUB	$4, R14, R14
 
-	/* save caller registers */
+	// save caller registers
 	MOVM.DB.W	[R0-R12, R14], (R13)	// push {r0-r12, r14}
 
-	/* wake up IRQ handling goroutine */
+	// wake up IRQ handling goroutine
 	MOVW	·irqHandlerG(SB), R0
 	CMP	$0, R0
 	B.EQ	done
 	CALL	runtime·WakeG(SB)
 
-	/* the IRQ handling goroutine is expected to unmask IRQs */
+	// the IRQ handling goroutine is expected to unmask IRQs
 	WORD	$0xe14f0000			// mrs r0, SPSR
 	ORR	$1<<7, R0			// mask IRQs
 	WORD	$0xe169f000			// msr SPSR, r0
 done:
-	/* restore registers */
+	// restore caller registers
 	MOVM.IA.W	(R13), [R0-R12, R14]	// pop {r0-r12, r14}
 
-	/* restore PC from LR and mode */
+	// restore PC from LR and mode
 	MOVW.S	R14, R15
 
 TEXT ·fiqHandler(SB),NOSPLIT|NOFRAME,$0
