@@ -54,13 +54,13 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	//   0x80000000 - 0xbfffffff (1GB) cacheable   physical page
 	//   0xc0000000 - 0xffffffff (1GB) uncacheable physical page
 	MOVL	$PDPT, DI
-	MOVQ	$(0 << 30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+	MOVQ	$(0<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
 	ADDL	$8, DI
-	MOVQ	$(1 << 30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+	MOVQ	$(1<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
 	ADDL	$8, DI
-	MOVQ	$(2 << 30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+	MOVQ	$(2<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
 	ADDL	$8, DI
-	MOVQ	$(3 << 30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
+	MOVQ	$(3<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
 
 	// Enter long mode
 
