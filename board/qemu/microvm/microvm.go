@@ -21,6 +21,7 @@ import (
 	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/kvm/clock"
+	"github.com/usbarmory/tamago/soc/intel/apic"
 	"github.com/usbarmory/tamago/soc/intel/rtc"
 	"github.com/usbarmory/tamago/soc/intel/uart"
 )
@@ -32,10 +33,13 @@ const (
 
 // Peripheral registers
 const (
+	// Communication port
 	COM1 = 0x3f8
 
-	// Intel I/O Programmable Interrupt Controller
-	IOAPIC_BASE = 0xfec00000
+	// Intel I/O Programmable Interrupt Controllers
+	LAPIC_BASE   = 0xfee00000
+	IOAPIC0_BASE = 0xfec00000
+	IOAPIC1_BASE = 0xfec10000
 
 	// VirtIO Memory-mapped I/O
 	VIRTIO_MMIO_BASE = 0xfeb00000
@@ -49,6 +53,23 @@ const (
 var (
 	// AMD64 core
 	AMD64 = &amd64.CPU{}
+
+	// Local APIC
+	LAPIC = &apic.LAPIC{
+		Base: LAPIC_BASE,
+	}
+
+	// I/O APIC - GSI 0-23
+	IOAPIC0 = &apic.IOAPIC{
+		Index: 0,
+		Base: IOAPIC0_BASE,
+	}
+
+	// I/O APIC - GSI 24-47
+	IOAPIC1 = &apic.IOAPIC{
+		Index: 1,
+		Base: IOAPIC1_BASE,
+	}
 
 	// Real-Time Clock
 	RTC = &rtc.RTC{}
@@ -70,6 +91,7 @@ func init() {
 
 	// initialize KVM clock as needed
 	kvmclock.Init(AMD64)
+
 }
 
 // Init takes care of the lower level initialization triggered early in runtime
@@ -79,6 +101,10 @@ func init() {
 func Init() {
 	// initialize CPU
 	AMD64.Init()
+
+	// initialize I/O APICs
+	IOAPIC0.Init()
+	IOAPIC1.Init()
 
 	// initialize serial console
 	UART0.Init()
