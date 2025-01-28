@@ -46,7 +46,7 @@ const (
 
 	// VirtIO Networking
 	VIRTIO_NET0_BASE = VIRTIO_MMIO_BASE + 0x2e00
-	VIRTIO_NET0_IRQ  = 23
+	VIRTIO_NET0_IRQ  = 47
 )
 
 // Peripheral instances
@@ -63,12 +63,14 @@ var (
 	IOAPIC0 = &apic.IOAPIC{
 		Index: 0,
 		Base: IOAPIC0_BASE,
+		GSIBase: 0,
 	}
 
 	// I/O APIC - GSI 24-47
 	IOAPIC1 = &apic.IOAPIC{
 		Index: 1,
 		Base: IOAPIC1_BASE,
+		GSIBase: 24,
 	}
 
 	// Real-Time Clock

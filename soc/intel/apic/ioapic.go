@@ -20,8 +20,10 @@ const (
 	IOREGSEL = 0x00
 	IOWIN    = 0x10
 
-	IOAPICID  = 0x00
-	IOAPICVER = 0x01
+	IOAPICID = 0x00
+
+	IOAPICVER   = 0x01
+	VER_ENTRIES = 16
 
 	IOAPICREDTBLn  = 0x10
 	REDTBL_DEST    = 56
@@ -36,6 +38,8 @@ type IOAPIC struct {
 	Index int
 	// Base register
 	Base uint32
+	// Global System Interrupt Base
+	GSIBase int
 }
 
 // Init initializes the I/O APIC.
@@ -56,19 +60,25 @@ func (io *IOAPIC) Version() uint32 {
 	return reg.Read(io.Base + IOWIN)
 }
 
+// Entries returns the size of the IOAPIC redirection table.
+func (io *IOAPIC) Entries() int {
+	reg.Write(io.Base+IOREGSEL, IOAPICVER)
+	maxIndex := reg.Get(io.Base+IOWIN, VER_ENTRIES, 0xff)
+	return int(maxIndex) + 1
+}
+
 // EnableInterrupt activates an IOAPIC redirection table entry at the
 // corresponding index for the desired interrupt vector.
 func (io *IOAPIC) EnableInterrupt(index int, id int) {
 	var val uint32
 
-	version := io.Version()
-	entries := bits.Get(&version, 16, 0xff)
-
-	if uint32(index) > entries {
+	if id < MinVector || id > MaxVector {
 		return
 	}
 
-	if id < MinVector || id > MaxVector {
+	index -= io.GSIBase
+
+	if index > io.Entries()-1 {
 		return
 	}
 

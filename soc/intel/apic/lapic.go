@@ -40,6 +40,12 @@ func (io *LAPIC) Version() uint32 {
 	return reg.Read(io.Base + LAPICVER)
 }
 
+// Entries returns the size of the LAPIC local vector table.
+func (io *LAPIC) Entries() int {
+	maxIndex := reg.Get(io.Base+LAPICVER, VER_ENTRIES, 0xff)
+	return int(maxIndex) + 1
+}
+
 // Enable enables the Local APIC.
 func (io *LAPIC) Enable() {
 	reg.Set(io.Base+LAPICSVR, SVR_ENABLE)

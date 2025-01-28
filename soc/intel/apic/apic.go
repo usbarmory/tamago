@@ -10,6 +10,7 @@
 // Advanced Programmable Interrupt Controllers adopting the following reference
 // specifications:
 //   - Intel® 64 and IA-32 Architectures Software Developer’s Manual - Volume 3A - Chapter 10
+//   - 82093AA I/O Advanced Programmable Interrupt Controller (IOAPIC)
 //
 // This package is only meant to be used with `GOOS=tamago` as
 // supported by the TamaGo framework for bare metal Go, see
