@@ -22,6 +22,7 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
+// GIC registers
 const (
 	// GIC offsets in Cortex-A7
 	// (p178, Table 8-1, Cortex-A7 MPCore Technical Reference Manual).
