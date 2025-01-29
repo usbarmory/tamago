@@ -9,7 +9,7 @@
 package apic
 
 import (
-	_ "unsafe"
+	"fmt"
 
 	"github.com/usbarmory/tamago/internal/reg"
 )

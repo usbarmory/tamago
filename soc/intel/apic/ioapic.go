@@ -9,8 +9,6 @@
 package apic
 
 import (
-	_ "unsafe"
-
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 )

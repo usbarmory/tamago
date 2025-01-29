@@ -93,7 +93,6 @@ func init() {
 
 	// initialize KVM clock as needed
 	kvmclock.Init(AMD64)
-
 }
 
 // Init takes care of the lower level initialization triggered early in runtime
