@@ -9,8 +9,6 @@
 package apic
 
 import (
-	"fmt"
-
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
