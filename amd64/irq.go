@@ -18,23 +18,32 @@ import (
 	"github.com/usbarmory/tamago/dma"
 )
 
-const vectors = 256
-
 // Interrupt Gate Descriptor Attributes
 const (
 	InterruptGate = 0b10001110
 	TrapGate      = 0b10001111
 )
 
+// IRQ handling jump table
+const (
+	callSize = 5
+	vectors  = 256
+)
+
 // IRQ handling goroutine
-var irqHandlerG uint64
+var (
+	irqHandlerG   uint64
+	firstVector   uint64
+	currentVector uint64
+)
 
 // defined in irq.s
 func load_idt() (idt uintptr, irqHandler uintptr)
-//go:nosplit
-func irqHandler()
 func irq_enable()
 func irq_disable()
+
+//go:nosplit
+func irqHandler()
 
 type ExceptionHandler func()
 
@@ -73,24 +82,26 @@ func setIDT() {
 		Attributes:      InterruptGate,
 	}
 
-	// set ISR to irqHandler.abi0
-	desc.SetOffset(irqHandlerAddr)
+	gateSize := len(desc.Bytes())
+	idtSize := gateSize * vectors
 
-	entry := desc.Bytes()
-	size := len(entry) * vectors
-
-	r, err := dma.NewRegion(uint(idtAddr), size, true)
+	r, err := dma.NewRegion(uint(idtAddr), idtSize, true)
 
 	if err != nil {
 		panic(err)
 	}
 
-	addr, idt := r.Reserve(size, 0)
+	addr, idt := r.Reserve(idtSize, 0)
 	defer r.Release(addr)
 
 	for i := 0; i < vectors; i++ {
-		copy(idt[i*len(entry):], entry)
+		off := irqHandlerAddr + uintptr(i*callSize)
+		// set ISR to irqHandler.abi0 + vector offset
+		desc.SetOffset(off)
+		copy(idt[i*gateSize:], desc.Bytes())
 	}
+
+	firstVector = uint64(irqHandlerAddr)
 }
 
 // EnableInterrupts unmasks external interrupts.
@@ -107,11 +118,11 @@ func (cpu *CPU) DisableInterrupts() {
 // ServiceInterrupts() puts the calling goroutine in wait state, its execution
 // is resumed when an interrupt is received, an argument function can be set
 // for servicing.
-func ServiceInterrupts(isr func()) {
+func ServiceInterrupts(isr func(id int)) {
 	irqHandlerG, _ = runtime.GetG()
 
 	if isr == nil {
-		isr = func() { return }
+		isr = func(_ int) { return }
 	}
 
 	setIDT()
@@ -125,6 +136,12 @@ func ServiceInterrupts(isr func()) {
 		// (see irqHandler).
 		time.Sleep(math.MaxInt64)
 
-		isr()
+		id := int(currentVector - firstVector)
+
+		if id > 0 {
+			id = id / callSize
+		}
+
+		isr(id)
 	}
 }
