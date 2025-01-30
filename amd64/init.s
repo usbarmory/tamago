@@ -10,10 +10,10 @@
 
 #define MSR_EFER 0xc0000080
 
-#define PML4T 0x1000	// Page Map Level 4 Table       (512GB entries)
-#define PDPT  0x2000	// Page Directory Pointer Table   (1GB entries)
-#define PDT   0x3000	// Page Directory Table           (2MB entries)
-#define PT    0x4000	// Page Table                     (4kB entries)
+#define PML4T 0x9000	// Page Map Level 4 Table       (512GB entries)
+#define PDPT  0xa000	// Page Directory Pointer Table   (1GB entries)
+#define PDT   0xb000	// Page Directory Table           (2MB entries)
+#define PT    0xc000	// Page Table                     (4kB entries)
 
 // Global Descriptor Table
 DATA	gdt<>+0x00(SB)/8, $0x0000000000000000	// null descriptor
@@ -62,6 +62,13 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	ADDL	$8, DI
 	MOVQ	$(3<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
 
+	MOVL	CR4, AX
+	ANDL	$(1<<7 | 1 << 5), AX	// get CR4.(PGE|PAE)
+	JBE	enable_long_mode
+
+	JMP	·start<>(SB)
+
+enable_long_mode:
 	// Enter long mode
 
 	MOVL	$(1<<7 | 1<<5), AX	// set CR4.(PGE|PAE)
