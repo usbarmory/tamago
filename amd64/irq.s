@@ -16,6 +16,30 @@ DATA	idtptr<>+0x00(SB)/2, $(const_vectors*16-1)	// IDT Limit
 DATA	idtptr<>+0x02(SB)/8, $idt<>(SB)			// IDT Base Address
 GLOBL	idtptr<>(SB),RODATA,$(2+8)
 
+// func load_idt() (idt uintptr, irqHandler uintptr)
+TEXT ·load_idt(SB),$0-16
+	MOVQ	$idtptr<>(SB), AX
+	LIDT (AX)
+
+	MOVQ	$idt<>(SB), AX
+	MOVQ	AX, ret+0(FP)
+
+	// return irqHandler.abi0 pointer
+	MOVQ	$·irqHandler(SB), AX
+	MOVQ	AX, ret+8(FP)
+
+	RET
+
+// func irq_enable()
+TEXT ·irq_enable(SB),$0
+	STI
+	RET
+
+// func irq_disable()
+TEXT ·irq_disable(SB),$0
+	CLI
+	RET
+
 TEXT ·wakeHandler(SB),NOSPLIT|NOFRAME,$0
 	// save caller registers
 	MOVQ	R15, r15-(14*8+8)(SP)
@@ -34,7 +58,7 @@ TEXT ·wakeHandler(SB),NOSPLIT|NOFRAME,$0
 	MOVQ	CX, cx-(1*8+8)(SP)
 	MOVQ	AX, ax-(0*8+8)(SP)
 
-	// find ISR offset from stack linking information
+	// find ISR offset from stack linking information (see irqHandler)
 	MOVQ	isr-(0)(SP), AX
 	SUBQ	$(const_callSize), AX
 	MOVQ	AX, ·currentVector(SB)
@@ -74,30 +98,6 @@ done:
 
 	// return to caller
 	IRETQ
-
-// func load_idt() (idt uintptr, irqHandler uintptr)
-TEXT ·load_idt(SB),$0-16
-	MOVQ	$idtptr<>(SB), AX
-	LIDT (AX)
-
-	MOVQ	$idt<>(SB), AX
-	MOVQ	AX, ret+0(FP)
-
-	// return irqHandler.abi0 pointer
-	MOVQ	$·irqHandler(SB), AX
-	MOVQ	AX, ret+8(FP)
-
-	RET
-
-// func irq_enable()
-TEXT ·irq_enable(SB),$0
-	STI
-	RET
-
-// func irq_disable()
-TEXT ·irq_disable(SB),$0
-	CLI
-	RET
 
 // To allow a single user-defined ISR for all vectors, a jump table of CALLs,
 // which save the vector PC on the stack, is built to use as IDT offsets.
