@@ -69,8 +69,6 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	JMP	·start<>(SB)
 
 enable_long_mode:
-	// Enter long mode
-
 	MOVL	$(1<<7 | 1<<5), AX	// set CR4.(PGE|PAE)
 	MOVL	AX, CR4
 
