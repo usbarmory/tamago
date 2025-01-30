@@ -1,4 +1,4 @@
-// microvm support for tamago/amd64
+// QEMU microvm support for tamago/amd64
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
