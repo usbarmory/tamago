@@ -84,21 +84,23 @@ Executing and debugging
 =======================
 
 The [example application](https://github.com/usbarmory/tamago-example) provides
-reference usage and a Makefile target for automatic creation of an ELF image as
-well as paravirtualized execution.
+reference usage and a Makefile target for automatic creation of an ELF image
+which can be executed under paravirtualization with
+[firectl](https://github.com/firecracker-microvm/firectl) or
+[firecracker](https://github.com/firecracker-microvm/firecracker):
 
 Firectl
 -------
 
 ```
-firectl --kernel example --root-drive /dev/null
+firectl --kernel example --root-drive /dev/null --tap-device tap0/06:00:AC:10:00:01 -c 1 -m 2048
 ```
 
 Firecracker
 -----------
 
 ```
-firecracker --api-sock /tmp/firecracker.socket --config-file vm_config.json
+firecracker --config-file vm_config.json
 ```
 
 License
