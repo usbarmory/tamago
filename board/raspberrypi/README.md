@@ -84,8 +84,7 @@ cd ../bin && export TAMAGO=`pwd`/go
 ```
 
 Go applications can be compiled as usual, using the compiler built in the
-previous step, but with the addition of the following flags/variables and
-ensuring that the required SoC and board packages are available in `GOPATH`:
+previous step, but with the addition of the following flags/variables:
 
 ```sh
 GOOS=tamago GOARM=5 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x00010000 -R 0x1000" main.go

@@ -68,8 +68,7 @@ cd ../bin && export TAMAGO=`pwd`/go
 ```
 
 Go applications can be compiled as usual, using the compiler built in the
-previous step, but with the addition of the following flags/variables and
-ensuring that the required SoC and board packages are available in `GOPATH`:
+previous step, but with the addition of the following flags/variables:
 
 ```
 GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
@@ -164,6 +163,7 @@ The target can be executed under emulation as follows:
 qemu-system-arm \
 	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M \
 	-nographic -monitor none -serial null -serial stdio \
+	-net nic,model=imx.enet,netdev=net0 -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
 	-kernel example -semihosting
 ```
 

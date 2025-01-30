@@ -89,9 +89,10 @@ The following table summarizes currently supported RISC-V SoCs and boards
 Supported AMD64 targets
 =======================
 
-| CPU              | Board                                                                | CPU package                                                    | Board package                                                                      |
-|------------------|----------------------------------------------------------------------|----------------------------------------------------------------|------------------------------------------------------------------------------------|
-| AMD/Intel 64-bit | [microvm](https://www.qemu.org/docs/master/system/i386/microvm.html) | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm) |
+| CPU              | Board                                                                     | CPU package                                                    | Board package                                                                                    |
+|------------------|---------------------------------------------------------------------------|----------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| AMD/Intel 64-bit | [QEMU microvm](https://www.qemu.org/docs/master/system/i386/microvm.html) | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)               |
+| AMD/Intel 64-bit | [Firecracker microvm](https://firecracker-microvm.github.io)              | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [firecracker/microvm](https://github.com/usbarmory/tamago/tree/master/board/firecracker/microvm) |
 
 Userspace targets
 =================
@@ -152,7 +153,7 @@ GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000
 # Example for QEMU RISC-V sifive_u
 GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
 
-# Example for QEMU AMD64 microvm
+# Example for QEMU and Firecracker microVMs
 GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 
 # Example for Linux userspace
