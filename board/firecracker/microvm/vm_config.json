@@ -1,0 +1,20 @@
+{
+  "boot-source": {
+    "kernel_image_path": "example"
+  },
+  "drives": [],
+  "network-interfaces": [
+    {
+      "iface_id": "net1",
+      "guest_mac": "06:00:AC:10:00:02",
+      "host_dev_name": "tap0"
+    }
+  ],
+  "machine-config": {
+    "vcpu_count": 1,
+    "mem_size_mib": 2048,
+    "smt": false,
+    "track_dirty_pages": false,
+    "huge_pages": "None"
+  }
+}
