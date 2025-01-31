@@ -9,6 +9,9 @@
 #include "go_asm.h"
 #include "textflag.h"
 
+#define KVM_HC_CLOCK_PAIRING		9
+#define KVM_CLOCK_PAIRING_WALLCLOCK	0
+
 // holder for struct pvclock_vcpu_time_info
 DATA	pvclock<>+0x00(SB)/8, $0x0000000000000000
 DATA	pvclock<>+0x08(SB)/8, $0x0000000000000000
@@ -23,4 +26,17 @@ TEXT ·pvclock(SB),$8
 	MOVL	AX, ret+8(FP)
 	ORL	$1, AX
 	WRMSR
+	RET
+
+// func kvmclock_pairing(ptr uint)
+TEXT ·kvmclock_pairing(SB),$8
+	MOVQ	$KVM_HC_CLOCK_PAIRING, AX
+	MOVQ	ptr+0(FP), BX
+	MOVQ	$KVM_CLOCK_PAIRING_WALLCLOCK, CX
+
+	// vmcall
+	BYTE	$0x0f
+	BYTE	$0x01
+	BYTE	$0xc1
+
 	RET
