@@ -20,9 +20,9 @@ import (
 
 	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/dma"
+	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/kvm/clock"
 	"github.com/usbarmory/tamago/soc/intel/apic"
-	"github.com/usbarmory/tamago/soc/intel/rtc"
 	"github.com/usbarmory/tamago/soc/intel/uart"
 )
 
@@ -33,6 +33,9 @@ const (
 
 // Peripheral registers
 const (
+	// Keyboard controller port
+	KBD_PORT = 0x64
+
 	// Communication port
 	COM1 = 0x3f8
 
@@ -45,6 +48,7 @@ const (
 
 	// VirtIO Networking
 	VIRTIO_NET0_BASE = VIRTIO_MMIO_BASE + 0x1000
+	VIRTIO_NET0_IRQ  = 6
 )
 
 // Peripheral instances
@@ -61,9 +65,6 @@ var (
 	IOAPIC0 = &apic.IOAPIC{
 		Base: IOAPIC0_BASE,
 	}
-
-	// Real-Time Clock
-	RTC = &rtc.RTC{}
 
 	// Serial port
 	UART0 = &uart.UART{
@@ -98,8 +99,7 @@ func Init() {
 	UART0.Init()
 
 	runtime.Exit = func(_ int32) {
-		// On microvm the recommended way to trigger a guest-initiated
-		// shut down is by generating a triple-fault.
-		amd64.Fault()
+		// Reset the CPU pin via 8042 keyboard controller pulse.
+		reg.Out8(KBD_PORT, 0xfe)
 	}
 }
