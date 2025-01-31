@@ -19,12 +19,12 @@ func read_tsc() uint64
 func (cpu *CPU) initTimers() {
 	var timerFreq uint32
 
-	if denominator, numerator, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0x00); nominalFreq != 0 {
+	if denominator, numerator, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); nominalFreq != 0 {
 		timerFreq = (numerator * nominalFreq) / denominator
 	}
 
 	if cpu.kvm {
-		if khz, _, _, _ := cpuid(KVM_CPUID_TSC_KHZ, 0x00); khz != 0 {
+		if khz, _, _, _ := cpuid(KVM_CPUID_TSC_KHZ, 0); khz != 0 {
 			timerFreq = khz * 1000
 		}
 	}

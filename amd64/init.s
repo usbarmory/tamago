@@ -63,7 +63,7 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	MOVQ	$(3<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
 
 	MOVL	CR4, AX
-	ANDL	$(1<<7 | 1 << 5), AX	// get CR4.(PGE|PAE)
+	ANDL	$(1<<7 | 1<<5), AX	// get CR4.(PGE|PAE)
 	JBE	enable_long_mode
 
 	JMP	·start<>(SB)

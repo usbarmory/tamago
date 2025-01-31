@@ -48,17 +48,17 @@ const (
 func cpuid(eaxArg, ecxArg uint32) (eax, ebx, ecx, edx uint32)
 
 func (cpu *CPU) initFeatures() {
-	_, _, _, apmFeatures := cpuid(CPUID_APM, 0x00)
+	_, _, _, apmFeatures := cpuid(CPUID_APM, 0)
 	cpu.invariant = bits.IsSet(&apmFeatures, APM_TSC_INVARIANT)
 
-	_, kvmk, _, _ := cpuid(KVM_CPUID_SIGNATURE, 0x00)
+	_, kvmk, _, _ := cpuid(KVM_CPUID_SIGNATURE, 0)
 	cpu.kvm = kvmk == KVM_SIGNATURE
 
 	if !cpu.kvm {
 		return
 	}
 
-	kvmFeatures, _, _, _ := cpuid(KVM_CPUID_FEATURES, 0x00)
+	kvmFeatures, _, _, _ := cpuid(KVM_CPUID_FEATURES, 0)
 
 	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE) {
 		cpu.kvmclock = 0x12
