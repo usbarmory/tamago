@@ -12,7 +12,7 @@
   ],
   "machine-config": {
     "vcpu_count": 1,
-    "mem_size_mib": 1280,
+    "mem_size_mib": 2048,
     "smt": false,
     "track_dirty_pages": false,
     "huge_pages": "None"

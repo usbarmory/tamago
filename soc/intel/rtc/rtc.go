@@ -57,7 +57,7 @@ func bcdToBin(val int) int {
 	return (val & 0x0f) + ((val / 16) * 10)
 }
 
-// Now() returns the real-time clock information.
+// Now() returns the real-time clock.
 func (rtc *RTC) Now() (t time.Time, err error) {
 	if rtc.Location == nil {
 		if rtc.Location, err = time.LoadLocation(""); err != nil {

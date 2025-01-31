@@ -8,12 +8,18 @@
 
 package amd64
 
+import (
+	"errors"
+	"time"
+)
+
 const (
 	// nanoseconds
 	refFreq uint32 = 1e9
 )
 
 // defined in timer.s
+func kvmclock_pairing() (sec int64, nsec int64, tsc uint64)
 func read_tsc() uint64
 
 func (cpu *CPU) initTimers() {
@@ -26,6 +32,10 @@ func (cpu *CPU) initTimers() {
 	if cpu.kvm {
 		if khz, _, _, _ := cpuid(KVM_CPUID_TSC_KHZ, 0); khz != 0 {
 			timerFreq = khz * 1000
+		} else {
+			_, nsecA, tscA := kvmclock_pairing()
+			_, nsecB, tscB := kvmclock_pairing()
+			timerFreq = uint32(((tscB - tscA) * uint64(refFreq)) / uint64(nsecB-nsecA))
 		}
 	}
 
@@ -44,4 +54,16 @@ func (cpu *CPU) SetTimer(t int64) {
 	}
 
 	cpu.TimerOffset = t - int64(float64(cpu.TimerFn())*cpu.TimerMultiplier)
+}
+
+// Now() returns the KVM host clock.
+func (cpu *CPU) Now() (t time.Time, err error) {
+	if !cpu.kvm {
+		err = errors.New("KVM clock pairing is unavailable")
+		return
+	}
+
+	sec, nsec, _ := kvmclock_pairing()
+
+	return time.Unix(sec, nsec), nil
 }
