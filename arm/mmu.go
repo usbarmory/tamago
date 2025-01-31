@@ -209,5 +209,5 @@ func (cpu *CPU) SetAttributes(start, end, flags uint32) {
 // SetAttribute (re)configures a single attribute flag on the first-level
 // translation tables for the provided memory range.
 func (cpu *CPU) SetAttribute(start, end, pos, val uint32) {
-	cpu.updateMMU(start, end, 0, int(pos), val << pos)
+	cpu.updateMMU(start, end, 0, int(pos), val<<pos)
 }

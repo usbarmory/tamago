@@ -17,7 +17,7 @@ import (
 
 // A single DCP channel is used for all operations, this entails that only one
 // digest state can be kept at any given time.
-var mux  sync.Mutex
+var mux sync.Mutex
 
 // Hash is the common interface to DCP hardware backed hash functions.
 //

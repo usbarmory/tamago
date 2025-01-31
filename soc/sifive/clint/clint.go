@@ -42,6 +42,6 @@ func (hw *CLINT) Mtime() uint64 {
 }
 
 // SetTimer sets the timer to the argument nanoseconds value.
-func (hw *CLINT) SetTimer(t int64) {
-	hw.TimerOffset = t - hw.Nanotime()
+func (hw *CLINT) SetTimer(ns int64) {
+	hw.TimerOffset = ns - hw.Nanotime()
 }

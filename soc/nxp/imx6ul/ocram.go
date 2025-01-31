@@ -32,17 +32,17 @@ const (
 // OCRAM follows the config security level (CSL) set by the CSU (see
 // csu.SetSecurityLevel()).
 func SetOCRAMProtection(start uint32) (err error) {
-	if start < OCRAM_START || start >= OCRAM_START + OCRAM_SIZE {
+	if start < OCRAM_START || start >= OCRAM_START+OCRAM_SIZE {
 		return errors.New("address outside OCRAM memory range")
 	}
 
-	if start % 4096 != 0 {
+	if start%4096 != 0 {
 		return errors.New("address must be 4K bytes aligned")
 	}
 
 	start -= OCRAM_START
 
-	reg.SetN(IOMUXC_GPR_GPR10, GPR10_OCRAM_TZ_ADDR, 0x1f, start / 4096)
+	reg.SetN(IOMUXC_GPR_GPR10, GPR10_OCRAM_TZ_ADDR, 0x1f, start/4096)
 	reg.Set(IOMUXC_GPR_GPR10, GPR10_OCRAM_TZ_EN)
 
 	return

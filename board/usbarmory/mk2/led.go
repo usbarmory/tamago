@@ -44,7 +44,7 @@ const (
 
 var (
 	white *gpio.Pin
-	blue *gpio.Pin
+	blue  *gpio.Pin
 )
 
 func init() {
@@ -109,11 +109,11 @@ func LED(name string, on bool) (err error) {
 		// set general MMD registers access
 		devad := uint16(0x1f)
 		// set address function
-		eth.WritePHYRegister(PHY_ADDR, DP_REGCR, uint16(MMD_FN_ADDR << 14) | devad)
+		eth.WritePHYRegister(PHY_ADDR, DP_REGCR, uint16(MMD_FN_ADDR<<14)|devad)
 		// write address value
 		eth.WritePHYRegister(PHY_ADDR, DP_ADDAR, DP_LEDCR2)
 		// set data function
-		eth.WritePHYRegister(PHY_ADDR, DP_REGCR, uint16(MMD_FN_DATA << 14) | devad)
+		eth.WritePHYRegister(PHY_ADDR, DP_REGCR, uint16(MMD_FN_DATA<<14)|devad)
 		// write data value
 		eth.WritePHYRegister(PHY_ADDR, DP_ADDAR, val)
 	default:

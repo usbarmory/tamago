@@ -20,7 +20,7 @@ import (
 
 	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/dma"
-	"github.com/usbarmory/tamago/kvm/clock"
+	"github.com/usbarmory/tamago/kvm/pvclock"
 	"github.com/usbarmory/tamago/soc/intel/apic"
 	"github.com/usbarmory/tamago/soc/intel/rtc"
 	"github.com/usbarmory/tamago/soc/intel/uart"
@@ -61,15 +61,15 @@ var (
 
 	// I/O APIC - GSI 0-23
 	IOAPIC0 = &apic.IOAPIC{
-		Index: 0,
-		Base: IOAPIC0_BASE,
+		Index:   0,
+		Base:    IOAPIC0_BASE,
 		GSIBase: 0,
 	}
 
 	// I/O APIC - GSI 24-47
 	IOAPIC1 = &apic.IOAPIC{
-		Index: 1,
-		Base: IOAPIC1_BASE,
+		Index:   1,
+		Base:    IOAPIC1_BASE,
 		GSIBase: 24,
 	}
 
@@ -91,8 +91,8 @@ func nanotime1() int64 {
 func init() {
 	dma.Init(dmaStart, dmaSize)
 
-	// initialize KVM clock as needed
-	kvmclock.Init(AMD64)
+	// initialize KVM pvclock as needed
+	pvclock.Init(AMD64)
 }
 
 // Init takes care of the lower level initialization triggered early in runtime

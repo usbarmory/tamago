@@ -1,4 +1,4 @@
-// KVM clock driver
+// KVM pvclock driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation

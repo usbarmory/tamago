@@ -23,7 +23,7 @@ func IsSet(addr uint32, pos int) bool {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 	r := atomic.LoadUint32(reg)
 
-	return (int(r) >> pos) & 1 == 1
+	return (int(r)>>pos)&1 == 1
 }
 
 func Get(addr uint32, pos int, mask int) uint32 {

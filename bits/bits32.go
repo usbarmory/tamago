@@ -11,7 +11,7 @@ package bits
 
 // IsSet returns whether a specific bit position is set at the pointed value.
 func IsSet(addr *uint32, pos int) bool {
-	return (int(*addr) >> pos) & 1 == 1
+	return (int(*addr)>>pos)&1 == 1
 }
 
 // Get returns the pointed value at a specific bit position and with a bitmask

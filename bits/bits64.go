@@ -9,7 +9,7 @@ package bits
 
 // IsSet64 returns whether a specific bit position is set at the pointed value.
 func IsSet64(addr *uint64, pos int) bool {
-	return (int(*addr) >> pos) & 1 == 1
+	return (int(*addr)>>pos)&1 == 1
 }
 
 // Get64 returns the pointed value at a specific bit position and with a

@@ -31,7 +31,7 @@ const (
 	WCR_WDT   = 3
 	WCR_WDE   = 2
 
-	WDOGx_WSR  = 0x02
+	WDOGx_WSR = 0x02
 
 	WDOGx_WRSR = 0x04
 	WRSR_POR   = 4
@@ -87,8 +87,8 @@ func (hw *WDOG) Init() {
 		panic("invalid WDOG module instance")
 	}
 
-	hw.wcr  = hw.Base + WDOGx_WCR
-	hw.wsr  = hw.Base + WDOGx_WSR
+	hw.wcr = hw.Base + WDOGx_WCR
+	hw.wsr = hw.Base + WDOGx_WSR
 	hw.wrsr = hw.Base + WDOGx_WRSR
 	hw.wicr = hw.Base + WDOGx_WICR
 	hw.wmcr = hw.Base + WDOGx_WMCR
@@ -104,7 +104,7 @@ func (hw *WDOG) Init() {
 // event per argument delay. The delay must be specified in milliseconds with
 // 127500 as maximum value, the timeout resolution is 500ms.
 func (hw *WDOG) EnableInterrupt(delay int) {
-	reg.SetN16(hw.wicr, WICR_WICT, 0xffff, 1 << WICR_WIE | uint16(delay/500))
+	reg.SetN16(hw.wicr, WICR_WICT, 0xffff, 1<<WICR_WIE|uint16(delay/500))
 }
 
 // ClearInterrupt clears the interrupt status register.

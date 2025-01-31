@@ -85,12 +85,12 @@ func (cpu *CPU) InitGenericTimers(base uint32, freq int32) {
 }
 
 // SetTimer sets the timer to the argument nanoseconds value.
-func (cpu *CPU) SetTimer(t int64) {
+func (cpu *CPU) SetTimer(ns int64) {
 	if cpu.TimerFn == nil || cpu.TimerMultiplier == 0 {
 		return
 	}
 
-	cpu.TimerOffset = t - cpu.TimerFn()*cpu.TimerMultiplier
+	cpu.TimerOffset = ns - cpu.TimerFn()*cpu.TimerMultiplier
 }
 
 // SetDownCounter sets a physical countdown timer.

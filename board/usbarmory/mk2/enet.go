@@ -80,9 +80,9 @@ const (
 	LEDCR1_LINK_LED_DRV = 4
 	LEDCR1_LINK_LED_OFF = 1
 
-	DP_LEDCR2            = 0x469
-	LEDCR2_LED2_DRV_VAL  = 5
-	LEDCR2_LED2_DRV_EN   = 4
+	DP_LEDCR2           = 0x469
+	LEDCR2_LED2_DRV_VAL = 5
+	LEDCR2_LED2_DRV_EN  = 4
 )
 
 // Table 22–9, MMD access control register bit definitions, 802.3-2008

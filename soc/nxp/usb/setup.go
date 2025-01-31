@@ -197,7 +197,7 @@ func (hw *USB) handleSetup() (conf uint8, err error) {
 		// no meaningful action for now
 		err = hw.ack(0)
 	default:
-		if (setup.RequestType >> REQUEST_TYPE_DIR) & 1 == OUT {
+		if (setup.RequestType>>REQUEST_TYPE_DIR)&1 == OUT {
 			hw.stall(0, OUT)
 		}
 

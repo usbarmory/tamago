@@ -1,4 +1,4 @@
-// KVM clock driver
+// KVM pvclock driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -6,16 +6,16 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package kvmclock implements a driver for the KVM specific paravirtualized
+// Package pvclock implements a driver for the KVM specific paravirtualized
 // clocksource following the MSR_KVM_SYSTEM_TIME_NEW KVM-specific MSR as
-// described in:
+// described at:
 //
 //	https://docs.kernel.org/virt/kvm/x86/msr.html
 //
 // This package is only meant to be used with `GOOS=tamago` as
 // supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
-package kvmclock
+package pvclock
 
 import (
 	"encoding/binary"
@@ -61,7 +61,7 @@ func initTimeInfo(msr uint32) {
 	_, timeInfoBuffer = r.Reserve(size, 0)
 }
 
-func kvmClock(cpu *amd64.CPU, timeInfo *pvClockTimeInfo) int64 {
+func pvClock(cpu *amd64.CPU, timeInfo *pvClockTimeInfo) int64 {
 	if timeInfo == nil {
 		timeInfo = &pvClockTimeInfo{}
 	}
@@ -85,7 +85,7 @@ func kvmClock(cpu *amd64.CPU, timeInfo *pvClockTimeInfo) int64 {
 	return int64(r.Uint64() + timeInfo.SystemTime)
 }
 
-func kvmClockSync(cpu *amd64.CPU) {
+func pvClockSync(cpu *amd64.CPU) {
 	version := uint32(0)
 	timeInfo := &pvClockTimeInfo{}
 
@@ -99,7 +99,7 @@ func kvmClockSync(cpu *amd64.CPU) {
 		}
 
 		version = timeInfo.Version
-		cpu.SetTimer(kvmClock(cpu, timeInfo))
+		cpu.SetTimer(pvClock(cpu, timeInfo))
 	}
 }
 
@@ -115,7 +115,7 @@ func Init(cpu *amd64.CPU) {
 		// no action required as TSC is reliable but we
 		// opportunistically adjust once with kvmclock
 		initTimeInfo(features.KVMClockMSR)
-		cpu.SetTimer(kvmClock(cpu, nil))
+		cpu.SetTimer(pvClock(cpu, nil))
 	case features.KVM && features.KVMClockMSR > 0:
 		// TSC must be adjusted as it is not reliable through state
 		// changes.
@@ -124,9 +124,9 @@ func Init(cpu *amd64.CPU) {
 		// we adjust asynchronously with kvmclock every TimeInfoUpdate
 		// interval.
 		//
-		// If ever required kvmClockSync() can be moved to Go assembly.
+		// If ever required pvClockSync() can be moved to Go assembly.
 		initTimeInfo(features.KVMClockMSR)
-		go kvmClockSync(cpu)
+		go pvClockSync(cpu)
 	default:
 		panic("could not set system timer")
 	}
