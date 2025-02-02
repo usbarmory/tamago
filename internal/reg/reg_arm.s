@@ -19,3 +19,12 @@ TEXT ·Move(SB),$0-8
 	MOVW	R3, (R1)
 
 	RET
+
+// func Write(addr uint32, val uint32)
+TEXT ·Write(SB),$0-8
+	MOVW	addr+0(FP), R0
+	MOVW	val+4(FP), R1
+
+	MOVW	R1, (R0)
+
+	RET

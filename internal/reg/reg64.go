@@ -24,7 +24,5 @@ func Read64(addr uint64) uint64 {
 	return atomic.LoadUint64(reg)
 }
 
-func Write64(addr uint64, val uint64) {
-	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
-	atomic.StoreUint64(reg, val)
-}
+// defined in reg_*.s
+func Write64(addr uint64, val uint64)

@@ -19,3 +19,21 @@ TEXT ·Move(SB),$0-8
 	MOVL	CX, (BX)
 
 	RET
+
+// func Write(addr uint32, val uint32)
+TEXT ·Write(SB),$0-8
+	MOVL	addr+0(FP), AX
+	MOVL	val+4(FP), BX
+
+	MOVL	BX, (AX)
+
+	RET
+
+// func Write64(addr uint64, val uint64)
+TEXT ·Write64(SB),$0-16
+	MOVQ	addr+0(FP), AX
+	MOVQ	val+8(FP), BX
+
+	MOVL	BX, (AX)
+
+	RET

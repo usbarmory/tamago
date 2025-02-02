@@ -77,7 +77,7 @@ func ClearN(addr uint32, pos int, mask int) {
 	atomic.StoreUint32(reg, r)
 }
 
-// defined in reg32_*.s
+// defined in reg_*.s
 func Move(dst uint32, src uint32)
 
 func Read(addr uint32) uint32 {
@@ -85,10 +85,8 @@ func Read(addr uint32) uint32 {
 	return atomic.LoadUint32(reg)
 }
 
-func Write(addr uint32, val uint32) {
-	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	atomic.StoreUint32(reg, val)
-}
+// defined in reg_*.s
+func Write(addr uint32, val uint32)
 
 func WriteBack(addr uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
