@@ -94,7 +94,7 @@ func Init() {
 	AMD64.Init()
 
 	// initialize I/O APIC
-	//IOAPIC0.Init()
+	IOAPIC0.Init()
 	// initialize serial console
 	UART0.Init()
 

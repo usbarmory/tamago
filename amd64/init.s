@@ -54,13 +54,13 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	//   0x80000000 - 0xbfffffff (1GB) cacheable   physical page
 	//   0xc0000000 - 0xffffffff (1GB) uncacheable physical page
 	MOVL	$PDPT, DI
-	MOVQ	$(0<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+	MOVL	$(0<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
 	ADDL	$8, DI
-	MOVQ	$(1<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+	MOVL	$(1<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
 	ADDL	$8, DI
-	MOVQ	$(2<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+	MOVL	$(2<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
 	ADDL	$8, DI
-	MOVQ	$(3<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
+	MOVL	$(3<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
 
 	MOVL	CR4, AX
 	ANDL	$(1<<7 | 1<<5), AX	// get CR4.(PGE|PAE)
