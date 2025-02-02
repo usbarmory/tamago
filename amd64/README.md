@@ -37,10 +37,10 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| CPU              | Related board packages                                                                           | Peripheral drivers                                                                                                                                                |
-|------------------|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| AMD/Intel 64-bit | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)               | [KVM pvclock, VirtIO](https://github.com/usbarmory/tamago/tree/master/kvm), [LAPIC, IOAPIC, RTC, UART](https://github.com/usbarmory/tamago/blob/master/soc/intel) |
-| AMD/Intel 64-bit | [Firecracker microvm](https://github.com/usbarmory/tamago/tree/master/board/firecracker/microvm) | [KVM pvclock, VirtIO](https://github.com/usbarmory/tamago/tree/master/kvm), [LAPIC, IOAPIC, UART](https://github.com/usbarmory/tamago/blob/master/soc/intel)      |
+| CPU              | Related board packages                                                                           | Peripheral drivers                                                                                                                                              |
+|------------------|--------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| AMD/Intel 64-bit | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)               | [KVM clock, VirtIO](https://github.com/usbarmory/tamago/tree/master/kvm), [LAPIC, IOAPIC, RTC, UART](https://github.com/usbarmory/tamago/blob/master/soc/intel) |
+| AMD/Intel 64-bit | [Firecracker microvm](https://github.com/usbarmory/tamago/tree/master/board/firecracker/microvm) | [KVM clock, VirtIO](https://github.com/usbarmory/tamago/tree/master/kvm), [LAPIC, IOAPIC, UART](https://github.com/usbarmory/tamago/blob/master/soc/intel)      |
 
 License
 =======
