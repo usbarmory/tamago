@@ -40,7 +40,7 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	// Clear tables
 	XORL	AX, AX		// value
 	MOVL	$PML4T, DI	// to
-	MOVL	$0x5000, CX	// n
+	MOVL	$0x4000, CX	// n
 	MOVL	DI, CR3
 	REP;	STOSB
 
