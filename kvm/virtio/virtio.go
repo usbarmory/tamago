@@ -126,14 +126,12 @@ func (io *VirtIO) Init(features uint64) (err error) {
 	reg.Write(io.Base+Status, 0x0)
 
 	// initialize driver
-	reg.Set(io.Base+Status, Driver|Acknowledge)
+	reg.Set(io.Base+Status, Acknowledge)
+	reg.Set(io.Base+Status, Driver)
 
 	if err = io.negotiate(features); err != nil {
 		return
 	}
-
-	// finalize driver
-	reg.Set(io.Base+Status, DriverOk)
 
 	// initialize Config DMA buffers
 	r, err := dma.NewRegion(uint(io.Base+Config), io.ConfigSize, false)
@@ -182,6 +180,11 @@ func (io *VirtIO) SetDriverFeatures(features uint64) {
 	return
 }
 
+// NegotiatedFeatures returns the set of negotiated feature bits.
+func (io *VirtIO) NegotiatedFeatures() (features uint64) {
+	return io.features
+}
+
 // QueueReady returns whether a queue is ready for use.
 func (io *VirtIO) QueueReady(index int) (ready bool) {
 	reg.Write(io.Base+QueueSel, uint32(index))
@@ -225,6 +228,11 @@ func (io *VirtIO) SetQueue(index int, queue *VirtualQueue) {
 	reg.Write(io.Base+QueueDriver, uint32(driver))
 	reg.Write(io.Base+QueueDevice, uint32(device))
 	reg.Write(io.Base+QueueReady, 1)
+}
+
+// SetReady indicates that the driver is set up and ready to drive the device.
+func (io *VirtIO) SetReady() {
+	reg.Set(io.Base+Status, DriverOk)
 }
 
 // QueueNotify notifies the device that a queue can be processed.

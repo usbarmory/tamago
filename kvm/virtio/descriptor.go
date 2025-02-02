@@ -225,6 +225,11 @@ func (d *VirtualQueue) Bytes() ([]byte, int, int) {
 	driver := buf.Len()
 	buf.Write(d.Available.Bytes())
 
+	// Used ring requires 4 bytes alignment
+	if r := buf.Len() % 4; r != 0 {
+		buf.Write(make([]byte, 4-r))
+	}
+
 	device := buf.Len()
 	buf.Write(d.Used.Bytes())
 
