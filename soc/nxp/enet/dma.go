@@ -116,8 +116,7 @@ func (ring *bufferDescriptorRing) init(rx bool, n int, s *Stats) uint32 {
 	ring.size = n
 
 	// To avoid excessive DMA region fragmentation, a single allocation
-	// reserves all descriptors and data pointers which are slices for each
-	// entry.
+	// reserves all descriptors and data pointers.
 
 	descSize := len((&bufferDescriptor{}).Bytes())
 	ptr, desc := dma.Reserve(n*descSize, bufferAlign)
