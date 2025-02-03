@@ -14,6 +14,8 @@ import (
 	"unsafe"
 )
 
+const DefaultAlignment = (32 << (^uint(0) >> 63)) / 8
+
 // Region represents a memory region allocated for DMA purposes.
 type Region struct {
 	sync.Mutex
@@ -25,6 +27,7 @@ type Region struct {
 	usedBlocks map[uint]*block
 }
 
+// global DMA region instance
 var dma *Region
 
 // Default returns the global DMA region instance.
@@ -101,7 +104,7 @@ func (r *Region) UsedBlocks() map[uint]uint {
 //     can be subject of Release()
 //
 // The optional alignment must be a power of 2 and word alignment is always
-// enforced (0 == 4).
+// enforced, 0 means 4 on 32-bit platforms and 8 on 64-bit ones.
 func (r *Region) Reserve(size int, align int) (addr uint, buf []byte) {
 	if size == 0 {
 		return
@@ -136,7 +139,7 @@ func (r *Region) Reserved(buf []byte) (res bool, addr uint) {
 // address is return without any re-allocation.
 //
 // The optional alignment must be a power of 2 and word alignment is always
-// enforced (0 == 4).
+// enforced, 0 means 4 on 32-bit platforms and 8 on 64-bit ones.
 func (r *Region) Alloc(buf []byte, align int) (addr uint) {
 	size := len(buf)
 
@@ -262,8 +265,7 @@ func (r *Region) alloc(size uint, align uint) *block {
 	var pad uint
 
 	if align == 0 {
-		// force word alignment
-		align = 4
+		align = DefaultAlignment
 	}
 
 	// find suitable block
