@@ -49,12 +49,17 @@ func (d *Descriptor) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// Init initializes a virtual queue descriptor the given buffer length.
-func (d *Descriptor) Init(length int, flags uint16) {
-	addr, buf := dma.Reserve(length, 0)
+// Init initializes a virtual queue descriptor for the given reserved DMA
+// buffer, which must have been prefiouxly created with dma.Reserve().
+func (d *Descriptor) Init(buf []byte, flags uint16) {
+	res, addr := dma.Reserved(buf)
+
+	if !res {
+		return
+	}
 
 	d.Address = uint64(addr)
-	d.length = uint32(length)
+	d.length = uint32(len(buf))
 	d.Flags = flags
 
 	d.buf = buf
@@ -241,9 +246,15 @@ func (d *VirtualQueue) Init(size int, length int, flags uint16) {
 	d.Lock()
 	defer d.Unlock()
 
+	// To avoid excessive DMA region fragmentation a single allocation
+	// reserves all descriptor buffers.
+	_, buf := dma.Reserve(size*length, 0)
+
 	for i := 0; i < size; i++ {
+		off := size * i
+
 		desc := &Descriptor{}
-		desc.Init(length, flags)
+		desc.Init(buf[off:off+length], flags)
 
 		ring := &Ring{}
 
