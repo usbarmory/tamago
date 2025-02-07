@@ -50,7 +50,7 @@ func (d *Descriptor) Bytes() []byte {
 }
 
 // Init initializes a virtual queue descriptor for the given reserved DMA
-// buffer, which must have been prefiouxly created with dma.Reserve().
+// buffer, which must have been prefiously created with dma.Reserve().
 func (d *Descriptor) Init(buf []byte, flags uint16) {
 	res, addr := dma.Reserved(buf)
 
