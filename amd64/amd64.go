@@ -19,6 +19,14 @@ package amd64
 import (
 	"runtime"
 	_ "unsafe"
+
+	"github.com/usbarmory/tamago/internal/reg"
+)
+
+// Peripheral registers
+const (
+	// Keyboard controller port
+	KBD_PORT = 0x64
 )
 
 //go:linkname ramStackOffset runtime.ramStackOffset
@@ -56,4 +64,9 @@ func (cpu *CPU) Init() {
 // Name returns the CPU identifier.
 func (cpu *CPU) Name() string {
 	return runtime.CPU()
+}
+
+// Reset resets the CPU pin via 8042 keyboard controller pulse.
+func (cpu *CPU) Reset() {
+	reg.Out8(KBD_PORT, 0xfe)
 }

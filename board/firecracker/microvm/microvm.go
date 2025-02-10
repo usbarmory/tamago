@@ -20,7 +20,6 @@ import (
 
 	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/dma"
-	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/kvm/pvclock"
 	"github.com/usbarmory/tamago/soc/intel/apic"
 	"github.com/usbarmory/tamago/soc/intel/uart"
@@ -33,9 +32,6 @@ const (
 
 // Peripheral registers
 const (
-	// Keyboard controller port
-	KBD_PORT = 0x64
-
 	// Communication port
 	COM1 = 0x3f8
 
@@ -92,8 +88,7 @@ func Init() {
 	UART0.Init()
 
 	runtime.Exit = func(_ int32) {
-		// Reset the CPU pin via 8042 keyboard controller pulse.
-		reg.Out8(KBD_PORT, 0xfe)
+		AMD64.Reset()
 	}
 }
 
