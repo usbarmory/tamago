@@ -88,13 +88,6 @@ func nanotime1() int64 {
 	return int64(float64(AMD64.TimerFn())*AMD64.TimerMultiplier) + AMD64.TimerOffset
 }
 
-func init() {
-	dma.Init(dmaStart, dmaSize)
-
-	// initialize KVM pvclock as needed
-	pvclock.Init(AMD64)
-}
-
 // Init takes care of the lower level initialization triggered early in runtime
 // setup.
 //
@@ -115,4 +108,11 @@ func Init() {
 		// shut down is by generating a triple-fault.
 		amd64.Fault()
 	}
+}
+
+func init() {
+	dma.Init(dmaStart, dmaSize)
+
+	// initialize KVM pvclock as needed
+	pvclock.Init(AMD64)
 }
