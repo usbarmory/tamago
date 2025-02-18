@@ -6,6 +6,8 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+//go:build !linkcpuinit
+
 #include "textflag.h"
 
 #define MSR_EFER 0xc0000080
