@@ -163,6 +163,17 @@ GOOS=tamago ${TAMAGO} build main.go
 See the respective board package README file for compilation information for
 each specific target.
 
+Build tags
+==========
+
+The following build tags allow application to override TamaGo own definition of
+functions [required by the runtime](https://github.com/usbarmory/tamago/wiki/Internals#go-runtime-changes):
+
+* `linkramstart`: override `ramStart`
+* `linkramsize`: override `ramSize`
+* `linkprintk`: override `printk`
+* `linkcpuinit`: override `cpuinit`
+
 Executing and debugging
 =======================
 

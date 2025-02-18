@@ -42,6 +42,15 @@ Supported hardware
 | AMD/Intel 64-bit | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)               | [KVM clock, VirtIO](https://github.com/usbarmory/tamago/tree/master/kvm), [LAPIC, IOAPIC, RTC, UART](https://github.com/usbarmory/tamago/blob/master/soc/intel) |
 | AMD/Intel 64-bit | [Firecracker microvm](https://github.com/usbarmory/tamago/tree/master/board/firecracker/microvm) | [KVM clock, VirtIO](https://github.com/usbarmory/tamago/tree/master/kvm), [LAPIC, IOAPIC, UART](https://github.com/usbarmory/tamago/blob/master/soc/intel)      |
 
+Build tags
+==========
+
+The following build tags allow application to override the package own definition of
+[external functions required by the runtime](https://github.com/usbarmory/tamago/wiki/Internals#go-runtime-changes):
+
+* `linkramstart`: exclude `ramStart` from `mem.go`
+* `linkcpuinit`: exclude `cpuinit` from `init.s`
+
 License
 =======
 

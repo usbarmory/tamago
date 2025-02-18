@@ -79,6 +79,15 @@ GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000
 An example application, targeting the USB armory Mk II platform,
 is [available](https://github.com/usbarmory/tamago-example).
 
+Build tags
+==========
+
+The following build tags allow application to override the package own definition of
+[external functions required by the runtime](https://github.com/usbarmory/tamago/wiki/Internals#go-runtime-changes):
+
+* `linkramsize`: exclude `ramSize` from `mem.go`
+* `linkprintk`: exclude `printk` from `console.go`
+
 Executing and debugging
 =======================
 

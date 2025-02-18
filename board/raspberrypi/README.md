@@ -105,6 +105,15 @@ The GOARM environment variable must be set according to the Raspberry Pi model:
 NOTE: The Pi Zero and Pi 1 are ARMv6, but do not have support for all floating point instructions the Go compiler
 generates with `GOARM=6`.  Using `GOARM=5` causes Go to include a software floating point implementation.
 
+Build tags
+==========
+
+The following build tags allow application to override the package own definition of
+[external functions required by the runtime](https://github.com/usbarmory/tamago/wiki/Internals#go-runtime-changes):
+
+* `linkramsize`: exclude `ramSize` from `mem.go`
+* `linkprintk`: exclude `printk` from `console.go`
+
 Executing
 =========
 

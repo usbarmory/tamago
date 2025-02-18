@@ -41,6 +41,15 @@ Supported hardware
 |--------------|--------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
 | SiFive FU540 | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u) | [CLINT, PhysicalFilter, UART](https://github.com/usbarmory/tamago/tree/master/soc/sifive_u) |
 
+Build tags
+==========
+
+The following build tags allow application to override the package own definition of
+[external functions required by the runtime](https://github.com/usbarmory/tamago/wiki/Internals#go-runtime-changes):
+
+* `linkramstart`: exclude `ramStart` from `mem.go`
+* `linkcpuinit`: exclude `cpuinit` imported from `riscv64/init.s`
+
 License
 =======
 

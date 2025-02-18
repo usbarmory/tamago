@@ -39,6 +39,15 @@ Supported hardware
 See the [pi](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi) package
 for documentation on compiling and executing on these boards.
 
+Build tags
+==========
+
+The following build tags allow application to override the package own definition of
+[external functions required by the runtime](https://github.com/usbarmory/tamago/wiki/Internals#go-runtime-changes):
+
+* `linkramstart`: exclude `ramStart` from `mem.go`
+* `linkcpuinit`: exclude `cpuinit` imported from `arm/init.s`
+
 License
 =======
 
