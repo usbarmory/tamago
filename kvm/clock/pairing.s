@@ -15,7 +15,7 @@
 // holder for struct kvm_clock_pairing
 GLOBL	kvmclock<>(SB),RODATA,$38
 
-// func kvmclock_pairing() (sec int64, nsec int64, tsc uint64)
+// func Pairing() (sec int64, nsec int64, tsc uint64)
 TEXT ·Pairing(SB),$0-24
 	MOVQ	$KVM_HC_CLOCK_PAIRING, AX
 	MOVQ	$kvmclock<>(SB), BX
