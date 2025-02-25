@@ -199,12 +199,13 @@ cd tamago-example && make qemu
 Applications using TamaGo
 =========================
 
+* [go-boot](https://github.com/usbarmory/go-boot) - the bare metal Go UEFI bootloader
 * [GoKey](https://github.com/usbarmory/GoKey) - the bare metal Go smartcard
 * [GoTEE](https://github.com/usbarmory/GoTEE) - Go Trusted Execution Environment
 * [ArmoredWitness](https://github.com/transparency-dev/armored-witness) - cross-ecosystem witness network
 * [armory-drive](https://github.com/usbarmory/armory-drive) - USB encrypted drive
 * [armory-ums](https://github.com/usbarmory/armory-ums) - USB Mass Storage firmware
-* [armory-boot](https://github.com/usbarmory/armory-boot) - primary bootloader
+* [armory-boot](https://github.com/usbarmory/armory-boot) - USB armory bootloader
 * [tamago-example](https://github.com/usbarmory/tamago-example) - TamaGo example application
 
 External drivers using TamaGo
