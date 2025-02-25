@@ -22,7 +22,7 @@ func (cpu *CPU) initTimers() {
 	var timerFreq uint32
 
 	if denominator, numerator, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); nominalFreq != 0 {
-		timerFreq = (numerator * nominalFreq) / denominator
+		timerFreq = uint32((uint64(numerator) * uint64(nominalFreq)) / uint64(denominator))
 	}
 
 	if cpu.kvm {
