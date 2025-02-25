@@ -92,7 +92,7 @@ Supported AMD64 targets
 The following table summarizes currently supported x86-64 targets
 (`GOOS=tamago GOARCH=amd64`).
 
-| CPU              | Target                                                                    | CPU package                                                    | Board package                                                                                    |
+| CPU              | Platform                                                                  | CPU package                                                    | Platform package                                                                                 |
 |------------------|---------------------------------------------------------------------------|----------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
 | AMD/Intel 64-bit | [QEMU microvm](https://www.qemu.org/docs/master/system/i386/microvm.html) | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)               |
 | AMD/Intel 64-bit | [Firecracker microvm](https://firecracker-microvm.github.io)              | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [firecracker/microvm](https://github.com/usbarmory/tamago/tree/master/board/firecracker/microvm) |
