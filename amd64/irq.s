@@ -58,6 +58,9 @@ TEXT ·wakeHandler(SB),NOSPLIT|NOFRAME,$0
 	MOVQ	CX, cx-(1*8+8)(SP)
 	MOVQ	AX, ax-(0*8+8)(SP)
 
+	// AMD64 Architecture Programmer’s Manual
+	// Volume 2 - 8.9.3 Interrupt Stack Frame
+
 	// find ISR offset from stack linking information (see irqHandler)
 	MOVQ	isr-(0)(SP), AX
 	SUBQ	$(const_callSize), AX
