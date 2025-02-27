@@ -24,17 +24,22 @@ const (
 	TrapGate      = 0b10001111
 )
 
-// IRQ handling jump table
+// IRQ handling jump table constants
 const (
 	callSize = 5
 	vectors  = 256
 )
 
+// IRQ handling jump table variables
+var (
+	idtAddr        uintptr
+	irqHandlerAddr uintptr
+)
+
 // IRQ handling goroutine
 var (
 	irqHandlerG   uint64
-	firstVector   uint64
-	currentVector uint64
+	currentVector uintptr
 )
 
 // defined in irq.s
@@ -45,7 +50,20 @@ func irq_disable()
 //go:nosplit
 func irqHandler()
 
-type ExceptionHandler func()
+var throwing bool
+
+// DefaultExceptionHandler handles an exception by printing its vector and
+// processor mode before panicking.
+func DefaultExceptionHandler() {
+	if throwing {
+		halt(0)
+	}
+
+	throwing = true
+
+	print("exception: vector ", currentVector-irqHandlerAddr, " \n")
+	panic("unhandled exception")
+}
 
 // GateDescriptor represents an IDT Gate descriptor
 // (Intel® 64 and IA-32 Architectures Software Developer’s Manual
@@ -74,9 +92,7 @@ func (d *GateDescriptor) SetOffset(addr uintptr) {
 	d.Offset3 = uint32(addr >> 32)
 }
 
-func setIDT() {
-	idtAddr, irqHandlerAddr := load_idt()
-
+func setIDT(start int, end int) {
 	desc := &GateDescriptor{
 		SegmentSelector: 1 << 3,
 		Attributes:      InterruptGate,
@@ -94,14 +110,22 @@ func setIDT() {
 	addr, idt := r.Reserve(idtSize, 0)
 	defer r.Release(addr)
 
-	for i := 0; i < vectors; i++ {
+	for i := start; i < end; i++ {
+		if i == vectors {
+			break
+		}
+
 		off := irqHandlerAddr + uintptr(i*callSize)
 		// set ISR to irqHandler.abi0 + vector offset
 		desc.SetOffset(off)
 		copy(idt[i*gateSize:], desc.Bytes())
 	}
+}
 
-	firstVector = uint64(irqHandlerAddr)
+func init() {
+	idtAddr, irqHandlerAddr = load_idt()
+	// processor exceptions
+	setIDT(0, 31)
 }
 
 // EnableInterrupts unmasks external interrupts.
@@ -125,7 +149,8 @@ func ServiceInterrupts(isr func(id int)) {
 		isr = func(_ int) { return }
 	}
 
-	setIDT()
+	// user defined interrupts
+	setIDT(32, 255)
 
 	for {
 		// To avoid losing interrupts, re-enabling must happen only after we
@@ -136,7 +161,7 @@ func ServiceInterrupts(isr func(id int)) {
 		// (see irqHandler).
 		time.Sleep(math.MaxInt64)
 
-		id := int(currentVector - firstVector)
+		id := int(currentVector - irqHandlerAddr)
 
 		if id > 0 {
 			id = id / callSize
