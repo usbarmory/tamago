@@ -158,7 +158,7 @@ GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000
 GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
 
 # Example for QEMU and Firecracker microVMs
-GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
+GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-E cpuinit -T 0x10010000 -R 0x1000" main.go
 
 # Example for Linux userspace
 GOOS=tamago ${TAMAGO} build main.go
