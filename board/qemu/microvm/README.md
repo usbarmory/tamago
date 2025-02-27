@@ -74,7 +74,7 @@ Go applications can be compiled as usual, using the compiler built in the
 previous step, but with the addition of the following flags/variables:
 
 ```
-GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
+GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-E cpuinit -T 0x10010000 -R 0x1000" main.go
 ```
 
 An example application, targeting the QEMU microvm platform,
