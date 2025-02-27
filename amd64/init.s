@@ -42,7 +42,7 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	// Clear tables
 	XORL	AX, AX		// value
 	MOVL	$PML4T, DI	// to
-	MOVL	$0x4000, CX	// n
+	MOVL	$0x3000, CX	// n
 	MOVL	DI, CR3
 	REP;	STOSB
 
@@ -50,13 +50,15 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	MOVL	$PML4T, DI
 	MOVL	$(PDPT | 1<<1 | 1<<0), (DI)	// set R/W, P
 
-	// Configure Long-Mode Page Translation as follows:
-	//   0x00000000 - 0x3fffffff (1GB) cacheable   physical page
-	//   0x40000000 - 0x7fffffff (1GB) cacheable   physical page
-	//   0x80000000 - 0xbfffffff (1GB) cacheable   physical page
-	//   0xc0000000 - 0xffffffff (1GB) uncacheable physical page
+	// PDPT[0] = PDT
 	MOVL	$PDPT, DI
-	MOVL	$(0<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+	MOVL	$(PDT | 1<<1 | 1<<0), (DI)			// set R/W, P
+
+	// Configure Long-Mode Page Translation as follows:
+	//   0x00000000 - 0x3fffffff (1GB) cacheable   physical page (2MB PDTEs)
+	//   0x40000000 - 0x7fffffff (1GB) cacheable   physical page (1GB PDPE)
+	//   0x80000000 - 0xbfffffff (1GB) cacheable   physical page (1GB PDPE)
+	//   0xc0000000 - 0xffffffff (1GB) uncacheable physical page (1GB PDPE)
 	ADDL	$8, DI
 	MOVL	$(1<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
 	ADDL	$8, DI
@@ -64,6 +66,20 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	ADDL	$8, DI
 	MOVL	$(3<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
 
+	MOVL	$PDT, DI
+	MOVL	$0, AX
+add_pdt_entries:
+	CMPL	AX, $(1 << 30)
+	JAE	check_long_mode
+
+	ORL	$(1<<7 | 1<<1 | 1<<0), AX			// set PS, R/W, P
+	MOVL	AX, (DI)
+
+	ADDL	$(2<<20), AX
+	ADDL	$8, DI
+	JMP	add_pdt_entries
+
+check_long_mode:
 	MOVL	CR4, AX
 	ANDL	$(1<<7 | 1<<5), AX	// get CR4.(PGE|PAE)
 	JBE	enable_long_mode
@@ -111,6 +127,16 @@ TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 
 	MOVL	AX, CR0
 	MOVL	BX, CR4
+
+	// Reconfigure Long-Mode Page Translation PDT as follows:
+	//   0x00000000 - 0x001fffff inaccessible (zero page)
+	//   0x00200000 - 0x3fffffff cacheable physical page
+	MOVL	$PDT, DI
+	ANDL	$(1<<1 | 1<<0), (DI)	// clear R/W, P
+
+	// flush TLBs
+	MOVL	$PML4T, DI
+	MOVL	DI, CR3
 
 	JMP	_rt0_tamago_start(SB)
 
