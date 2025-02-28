@@ -110,6 +110,7 @@ TEXT ·handleException(SB),NOSPLIT|NOFRAME,$0
 	SUBQ	$(const_callSize), AX
 	MOVQ	AX, ·currentVector(SB)
 
+	// TODO: implement runtime.CallOnG0 for a cleaner approach
 	CALL	·DefaultExceptionHandler(SB)
 
 // To allow a single user-defined ISR for all vectors, a jump table of CALLs,
