@@ -111,6 +111,10 @@ func Init() {
 }
 
 func init() {
+	// trap CPU exceptions
+	AMD64.EnableExceptions()
+
+	// allocate global DMA region
 	dma.Init(dmaStart, dmaSize)
 
 	// initialize KVM pvclock as needed

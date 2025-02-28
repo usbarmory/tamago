@@ -52,6 +52,16 @@ func irqHandler()
 
 var throwing bool
 
+func currentInterrupt() (id int) {
+	id = int(currentVector - irqHandlerAddr)
+
+	if id > 0 {
+		id = id / callSize
+	}
+
+	return
+}
+
 // DefaultExceptionHandler handles an exception by printing its vector and
 // processor mode before panicking.
 func DefaultExceptionHandler() {
@@ -59,9 +69,10 @@ func DefaultExceptionHandler() {
 		halt(0)
 	}
 
+	// TODO: implement runtime.CallOnG0 for a cleaner approach
 	throwing = true
 
-	print("exception: vector ", currentVector-irqHandlerAddr, " \n")
+	print("exception: vector ", currentInterrupt(), " \n")
 	panic("unhandled exception")
 }
 
@@ -93,6 +104,10 @@ func (d *GateDescriptor) SetOffset(addr uintptr) {
 }
 
 func setIDT(start int, end int) {
+	if idtAddr == 0 || irqHandlerAddr == 0 {
+		idtAddr, irqHandlerAddr = load_idt()
+	}
+
 	desc := &GateDescriptor{
 		SegmentSelector: 1 << 3,
 		Attributes:      InterruptGate,
@@ -122,8 +137,9 @@ func setIDT(start int, end int) {
 	}
 }
 
-func init() {
-	idtAddr, irqHandlerAddr = load_idt()
+// EnableExceptions initializes handling of processor exceptions through
+// DefaultExceptionHandler().
+func (cpu *CPU) EnableExceptions() {
 	// processor exceptions
 	setIDT(0, 31)
 }
@@ -139,9 +155,9 @@ func (cpu *CPU) DisableInterrupts() {
 	irq_disable()
 }
 
-// ServiceInterrupts() puts the calling goroutine in wait state, its execution
-// is resumed when an interrupt is received, an argument function can be set
-// for servicing.
+// ServiceInterrupts puts the calling goroutine in wait state, its execution is
+// resumed when a user defined interrupt is received, an argument function can
+// be set for servicing.
 func ServiceInterrupts(isr func(id int)) {
 	irqHandlerG, _ = runtime.GetG()
 
@@ -161,12 +177,6 @@ func ServiceInterrupts(isr func(id int)) {
 		// (see irqHandler).
 		time.Sleep(math.MaxInt64)
 
-		id := int(currentVector - irqHandlerAddr)
-
-		if id > 0 {
-			id = id / callSize
-		}
-
-		isr(id)
+		isr(currentInterrupt())
 	}
 }
