@@ -125,13 +125,13 @@ TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
 	CALL	·handleException(SB) //  5 - Bound Range
 	CALL	·handleInterrupt(SB) //  6 - Invalid Opcode
 	CALL	·handleException(SB) //  7 - Device Not Available
-	CALL	·handleException(SB) //  8 - Double Fault
+	CALL	$0 // triple fault   //  8 - Double Fault
 	CALL	·handleException(SB) //  9 - Reserved
 	CALL	·handleException(SB) // 10 - Invalid TSS
 	CALL	·handleException(SB) // 11 - Segment Not Present
 	CALL	·handleException(SB) // 12 - Stack Fault
 	CALL	·handleException(SB) // 13 - General Protection
-	CALL	·handleException(SB) // 14 - Page Fault
+	CALL	$0 // triple fault   // 14 - Page Fault
 	CALL	·handleException(SB) // 15 - Reserved
 	CALL	·handleException(SB) // 16 - x87 Floating Point
 	CALL	·handleException(SB) // 17 - Alignment Check
