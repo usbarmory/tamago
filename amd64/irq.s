@@ -116,6 +116,7 @@ TEXT ·handleException(SB),NOSPLIT|NOFRAME,$0
 // To allow a single user-defined ISR for all vectors, a jump table of CALLs,
 // which save the vector PC on the stack, is built to use as IDT offsets.
 TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
+	// 0 to 31 - Exceptions
 	CALL	·handleException(SB) //  0 - Divide by Zero
 	CALL	·handleException(SB) //  1 - Debug
 	CALL	·handleException(SB) //  2 - Reserved
@@ -148,7 +149,8 @@ TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
 	CALL	·handleException(SB) // 29 - VMM Communication
 	CALL	·handleException(SB) // 30 - Security
 	CALL	·handleException(SB) // 31 - Reserved
-	// 32 to 255 are User Defined Interrupts
+
+	// 32 to 255 - User Defined Interrupts
 	CALL	·handleInterrupt(SB) // 32
 	CALL	·handleInterrupt(SB) // ...
 	CALL	·handleInterrupt(SB) // ...
