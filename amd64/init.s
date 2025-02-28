@@ -118,7 +118,7 @@ enable_long_mode:
 
 TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 	// Enable SSE
-	CALL	·sse_enable(SB)
+	CALL	sse_enable(SB)
 
 	// Reconfigure Long-Mode Page Translation PDT (1GB) as follows:
 	//   0x00000000 - 0x001fffff inaccessible (zero page)
