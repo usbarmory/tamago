@@ -18,3 +18,16 @@ TEXT ·cpuid(SB),NOSPLIT,$0-24
 	MOVL CX, ecx+16(FP)
 	MOVL DX, edx+20(FP)
 	RET
+
+TEXT sse_enable(SB),NOSPLIT|NOFRAME,$0
+	MOVL	CR0, AX
+	MOVL	CR4, BX
+
+	ANDL	$~(1<<2), AX		// clear CR0.EM
+	ORL	$(1<<1), AX		//   set CR0.MP
+	ORL	$(1<<10 | 1<<9), BX	//   set CR4.(OSXMMEXCPT|OSFXSR)
+
+	MOVL	AX, CR0
+	MOVL	BX, CR4
+
+	RET

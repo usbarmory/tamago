@@ -117,16 +117,8 @@ enable_long_mode:
 	RETFQ
 
 TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
-	MOVL	CR0, AX
-	MOVL	CR4, BX
-
 	// Enable SSE
-	ANDL	$~(1<<2), AX		// clear CR0.EM
-	ORL	$(1<<1), AX		//   set CR0.MP
-	ORL	$(1<<10 | 1<<9), BX	//   set CR4.(OSXMMEXCPT|OSFXSR)
-
-	MOVL	AX, CR0
-	MOVL	BX, CR4
+	CALL	·sse_enable(SB)
 
 	// Reconfigure Long-Mode Page Translation PDT (1GB) as follows:
 	//   0x00000000 - 0x001fffff inaccessible (zero page)
