@@ -21,7 +21,12 @@ func read_tsc() uint64
 func (cpu *CPU) initTimers() {
 	var timerFreq uint32
 
-	if denominator, numerator, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); nominalFreq != 0 && denominator != 0 {
+	if denominator, numerator, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); denominator != 0 {
+		if nominalFreq == 0 {
+			baseFreq, _, _, _ := cpuid(CPUID_CPU_FRQ, 0)
+			nominalFreq = uint32(uint64(baseFreq) * 1e6 * uint64(denominator) / uint64(numerator))
+		}
+
 		timerFreq = uint32((uint64(numerator) * uint64(nominalFreq)) / uint64(denominator))
 	}
 
