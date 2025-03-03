@@ -13,7 +13,7 @@
 #define KVM_CLOCK_PAIRING_WALLCLOCK	0
 
 // holder for struct kvm_clock_pairing
-GLOBL	kvmclock<>(SB),RODATA,$38
+GLOBL	kvmclock<>(SB),RODATA,$8*3+4+4*9
 
 // func Pairing() (sec int64, nsec int64, tsc uint64)
 TEXT ·Pairing(SB),$0-24
