@@ -47,6 +47,11 @@ const (
 // defined in features.s
 func cpuid(eaxArg, ecxArg uint32) (eax, ebx, ecx, edx uint32)
 
+// CPUID returns the processor capabilities.
+func (cpu *CPU) CPUID(leaf, subleaf uint32) (eax, ebx, ecx, edx uint32) {
+	return cpuid(leaf, subleaf)
+}
+
 func (cpu *CPU) initFeatures() {
 	_, _, _, apmFeatures := cpuid(CPUID_APM, 0)
 	cpu.invariant = bits.IsSet(&apmFeatures, APM_TSC_INVARIANT)
