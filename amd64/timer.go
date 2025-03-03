@@ -21,7 +21,7 @@ func read_tsc() uint64
 func (cpu *CPU) initTimers() {
 	var timerFreq uint32
 
-	if denominator, numerator, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); nominalFreq != 0 {
+	if denominator, numerator, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); nominalFreq != 0 && denominator != 0 {
 		timerFreq = uint32((uint64(numerator) * uint64(nominalFreq)) / uint64(denominator))
 	}
 
@@ -31,7 +31,10 @@ func (cpu *CPU) initTimers() {
 		} else {
 			_, nsecA, tscA := kvmclock.Pairing()
 			_, nsecB, tscB := kvmclock.Pairing()
-			timerFreq = uint32(((tscB - tscA) * uint64(refFreq)) / uint64(nsecB-nsecA))
+
+			if denominator := uint64(nsecB-nsecA); denominator != 0 {
+				timerFreq = uint32(((tscB - tscA) * uint64(refFreq)) / denominator)
+			}
 		}
 	}
 
