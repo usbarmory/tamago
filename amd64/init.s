@@ -84,7 +84,7 @@ check_long_mode:
 	ANDL	$(1<<7 | 1<<5), AX	// get CR4.(PGE|PAE)
 	JBE	enable_long_mode
 
-	JMP	·start<>(SB)
+	JMP	·reload_gdt<>(SB)
 
 enable_long_mode:
 	MOVL	$(1<<7 | 1<<5), AX	// set CR4.(PGE|PAE)
@@ -111,6 +111,16 @@ enable_long_mode:
 	MOVL	$·start<>(SB), BX	// 32-bit mode: only PC offset is copied
 	ADDL	$6, AX
 	ADDL	BX, AX
+
+	PUSHQ	$0x08
+	PUSHQ	AX
+	RETFQ
+
+TEXT ·reload_gdt<>(SB),NOSPLIT|NOFRAME,$0
+	MOVQ	$gdtptr<>(SB), AX
+	LGDT	(AX)
+
+	MOVQ	$·start<>(SB), AX
 
 	PUSHQ	$0x08
 	PUSHQ	AX
