@@ -39,6 +39,8 @@ type CPU struct {
 	kvm       bool
 	kvmclock  uint32
 
+	// core frequency in Hz
+	freq uint32
 	// Timer multiplier
 	TimerMultiplier float64
 	// Timer offset in nanoseconds
