@@ -96,7 +96,7 @@ The following table summarizes currently supported x86-64 targets
 |------------------|---------------------------------------------------------------------------|----------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
 | AMD/Intel 64-bit | [QEMU microvm](https://www.qemu.org/docs/master/system/i386/microvm.html) | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)               |
 | AMD/Intel 64-bit | [Firecracker microvm](https://firecracker-microvm.github.io)              | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [firecracker/microvm](https://github.com/usbarmory/tamago/tree/master/board/firecracker/microvm) |
-| AMD/Intel 64-bit | [UEFI](https://uefi.org/)                                                 | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [uefi/x64](https://github.com/usbarmory/go-boot/tree/master/uefi/x64)                            |
+| AMD/Intel 64-bit | [UEFI](https://uefi.org/)                                                 | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [uefi/x64](https://github.com/usbarmory/go-boot/tree/main/uefi/x64)                              |
 
 Userspace targets
 =================

@@ -41,7 +41,7 @@ Supported hardware
 |------------------|--------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | AMD/Intel 64-bit | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)               | [KVM clock, VirtIO](https://github.com/usbarmory/tamago/tree/master/kvm), [LAPIC, IOAPIC, RTC, UART](https://github.com/usbarmory/tamago/blob/master/soc/intel)                       |
 | AMD/Intel 64-bit | [firecracker/microvm](https://github.com/usbarmory/tamago/tree/master/board/firecracker/microvm) | [KVM clock, VirtIO](https://github.com/usbarmory/tamago/tree/master/kvm), [LAPIC, IOAPIC, UART](https://github.com/usbarmory/tamago/blob/master/soc/intel)                            |
-| AMD/Intel 64-bit | [uefi/x64](https://github.com/usbarmory/go-boot/tree/master/uefi/x64)                            | [EFI Console I/O, Graphics, Boot and Runtime Services](https://github.com/usbarmory/go-boot/tree/master/uefi), [RTC, UART](https://github.com/usbarmory/tamago/blob/master/soc/intel) |
+| AMD/Intel 64-bit | [uefi/x64](https://github.com/usbarmory/go-boot/tree/main/uefi/x64)                              | [EFI Console I/O, Graphics, Boot and Runtime Services](https://github.com/usbarmory/go-boot/tree/main/uefi), [RTC, UART](https://github.com/usbarmory/tamago/blob/master/soc/intel)   |
 
 Build tags
 ==========
