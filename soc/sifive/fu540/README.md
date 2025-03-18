@@ -28,6 +28,8 @@ provides support for the SiFive FU540 System-on-Chip (SoCs).
 Documentation
 =============
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/usbarmory/tamago.svg)](https://pkg.go.dev/github.com/usbarmory/tamago)
+
 For TamaGo see its [repository](https://github.com/usbarmory/tamago) and
 [project wiki](https://github.com/usbarmory/tamago/wiki) for information.
 

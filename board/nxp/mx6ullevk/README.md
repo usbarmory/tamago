@@ -28,6 +28,8 @@ package provides support for the [MCIMX6ULL-EVK](https://www.nxp.com/design/deve
 Documentation
 =============
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/usbarmory/tamago.svg)](https://pkg.go.dev/github.com/usbarmory/tamago)
+
 For more information about TamaGo see its
 [repository](https://github.com/usbarmory/tamago) and
 [project wiki](https://github.com/usbarmory/tamago/wiki).
