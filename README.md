@@ -54,6 +54,8 @@ Binary releases for amd64 and armv7l Linux hosts [are available](https://github.
 Documentation
 =============
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/usbarmory/tamago.svg)](https://pkg.go.dev/github.com/usbarmory/tamago)
+
 The main documentation can be found on the
 [project wiki](https://github.com/usbarmory/tamago/wiki).
 
