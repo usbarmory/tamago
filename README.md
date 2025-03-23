@@ -62,6 +62,18 @@ The main documentation can be found on the
 The package API documentation can be found on
 [pkg.go.dev](https://pkg.go.dev/github.com/usbarmory/tamago).
 
+Supported AMD64 targets
+=======================
+
+The following table summarizes currently supported x86-64 targets
+(`GOOS=tamago GOARCH=amd64`).
+
+| CPU              | Platform                                                                  | CPU package                                                    | Platform package                                                                                 |
+|------------------|---------------------------------------------------------------------------|----------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| AMD/Intel 64-bit | [QEMU microvm](https://www.qemu.org/docs/master/system/i386/microvm.html) | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)               |
+| AMD/Intel 64-bit | [Firecracker microvm](https://firecracker-microvm.github.io)              | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [firecracker/microvm](https://github.com/usbarmory/tamago/tree/master/board/firecracker/microvm) |
+| AMD/Intel 64-bit | [UEFI](https://uefi.org/)                                                 | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [uefi/x64](https://github.com/usbarmory/go-boot/tree/main/uefi/x64)                              |
+
 Supported ARM targets
 =====================
 
@@ -87,18 +99,6 @@ The following table summarizes currently supported RISC-V SoCs and boards
 | SoC          | Board                                                                        | SoC package                                                               | Board package                                                                        |
 |--------------|------------------------------------------------------------------------------|---------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
 | SiFive FU540 | [QEMU sifive_u](https://www.qemu.org/docs/master/system/riscv/sifive_u.html) | [fu540](https://github.com/usbarmory/tamago/tree/master/soc/sifive/fu540) | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u) |
-
-Supported AMD64 targets
-=======================
-
-The following table summarizes currently supported x86-64 targets
-(`GOOS=tamago GOARCH=amd64`).
-
-| CPU              | Platform                                                                  | CPU package                                                    | Platform package                                                                                 |
-|------------------|---------------------------------------------------------------------------|----------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
-| AMD/Intel 64-bit | [QEMU microvm](https://www.qemu.org/docs/master/system/i386/microvm.html) | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)               |
-| AMD/Intel 64-bit | [Firecracker microvm](https://firecracker-microvm.github.io)              | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [firecracker/microvm](https://github.com/usbarmory/tamago/tree/master/board/firecracker/microvm) |
-| AMD/Intel 64-bit | [UEFI](https://uefi.org/)                                                 | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [uefi/x64](https://github.com/usbarmory/go-boot/tree/main/uefi/x64)                              |
 
 Userspace targets
 =================
@@ -153,14 +153,14 @@ Go applications can be compiled with the compiler built in the previous step,
 with the addition of a few flags/variables:
 
 ```
+# Example for QEMU and Firecracker microVMs
+GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-E cpuinit -T 0x10010000 -R 0x1000" main.go
+
 # Example for USB armory Mk II
 GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
 
 # Example for QEMU RISC-V sifive_u
 GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
-
-# Example for QEMU and Firecracker microVMs
-GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-E cpuinit -T 0x10010000 -R 0x1000" main.go
 
 # Example for Linux userspace
 GOOS=tamago ${TAMAGO} build main.go
