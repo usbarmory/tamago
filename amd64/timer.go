@@ -9,6 +9,8 @@
 package amd64
 
 import (
+	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/kvm/clock"
 )
 
@@ -18,7 +20,7 @@ const refFreq uint32 = 1e9
 // defined in timer.s
 func read_tsc() uint64
 
-func (cpu *CPU) initTimers() {
+func (cpu *CPU) detectCoreFrequency() (freq uint32) {
 	if denominator, numerator, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); denominator != 0 {
 		if nominalFreq == 0 {
 			baseFreq, _, _, _ := cpuid(CPUID_CPU_FRQ, 0)
@@ -41,10 +43,34 @@ func (cpu *CPU) initTimers() {
 		}
 	}
 
-	if cpu.freq == 0 {
-		panic("TSC frequency is unavailable")
+	if cpu.freq != 0 {
+		return
 	}
 
+	if _, _, ecx, _ := cpuid(CPUID_VENDOR, 0); ecx == CPUID_VENDOR_ECX_AMD {
+		// Open-Source Register Reference
+		// For AMD Family 17h Processors Models 00h-2Fh
+		// Rev 3.03 - July, 2018 - Core::X86::Msr::PStateDef
+		pstate := reg.Msr(MSR_AMD_PSTATE)
+
+		numerator := float64(bits.Get(&pstate, 0, 0xff)) * 25
+		denominator := float64(bits.Get(&pstate, 8, 0b111111)) / 8
+
+		if numerator != 0 && denominator != 0 {
+			cpu.freq = uint32(numerator/denominator) * 1e6
+		}
+	}
+
+	if cpu.freq == 0 {
+		print("WARNING: TSC frequency is unavailable\n")
+		return 1
+	}
+
+	return
+}
+
+func (cpu *CPU) initTimers() {
+	cpu.detectCoreFrequency()
 	cpu.TimerMultiplier = float64(refFreq) / float64(cpu.freq)
 	cpu.TimerFn = read_tsc
 }

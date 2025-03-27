@@ -18,6 +18,10 @@ import (
 // and Future Features Programming Reference
 // 1.5 CPUID INSTRUCTION).
 const (
+	CPUID_VENDOR           = 0x00
+	CPUID_VENDOR_ECX_INTEL = 0x6c65746e // GenuineI(ntel)
+	CPUID_VENDOR_ECX_AMD   = 0x444d4163 // Authenti(cAMD)
+
 	CPUID_TSC_CCC = 0x15
 	CPUID_CPU_FRQ = 0x16
 
@@ -37,6 +41,11 @@ const (
 	FEATURES_CLOCKSOURCE2 = 3
 
 	KVM_CPUID_TSC_KHZ = 0x40000010
+)
+
+// AMD MSRs
+const (
+	MSR_AMD_PSTATE = 0xc0010064
 )
 
 // kvmclock MSRs
