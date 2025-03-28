@@ -76,7 +76,7 @@ const (
 
 // VirtIO represents a VirtIO device.
 type VirtIO struct {
-	// MMIO base address
+	// Base address
 	Base uint32
 	// ConfigSize is the device configuration size
 	ConfigSize int

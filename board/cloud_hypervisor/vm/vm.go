@@ -42,6 +42,10 @@ const (
 
 	// VirtIO Memory-mapped I/O
 	VIRTIO_MMIO_BASE = 0xe8000000
+
+	// VirtIO Networking
+	VIRTIO_NET_PCI_VENDOR = 0x1af4 // Red Hat, Inc.
+	VIRTIO_NET_PCI_DEVICE = 0x1041 // Virtio 1.0 network device
 )
 
 // Peripheral instances
