@@ -31,6 +31,9 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	// Disable interrupts
 	CLI
 
+	// we might not have a valid stack pointer for CALLs
+	MOVL	$PML4T, SP
+
 	// Set up paging
 	//
 	// AMD64 Architecture Programmer’s Manual

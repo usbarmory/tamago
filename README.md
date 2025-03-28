@@ -70,6 +70,7 @@ The following table summarizes currently supported x86-64 targets
 
 | CPU              | Platform                                                                  | CPU package                                                    | Platform package                                                                                 |
 |------------------|---------------------------------------------------------------------------|----------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| AMD/Intel 64-bit | [Cloud Hypervisor](https://www.cloudhypervisor.org )                      | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [cloud_hypervisor/vm](https://github.com/usbarmory/tamago/tree/master/board/cloud_hypervisor/vm) |
 | AMD/Intel 64-bit | [QEMU microvm](https://www.qemu.org/docs/master/system/i386/microvm.html) | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [qemu/microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)               |
 | AMD/Intel 64-bit | [Firecracker microvm](https://firecracker-microvm.github.io)              | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [firecracker/microvm](https://github.com/usbarmory/tamago/tree/master/board/firecracker/microvm) |
 | AMD/Intel 64-bit | [UEFI](https://uefi.org/)                                                 | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [uefi/x64](https://github.com/usbarmory/go-boot/tree/main/uefi/x64)                              |
@@ -153,7 +154,7 @@ Go applications can be compiled with the compiler built in the previous step,
 with the addition of a few flags/variables:
 
 ```
-# Example for QEMU and Firecracker microVMs
+# Example for Cloud Hypervisory, QEMU and Firecracker KVMs
 GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-E cpuinit -T 0x10010000 -R 0x1000" main.go
 
 # Example for USB armory Mk II
