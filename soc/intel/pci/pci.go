@@ -51,8 +51,10 @@ type Device struct {
 	BaseAddress0 uint32
 }
 
-func (d *Device) read(bus uint32, slot uint32, fn uint32, offset uint32) uint32 {
-	address := (bus << 16) | (slot << 11) | (fn << 8) | (offset & 0xfc) | 0x80000000
+// Configuration reads the device configuration space for a given function and
+// register offset.
+func (d *Device) Read(fn uint32, offset uint32) uint32 {
+	address := 1 << 31 | d.Bus << 16 | d.Slot << 11 | fn << 8 | offset & 0xfc
 	reg.Out32(CONFIG_ADDRESS, address)
 
 	return reg.In32(CONFIG_DATA) >> ((offset & 2) * 8)
@@ -63,14 +65,14 @@ func (d *Device) probe() bool {
 		return false
 	}
 
-	val := d.read(d.Bus, d.Slot, 0, vendorID)
+	val := d.Read(0, vendorID)
 
 	if d.Vendor = uint16(val); d.Vendor == 0xffff {
 		return false
 	}
 
 	d.Device = uint16(val >> 16)
-	d.BaseAddress0 = d.read(d.Bus, d.Slot, 0, bar0)
+	d.BaseAddress0 = d.Read(0, bar0)
 	d.BaseAddress0 &= 0xfffffffc
 
 	return true
