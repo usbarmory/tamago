@@ -17,6 +17,7 @@
 package pci
 
 import (
+	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -32,8 +33,10 @@ const (
 
 // Header Type 0x0 offsets
 const (
-	vendorID = 0x00
-	bar0     = 0x10
+	VendorID           = 0x01
+	RevisionID         = 0x08
+	Bar0               = 0x10
+	CapabilitiesOffset = 0x34
 )
 
 // Device represents a PCI device.
@@ -47,17 +50,35 @@ type Device struct {
 
 	// PCI Slot
 	Slot uint32
-	// Base Address #0 (BAR0)
-	BaseAddress0 uint32
+}
+
+// BaseAddress returns a device Base Address register (BAR).
+func (d *Device) BaseAddress(n int) uint {
+	if n > 5 {
+		return 0
+	}
+
+	off :=  Bar0 + uint32(n) * 4
+	bar := d.Configuration(0, Bar0 + uint32(n) * 4)
+
+	// decode BAR Type
+	switch bits.Get(&bar, 1, 0b11) {
+	case 0:
+		return uint(bar)
+	case 2:
+		return uint(d.Configuration(0, off+4)) << 32 | uint(bar) & 0xfffffff0
+	}
+
+	return 0
 }
 
 // Configuration reads the device configuration space for a given function and
 // register offset.
-func (d *Device) Read(fn uint32, offset uint32) uint32 {
-	address := 1 << 31 | d.Bus << 16 | d.Slot << 11 | fn << 8 | offset & 0xfc
+func (d *Device) Configuration(fn uint32, off uint32) uint32 {
+	address := 1 << 31 | d.Bus << 16 | d.Slot << 11 | fn << 8 | off & 0xfc
 	reg.Out32(CONFIG_ADDRESS, address)
 
-	return reg.In32(CONFIG_DATA) >> ((offset & 2) * 8)
+	return reg.In32(CONFIG_DATA) >> ((off & 2) * 8)
 }
 
 func (d *Device) probe() bool {
@@ -65,15 +86,13 @@ func (d *Device) probe() bool {
 		return false
 	}
 
-	val := d.Read(0, vendorID)
+	val := d.Configuration(0, VendorID)
 
 	if d.Vendor = uint16(val); d.Vendor == 0xffff {
 		return false
 	}
 
 	d.Device = uint16(val >> 16)
-	d.BaseAddress0 = d.Read(0, bar0)
-	d.BaseAddress0 &= 0xfffffffc
 
 	return true
 }
