@@ -25,6 +25,11 @@ const (
 	CONFIG_DATA    = 0x0cfc
 )
 
+const (
+	maxBuses   = 256
+	maxDevices = 32
+)
+
 // Device represents a PCI device.
 type Device struct {
 	// Bus number
@@ -47,24 +52,53 @@ func (d *Device) read(bus uint32, slot uint32, fn uint32, offset uint32) uint32 
 	return reg.In32(CONFIG_DATA) >> ((offset & 2) * 8)
 }
 
-// Probe probes a PCI device based on its Bus, Vendor and Device fields, on
-// success the remaining fields are populated.
-func (d *Device) Probe() (found bool) {
-	for slot := uint32(0); slot <= 31; slot++ {
-		val := d.read(d.Bus, slot, 0, 0)
-
-		vendor := uint16(val)
-		device := uint16(val >> 16)
-
-		if vendor == 0xfff || vendor != d.Vendor || device != d.Device {
-			continue
-		}
-
-		d.BaseAddress0 = d.read(d.Bus, slot, 0, 0x10)
-		d.BaseAddress0 &= 0xfffffffc
-
-		return true
+func (d *Device) probe() bool {
+	if d.Bus > maxBuses {
+		return false
 	}
 
-	return false
+	val := d.read(d.Bus, d.Slot, 0, 0)
+
+	if d.Vendor = uint16(val); d.Vendor == 0xffff {
+		return false
+	}
+
+	d.Device = uint16(val >> 16)
+	d.BaseAddress0 = d.read(d.Bus, d.Slot, 0, 0x10)
+	d.BaseAddress0 &= 0xfffffffc
+
+	return true
+}
+
+// Probe probes a PCI device.
+func Probe(bus int, vendor uint16, device uint16) *Device {
+	d := &Device{
+		Bus: uint32(bus),
+	}
+
+	for slot := uint32(0); slot < maxDevices; slot++ {
+		d.Slot = slot
+
+		if d.probe() {
+			return d
+		}
+	}
+
+	return nil
+}
+
+// Devices returns all found PCI devices on a given bus.
+func Devices(bus int) (devices []*Device) {
+	for slot := uint32(0); slot < maxDevices; slot++ {
+		d := &Device{
+			Bus:  uint32(bus),
+			Slot: slot,
+		}
+
+		if d.probe() {
+			devices = append(devices, d)
+		}
+	}
+
+	return
 }
