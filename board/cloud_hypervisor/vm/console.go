@@ -17,4 +17,8 @@ import (
 //go:linkname printk runtime.printk
 func printk(c byte) {
 	UART0.Tx(c)
+
+	if c == 0x0a { // LF
+		UART0.Tx(0x0d) // CR
+	}
 }
