@@ -23,6 +23,7 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/kvm/pvclock"
 	"github.com/usbarmory/tamago/soc/intel/apic"
+	"github.com/usbarmory/tamago/soc/intel/pci"
 	"github.com/usbarmory/tamago/soc/intel/uart"
 )
 
@@ -103,4 +104,10 @@ func init() {
 
 	// initialize KVM pvclock as needed
 	pvclock.Init(AMD64)
+
+	if dev := pci.Probe(0, VIRTIO_NET_PCI_VENDOR, VIRTIO_NET_PCI_DEVICE); dev != nil {
+		// reconfigure BAR to mapped memory region
+		dev.Write(0, pci.Bar0, 0x40000000)
+		dev.Write(0, pci.Bar0+4, 0x1)
+	}
 }
