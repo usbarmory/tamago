@@ -1,4 +1,4 @@
-// VirtIO driver
+// VirtIO over MMIO driver
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) WithSecure Corporation
@@ -6,13 +6,6 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package virtio implements a driver for Virtual I/O devices (VirtIO)
-// following reference specifications:
-//   - Virtual I/O Device (VIRTIO) - Version 1.2
-//
-// This package is only meant to be used with `GOOS=tamago` as
-// supported by the TamaGo framework for bare metal Go, see
-// https://github.com/usbarmory/tamago.
 package virtio
 
 import (
@@ -74,20 +67,18 @@ const (
 	deviceReservedFeatureMask = 0x0003ffffff000000
 )
 
-// VirtIO represents a VirtIO device.
-type VirtIO struct {
+// MMIO represents a VirtIO over MMIO device.
+type MMIO struct {
 	// Base address
 	Base uint32
-	// ConfigSize is the device configuration size
-	ConfigSize int
-	// Config is a reserved DMA buffer for device configuration access and
-	// modification.
-	Config []byte
 
 	features uint64
+
+	// DMA buffer
+	config []byte
 }
 
-func (io *VirtIO) negotiate(features uint64) (err error) {
+func (io *MMIO) negotiate(features uint64) (err error) {
 	// get offered features
 	io.features = io.DeviceFeatures()
 
@@ -113,7 +104,7 @@ func (io *VirtIO) negotiate(features uint64) (err error) {
 }
 
 // Init initializes a VirtIO over MMIO device instance.
-func (io *VirtIO) Init(features uint64) (err error) {
+func (io *MMIO) Init(features uint64, configSize int) (err error) {
 	if io.Base == 0 || reg.Read(io.Base+Magic) != MAGIC {
 		return errors.New("invalid VirtIO instance")
 	}
@@ -134,24 +125,30 @@ func (io *VirtIO) Init(features uint64) (err error) {
 	}
 
 	// initialize Config DMA buffers
-	r, err := dma.NewRegion(uint(io.Base+Config), io.ConfigSize, false)
+	r, err := dma.NewRegion(uint(io.Base+Config), configSize, false)
 
 	if err != nil {
 		return
 	}
 
-	_, io.Config = r.Reserve(io.ConfigSize, 0)
+	_, io.config = r.Reserve(configSize, 0)
 
 	return
 }
 
+// Config returns the device configuration layout.
+func (io *MMIO) Config() (config []byte) {
+	copy(config, io.config)
+	return
+}
+
 // DeviceID returns the VirtIO subsystem device ID
-func (io *VirtIO) DeviceID() uint32 {
+func (io *MMIO) DeviceID() uint32 {
 	return reg.Read(io.Base + DeviceID)
 }
 
 // DeviceFeatures returns the device feature bits.
-func (io *VirtIO) DeviceFeatures() (features uint64) {
+func (io *MMIO) DeviceFeatures() (features uint64) {
 	for i := uint32(0); i <= 1; i++ {
 		reg.Write(io.Base+DeviceFeaturesSel, i)
 		features |= uint64(reg.Read(io.Base+DeviceFeatures)) << (i * 32)
@@ -161,7 +158,7 @@ func (io *VirtIO) DeviceFeatures() (features uint64) {
 }
 
 // DriverFeatures returns the driver feature bits.
-func (io *VirtIO) DriverFeatures() (features uint64) {
+func (io *MMIO) DriverFeatures() (features uint64) {
 	for i := uint32(0); i <= 1; i++ {
 		reg.Write(io.Base+DriverFeaturesSel, i)
 		features |= uint64(reg.Read(io.Base+DriverFeatures)) << (i * 32)
@@ -171,7 +168,7 @@ func (io *VirtIO) DriverFeatures() (features uint64) {
 }
 
 // SetDriverFeatures sets the driver feature bits.
-func (io *VirtIO) SetDriverFeatures(features uint64) {
+func (io *MMIO) SetDriverFeatures(features uint64) {
 	for i := uint32(0); i <= 1; i++ {
 		reg.Write(io.Base+DriverFeaturesSel, i)
 		reg.Write(io.Base+DriverFeatures, uint32(features>>(i*32)))
@@ -181,31 +178,31 @@ func (io *VirtIO) SetDriverFeatures(features uint64) {
 }
 
 // NegotiatedFeatures returns the set of negotiated feature bits.
-func (io *VirtIO) NegotiatedFeatures() (features uint64) {
+func (io *MMIO) NegotiatedFeatures() (features uint64) {
 	return io.features
 }
 
 // QueueReady returns whether a queue is ready for use.
-func (io *VirtIO) QueueReady(index int) (ready bool) {
+func (io *MMIO) QueueReady(index int) (ready bool) {
 	reg.Write(io.Base+QueueSel, uint32(index))
 	ready = reg.Read(io.Base+QueueReady) != 0
 	return
 }
 
 // MaxQueueSize returns the maximum virtual queue size.
-func (io *VirtIO) MaxQueueSize(index int) int {
+func (io *MMIO) MaxQueueSize(index int) int {
 	reg.Write(io.Base+QueueSel, uint32(index))
 	return int(reg.Read(io.Base + QueueNumMax))
 }
 
 // SetQueueSize sets the virtual queue size.
-func (io *VirtIO) SetQueueSize(index int, n int) {
+func (io *MMIO) SetQueueSize(index int, n int) {
 	reg.Write(io.Base+QueueSel, uint32(index))
 	reg.Write(io.Base+QueueNum, uint32(n))
 }
 
 // InterruptStatus returns the interrupt status and reason.
-func (io *VirtIO) InterruptStatus() (buffer bool, config bool) {
+func (io *MMIO) InterruptStatus() (buffer bool, config bool) {
 	s := reg.Read(io.Base + InterruptStatus)
 
 	buffer = bits.IsSet(&s, 0)
@@ -215,12 +212,12 @@ func (io *VirtIO) InterruptStatus() (buffer bool, config bool) {
 }
 
 // Status returns the device status.
-func (io *VirtIO) Status() uint32 {
+func (io *MMIO) Status() uint32 {
 	return reg.Read(io.Base + Status)
 }
 
 // SetQueue registers the indexed virtual queue for device access.
-func (io *VirtIO) SetQueue(index int, queue *VirtualQueue) {
+func (io *MMIO) SetQueue(index int, queue *VirtualQueue) {
 	desc, driver, device := queue.Address()
 
 	reg.Write(io.Base+QueueSel, uint32(index))
@@ -231,16 +228,16 @@ func (io *VirtIO) SetQueue(index int, queue *VirtualQueue) {
 }
 
 // SetReady indicates that the driver is set up and ready to drive the device.
-func (io *VirtIO) SetReady() {
+func (io *MMIO) SetReady() {
 	reg.Set(io.Base+Status, DriverOk)
 }
 
 // QueueNotify notifies the device that a queue can be processed.
-func (io *VirtIO) QueueNotify(index int) {
+func (io *MMIO) QueueNotify(index int) {
 	reg.Write(io.Base+QueueNotify, uint32(index))
 }
 
 // ConfigVersion returns the device configuration (see Config field) version.
-func (io *VirtIO) ConfigVersion() uint32 {
+func (io *MMIO) ConfigVersion() uint32 {
 	return reg.Read(io.Base + ConfigGeneration)
 }
