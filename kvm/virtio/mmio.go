@@ -41,32 +41,6 @@ const (
 	Config            = 0x100
 )
 
-// Reserved Feature bits
-const (
-	Packed           = 34
-	NotificationData = 38
-)
-
-// Device Status bits
-const (
-	Acknowledge      = 0
-	Driver           = 1
-	DriverOk         = 2
-	FeaturesOk       = 3
-	DeviceneedsReset = 6
-	Failed           = 7
-)
-
-const (
-	MAGIC   = 0x74726976 // "virt"
-	VERSION = 0x02
-
-	// bits 0 to 23, and 50 to 63
-	deviceSpecificFeatureMask = 0xfffc000000ffffff
-	// bits 24 to 49
-	deviceReservedFeatureMask = 0x0003ffffff000000
-)
-
 // MMIO represents a VirtIO over MMIO device.
 type MMIO struct {
 	// Base address
@@ -104,7 +78,7 @@ func (io *MMIO) negotiate(features uint64) (err error) {
 }
 
 // Init initializes a VirtIO over MMIO device instance.
-func (io *MMIO) Init(features uint64, configSize int) (err error) {
+func (io *MMIO) Init(features uint64) (err error) {
 	if io.Base == 0 || reg.Read(io.Base+Magic) != MAGIC {
 		return errors.New("invalid VirtIO instance")
 	}
@@ -120,25 +94,24 @@ func (io *MMIO) Init(features uint64, configSize int) (err error) {
 	reg.Set(io.Base+Status, Acknowledge)
 	reg.Set(io.Base+Status, Driver)
 
-	if err = io.negotiate(features); err != nil {
-		return
-	}
-
-	// initialize Config DMA buffers
-	r, err := dma.NewRegion(uint(io.Base+Config), configSize, false)
-
-	if err != nil {
-		return
-	}
-
-	_, io.config = r.Reserve(configSize, 0)
-
-	return
+	return io.negotiate(features)
 }
 
 // Config returns the device configuration layout.
-func (io *MMIO) Config() (config []byte) {
+func (io *MMIO) Config(size int) (config []byte) {
+	if io.config == nil {
+		r, err := dma.NewRegion(uint(io.Base+Config), size, false)
+
+		if err != nil {
+			return
+		}
+
+		_, io.config = r.Reserve(size, 0)
+	}
+
+	config = make([]byte, size)
 	copy(config, io.config)
+
 	return
 }
 
