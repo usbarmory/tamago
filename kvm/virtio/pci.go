@@ -38,14 +38,15 @@ const (
 	queueDevice      = 0x30
 )
 
-// VirtIO PCI Capabilities constants
+// VirtIO PCI Capabilities
 const (
-	pciCapVendor = 0x09
 	pciCapLength = 16
-)
 
-// VirtIO PCI Capabilities configuration types
-const (
+	// Capability IDs
+	pciCapVendor = 0x09
+	pciCapMSIX   = 0x11
+
+	// Configuration types
 	pciCapCommonCfg = 1
 	pciCapNotifyCfg = 2
 	pciCapISRCfg    = 3
@@ -72,10 +73,6 @@ func (c *pciCap) reserve(d *pci.Device, off uint32) (desc []byte, addr uint, err
 	buf := make([]byte, pciCapLength)
 	binary.LittleEndian.PutUint32(buf, d.Read(0, off))
 
-	if buf[0] != pciCapVendor {
-		return nil, 0, errors.New("invalid capability vendor")
-	}
-
 	binary.LittleEndian.PutUint32(buf[4:8], d.Read(0, off+4))
 	binary.LittleEndian.PutUint32(buf[8:12], d.Read(0, off+8))
 	binary.LittleEndian.PutUint32(buf[12:16], d.Read(0, off+12))
@@ -87,7 +84,7 @@ func (c *pciCap) reserve(d *pci.Device, off uint32) (desc []byte, addr uint, err
 	addr = d.BaseAddress(int(c.Bar)) + uint(c.Offset)
 	size := int(c.Length)
 
-	if size == 0 {
+	if addr == 0 || size == 0 {
 		return
 	}
 
@@ -120,10 +117,7 @@ type PCI struct {
 	isr    []byte
 }
 
-func (io *PCI) init() (err error) {
-	var buf []byte
-	var addr uint
-
+func (io *PCI) init() error {
 	c := &pciCap{}
 	off := io.Device.Read(0, pci.CapabilitiesOffset)
 
@@ -132,8 +126,10 @@ func (io *PCI) init() (err error) {
 			break
 		}
 
-		if buf, addr, err = c.reserve(io.Device, off); err != nil {
-			return nil
+		buf, addr, err := c.reserve(io.Device, off)
+
+		if err != nil {
+			break
 		}
 
 		switch c.CfgType {
@@ -155,7 +151,7 @@ func (io *PCI) init() (err error) {
 		return errors.New("missing required capabilities")
 	}
 
-	return
+	return nil
 }
 
 func (io *PCI) negotiate(driverFeatures uint64) (err error) {
