@@ -170,7 +170,7 @@ func (io *PCI) negotiate(features uint64) (err error) {
 	io.features &= deviceReservedFeatureMask
 
 	// apply device type features from the driver
-	io.features &= features
+	io.features |= features
 
 	// negotiate features
 	io.SetDriverFeatures(io.features)
