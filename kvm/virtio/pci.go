@@ -158,22 +158,10 @@ func (io *PCI) init() (err error) {
 	return
 }
 
-func (io *PCI) negotiate(features uint64) (err error) {
-	// get offered features
-	io.features = io.DeviceFeatures()
-
-	// clear unsupported features
-	bits.Clear64(&io.features, Packed)
-	bits.Clear64(&io.features, NotificationData)
-
-	// keep all remaining reserved features, clear device type ones
-	io.features &= deviceReservedFeatureMask
-
-	// apply device type features from the driver
-	io.features |= features
-
-	// negotiate features
+func (io *PCI) negotiate(driverFeatures uint64) (err error) {
+	io.features = negotiate(io.DeviceFeatures(), driverFeatures)
 	io.SetDriverFeatures(io.features)
+
 	io.common[deviceStatus] |= (1 << FeaturesOk)
 
 	if io.common[deviceStatus]&(1<<FeaturesOk) != (1 << FeaturesOk) {

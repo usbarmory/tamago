@@ -15,6 +15,10 @@
 // https://github.com/usbarmory/tamago.
 package virtio
 
+import (
+	"github.com/usbarmory/tamago/bits"
+)
+
 // Reserved Feature bits
 const (
 	Packed           = 34
@@ -75,4 +79,20 @@ type VirtIO interface {
 	QueueNotify(index int)
 	// ConfigVersion returns the device configuration (see Config field) version.
 	ConfigVersion() uint32
+}
+
+func negotiate(deviceFeatures, driverFeatures uint64) (features uint64) {
+	features = deviceFeatures
+
+	// clear unsupported features
+	bits.Clear64(&features, Packed)
+	bits.Clear64(&features, NotificationData)
+
+	// keep all remaining reserved features, clear device type ones
+	features &= deviceReservedFeatureMask
+
+	// apply device type features from the driver
+	features &= driverFeatures
+
+	return
 }
