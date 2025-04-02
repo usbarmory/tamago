@@ -33,7 +33,7 @@ type Descriptor struct {
 	Flags   uint16
 	Next    uint16
 
-	// DMA buffer
+	// DMA buffer (addressed data)
 	buf []byte
 }
 
@@ -75,14 +75,9 @@ func (d *Descriptor) Read(b []byte) {
 	copy(b, d.buf)
 }
 
-// Write copies the contents of b to the descriptor buffer, updating its length
-// field accordingly.
+// Write copies the contents of b to the descriptor buffer.
 func (d *Descriptor) Write(b []byte) {
-	off := 8
-	length := uint32(len(b))
-	binary.LittleEndian.PutUint32(d.buf[off:], length)
-
-	d.length = length
+	d.length = uint32(len(b))
 	copy(d.buf, b)
 }
 
@@ -330,6 +325,9 @@ func (d *VirtualQueue) Push(buf []byte) {
 
 	index := d.Available.Ring(d.Available.index % d.size)
 	used := d.Used.Index() - d.Used.last
+
+	off := 8 + index*16
+	binary.LittleEndian.PutUint32(d.buf[off:], uint32(len(buf)))
 
 	d.Descriptors[index].Write(buf)
 	d.Available.SetIndex(d.Available.index + 1)
