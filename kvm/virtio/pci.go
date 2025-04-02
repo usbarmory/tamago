@@ -117,6 +117,7 @@ type PCI struct {
 	// DMA buffers
 	common []byte
 	config []byte
+	isr    []byte
 }
 
 func (io *PCI) init() (err error) {
@@ -143,12 +144,14 @@ func (io *PCI) init() (err error) {
 			io.notifyMultiplier = io.Device.Read(0, off+pciCapLength)
 		case pciCapDeviceCfg:
 			io.config = buf
+		case pciCapISRCfg:
+			io.isr = buf
 		}
 
 		off = uint32(c.CapNext)
 	}
 
-	if io.common == nil || io.config == nil {
+	if io.common == nil || io.config == nil || io.isr == nil {
 		return errors.New("missing required capabilities")
 	}
 
