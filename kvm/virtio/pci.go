@@ -73,7 +73,7 @@ func (c *pciCap) reserve(d *pci.Device, off uint32) (desc []byte, addr uint, err
 	binary.LittleEndian.PutUint32(buf, d.Read(0, off))
 
 	if buf[0] != pciCapVendor {
-		return
+		return nil, 0, errors.New("invalid capability vendor")
 	}
 
 	binary.LittleEndian.PutUint32(buf[4:8], d.Read(0, off+4))
@@ -81,7 +81,7 @@ func (c *pciCap) reserve(d *pci.Device, off uint32) (desc []byte, addr uint, err
 	binary.LittleEndian.PutUint32(buf[12:16], d.Read(0, off+12))
 
 	if _, err = binary.Decode(buf, binary.LittleEndian, c); err != nil {
-		return
+		return nil, 0, errors.New("invalid capability format")
 	}
 
 	addr = d.BaseAddress(int(c.Bar)) + uint(c.Offset)
@@ -94,7 +94,7 @@ func (c *pciCap) reserve(d *pci.Device, off uint32) (desc []byte, addr uint, err
 	r, err := dma.NewRegion(addr, size, false)
 
 	if err != nil {
-		return
+		return nil, 0, errors.New("invalid capability region")
 	}
 
 	_, desc = r.Reserve(size, 0)
@@ -116,9 +116,7 @@ type PCI struct {
 
 	// DMA buffers
 	common []byte
-	notify []byte
 	config []byte
-	isr    []byte
 }
 
 func (io *PCI) init() (err error) {
@@ -140,18 +138,18 @@ func (io *PCI) init() (err error) {
 		switch c.CfgType {
 		case pciCapCommonCfg:
 			io.common = buf
-			io.queueNotifyOff = binary.LittleEndian.Uint16(io.common[queueNotifyOff:])
 		case pciCapNotifyCfg:
-			io.notify = buf
 			io.notifyAddress = uint64(addr)
 			io.notifyMultiplier = io.Device.Read(0, off+pciCapLength)
 		case pciCapDeviceCfg:
 			io.config = buf
-		case pciCapISRCfg:
-			io.isr = buf
 		}
 
 		off = uint32(c.CapNext)
+	}
+
+	if io.common == nil || io.config == nil {
+		return errors.New("missing required capabilities")
 	}
 
 	return
@@ -302,13 +300,16 @@ func (io *PCI) SetQueue(index int, queue *VirtualQueue) {
 
 // SetReady indicates that the driver is set up and ready to drive the device.
 func (io *PCI) SetReady() {
+	io.queueNotifyOff = binary.LittleEndian.Uint16(io.common[queueNotifyOff:])
 	io.common[deviceStatus] |= (1 << DriverOk)
 }
 
 // QueueNotify notifies the device that a queue can be processed.
 func (io *PCI) QueueNotify(index int) {
-	addr := io.notifyAddress + uint64(io.queueNotifyOff)*uint64(io.notifyMultiplier)
-	reg.Write64(addr, uint64(index)) // FIXME
+	addr := io.notifyAddress
+	addr += uint64(index) * uint64(io.queueNotifyOff) * uint64(io.notifyMultiplier)
+
+	reg.Write64(addr, uint64(index))
 }
 
 // ConfigVersion returns the device configuration (see Config field) version.
