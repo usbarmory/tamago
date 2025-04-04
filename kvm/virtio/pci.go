@@ -267,8 +267,9 @@ func (io *PCI) SetQueueSize(index int, n int) {
 	binary.LittleEndian.PutUint16(io.common[queueSize:], uint16(n))
 }
 
-// EnableInterrupt enables interrupt generation.
-func (io *PCI) EnableInterrupt(id int, lapic *apic.LAPIC) {
+// EnableInterrupt enables MSI-X interrupt vector routing to a LAPIC instance
+// for the indexed virtual queue.
+func (io *PCI) EnableInterrupt(id int, lapic *apic.LAPIC, index int) {
 	if io.msix == nil {
 		return
 	}
@@ -278,6 +279,8 @@ func (io *PCI) EnableInterrupt(id int, lapic *apic.LAPIC) {
 	data := uint32(id)
 
 	io.msix.EnableInterrupt(entry, addr, data)
+
+	binary.LittleEndian.PutUint16(io.common[queueSel:], uint16(index))
 	binary.LittleEndian.PutUint16(io.common[queueMSIXVector:], uint16(entry))
 }
 
