@@ -105,11 +105,11 @@ type PCI struct {
 	notifyAddress    uint64
 	notifyMultiplier uint32
 
-	msix *pci.CapabilityMSIX
-
 	// DMA buffers
 	common []byte
 	config []byte
+
+	msix *pci.CapabilityMSIX
 }
 
 func (io *PCI) addCapability(off uint32, hdr *pci.CapabilityHeader) error {
@@ -240,8 +240,7 @@ func (io *PCI) NegotiatedFeatures() (features uint64) {
 // QueueReady returns whether a queue is ready for use.
 func (io *PCI) QueueReady(index int) (ready bool) {
 	binary.LittleEndian.PutUint16(io.common[queueSel:], uint16(index))
-	ready = binary.LittleEndian.Uint16(io.common[queueEnable:]) != 0
-	return
+	return binary.LittleEndian.Uint16(io.common[queueEnable:]) != 0
 }
 
 // MaxQueueSize returns the maximum virtual queue size.

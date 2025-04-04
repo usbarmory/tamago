@@ -19,6 +19,7 @@ const msixEnable = 31
 // CapabilityMSIX represents an MSI-X Capability Structure.
 type CapabilityMSIX struct {
 	CapabilityHeader
+
 	MessageControl uint16
 	TableOffset    uint32
 	PBAOffset      uint32
@@ -27,7 +28,7 @@ type CapabilityMSIX struct {
 	off    uint32
 }
 
-// Unmarshal decodes a PCI Capability common fields from the argument device
+// Unmarshal decodes a PCI MSI-X Capability from the argument device
 // configuration space at function 0 and the given register offset.
 func (msix *CapabilityMSIX) Unmarshal(d *Device, off uint32) (err error) {
 	val := d.Read(0, off)
@@ -49,7 +50,8 @@ func (msix *CapabilityMSIX) TableSize() int {
 	return int(msix.MessageControl&0x7ff) + 1
 }
 
-// EnableInterrupt configures an MSI-X interrupt entry.
+// EnableInterrupt configures an MSI-X interrupt entry and enables the MSI-X
+// table.
 func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) {
 	if n > msix.TableSize() || msix.device == nil {
 		return
