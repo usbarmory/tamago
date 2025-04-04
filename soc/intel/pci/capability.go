@@ -55,3 +55,25 @@ func (hdr *CapabilityHeader) Unmarshal(d *Device, off uint32) (err error) {
 	_, err = binary.Decode(buf, binary.LittleEndian, hdr)
 	return
 }
+
+// Capabilities is an iterator over the entries of the device Capabilities
+// List.
+func (d *Device) Capabilities() func(func(off uint32, hdr *CapabilityHeader) bool) {
+	return func(yield func(uint32, *CapabilityHeader) bool) {
+		off := d.Read(0, CapabilitiesOffset)
+
+		for off != 0 {
+			hdr := &CapabilityHeader{}
+
+			if err := hdr.Unmarshal(d, off); err != nil {
+				return
+			}
+
+			if !yield(off, hdr) {
+				return
+			}
+
+			off = uint32(hdr.Next)
+		}
+	}
+}

@@ -112,51 +112,34 @@ type PCI struct {
 	config []byte
 }
 
-func (io *PCI) init() error {
-	off := io.Device.Read(0, pci.CapabilitiesOffset)
+func (io *PCI) addCapability(off uint32, hdr *pci.CapabilityHeader) error {
+	switch hdr.Vendor {
+	case pci.VendorSpecific:
+		c := &capability{}
 
-	// TODO: move to pci pkg as walk function
-	for off != 0 {
-		hdr := &pci.CapabilityHeader{}
+		buf, addr, err := c.Unmarshal(io.Device, off)
 
-		if err := hdr.Unmarshal(io.Device, off); err != nil {
-			return errors.New("invalid capability header")
+		if err != nil {
+			return err
 		}
 
-		switch hdr.Vendor {
-		case pci.VendorSpecific:
-			c := &capability{}
+		switch c.CfgType {
+		case capCommon:
+			io.common = buf
+		case capNotify:
+			io.notifyAddress = uint64(addr)
+			io.notifyMultiplier = io.Device.Read(0, off+capabilityLength)
+		case capDevice:
+			io.config = buf
+		}
+	case pci.MSIX:
+		c := &pci.CapabilityMSIX{}
 
-			buf, addr, err := c.Unmarshal(io.Device, off)
-
-			if err != nil {
-				return err
-			}
-
-			switch c.CfgType {
-			case capCommon:
-				io.common = buf
-			case capNotify:
-				io.notifyAddress = uint64(addr)
-				io.notifyMultiplier = io.Device.Read(0, off+capabilityLength)
-			case capDevice:
-				io.config = buf
-			}
-		case pci.MSIX:
-			c := &pci.CapabilityMSIX{}
-
-			if err := c.Unmarshal(io.Device, off); err != nil {
-				return err
-			}
-
-			io.msix = c
+		if err := c.Unmarshal(io.Device, off); err != nil {
+			return err
 		}
 
-		off = uint32(hdr.Next)
-	}
-
-	if io.common == nil || io.config == nil {
-		return errors.New("missing required capabilities")
+		io.msix = c
 	}
 
 	return nil
@@ -185,8 +168,14 @@ func (io *PCI) Init(features uint64) (err error) {
 		return errors.New("transitional devices are not supported")
 	}
 
-	if err = io.init(); err != nil {
-		return
+	for off, hdr := range io.Device.Capabilities() {
+		if err = io.addCapability(off, hdr); err != nil {
+			return
+		}
+	}
+
+	if io.common == nil || io.config == nil {
+		return errors.New("missing required capabilities")
 	}
 
 	// reset

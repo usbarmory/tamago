@@ -46,7 +46,7 @@ func (msix *CapabilityMSIX) Unmarshal(d *Device, off uint32) (err error) {
 
 // TableSize returns the number of entries in the MSI-X table.
 func (msix *CapabilityMSIX) TableSize() int {
-	return int(msix.MessageControl & 0x7ff) + 1
+	return int(msix.MessageControl&0x7ff) + 1
 }
 
 // EnableInterrupt configures an MSI-X interrupt entry.
@@ -57,7 +57,7 @@ func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) {
 
 	bir := int(msix.TableOffset & 0b11)
 	bar := uint64(msix.device.BaseAddress(bir))
-	table := bar + uint64(msix.TableOffset) & 0xfffffffc
+	table := bar + uint64(msix.TableOffset)&0xfffffffc
 
 	size := 16
 	off := uint64(size * n)
@@ -75,5 +75,5 @@ func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) {
 	binary.LittleEndian.PutUint32(entry[8:], data)
 	binary.LittleEndian.PutUint32(entry[12:], 0)
 
-	msix.device.Write(0, msix.off, 1 << msixEnable)
+	msix.device.Write(0, msix.off, 1<<msixEnable)
 }
