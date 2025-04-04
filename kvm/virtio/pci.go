@@ -12,9 +12,9 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
+	"github.com/usbarmory/tamago/soc/intel/apic"
 	"github.com/usbarmory/tamago/soc/intel/pci"
 )
 
@@ -24,7 +24,7 @@ const (
 	deviceFeature    = 0x04
 	driverFeatureSel = 0x08
 	driverFeature    = 0x0c
-	msiXVector       = 0x10
+	configMSIXVector = 0x10
 	numQueues        = 0x12
 	deviceStatus     = 0x14
 	configGeneration = 0x15
@@ -38,28 +38,23 @@ const (
 	queueDevice      = 0x30
 )
 
-// VirtIO PCI Capabilities
+const capabilityLength = 16
+
+// VirtIO PCI Capabilities Configuration Types
 const (
-	pciCapLength = 16
-
-	// Capability IDs
-	pciCapVendor = 0x09
-	pciCapMSIX   = 0x11
-
-	// Configuration types
-	pciCapCommonCfg = 1
-	pciCapNotifyCfg = 2
-	pciCapISRCfg    = 3
-	pciCapDeviceCfg = 4
-	pciCapPCICfg    = 5
-	pciCapShmemCfg  = 8
-	pciCapVendorCfg = 9
+	capCommon = 1
+	capNotify = 2
+	capISR    = 3
+	capDevice = 4
+	capPCI    = 5
+	capShmem  = 8
+	capVendor = 9
 )
 
 // VirtIO PCI Capability
-type pciCap struct {
-	CapVendor uint8
-	CapNext   uint8
+type capability struct {
+	pci.CapabilityHeader
+
 	CapLength uint8
 	CfgType   uint8
 	Bar       uint8
@@ -69,13 +64,12 @@ type pciCap struct {
 	Length    uint32
 }
 
-func (c *pciCap) reserve(d *pci.Device, off uint32) (desc []byte, addr uint, err error) {
-	buf := make([]byte, pciCapLength)
-	binary.LittleEndian.PutUint32(buf, d.Read(0, off))
+func (c *capability) Unmarshal(d *pci.Device, off uint32) (desc []byte, addr uint, err error) {
+	buf := make([]byte, capabilityLength)
 
-	binary.LittleEndian.PutUint32(buf[4:8], d.Read(0, off+4))
-	binary.LittleEndian.PutUint32(buf[8:12], d.Read(0, off+8))
-	binary.LittleEndian.PutUint32(buf[12:16], d.Read(0, off+12))
+	for i := uint32(0); i < capabilityLength; i += 4 {
+		binary.LittleEndian.PutUint32(buf[i:i+4], d.Read(0, off+i))
+	}
 
 	if _, err = binary.Decode(buf, binary.LittleEndian, c); err != nil {
 		return nil, 0, errors.New("invalid capability format")
@@ -111,43 +105,57 @@ type PCI struct {
 	notifyAddress    uint64
 	notifyMultiplier uint32
 
+	msix *pci.CapabilityMSIX
+
 	// DMA buffers
 	common []byte
 	config []byte
-	isr    []byte
 }
 
 func (io *PCI) init() error {
-	c := &pciCap{}
 	off := io.Device.Read(0, pci.CapabilitiesOffset)
 
-	for i := 0; i < pciCapVendorCfg; i++ {
-		if off == 0 {
-			break
+	// TODO: move to pci pkg as walk function
+	for off != 0 {
+		hdr := &pci.CapabilityHeader{}
+
+		if err := hdr.Unmarshal(io.Device, off); err != nil {
+			return errors.New("invalid capability header")
 		}
 
-		buf, addr, err := c.reserve(io.Device, off)
+		switch hdr.Vendor {
+		case pci.VendorSpecific:
+			c := &capability{}
 
-		if err != nil {
-			break
+			buf, addr, err := c.Unmarshal(io.Device, off)
+
+			if err != nil {
+				return err
+			}
+
+			switch c.CfgType {
+			case capCommon:
+				io.common = buf
+			case capNotify:
+				io.notifyAddress = uint64(addr)
+				io.notifyMultiplier = io.Device.Read(0, off+capabilityLength)
+			case capDevice:
+				io.config = buf
+			}
+		case pci.MSIX:
+			c := &pci.CapabilityMSIX{}
+
+			if err := c.Unmarshal(io.Device, off); err != nil {
+				return err
+			}
+
+			io.msix = c
 		}
 
-		switch c.CfgType {
-		case pciCapCommonCfg:
-			io.common = buf
-		case pciCapNotifyCfg:
-			io.notifyAddress = uint64(addr)
-			io.notifyMultiplier = io.Device.Read(0, off+pciCapLength)
-		case pciCapDeviceCfg:
-			io.config = buf
-		case pciCapISRCfg:
-			io.isr = buf
-		}
-
-		off = uint32(c.CapNext)
+		off = uint32(hdr.Next)
 	}
 
-	if io.common == nil || io.config == nil || io.isr == nil {
+	if io.common == nil || io.config == nil {
 		return errors.New("missing required capabilities")
 	}
 
@@ -259,14 +267,18 @@ func (io *PCI) SetQueueSize(index int, n int) {
 	binary.LittleEndian.PutUint16(io.common[queueSize:], uint16(n))
 }
 
-// InterruptStatus returns the interrupt status and reason.
-func (io *PCI) InterruptStatus() (buffer bool, config bool) {
-	s := uint32(io.isr[0])
+// EnableInterrupt enables interrupt generation.
+func (io *PCI) EnableInterrupt(id int, lapic *apic.LAPIC) {
+	if io.msix == nil {
+		return
+	}
 
-	buffer = bits.IsSet(&s, 0)
-	config = bits.IsSet(&s, 1)
+	entry := 0
+	addr := uint64(lapic.Base)
+	data := uint32(id)
 
-	return
+	io.msix.EnableInterrupt(entry, addr, data)
+	binary.LittleEndian.PutUint16(io.common[queueMSIXVector:], uint16(entry))
 }
 
 // Status returns the device status.

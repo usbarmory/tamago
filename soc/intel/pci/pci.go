@@ -55,7 +55,7 @@ type Device struct {
 // Read reads the device configuration space for a given function and
 // register offset.
 func (d *Device) Read(fn uint32, off uint32) uint32 {
-	address := 1 << 31 | d.Bus << 16 | d.Slot << 11 | fn << 8 | off & 0xfc
+	address := 1<<31 | d.Bus<<16 | d.Slot<<11 | fn<<8 | off&0xfc
 	reg.Out32(CONFIG_ADDRESS, address)
 
 	return reg.In32(CONFIG_DATA) >> ((off & 2) * 8)
@@ -64,10 +64,10 @@ func (d *Device) Read(fn uint32, off uint32) uint32 {
 // Write writes the device configuration space for a given function and
 // register offset, the offset must be 32-bit aligned.
 func (d *Device) Write(fn uint32, off uint32, val uint32) {
-	address := 1 << 31 | d.Bus << 16 | d.Slot << 11 | fn << 8 | off & 0xfc
+	address := 1<<31 | d.Bus<<16 | d.Slot<<11 | fn<<8 | off&0xfc
 	reg.Out32(CONFIG_ADDRESS, address)
 
-	if (off & 2) * 8 != 0 {
+	if (off&2)*8 != 0 {
 		return
 	}
 
@@ -80,15 +80,15 @@ func (d *Device) BaseAddress(n int) uint {
 		return 0
 	}
 
-	off :=  Bar0 + uint32(n) * 4
-	bar := d.Read(0, Bar0 + uint32(n) * 4)
+	off := Bar0 + uint32(n)*4
+	bar := d.Read(0, Bar0+uint32(n)*4)
 
 	// decode BAR Type
 	switch bits.Get(&bar, 1, 0b11) {
 	case 0:
 		return uint(bar)
 	case 2:
-		return uint(d.Read(0, off+4)) << 32 | uint(bar) & 0xfffffff0
+		return uint(d.Read(0, off+4))<<32 | uint(bar)&0xfffffff0
 	}
 
 	return 0

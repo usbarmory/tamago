@@ -67,8 +67,6 @@ type VirtIO interface {
 	MaxQueueSize(index int) int
 	// SetQueueSize sets the virtual queue size.
 	SetQueueSize(index int, n int)
-	// InterruptStatus returns the interrupt status and reason.
-	InterruptStatus() (buffer bool, config bool)
 	// Status returns the device status.
 	Status() uint32
 	// SetQueue registers the indexed virtual queue for device access.
