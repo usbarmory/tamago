@@ -40,8 +40,8 @@ TEXT ·irq_disable(SB),$0
 	CLI
 	RET
 
-// func WaitForInterrupt()
-TEXT ·WaitForInterrupt(SB),$0
+// func wait_interrupt()
+TEXT ·wait_interrupt(SB),$0
 	HLT
 	RET
 

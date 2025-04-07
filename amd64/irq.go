@@ -46,9 +46,7 @@ var (
 func load_idt() (idt uintptr, irqHandler uintptr)
 func irq_enable()
 func irq_disable()
-
-// WaitForInterrupt suspends execution until an interrupt is received.
-func WaitForInterrupt()
+func wait_interrupt()
 
 //go:nosplit
 func irqHandler()
@@ -156,6 +154,11 @@ func (cpu *CPU) EnableInterrupts() {
 // DisableInterrupts masks external interrupts.
 func (cpu *CPU) DisableInterrupts() {
 	irq_disable()
+}
+
+// Waitnterrupt suspends execution until an interrupt is received.
+func (cpu *CPU) Waitnterrupt() {
+	wait_interrupt()
 }
 
 // ServiceInterrupts puts the calling goroutine in wait state, its execution is

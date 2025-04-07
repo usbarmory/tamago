@@ -22,9 +22,7 @@ func irq_enable(spsr bool)
 func irq_disable(spsr bool)
 func fiq_enable(spsr bool)
 func fiq_disable(spsr bool)
-
-// WaitForInterrupt suspends execution until an interrupt is received.
-func WaitForInterrupt()
+func wait_interrupt()
 
 // EnableInterrupts unmasks IRQ interrupts in the current or saved program
 // status.
@@ -48,6 +46,11 @@ func (cpu *CPU) EnableFastInterrupts(saved bool) {
 // status.
 func (cpu *CPU) DisableFastInterrupts(saved bool) {
 	fiq_disable(saved)
+}
+
+// WaitInterrupt suspends execution until an interrupt is received.
+func (cpu *CPU) WaitInterrupt() {
+	wait_interrupt()
 }
 
 // ServiceInterrupts puts the calling goroutine in wait state, its execution is
