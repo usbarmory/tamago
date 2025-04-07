@@ -40,6 +40,11 @@ TEXT ·irq_disable(SB),$0
 	CLI
 	RET
 
+// func WaitForInterrupt()
+TEXT ·WaitForInterrupt(SB),$0
+	HLT
+	RET
+
 TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	// save caller registers
 	MOVQ	R15, r15-(14*8+8)(SP)

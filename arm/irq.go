@@ -23,6 +23,9 @@ func irq_disable(spsr bool)
 func fiq_enable(spsr bool)
 func fiq_disable(spsr bool)
 
+// WaitForInterrupt suspends execution until an interrupt is received.
+func WaitForInterrupt()
+
 // EnableInterrupts unmasks IRQ interrupts in the current or saved program
 // status.
 func (cpu *CPU) EnableInterrupts(saved bool) {

@@ -57,3 +57,9 @@ spsr:
 	ORR	$1<<6, R0   // mask FIQs
 	WORD	$0xe169f000 // msr SPSR, r0
 	RET
+
+// func WaitForInterrupt()
+TEXT ·WaitForInterrupt(SB),$0
+	WORD	$0xe320f003 // wfi
+	RET
+

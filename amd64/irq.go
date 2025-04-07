@@ -47,6 +47,9 @@ func load_idt() (idt uintptr, irqHandler uintptr)
 func irq_enable()
 func irq_disable()
 
+// WaitForInterrupt suspends execution until an interrupt is received.
+func WaitForInterrupt()
+
 //go:nosplit
 func irqHandler()
 
