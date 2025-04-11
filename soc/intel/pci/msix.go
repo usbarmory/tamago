@@ -10,6 +10,7 @@ package pci
 
 import (
 	"encoding/binary"
+	"errors"
 
 	"github.com/usbarmory/tamago/dma"
 )
@@ -52,9 +53,9 @@ func (msix *CapabilityMSIX) TableSize() int {
 
 // EnableInterrupt configures an MSI-X interrupt entry and enables the MSI-X
 // table.
-func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) {
+func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) (err error) {
 	if n > msix.TableSize() || msix.device == nil {
-		return
+		return errors.New("invalid capabilty instance")
 	}
 
 	bir := int(msix.TableOffset & 0b11)
@@ -67,7 +68,7 @@ func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) {
 	r, err := dma.NewRegion(uint(table+off), size, false)
 
 	if err != nil {
-		return
+		return err
 	}
 
 	ptr, entry := r.Reserve(size, 0)
@@ -78,4 +79,6 @@ func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) {
 	binary.LittleEndian.PutUint32(entry[12:], 0)
 
 	msix.device.Write(0, msix.off, 1<<msixEnable)
+
+	return
 }

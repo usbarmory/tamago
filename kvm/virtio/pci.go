@@ -257,19 +257,23 @@ func (io *PCI) SetQueueSize(index int, n int) {
 
 // EnableInterrupt enables MSI-X interrupt vector routing to a LAPIC instance
 // for the indexed virtual queue.
-func (io *PCI) EnableInterrupt(id int, lapic *apic.LAPIC, index int) {
+func (io *PCI) EnableInterrupt(id int, lapic *apic.LAPIC, index int) (err error) {
 	if io.msix == nil {
-		return
+		return errors.New("missing required capabilities")
 	}
 
 	entry := 0
 	addr := uint64(lapic.Base)
 	data := uint32(id)
 
-	io.msix.EnableInterrupt(entry, addr, data)
+	if err = io.msix.EnableInterrupt(entry, addr, data); err != nil {
+		return
+	}
 
 	binary.LittleEndian.PutUint16(io.common[queueSel:], uint16(index))
 	binary.LittleEndian.PutUint16(io.common[queueMSIXVector:], uint16(entry))
+
+	return
 }
 
 // Status returns the device status.
