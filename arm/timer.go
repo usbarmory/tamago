@@ -106,7 +106,7 @@ func (cpu *CPU) SetAlarm(ns int64) {
 	count := ns/cpu.TimerMultiplier - read_cntpct()
 
 	if count > math.MaxInt32 {
-		count = math.MaxInt32
+		count = 1
 	}
 
 	write_cntptval(int32(count), true)
