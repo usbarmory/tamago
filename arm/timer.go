@@ -93,7 +93,14 @@ func (cpu *CPU) SetTimer(ns int64) {
 	cpu.TimerOffset = ns - cpu.TimerFn()*cpu.TimerMultiplier
 }
 
-// SetDownCounter sets a physical countdown timer.
-func (cpu *CPU) SetDownCounter(t int32, enable bool) {
-	write_cntptval(t, enable)
+// SetAlarm sets a physical timer countdown to the absolute time matching the
+// argument nanoseconds value.
+func (cpu *CPU) SetAlarm(ns int64) {
+	if ns == 0 {
+		write_cntptval(0, false)
+		return
+	}
+
+	count := ns / cpu.TimerMultiplier - read_cntpct()
+	write_cntptval(int32(count), true)
 }
