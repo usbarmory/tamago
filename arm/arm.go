@@ -16,7 +16,10 @@
 // https://github.com/usbarmory/tamago.
 package arm
 
-import "runtime"
+import (
+	"math"
+	"runtime"
+)
 
 // ARM processor modes
 // (Table B1-1, ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition).
@@ -65,14 +68,21 @@ type CPU struct {
 
 // defined in arm.s
 func read_cpsr() uint32
-func halt(int32)
+func exit(int32)
+func halt()
 
 // Init performs initialization of an ARM core instance, the argument must be a
 // pointer to a 64 kB memory area which will be reserved for storing the
 // exception vector table, L1/L2 page tables and the exception stack
 // (see https://github.com/usbarmory/tamago/wiki/Internals#memory-layout).
 func (cpu *CPU) Init(vbar uint32) {
-	runtime.Exit = halt
+	runtime.Exit = exit
+	runtime.Idle = func(pollUntil int64) {
+		// we have nothing to do forever
+		if pollUntil == math.MaxInt64 {
+			halt()
+		}
+	}
 
 	// the application is allowed to override the reserved area
 	if vecTableStart != 0 {
@@ -112,4 +122,9 @@ func ModeName(mode int) string {
 	}
 
 	return "Unknown"
+}
+
+// Halt suspends execution until an interrupt is received.
+func (cpu *CPU) Halt() {
+	halt()
 }

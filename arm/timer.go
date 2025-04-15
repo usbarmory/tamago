@@ -9,6 +9,8 @@
 package arm
 
 import (
+	"math"
+
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -101,6 +103,11 @@ func (cpu *CPU) SetAlarm(ns int64) {
 		return
 	}
 
-	count := ns / cpu.TimerMultiplier - read_cntpct()
+	count := ns/cpu.TimerMultiplier - read_cntpct()
+
+	if count > math.MaxInt32 {
+		count = math.MaxInt32
+	}
+
 	write_cntptval(int32(count), true)
 }

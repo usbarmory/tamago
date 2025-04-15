@@ -17,6 +17,7 @@
 package amd64
 
 import (
+	"math"
 	"runtime"
 	_ "unsafe"
 
@@ -50,14 +51,21 @@ type CPU struct {
 }
 
 // defined in amd64.s
-func halt(int32)
+func exit(int32)
+func halt()
 
 // Fault generates a triple fault.
 func Fault()
 
 // Init performs initialization of an AMD64 core instance.
 func (cpu *CPU) Init() {
-	runtime.Exit = halt
+	runtime.Exit = exit
+	runtime.Idle = func(pollUntil int64) {
+		// we have nothing to do forever
+		if pollUntil == math.MaxInt64 {
+			halt()
+		}
+	}
 
 	cpu.initFeatures()
 	cpu.initTimers()
@@ -66,6 +74,11 @@ func (cpu *CPU) Init() {
 // Name returns the CPU identifier.
 func (cpu *CPU) Name() string {
 	return runtime.CPU()
+}
+
+// Halt suspends execution until an interrupt is received.
+func (cpu *CPU) Halt() {
+	halt()
 }
 
 // Reset resets the CPU pin via 8042 keyboard controller pulse.

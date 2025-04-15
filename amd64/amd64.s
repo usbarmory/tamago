@@ -13,9 +13,14 @@ TEXT ·Fault(SB),$0
 	LGDT	(AX)
 	HLT
 
-// func halt(int32)
-TEXT ·halt(SB),$0-8
+// func exit(int32)
+TEXT ·exit(SB),$0-8
 	CLI
 halt:
 	HLT
 	JMP halt
+
+// func halt()
+TEXT ·halt(SB),$0
+	HLT
+	RET

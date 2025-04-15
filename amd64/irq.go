@@ -67,7 +67,7 @@ func currentInterrupt() (id int) {
 // processor mode before panicking.
 func DefaultExceptionHandler() {
 	if throwing {
-		halt(0)
+		exit(0)
 	}
 
 	// TODO: implement runtime.CallOnG0 for a cleaner approach

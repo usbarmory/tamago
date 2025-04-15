@@ -17,7 +17,10 @@
 // https://github.com/usbarmory/tamago.
 package riscv64
 
-import "runtime"
+import (
+	"math"
+	"runtime"
+)
 
 // This package supports 64-bit cores.
 const XLEN = 64
@@ -26,11 +29,17 @@ const XLEN = 64
 type CPU struct{}
 
 // defined in riscv64.s
-func halt(int32)
+func exit(int32)
 
 // Init performs initialization of an RV64 core instance in machine mode.
 func (cpu *CPU) Init() {
-	runtime.Exit = halt
+	runtime.Exit = exit
+	runtime.Idle = func(pollUntil int64) {
+		// we have nothing to do forever
+		if pollUntil == math.MaxInt64 {
+			exit(0)
+		}
+	}
 
 	cpu.SetExceptionHandler(DefaultExceptionHandler)
 }
