@@ -107,7 +107,7 @@ func init() {
 
 	if dev := pci.Probe(0, VIRTIO_NET_PCI_VENDOR, VIRTIO_NET_PCI_DEVICE); dev != nil {
 		// reconfigure BAR to mapped memory region
-		dev.Write(0, pci.Bar0, 0x40000000)
-		dev.Write(0, pci.Bar0+4, 0x1)
+		dev.Write(0, pci.Bar0, 0xc0000000)
+		dev.Write(0, pci.Bar0+4, 0)
 	}
 }

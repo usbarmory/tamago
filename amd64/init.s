@@ -139,16 +139,6 @@ TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 	MOVL	$PDT, DI
 	ANDL	$(1<<1 | 1<<0), (DI)	// clear R/W, P
 
-	//  0x100000000 - 0x13fffffff (1GB) uncacheable physical page (1GB PDPE)
-	//  0x140000000 - 0x17fffffff (1GB) uncacheable physical page (1GB PDPE)
-	MOVL	$PDPT, DI
-	ADDL	$(8*4), DI
-	MOVQ	$(4<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), AX	// set PS, PCD, R/W, P
-	MOVQ	AX, (DI)
-	ADDL	$8, DI
-	MOVQ	$(5<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), AX	// set PS, PCD, R/W, P
-	MOVQ	AX, (DI)
-
 	// flush TLBs
 	MOVL	$PML4T, DI
 	MOVL	DI, CR3
