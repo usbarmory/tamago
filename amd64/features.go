@@ -9,6 +9,9 @@
 package amd64
 
 import (
+	"math"
+	"runtime"
+
 	"github.com/usbarmory/tamago/bits"
 )
 
@@ -22,11 +25,26 @@ const (
 	CPUID_VENDOR_ECX_INTEL = 0x6c65746e // GenuineI(ntel)
 	CPUID_VENDOR_ECX_AMD   = 0x444d4163 // Authenti(cAMD)
 
+	CPUID_INTEL_CACHE = 0x04
+
+	CPUID_INTEL_APIC = 0x0b
+	INTEL_APIC_LP    = 0
+
 	CPUID_TSC_CCC = 0x15
 	CPUID_CPU_FRQ = 0x16
 
 	CPUID_APM         = 0x80000007
 	APM_TSC_INVARIANT = 8
+)
+
+// CPUID function numbers
+//
+// (AMD64 Architecture Programmer’s Manual
+// Volume 3 - Appendix E.4 Extended Feature Function Numbers.
+const (
+	CPUID_AMD_PROC        = 0x80000008
+	AMD_PROC_APIC_ID_SIZE = 12
+	AMD_PROC_NC           = 0
 )
 
 // KVM CPUID function numbers
@@ -103,4 +121,34 @@ func (cpu *CPU) Features() *Features {
 		KVM:          cpu.kvm,
 		KVMClockMSR:  cpu.kvmclock,
 	}
+}
+
+// NumCPU returns the number of logical CPUs.
+func NumCPU() (n int) {
+	_, _, ecx, _ := cpuid(CPUID_VENDOR, 0)
+
+	switch ecx {
+	case CPUID_VENDOR_ECX_AMD:
+		// AMD64 Architecture Programmer’s Manual
+		// Volume 3 - E4.7
+		_, _, ecx, _ := cpuid(CPUID_AMD_PROC, 0)
+
+		if s := bits.Get(&ecx, AMD_PROC_APIC_ID_SIZE, 0xf); s > 0 {
+			n = int(math.Pow(2, float64(s)))
+		} else {
+			n = int(bits.Get(&ecx, AMD_PROC_NC, 0xff)) + 1
+		}
+	case CPUID_VENDOR_ECX_INTEL:
+		// Intel® Architecture Instruction Set Extensions and Future
+		// Features Programming Reference
+		// 5.1.12 x2APIC Features / Processor Topology (Function 0Bh)
+		_, ebx, _, _ := cpuid(CPUID_INTEL_APIC, 1) // core sublevel
+		n = int(bits.Get(&ebx, INTEL_APIC_LP, 0xffff))
+	}
+
+	if n == 0 {
+		n = runtime.NumCPU()
+	}
+
+	return
 }
