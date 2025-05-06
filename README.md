@@ -155,7 +155,7 @@ with the addition of a few flags/variables:
 
 ```
 # Example for Cloud Hypervisory, QEMU and Firecracker KVMs
-GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-E cpuinit -T 0x10010000 -R 0x1000" main.go
+GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 
 # Example for USB armory Mk II
 GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
