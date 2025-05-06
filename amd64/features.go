@@ -9,7 +9,6 @@
 package amd64
 
 import (
-	"math"
 	"runtime"
 
 	"github.com/usbarmory/tamago/bits"
@@ -43,7 +42,6 @@ const (
 // Volume 3 - Appendix E.4 Extended Feature Function Numbers.
 const (
 	CPUID_AMD_PROC        = 0x80000008
-	AMD_PROC_APIC_ID_SIZE = 12
 	AMD_PROC_NC           = 0
 )
 
@@ -132,12 +130,7 @@ func NumCPU() (n int) {
 		// AMD64 Architecture Programmer’s Manual
 		// Volume 3 - E4.7
 		_, _, ecx, _ := cpuid(CPUID_AMD_PROC, 0)
-
-		if s := bits.Get(&ecx, AMD_PROC_APIC_ID_SIZE, 0xf); s > 0 {
-			n = int(math.Pow(2, float64(s)))
-		} else {
-			n = int(bits.Get(&ecx, AMD_PROC_NC, 0xff)) + 1
-		}
+		n = int(bits.Get(&ecx, AMD_PROC_NC, 0xff)) + 1
 	case CPUID_VENDOR_ECX_INTEL:
 		// Intel® Architecture Instruction Set Extensions and Future
 		// Features Programming Reference
