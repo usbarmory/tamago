@@ -27,7 +27,7 @@ var ramSize uint64 = 0x20000000 // 512MB
 //go:linkname ramStackOffset runtime.ramStackOffset
 var ramStackOffset uint64 = 0x100
 
-// defined in linux_user_*.s
+// defined in syscall_*.s
 func sys_exit(code int32)
 func sys_write(c *byte)
 func sys_clock_gettime() (ns int64)
