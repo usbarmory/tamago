@@ -16,7 +16,7 @@ import (
 var ramStackOffset uint64 = 0x100
 
 // Init takes care of the lower level initialization triggered early in runtime
-// setup (e.g. runtime.hwinit).
+// setup (e.g. runtime.hwinit1).
 func Init() {
 	RV64.Init()
 }

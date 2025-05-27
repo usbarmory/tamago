@@ -45,7 +45,7 @@ var (
 )
 
 // Init takes care of the lower level initialization triggered early in runtime
-// setup (e.g. runtime.hwinit).
+// setup (e.g. runtime.hwinit1).
 func Init() {
 	if ARM.Mode() != arm.SYS_MODE {
 		// initialization required only when in PL1

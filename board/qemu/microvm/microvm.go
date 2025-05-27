@@ -53,6 +53,7 @@ const (
 var (
 	// AMD64 core
 	AMD64 = &amd64.CPU{
+		// required before Init()
 		TimerMultiplier: 1,
 	}
 

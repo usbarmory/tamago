@@ -33,6 +33,7 @@ var peripheralBase uint32
 
 // ARM processor instance
 var ARM = &arm.CPU{
+	// required before Init()
 	TimerMultiplier: 1,
 }
 
@@ -45,7 +46,7 @@ func nanotime1() int64 {
 }
 
 // Init takes care of the lower level initialization triggered early in runtime
-// setup (e.g. runtime.hwinit).
+// setup (e.g. runtime.hwinit1).
 func Init(base uint32) {
 	peripheralBase = base
 
