@@ -34,6 +34,7 @@ const (
 // Header Type 0x0 offsets
 const (
 	VendorID           = 0x00
+	Command            = 0x04
 	RevisionID         = 0x08
 	Bar0               = 0x10
 	CapabilitiesOffset = 0x34

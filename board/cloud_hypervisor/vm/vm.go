@@ -108,6 +108,8 @@ func init() {
 	pvclock.Init(AMD64)
 
 	if dev := pci.Probe(0, VIRTIO_NET_PCI_VENDOR, VIRTIO_NET_PCI_DEVICE); dev != nil {
+		// set Memory Space Enable (MSE)
+		dev.Write(0, pci.Command, 1 << 1)
 		// reconfigure BAR to mapped memory region
 		dev.Write(0, pci.Bar0, 0x40000000)
 		dev.Write(0, pci.Bar0+4, 0x1)
