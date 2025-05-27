@@ -156,7 +156,8 @@ const (
 var (
 	// ARM core
 	ARM = &arm.CPU{
-		TimerMultiplier: 1,
+		// required before Init()
+		TimerOffset: 1,
 	}
 
 	// Bus Encryption Engine (UL only)
