@@ -155,7 +155,9 @@ const (
 // Peripheral instances
 var (
 	// ARM core
-	ARM = &arm.CPU{}
+	ARM = &arm.CPU{
+		TimerMultiplier: 1,
+	}
 
 	// Bus Encryption Engine (UL only)
 	BEE *bee.BEE

@@ -46,8 +46,6 @@ type CPU struct {
 	TimerMultiplier float64
 	// Timer offset in nanoseconds
 	TimerOffset int64
-	// Timer function
-	TimerFn func() uint64
 }
 
 // defined in amd64.s

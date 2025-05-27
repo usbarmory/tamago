@@ -6,27 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// func read_gtc() int64
-TEXT ·read_gtc(SB),$0-8
-	// Cortex™-A9 MPCore® Technical Reference Manual
-	// 4.4.1 Global Timer Counter Registers, 0x00 and 0x04
-	//
-	// p214, Table 2-1, ARM MP Global timer, IMX6DQRM
-	MOVW	$0x00a00204, R1
-	MOVW	$0x00a00200, R2
-read:
-	MOVW	(R1), R3
-	MOVW	(R2), R4
-	MOVW	(R1), R5
-	CMP	R5, R3
-	BNE	read
-
-	MOVW	R3, ret_hi+4(FP)
-	MOVW	R4, ret_lo+0(FP)
-
-	RET
-
-// func read_cntfrq() int32
+// func read_cntfrq() uint32
 TEXT ·read_cntfrq(SB),$0-4
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// B4.1.21 CNTFRQ, Counter Frequency register, VMSA
@@ -37,7 +17,7 @@ TEXT ·read_cntfrq(SB),$0-4
 
 	RET
 
-// func write_cntfrq(freq int32)
+// func write_cntfrq(freq uint32)
 TEXT ·write_cntfrq(SB),$0-4
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// B4.1.21 CNTFRQ, Counter Frequency register, VMSA
@@ -59,7 +39,7 @@ TEXT ·write_cntkctl(SB),$0-4
 
 	RET
 
-// func read_cntpct() int64
+// func read_cntpct() uint64
 TEXT ·read_cntpct(SB),$0-8
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// B4.1.30 CNTPCT, Physical Count register, VMSA
@@ -71,7 +51,7 @@ TEXT ·read_cntpct(SB),$0-8
 
 	RET
 
-// func write_cntptval(val int32, enable bool)
+// func write_cntptval(val uint32, enable bool)
 TEXT ·write_cntptval(SB),$0-8
 	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
 	// B6.1.13 CNTP_TVAL, PL1 Physical TimerValue register, PMSA
@@ -84,7 +64,7 @@ TEXT ·write_cntptval(SB),$0-8
 
 	RET
 
-// func busyloop(count int32)
+// func Busyloop(count uint32)
 TEXT ·Busyloop(SB),$0-4
 	MOVW count+0(FP), R0
 loop:

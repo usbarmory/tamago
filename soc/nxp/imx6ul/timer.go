@@ -21,21 +21,16 @@ const (
 const SYS_CNT_BASE = 0x021dc000
 
 func initTimers() {
-	switch Family {
-	case IMX6UL, IMX6ULL:
-		if !Native {
-			// use QEMU fixed CNTFRQ value (62.5MHz)
-			ARM.InitGenericTimers(0, 62500000)
-		} else {
-			// U-Boot value for i.MX6 family (8.0MHz)
-			ARM.InitGenericTimers(SYS_CNT_BASE, 8000000)
-		}
-	default:
-		ARM.InitGlobalTimers()
+	if !Native {
+		// use QEMU fixed CNTFRQ value (62.5MHz)
+		ARM.InitGenericTimers(0, 62500000)
+	} else {
+		// U-Boot value for i.MX6 family (8.0MHz)
+		ARM.InitGenericTimers(SYS_CNT_BASE, 8000000)
 	}
 }
 
 //go:linkname nanotime1 runtime.nanotime1
 func nanotime1() int64 {
-	return ARM.TimerFn()*ARM.TimerMultiplier + ARM.TimerOffset
+	return ARM.GetTime()
 }

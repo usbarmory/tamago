@@ -32,7 +32,9 @@ const DRAM_FLAG_NOCACHE = 0xC0000000
 var peripheralBase uint32
 
 // ARM processor instance
-var ARM = &arm.CPU{}
+var ARM = &arm.CPU{
+	TimerMultiplier: 1,
+}
 
 //go:linkname ramStackOffset runtime.ramStackOffset
 var ramStackOffset uint32 = 0x100000 // 1 MB
@@ -58,7 +60,6 @@ func Init(base uint32) {
 	ARM.EnableCache()
 
 	ARM.TimerMultiplier = refFreq / SysTimerFreq
-	ARM.TimerFn = read_systimer
 
 	// initialize serial console
 	MiniUART.Init()

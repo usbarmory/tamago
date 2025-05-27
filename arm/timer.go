@@ -40,33 +40,24 @@ const (
 )
 
 // defined in timer.s
-func read_gtc() int64
-func read_cntfrq() int32
-func write_cntfrq(freq int32)
+func read_cntfrq() uint32
+func write_cntfrq(freq uint32)
 func write_cntkctl(val uint32)
-func read_cntpct() int64
-func write_cntptval(val int32, enable bool)
+func read_cntpct() uint64
+func write_cntptval(val uint32, enable bool)
 
 // Busyloop spins the processor for busy waiting purposes, taking a counter
 // value for the number of loops.
-func Busyloop(count int32)
-
-// InitGlobalTimers initializes ARM Cortex-A9 timers.
-func (cpu *CPU) InitGlobalTimers() {
-	cpu.TimerFn = read_gtc
-	cpu.TimerMultiplier = 10
-}
+func Busyloop(count uint32)
 
 // InitGenericTimers initializes ARM Cortex-A7 timers.
-func (cpu *CPU) InitGenericTimers(base uint32, freq int32) {
-	var timerFreq int64
-
+func (cpu *CPU) InitGenericTimers(base uint32, freq uint32) {
 	if freq != 0 && cpu.Secure() {
 		// set base frequency
 		write_cntfrq(freq)
 
 		if base != 0 {
-			reg.Write(base+CNTFID0, uint32(freq))
+			reg.Write(base+CNTFID0, freq)
 
 			// set system counter to base frequency
 			reg.Set(base+CNTCR, CNTCR_FCREQ0)
@@ -80,19 +71,26 @@ func (cpu *CPU) InitGenericTimers(base uint32, freq int32) {
 		write_cntkctl(1 << CNTKCTL_PL0PCTEN)
 	}
 
-	timerFreq = int64(read_cntfrq())
-
-	cpu.TimerMultiplier = int64(refFreq / timerFreq)
-	cpu.TimerFn = read_cntpct
+	cpu.TimerMultiplier = float64(refFreq) / float64(read_cntfrq())
 }
 
-// SetTimer sets the timer to the argument nanoseconds value.
-func (cpu *CPU) SetTimer(ns int64) {
-	if cpu.TimerFn == nil || cpu.TimerMultiplier == 0 {
+// Counter returns the CPU Counter-timer Physical Count (CNTPCT).
+func (cpu *CPU) Counter() uint64 {
+	return read_cntpct()
+}
+
+// GetTime returns the system time in nanoseconds.
+func (cpu *CPU) GetTime() int64 {
+	return int64(float64(cpu.Counter())*cpu.TimerMultiplier) + cpu.TimerOffset
+}
+
+// SetTime adjusts the system time to the argument nanoseconds value.
+func (cpu *CPU) SetTime(ns int64) {
+	if cpu.TimerMultiplier == 0 {
 		return
 	}
 
-	cpu.TimerOffset = ns - cpu.TimerFn()*cpu.TimerMultiplier
+	cpu.TimerOffset = ns - int64(float64(read_cntpct())*cpu.TimerMultiplier)
 }
 
 // SetAlarm sets a physical timer countdown to the absolute time matching the
@@ -103,9 +101,9 @@ func (cpu *CPU) SetAlarm(ns int64) {
 		return
 	}
 
-	set := ns / cpu.TimerMultiplier
+	set := uint64(ns) / uint64(cpu.TimerMultiplier)
 	now := read_cntpct()
-	cnt := int64(set - now)
+	cnt := set - now
 
 	if set <= now {
 		cnt = 1
@@ -113,5 +111,5 @@ func (cpu *CPU) SetAlarm(ns int64) {
 		cnt = math.MaxInt32
 	}
 
-	write_cntptval(int32(cnt), true)
+	write_cntptval(uint32(cnt), true)
 }

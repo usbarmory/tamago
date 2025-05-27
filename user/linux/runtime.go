@@ -55,8 +55,12 @@ func printk(c byte) {
 	sys_write(&a[0])
 }
 
-//go:linkname hwinit runtime.hwinit
-func hwinit() {
+//go:linkname hwinit0 runtime.hwinit0
+func hwinit0() {
 	runtime.Bloc = uintptr(ramStart)
+}
+
+//go:linkname hwinit1 runtime.hwinit1
+func hwinit1() {
 	runtime.Exit = sys_exit
 }

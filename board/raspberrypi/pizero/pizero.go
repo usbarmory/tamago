@@ -31,7 +31,7 @@ var Board pi.Board = &board{}
 // Init takes care of the lower level initialization triggered early in runtime
 // setup.
 //
-//go:linkname Init runtime.hwinit
+//go:linkname Init runtime.hwinit0
 func Init() {
 	// Defer to generic BCM2835 initialization, with Pi Zero
 	// peripheral base address.

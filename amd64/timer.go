@@ -72,7 +72,6 @@ func (cpu *CPU) detectCoreFrequency() (freq uint32) {
 func (cpu *CPU) initTimers() {
 	cpu.detectCoreFrequency()
 	cpu.TimerMultiplier = float64(refFreq) / float64(cpu.freq)
-	cpu.TimerFn = read_tsc
 }
 
 // Freq() returns the AMD64 core frequency.
@@ -80,11 +79,21 @@ func (cpu *CPU) Freq() (hz uint32) {
 	return cpu.freq
 }
 
-// SetTimer sets the timer to the argument nanoseconds value.
-func (cpu *CPU) SetTimer(ns int64) {
-	if cpu.TimerFn == nil || cpu.TimerMultiplier == 0 {
+// Counter returns the CPU Time Stamp Counter (TSC).
+func (cpu *CPU) Counter() uint64 {
+	return read_tsc()
+}
+
+// GetTime returns the system time in nanoseconds.
+func (cpu *CPU) GetTime() int64 {
+	return int64(float64(cpu.Counter())*cpu.TimerMultiplier) + cpu.TimerOffset
+}
+
+// SetTime adjusts the system time to the argument nanoseconds value.
+func (cpu *CPU) SetTime(ns int64) {
+	if cpu.TimerMultiplier == 0 {
 		return
 	}
 
-	cpu.TimerOffset = ns - int64(float64(cpu.TimerFn())*cpu.TimerMultiplier)
+	cpu.TimerOffset = ns - int64(float64(read_tsc())*cpu.TimerMultiplier)
 }

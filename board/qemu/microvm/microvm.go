@@ -52,7 +52,9 @@ const (
 // Peripheral instances
 var (
 	// AMD64 core
-	AMD64 = &amd64.CPU{}
+	AMD64 = &amd64.CPU{
+		TimerMultiplier: 1,
+	}
 
 	// Local APIC
 	LAPIC = &apic.LAPIC{
@@ -85,13 +87,13 @@ var (
 
 //go:linkname nanotime1 runtime.nanotime1
 func nanotime1() int64 {
-	return int64(float64(AMD64.TimerFn())*AMD64.TimerMultiplier) + AMD64.TimerOffset
+	return AMD64.GetTime()
 }
 
 // Init takes care of the lower level initialization triggered early in runtime
-// setup.
+// setup (post World start).
 //
-//go:linkname Init runtime.hwinit
+//go:linkname Init runtime.hwinit1
 func Init() {
 	// initialize CPU
 	AMD64.Init()

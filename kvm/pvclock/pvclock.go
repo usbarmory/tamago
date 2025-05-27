@@ -67,7 +67,7 @@ func pvClock(cpu *amd64.CPU, timeInfo *pvClockTimeInfo) int64 {
 	}
 
 	binary.Decode(timeInfoBuffer, binary.LittleEndian, timeInfo)
-	delta := cpu.TimerFn() - timeInfo.Timestamp
+	delta := cpu.Counter() - timeInfo.Timestamp
 
 	if timeInfo.Shift < 0 {
 		delta >>= -timeInfo.Shift
@@ -99,7 +99,7 @@ func pvClockSync(cpu *amd64.CPU) {
 		}
 
 		version = timeInfo.Version
-		cpu.SetTimer(pvClock(cpu, timeInfo))
+		cpu.SetTime(pvClock(cpu, timeInfo))
 	}
 }
 
@@ -115,7 +115,7 @@ func Init(cpu *amd64.CPU) {
 		// no action required as TSC is reliable but we
 		// opportunistically adjust once with kvmclock
 		initTimeInfo(features.KVMClockMSR)
-		cpu.SetTimer(pvClock(cpu, nil))
+		cpu.SetTime(pvClock(cpu, nil))
 	case features.KVM && features.KVMClockMSR > 0:
 		// TSC must be adjusted as it is not reliable through state
 		// changes.

@@ -53,9 +53,7 @@ func Init() {
 	}
 
 	ramStart, _ := runtime.MemRegion()
-
 	ARM.Init(ramStart)
-	ARM.EnableVFP()
 
 	// required when booting in SDP mode
 	ARM.EnableSMP()

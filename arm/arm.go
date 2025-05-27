@@ -51,11 +51,9 @@ type CPU struct {
 	genericTimer     bool
 
 	// Timer multiplier
-	TimerMultiplier int64
+	TimerMultiplier float64
 	// Timer offset in nanoseconds
 	TimerOffset int64
-	// Timer function
-	TimerFn func() int64
 
 	// GIC Distributor base address
 	gicd uint32

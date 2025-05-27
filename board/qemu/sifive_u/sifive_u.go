@@ -27,9 +27,9 @@ var (
 )
 
 // Init takes care of the lower level initialization triggered early in runtime
-// setup.
+// setup (post World start).
 //
-//go:linkname Init runtime.hwinit
+//go:linkname Init runtime.hwinit1
 func Init() {
 	// initialize SoC
 	fu540.Init()

@@ -41,8 +41,8 @@ const (
 // (AMD64 Architecture Programmer’s Manual
 // Volume 3 - Appendix E.4 Extended Feature Function Numbers.
 const (
-	CPUID_AMD_PROC        = 0x80000008
-	AMD_PROC_NC           = 0
+	CPUID_AMD_PROC = 0x80000008
+	AMD_PROC_NC    = 0
 )
 
 // KVM CPUID function numbers
