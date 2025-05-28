@@ -21,6 +21,13 @@ import (
 
 //go:linkname initRNG runtime.initRNG
 func initRNG() {
+	_, fam, revMajor, revMinor := SiliconVersion()
+	Family = fam
+
+	if revMajor != 0 || revMinor != 0 {
+		Native = true
+	}
+
 	if !Native {
 		drbg := &rng.DRBG{}
 		binary.LittleEndian.PutUint64(drbg.Seed[:], uint64(time.Now().UnixNano()))
@@ -28,8 +35,8 @@ func initRNG() {
 		return
 	}
 
-	switch Model() {
-	case "i.MX6UL":
+	switch Family {
+	case IMX6UL:
 		// Cryptographic Acceleration and Assurance Module
 		CAAM = &caam.CAAM{
 			Base:            CAAM_BASE,
@@ -45,7 +52,7 @@ func initRNG() {
 		CAAM.GetRandomData(drbg.Seed[:])
 
 		rng.GetRandomDataFn = drbg.GetRandomData
-	case "i.MX6ULL", "i.MX6ULZ":
+	case IMX6ULL:
 		// True Random Number Generator
 		RNGB = &rngb.RNGB{
 			Base: RNGB_BASE,

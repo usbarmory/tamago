@@ -62,13 +62,6 @@ func Init() {
 	ARM.InitMMU()
 	ARM.EnableCache()
 
-	_, fam, revMajor, revMinor := SiliconVersion()
-	Family = fam
-
-	if revMajor != 0 || revMinor != 0 {
-		Native = true
-	}
-
 	initTimers()
 }
 
