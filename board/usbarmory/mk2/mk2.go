@@ -20,9 +20,9 @@ import (
 	_ "unsafe"
 )
 
-// USB armory Mk II model revisions, boards shipped by F-Secure and WithSecure
-// have model information fused in the MSB of OTP fuses bank 4 word 2
-// (OCOTP_MAC0), returned by Model().
+// USB armory Mk II model revisions, boards manufactured by F-Secure and
+// WithSecure have model information fused in the MSB of OTP fuses bank 4 word
+// 2 (OCOTP_MAC0), returned by Model().
 const (
 	// USB armory Mk II (rev. β) - UA-MKII-β
 	BETA = iota
