@@ -115,7 +115,7 @@ func (d *CDCCallManagementDescriptor) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// CDCAbstractCallManagementDescriptor implements
+// CDCAbstractControlManagementDescriptor implements
 // p46, Table 28: Abstract Control Management Functional Descriptor, USB Class
 // Definitions for Communication Devices 1.1.
 type CDCAbstractControlManagementDescriptor struct {
