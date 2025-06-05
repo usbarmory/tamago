@@ -52,7 +52,7 @@ func cpuinit()
 //
 // For an example see package [amd64 initialization].
 //
-//  ¹ //go:linkname Hwinit0 runtime.hwinit0
+//	¹ //go:linkname Hwinit0 runtime.hwinit0
 //
 // [amd64 initialization]: https://github.com/usbarmory/tamago/blob/master/amd64/mem.go
 //
@@ -64,7 +64,7 @@ func Hwinit0()
 //
 // For an example see package [microvm platform initialization].
 //
-//  ¹ //go:linkname Hwinit1 runtime.hwinit1
+//	¹ //go:linkname Hwinit1 runtime.hwinit1
 //
 // [microvm platform initialization]: https://github.com/usbarmory/tamago/blob/master/board/firecracker/microvm/microvm.go
 //
@@ -80,7 +80,7 @@ func Hwinit1()
 //
 // For an example see package [usbarmory console handling].
 //
-//  ¹ //go:linkname Printk runtime.printk
+//	¹ //go:linkname Printk runtime.printk
 //
 // [usbarmory console handling]: https://github.com/usbarmory/tamago/blob/master/board/usbarmory/mk2/console.go
 //
@@ -92,7 +92,7 @@ func Printk(c byte)
 //
 // For an example see package [amd64 randon number generation].
 //
-//  ¹ //go:linkname InitRNG runtime.initRNG
+//	¹ //go:linkname InitRNG runtime.initRNG
 //
 // [amd64 randon number generation]: https://github.com/usbarmory/tamago/blob/master/amd64/rng.go
 //
@@ -104,12 +104,12 @@ func InitRNG()
 //
 // For an example see package [amd64 random number generation].
 //
-//  ¹ //go:linkname GetRandomData runtime.getRandomData
+//	¹ //go:linkname GetRandomData runtime.getRandomData
 //
 // [amd64 random number generation]: https://github.com/usbarmory/tamago/blob/master/amd64/rng.go
 //
 //go:linkname GetRandomData runtime.getRandomData
-func GetRandomData(b []byte) 
+func GetRandomData(b []byte)
 
 // Nanotime, which must be linked as [runtime.nanotime1]¹, returns the system
 // time in nanoseconds.
@@ -120,7 +120,7 @@ func GetRandomData(b []byte)
 //
 // For an example see package [fu540 initialization].
 //
-//  ¹ //go:linkname Nanotime runtime.nanotime1
+//	¹ //go:linkname Nanotime runtime.nanotime1
 //
 // [fu540 initialization]: https://github.com/usbarmory/tamago/blob/master/soc/sifive/fu540/init.go
 //
@@ -133,7 +133,7 @@ func Nanotime() int64
 //
 // For an example see package [amd64 memory layout].
 //
-//  ¹ //go:linkname RamStart runtime.ramStart
+//	¹ //go:linkname RamStart runtime.ramStart
 //
 // [amd64 memory layout]: https://github.com/usbarmory/tamago/blob/master/amd64/mem.go
 //
@@ -146,7 +146,7 @@ var RamStart uint
 //
 // For an example see package [microvm memory layout].
 //
-//  ¹ //go:linkname RamSize runtime.ramSize
+//	¹ //go:linkname RamSize runtime.ramSize
 //
 // [microvm memory layout]: https://github.com/usbarmory/tamago/blob/master/board/firecracker/microvm/mem.go
 //
@@ -159,7 +159,7 @@ var RamSize uint
 //
 // For an example see package [amd64].
 //
-//  ¹ //go:linkname RamStackOffset runtime.ramStackOffset
+//	¹ //go:linkname RamStackOffset runtime.ramStackOffset
 //
 // [amd64]: https://github.com/usbarmory/tamago/blob/master/amd64/amd64.go
 //

@@ -17,7 +17,7 @@ import (
 //
 //go:linkname Init runtime.hwinit0
 func Init() {
-	if int(read_cpsr() & 0x1f) != SYS_MODE {
+	if int(read_cpsr()&0x1f) != SYS_MODE {
 		// initialization required only when in PL1
 		return
 	}
