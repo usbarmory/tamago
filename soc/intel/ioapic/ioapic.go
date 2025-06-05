@@ -6,11 +6,25 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package apic
+// Package ioapic implements a driver for the Intel I/O (IOAPIC) Advanced
+// Programmable Interrupt Controllers adopting the following reference
+// specifications:
+//   - 82093AA I/O Advanced Programmable Interrupt Controller (IOAPIC)
+//
+// This package is only meant to be used with `GOOS=tamago` as
+// supported by the TamaGo framework for bare metal Go, see
+// https://github.com/usbarmory/tamago.
+package ioapic
 
 import (
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
+)
+
+// I/O APIC supported vectors
+const (
+	MinVector = 16
+	MaxVector = 255
 )
 
 // I/O APIC registers

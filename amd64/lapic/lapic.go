@@ -6,7 +6,15 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package apic
+// Package lapic implements a driver for the Intel Local (LAPIC) Advanced
+// Programmable Interrupt Controllers adopting the following reference
+// specifications:
+//   - Intel® 64 and IA-32 Architectures Software Developer’s Manual - Volume 3A - Chapter 10
+//
+// This package is only meant to be used with `GOOS=tamago` as
+// supported by the TamaGo framework for bare metal Go, see
+// https://github.com/usbarmory/tamago.
+package lapic
 
 import (
 	"github.com/usbarmory/tamago/internal/reg"
@@ -14,8 +22,11 @@ import (
 
 // LAPIC registers
 const (
-	LAPICID  = 0x20
-	LAPICVER = 0x30
+	LAPICID = 0x20
+
+	LAPICVER    = 0x30
+	VER_ENTRIES = 16
+
 	LAPICEOI = 0xb0
 
 	LAPICSVR   = 0xf0

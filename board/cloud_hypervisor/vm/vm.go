@@ -19,10 +19,11 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/amd64"
+	"github.com/usbarmory/tamago/amd64/lapic"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/kvm/pvclock"
-	"github.com/usbarmory/tamago/soc/intel/apic"
+	"github.com/usbarmory/tamago/soc/intel/ioapic"
 	"github.com/usbarmory/tamago/soc/intel/pci"
 	"github.com/usbarmory/tamago/soc/intel/uart"
 )
@@ -55,15 +56,14 @@ var (
 	AMD64 = &amd64.CPU{
 		// required before Init()
 		TimerMultiplier: 1,
-	}
-
-	// Local APIC
-	LAPIC = &apic.LAPIC{
-		Base: LAPIC_BASE,
+		// Local APIC
+		LAPIC: &lapic.LAPIC{
+			Base: LAPIC_BASE,
+		},
 	}
 
 	// I/O APIC - GSI 0-23
-	IOAPIC0 = &apic.IOAPIC{
+	IOAPIC0 = &ioapic.IOAPIC{
 		Base: IOAPIC0_BASE,
 	}
 
@@ -110,7 +110,7 @@ func init() {
 
 	if dev := pci.Probe(0, VIRTIO_NET_PCI_VENDOR, VIRTIO_NET_PCI_DEVICE); dev != nil {
 		// set Memory Space Enable (MSE)
-		dev.Write(0, pci.Command, 1 << 1)
+		dev.Write(0, pci.Command, 1<<1)
 		// reconfigure BAR to mapped memory region
 		dev.Write(0, pci.Bar0, 0x40000000)
 		dev.Write(0, pci.Bar0+4, 0x1)

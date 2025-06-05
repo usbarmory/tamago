@@ -21,6 +21,7 @@ import (
 	"runtime"
 	_ "unsafe"
 
+	"github.com/usbarmory/tamago/amd64/lapic"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -46,6 +47,9 @@ type CPU struct {
 	TimerMultiplier float64
 	// Timer offset in nanoseconds
 	TimerOffset int64
+
+	// LAPIC represents the Local APIC instance
+	LAPIC *lapic.LAPIC
 }
 
 // defined in amd64.s

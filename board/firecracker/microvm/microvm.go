@@ -19,9 +19,10 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/amd64"
+	"github.com/usbarmory/tamago/amd64/lapic"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/kvm/pvclock"
-	"github.com/usbarmory/tamago/soc/intel/apic"
+	"github.com/usbarmory/tamago/soc/intel/ioapic"
 	"github.com/usbarmory/tamago/soc/intel/uart"
 )
 
@@ -53,15 +54,14 @@ var (
 	AMD64 = &amd64.CPU{
 		// required before Init()
 		TimerMultiplier: 1,
-	}
-
-	// Local APIC
-	LAPIC = &apic.LAPIC{
-		Base: LAPIC_BASE,
+		// Local APIC
+		LAPIC: &lapic.LAPIC{
+			Base: LAPIC_BASE,
+		},
 	}
 
 	// I/O APIC - GSI 0-23
-	IOAPIC0 = &apic.IOAPIC{
+	IOAPIC0 = &ioapic.IOAPIC{
 		Base: IOAPIC0_BASE,
 	}
 
