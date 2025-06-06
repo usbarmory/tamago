@@ -223,6 +223,7 @@ Additional resources
 ====================
 
 * [Package API](https://pkg.go.dev/github.com/usbarmory/tamago)
+* [Runtime API](https://pkg.go.dev/github.com/usbarmory/tamago/doc)
 * [Internals](https://github.com/usbarmory/tamago/wiki/Internals)
 * [Compatibility](https://github.com/usbarmory/tamago/wiki/Compatibility)
 * [FAQ](https://github.com/usbarmory/tamago/wiki/Frequently-Asked-Questions-(FAQ))
