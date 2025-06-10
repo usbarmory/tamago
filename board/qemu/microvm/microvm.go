@@ -52,7 +52,7 @@ const (
 
 // Peripheral instances
 var (
-	// AMD64 core
+	// CPU instance(s)
 	AMD64 = &amd64.CPU{
 		// required before Init()
 		TimerMultiplier: 1,
@@ -96,7 +96,7 @@ func nanotime1() int64 {
 //
 //go:linkname Init runtime.hwinit1
 func Init() {
-	// initialize CPU
+	// initialize BSP
 	AMD64.Init()
 
 	// initialize I/O APICs
@@ -116,6 +116,9 @@ func Init() {
 func init() {
 	// trap CPU exceptions
 	AMD64.EnableExceptions()
+
+	// initialize APs
+	AMD64.InitSMP(-1)
 
 	// allocate global DMA region
 	dma.Init(dmaStart, dmaSize)

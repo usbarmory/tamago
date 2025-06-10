@@ -50,7 +50,7 @@ const (
 
 // Peripheral instances
 var (
-	// AMD64 core
+	// CPU instance(s)
 	AMD64 = &amd64.CPU{
 		// required before Init()
 		TimerMultiplier: 1,

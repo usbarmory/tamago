@@ -34,15 +34,8 @@ const (
 //go:linkname ramStackOffset runtime.ramStackOffset
 var ramStackOffset uint64 = 0x100000 // 1 MB
 
-// CPU instance
+// CPU represens the Bootstrap Processor (BSP) instance.
 type CPU struct {
-	// features
-	invariant bool
-	kvm       bool
-	kvmclock  uint32
-
-	// core frequency in Hz
-	freq uint32
 	// Timer multiplier
 	TimerMultiplier float64
 	// Timer offset in nanoseconds
@@ -50,6 +43,19 @@ type CPU struct {
 
 	// LAPIC represents the Local APIC instance
 	LAPIC *lapic.LAPIC
+
+	// APs represents the Application Processors on symmetric
+	// multiprocessing (SMP systems, it is populated by [CPU.InitSMP] with
+	// the available number of additional cores.
+	APs []*CPU
+
+	// features
+	invariant bool
+	kvm       bool
+	kvmclock  uint32
+
+	// core frequency in Hz
+	freq uint32
 }
 
 // defined in amd64.s
