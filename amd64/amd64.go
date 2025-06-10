@@ -9,7 +9,7 @@
 // Package amd64 provides support for AMD64 architecture specific operations.
 //
 // The following architectures/cores are supported/tested:
-//   - AMD64 (single-core)
+//   - AMD64 (single-core) // TODO: WiP SMP
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=amd64` as
 // supported by the TamaGo framework for bare metal Go, see
@@ -44,10 +44,10 @@ type CPU struct {
 	// LAPIC represents the Local APIC instance
 	LAPIC *lapic.LAPIC
 
-	// APs represents the Application Processors on symmetric
+	// aps represents the Application Processors on symmetric
 	// multiprocessing (SMP systems, it is populated by [CPU.InitSMP] with
 	// the available number of additional cores.
-	APs []*CPU
+	aps []*CPU
 
 	// features
 	invariant bool

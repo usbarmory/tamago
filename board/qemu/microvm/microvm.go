@@ -117,8 +117,8 @@ func init() {
 	// trap CPU exceptions
 	AMD64.EnableExceptions()
 
-	// initialize APs
-	AMD64.InitSMP(-1)
+	// initialize AP
+	AMD64.InitSMP(2)
 
 	// allocate global DMA region
 	dma.Init(dmaStart, dmaSize)

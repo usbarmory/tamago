@@ -8,6 +8,7 @@
 
 //go:build !linkcpuinit
 
+#include "go_asm.h"
 #include "textflag.h"
 
 #define MSR_EFER 0xc0000080
@@ -133,10 +134,15 @@ TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 	// Enable SSE
 	CALL	sse_enable(SB)
 
+	MOVQ	$cpuinit(SB), AX
+	MOVQ	$(const_initAP), DI
+	MOVQ	AX, (DI)
+
 	// Reconfigure Long-Mode Page Translation PDT (1GB) as follows:
 	//   0x00000000 - 0x001fffff inaccessible (zero page)
 	//   0x00200000 - 0x3fffffff cacheable physical page
 	MOVL	$PDT, DI
+	ANDL	$(0<<1 | 1<<0), (DI)	// clear R/W, P
 	ANDL	$(1<<1 | 1<<0), (DI)	// clear R/W, P
 
 	//  0x100000000 - 0x13fffffff (1GB) uncacheable physical page (1GB PDPE)
