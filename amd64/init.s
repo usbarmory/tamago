@@ -134,6 +134,7 @@ TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 	// Enable SSE
 	CALL	sse_enable(SB)
 
+	// WiP: SMP
 	MOVQ	$cpuinit(SB), AX
 	MOVQ	$(const_initAP), DI
 	MOVQ	AX, (DI)
@@ -142,7 +143,7 @@ TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 	//   0x00000000 - 0x001fffff inaccessible (zero page)
 	//   0x00200000 - 0x3fffffff cacheable physical page
 	MOVL	$PDT, DI
-	ANDL	$(0<<1 | 1<<0), (DI)	// clear R/W, P
+	ANDL	$(0<<1 | 1<<0), (DI)	// clear R/W, P (WiP: SMP)
 	ANDL	$(1<<1 | 1<<0), (DI)	// clear R/W, P
 
 	//  0x100000000 - 0x13fffffff (1GB) uncacheable physical page (1GB PDPE)
