@@ -22,15 +22,28 @@ import (
 
 // LAPIC registers
 const (
-	LAPICID = 0x20
+	LAPIC_ID = 0x20
+	ID       = 24
 
-	LAPICVER    = 0x30
+	LAPIC_VER   = 0x30
 	VER_ENTRIES = 16
 
-	LAPICEOI = 0xb0
+	LAPIC_EOI = 0xb0
 
-	LAPICSVR   = 0xf0
+	LAPIC_SVR  = 0xf0
 	SVR_ENABLE = 8
+
+	LAPIC_ICRH = 0x310
+	LAPIC_ICRL = 0x300
+
+	ICR_DST_SELF = 0b01 << 18
+	ICR_DST_ALL  = 0b10 << 18
+	ICR_DST_REST = 0b11 << 18
+
+	ICR_SIPI = 0b110 << 8
+	ICR_INIT = 0b101 << 8
+	ICR_NMI  = 0b100 << 8
+	ICR_SMI  = 0b010 << 8
 )
 
 // LAPIC represents a Local APIC instance.
@@ -41,31 +54,37 @@ type LAPIC struct {
 
 // ID returns the LAPIC identification register.
 func (io *LAPIC) ID() uint32 {
-	return reg.Get(io.Base+LAPICID, 24, 0xf)
+	return reg.Get(io.Base+LAPIC_ID, ID, 0xf)
 }
 
 // Version returns the LAPIC version register.
 func (io *LAPIC) Version() uint32 {
-	return reg.Read(io.Base + LAPICVER)
+	return reg.Read(io.Base + LAPIC_VER)
 }
 
 // Entries returns the size of the LAPIC local vector table.
 func (io *LAPIC) Entries() int {
-	maxIndex := reg.Get(io.Base+LAPICVER, VER_ENTRIES, 0xff)
+	maxIndex := reg.Get(io.Base+LAPIC_VER, VER_ENTRIES, 0xff)
 	return int(maxIndex) + 1
 }
 
 // Enable enables the Local APIC.
 func (io *LAPIC) Enable() {
-	reg.Set(io.Base+LAPICSVR, SVR_ENABLE)
+	reg.Set(io.Base+LAPIC_SVR, SVR_ENABLE)
 }
 
 // Disable disables the Local APIC.
 func (io *LAPIC) Disable() {
-	reg.Clear(io.Base+LAPICSVR, SVR_ENABLE)
+	reg.Clear(io.Base+LAPIC_SVR, SVR_ENABLE)
 }
 
 // ClearInterrupt signals the end of an interrupt handling routine.
 func (io *LAPIC) ClearInterrupt() {
-	reg.Write(io.Base+LAPICEOI, 0)
+	reg.Write(io.Base+LAPIC_EOI, 0)
+}
+
+// IPI sends an Inter-Processor Interrupt (IPI).
+func (io *LAPIC) IPI(apicid int, id int, flags int) {
+	reg.SetN(io.Base+LAPIC_ICRH, ID, 0xff, uint32(apicid))
+	reg.Write(io.Base+LAPIC_ICRL, uint32(flags & 0xffffff00) | uint32(id & 0xff))
 }
