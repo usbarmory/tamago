@@ -156,8 +156,8 @@ func (cpu *CPU) DisableInterrupts() {
 	irq_disable()
 }
 
-// Waitnterrupt suspends execution until an interrupt is received.
-func (cpu *CPU) Waitnterrupt() {
+// WaitInterrupt suspends execution until an interrupt is received.
+func (cpu *CPU) WaitInterrupt() {
 	wait_interrupt()
 }
 
