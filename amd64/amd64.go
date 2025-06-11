@@ -9,7 +9,7 @@
 // Package amd64 provides support for AMD64 architecture specific operations.
 //
 // The following architectures/cores are supported/tested:
-//   - AMD64 (single-core) // TODO: WiP SMP
+//   - AMD64 (single-core) // FIXME: WiP SMP
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=amd64` as
 // supported by the TamaGo framework for bare metal Go, see

@@ -130,12 +130,17 @@ TEXT ·reload_gdt<>(SB),NOSPLIT|NOFRAME,$0
 	PUSHQ	AX
 	RETFQ
 
+TEXT ·init_ap<>(SB),NOSPLIT|NOFRAME,$0
+	MOVQ	·numAP(SB), AX
+	ADDQ	$1, AX
+	MOVQ	AX, ·numAP(SB)
+
 TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 	// Enable SSE
 	CALL	sse_enable(SB)
 
-	// WiP: SMP
-	MOVQ	$cpuinit(SB), AX
+	// FIXME: WiP SMP
+	MOVQ	$·init_ap<>(SB), AX
 	MOVQ	$(const_initAP), DI
 	MOVQ	AX, (DI)
 
@@ -143,8 +148,12 @@ TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 	//   0x00000000 - 0x001fffff inaccessible (zero page)
 	//   0x00200000 - 0x3fffffff cacheable physical page
 	MOVL	$PDT, DI
-	ANDL	$(0<<1 | 1<<0), (DI)	// clear R/W, P (WiP: SMP)
-	ANDL	$(1<<1 | 1<<0), (DI)	// clear R/W, P
+	//ANDL	$(1<<1 | 1<<0), (DI)	// clear R/W, P
+
+	// FIXME: WiP SMP
+	MOVL	$0, AX
+	ORL	$(1<<7 | 1<<1 | 1<<0), AX			// set PS, R/W, P
+	MOVL	AX, (DI)
 
 	//  0x100000000 - 0x13fffffff (1GB) uncacheable physical page (1GB PDPE)
 	//  0x140000000 - 0x17fffffff (1GB) uncacheable physical page (1GB PDPE)

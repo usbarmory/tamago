@@ -9,8 +9,6 @@
 package amd64
 
 import (
-	"runtime"
-
 	"github.com/usbarmory/tamago/bits"
 )
 
@@ -119,29 +117,4 @@ func (cpu *CPU) Features() *Features {
 		KVM:          cpu.kvm,
 		KVMClockMSR:  cpu.kvmclock,
 	}
-}
-
-// NumCPU returns the number of logical CPUs.
-func NumCPU() (n int) {
-	_, _, ecx, _ := cpuid(CPUID_VENDOR, 0)
-
-	switch ecx {
-	case CPUID_VENDOR_ECX_AMD:
-		// AMD64 Architecture Programmer’s Manual
-		// Volume 3 - E4.7
-		_, _, ecx, _ := cpuid(CPUID_AMD_PROC, 0)
-		n = int(bits.Get(&ecx, AMD_PROC_NC, 0xff)) + 1
-	case CPUID_VENDOR_ECX_INTEL:
-		// Intel® Architecture Instruction Set Extensions and Future
-		// Features Programming Reference
-		// 5.1.12 x2APIC Features / Processor Topology (Function 0Bh)
-		_, ebx, _, _ := cpuid(CPUID_INTEL_APIC, 1) // core sublevel
-		n = int(bits.Get(&ebx, INTEL_APIC_LP, 0xffff))
-	}
-
-	if n == 0 {
-		n = runtime.NumCPU()
-	}
-
-	return
 }

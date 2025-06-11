@@ -12,10 +12,44 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/amd64/lapic"
 )
 
 const initAP = 0x8000
+
+// set in init.s
+var numAP int
+
+// NumAP() returns the number of initialized Application Processors (AP).
+func NumAP() (n int) {
+	return numAP
+}
+
+// NumCPU returns the number of logical CPUs.
+func NumCPU() (n int) {
+	_, _, ecx, _ := cpuid(CPUID_VENDOR, 0)
+
+	switch ecx {
+	case CPUID_VENDOR_ECX_AMD:
+		// AMD64 Architecture Programmer’s Manual
+		// Volume 3 - E4.7
+		_, _, ecx, _ := cpuid(CPUID_AMD_PROC, 0)
+		n = int(bits.Get(&ecx, AMD_PROC_NC, 0xff)) + 1
+	case CPUID_VENDOR_ECX_INTEL:
+		// Intel® Architecture Instruction Set Extensions and Future
+		// Features Programming Reference
+		// 5.1.12 x2APIC Features / Processor Topology (Function 0Bh)
+		_, ebx, _, _ := cpuid(CPUID_INTEL_APIC, 1) // core sublevel
+		n = int(bits.Get(&ebx, INTEL_APIC_LP, 0xffff))
+	}
+
+	if n == 0 {
+		n = runtime.NumCPU()
+	}
+
+	return
+}
 
 // InitSMP enables Secure Multiprocessor (SMP) operation by initializing the
 // available Application Processors (see [CPU.APs]).
@@ -23,13 +57,13 @@ const initAP = 0x8000
 // A positive argument caps the total (BSP+APs) number of cores, a negative
 // argument initializes all available APs, an agument of 0 or 1 disables SMP.
 //
-// After initialization [runtime.NumCPU()] can be used to verify SMP use by the
-// runtime.
+// After initialization [NumAPs()] or [runtime.NumCPU()] can be used to verify
+// SMP use by the runtime.
 func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	cpu.aps = nil
 
 	defer func() {
-		// TODO: WiP
+		// FIXME: WiP
 		//runtime.GOMAXPROCS(1+len(cpu.APs))
 		runtime.GOMAXPROCS(1)
 	}()
