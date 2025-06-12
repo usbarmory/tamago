@@ -16,15 +16,11 @@ import (
 	"github.com/usbarmory/tamago/amd64/lapic"
 )
 
-const initAP = 0x8000
+// trampoline to AP initialization routine
+const trampoline = 0x8000
 
-// set in init.s
-var numAP int
-
-// NumAP() returns the number of initialized Application Processors (AP).
-func NumAP() (n int) {
-	return numAP
-}
+// defined in smp.s
+func setup_ap_trampoline()
 
 // NumCPU returns the number of logical CPUs.
 func NumCPU() (n int) {
@@ -57,8 +53,8 @@ func NumCPU() (n int) {
 // A positive argument caps the total (BSP+APs) number of cores, a negative
 // argument initializes all available APs, an agument of 0 or 1 disables SMP.
 //
-// After initialization [NumAPs()] or [runtime.NumCPU()] can be used to verify
-// SMP use by the runtime.
+// After initialization [runtime.NumCPU()] can be used to verify SMP use by the
+// runtime.
 func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	cpu.aps = nil
 
@@ -71,6 +67,8 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	if n == 0 || n == 1 {
 		return
 	}
+
+	setup_ap_trampoline()
 
 	for i := 1; i < NumCPU(); i++ {
 		if i == n {
@@ -89,11 +87,9 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 		//
 		// AP Startup Sequence:
 		// The vector provides the upper 8 bits of a 20-bit physical address.
-		vector := initAP >> 12
-
-		// startup AP
-		cpu.LAPIC.IPI(i, vector, (1 << 14) | lapic.ICR_INIT)
-		time.Sleep(1 * time.Millisecond)
+		vector := trampoline >> 12
+		cpu.LAPIC.IPI(i, vector, (1 << 16) | (1 << 14) | lapic.ICR_INIT)
+		time.Sleep(10 * time.Millisecond)
 		cpu.LAPIC.IPI(i, vector, (1 << 14) | lapic.ICR_SIPI)
 
 		cpu.aps = append(cpu.aps, ap)

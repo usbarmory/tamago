@@ -130,19 +130,9 @@ TEXT ·reload_gdt<>(SB),NOSPLIT|NOFRAME,$0
 	PUSHQ	AX
 	RETFQ
 
-TEXT ·init_ap<>(SB),NOSPLIT|NOFRAME,$0
-	MOVQ	·numAP(SB), AX
-	ADDQ	$1, AX
-	MOVQ	AX, ·numAP(SB)
-
 TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 	// Enable SSE
 	CALL	sse_enable(SB)
-
-	// FIXME: WiP SMP
-	MOVQ	$·init_ap<>(SB), AX
-	MOVQ	$(const_initAP), DI
-	MOVQ	AX, (DI)
 
 	// Reconfigure Long-Mode Page Translation PDT (1GB) as follows:
 	//   0x00000000 - 0x001fffff inaccessible (zero page)
