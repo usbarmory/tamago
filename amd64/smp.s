@@ -12,31 +12,43 @@
 // FIXME: WiP SMP
 
 TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
+	// 16-bit real mode
+
+	// Disable interrupts
 	CLI
 
-TEXT ·setup_ap_trampoline(SB),NOSPLIT|NOFRAME,$0
-	MOVQ	$(const_trampoline), DI
+	MOVL	CR0, AX
+	ORL	$1, AX		// set CR0.PE
+	MOVL	AX, CR0
 
+	// TODO: lgdt
+
+	MOVL	$(const_trampoline), AX
+	PUSHW	$0x8
+	PUSHW	AX
+	RETFL
+
+TEXT ·setup_ap_trampoline(SB),NOSPLIT|NOFRAME,$0
+	// FIXME: NOP
 	MOVB	$0xf4, AX		// HLT
 	MOVB	AX, (DI)
 	ADDQ	$1, DI
 
-	// TODO: Use Go assembly
-	// TODO: lgdt
+	// FIXME: is this a reliable marker?
+	MOVQ	$0xcccccccccccccccc, BX
 
-	// set CR0.PE
-	MOVQ	$0xc0220f010cc0200f, AX	// mov %cr0,%rax
-	MOVQ	AX, (DI)		// or  $0x1,%al
-	ADDQ	$8, DI			// mov %rax,%cr0
+	MOVQ	$·apinit<>(SB), SI
+	MOVQ	$(const_trampoline), DI
+copy_8:
+	MOVQ	(SI), AX
+	ADDQ	$8, SI
 
-	MOVQ	$0x66086a00008000b8, AX	// mov 0x8000,%eax
-	MOVQ	AX, (DI)		// push $0x8
-	ADDQ	$8, DI			// push %ax
-	MOVQ	$0xcb50, AX		// lret
+	CMPQ	AX, BX
+	JAE	done
+
 	MOVQ	AX, (DI)
+	ADDQ	$8, DI
 
-	//MOVL	$·apinit<>(SB), AX
-	//MOVL	AX, (DI)
-	//ADDL	$4, DI
-
+	JMP	copy_8
+done:
 	RET
