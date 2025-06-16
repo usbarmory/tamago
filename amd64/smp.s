@@ -24,12 +24,13 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	ORL	$1, AX		// set CR0.PE
 	MOVL	AX, CR0
 
-	// TODO: lgdt
+	MOVL	$(const_gdtBaseAddress+24), AX
+	LGDT	(AX)
 
-	MOVL	$(const_apinitAddress), AX
-	PUSHW	$0x8
-	PUSHW	AX
-	RETFL
+	MOVQ	$(const_apinitAddress), AX
+	PUSHQ	$0x08
+	PUSHQ	AX
+	RETFW	// FIXME: lret vs lretw vs lretq
 
 	// force alignment padding
 	BYTE	$0xcc

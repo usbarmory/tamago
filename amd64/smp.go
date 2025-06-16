@@ -12,12 +12,17 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/amd64/lapic"
+	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
-// ·apinit relocation address
-const apinitAddress = 0x8000
+const (
+	// ·apinit relocation address
+	apinitAddress  = 0x4000
+	// AP Global Descriptor Table address
+	gdtBaseAddress = 0x5000
+)
 
 // defined in smp.s
 func apinit_reloc(addr uintptr)
@@ -71,6 +76,13 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	// copy ·apinit to a memory location reachable in 16-bit real mode
 	apinit_reloc(apinitAddress)
 
+	// AP Global Descriptor Table
+	reg.Write64(gdtBaseAddress+0x00, 0x0000000000000000) // null descriptor
+	reg.Write64(gdtBaseAddress+0x08, 0x00209a0000000000) // code descriptor (x/r)
+	reg.Write64(gdtBaseAddress+0x10, 0x0000920000000000) // data descriptor (r/w)
+	reg.Write64(gdtBaseAddress+0x18, 3*8-1)              // GTD Limit
+	reg.Write64(gdtBaseAddress+0x1a, gdtBaseAddress)     // GDT Base Address
+
 	for i := 1; i < NumCPU(); i++ {
 		if i == n {
 			break
@@ -83,17 +95,17 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 			},
 		}
 
-		// AMD64 Architecture Programmer’s Manual 
+		// AMD64 Architecture Programmer’s Manual
 		// Volume 2 - 15.27.8 Secure Multiprocessor Initialization
 		//
 		// AP Startup Sequence:
 		// The vector provides the upper 8 bits of a 20-bit physical address.
 		vector := apinitAddress >> 12
 
-		cpu.LAPIC.IPI(i, vector, (1 << 16) | (1 << 14) | lapic.ICR_INIT)
+		cpu.LAPIC.IPI(i, vector, (1<<16)|(1<<14)|lapic.ICR_INIT)
 		time.Sleep(10 * time.Millisecond)
 
-		cpu.LAPIC.IPI(i, vector, (1 << 14) | lapic.ICR_SIPI)
+		cpu.LAPIC.IPI(i, vector, (1<<14)|lapic.ICR_SIPI)
 
 		cpu.aps = append(cpu.aps, ap)
 	}
