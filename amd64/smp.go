@@ -16,11 +16,11 @@ import (
 	"github.com/usbarmory/tamago/amd64/lapic"
 )
 
-// trampoline to AP initialization routine
-const trampoline = 0x8000
+// ·apinit relocation address
+const apinitAddress = 0x8000
 
 // defined in smp.s
-func setup_ap_trampoline()
+func apinit_reloc(addr uintptr)
 
 // NumCPU returns the number of logical CPUs.
 func NumCPU() (n int) {
@@ -68,7 +68,8 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 		return
 	}
 
-	setup_ap_trampoline()
+	// copy ·apinit to a memory location reachable in 16-bit real mode
+	apinit_reloc(apinitAddress)
 
 	for i := 1; i < NumCPU(); i++ {
 		if i == n {
@@ -87,9 +88,11 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 		//
 		// AP Startup Sequence:
 		// The vector provides the upper 8 bits of a 20-bit physical address.
-		vector := trampoline >> 12
+		vector := apinitAddress >> 12
+
 		cpu.LAPIC.IPI(i, vector, (1 << 16) | (1 << 14) | lapic.ICR_INIT)
 		time.Sleep(10 * time.Millisecond)
+
 		cpu.LAPIC.IPI(i, vector, (1 << 14) | lapic.ICR_SIPI)
 
 		cpu.aps = append(cpu.aps, ap)

@@ -14,6 +14,9 @@
 TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	// 16-bit real mode
 
+	// WiP
+	//HLT
+
 	// Disable interrupts
 	CLI
 
@@ -23,22 +26,28 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 
 	// TODO: lgdt
 
-	MOVL	$(const_trampoline), AX
+	MOVL	$(const_apinitAddress), AX
 	PUSHW	$0x8
 	PUSHW	AX
 	RETFL
 
-TEXT ·setup_ap_trampoline(SB),NOSPLIT|NOFRAME,$0
-	// FIXME: NOP
-	MOVB	$0xf4, AX		// HLT
-	MOVB	AX, (DI)
-	ADDQ	$1, DI
+	// force alignment padding
+	BYTE	$0xcc
+	BYTE	$0xcc
+	BYTE	$0xcc
+	BYTE	$0xcc
+	BYTE	$0xcc
+	BYTE	$0xcc
+	BYTE	$0xcc
+	BYTE	$0xcc
 
-	// FIXME: is this a reliable marker?
-	MOVQ	$0xcccccccccccccccc, BX
-
+// func apinit_reloc(ptr uintptr)
+TEXT ·apinit_reloc(SB),$0-8
 	MOVQ	$·apinit<>(SB), SI
-	MOVQ	$(const_trampoline), DI
+	MOVL	ptr+0(FP), DI
+
+	// end of function marker (alignment padding)
+	MOVQ	$0xcccccccccccccccc, BX
 copy_8:
 	MOVQ	(SI), AX
 	ADDQ	$8, SI

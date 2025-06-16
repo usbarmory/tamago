@@ -52,7 +52,7 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 
 	// PML4T[0] = PDPT
 	MOVL	$PML4T, DI
-	MOVL	$(PDPT | 1<<1 | 1<<0), (DI)	// set R/W, P
+	MOVL	$(PDPT | 1<<1 | 1<<0), (DI)			// set R/W, P
 
 	// PDPT[0] = PDT
 	MOVL	$PDPT, DI
