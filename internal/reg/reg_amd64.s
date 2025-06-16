@@ -34,6 +34,6 @@ TEXT ·Write64(SB),$0-16
 	MOVQ	addr+0(FP), AX
 	MOVQ	val+8(FP), BX
 
-	MOVL	BX, (AX)
+	MOVQ	BX, (AX)
 
 	RET
