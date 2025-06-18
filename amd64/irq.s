@@ -19,7 +19,7 @@ GLOBL	idtptr<>(SB),RODATA,$(2+8)
 // func load_idt() (idt uintptr, irqHandler uintptr)
 TEXT ·load_idt(SB),$0-16
 	MOVQ	$idtptr<>(SB), AX
-	LIDT (AX)
+	LIDT	(AX)
 
 	MOVQ	$idt<>(SB), AX
 	MOVQ	AX, ret+0(FP)
