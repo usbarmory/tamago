@@ -88,6 +88,10 @@ func Read(addr uint32) uint32 {
 // defined in reg_*.s
 func Write(addr uint32, val uint32)
 
+func Write32(addr uint32, val uint32) {
+	Write(addr, val)
+}
+
 func WriteBack(addr uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 

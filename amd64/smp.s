@@ -20,17 +20,27 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	// Disable interrupts
 	CLI
 
+	// Set Protection Enable
 	MOVL	CR0, AX
 	ORL	$1, AX		// set CR0.PE
 	MOVL	AX, CR0
 
-	MOVL	$(const_gdtBaseAddress+24), AX
+	// Set Global Descriptor Table
+	MOVL	$(const_gdtrBaseAddress), AX
 	LGDT	(AX)
 
-	MOVQ	$(const_apinitAddress), AX
-	PUSHQ	$0x08
-	PUSHQ	AX
-	RETFW	// FIXME: lret vs lretw vs lretq
+	MOVL	$(const_apinitAddress), AX
+
+	PUSHW	$0x08
+	PUSHW	AX
+
+	// WiP
+	// kvm_exit: vcpu 1 reason EPT_VIOLATION rip 0x1018 info1 0x0000000000000781
+	// kvm_page_fault: vcpu 1 rip 0x1018 address 0x0000000000542ab8 error_code 0x781
+	//PUSHW	$0x0008
+	//PUSHW	$0x3aba
+
+	RETFL
 
 	// force alignment padding
 	BYTE	$0xcc
