@@ -29,7 +29,7 @@ DATA	gdtptr<>+0x02(SB)/8, $gdt<>(SB)		// GDT Base Address
 GLOBL	gdtptr<>(SB),RODATA,$(2+8)
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
-	// Disable interrupts
+	// disable interrupts
 	CLI
 
 	// we might not have a valid stack pointer for CALLs
@@ -43,7 +43,7 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	// Intel® 64 and IA-32 Architectures Software Developer’s Manual
 	// Volume 3A - 4.5 IA-32E PAGING
 
-	// Clear tables
+	// clear tables
 	XORL	AX, AX		// value
 	MOVL	$PML4T, DI	// to
 	MOVL	$0x3000, CX	// n
@@ -103,19 +103,20 @@ enable_long_mode:
 	ORL	$(1<<31 | 1<<0), AX	// set CR0.(PG|PE)
 	MOVL	AX, CR0
 
-	// Set Global Descriptor Table
-
+	// set Global Descriptor Table
 	CALL	·getPC<>(SB)
 	MOVL	$gdtptr<>(SB), BX	// 32-bit mode: only PC offset is copied
 	ADDL	$6, AX
 	ADDL	BX, AX
 	LGDT	(AX)
 
+	// set far return target
 	CALL	·getPC<>(SB)
 	MOVL	$·start<>(SB), BX	// 32-bit mode: only PC offset is copied
 	ADDL	$6, AX
 	ADDL	BX, AX
 
+	// jump to target in long mode
 	PUSHQ	$0x08
 	PUSHQ	AX
 	RETFQ
@@ -131,7 +132,7 @@ TEXT ·reload_gdt<>(SB),NOSPLIT|NOFRAME,$0
 	RETFQ
 
 TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
-	// Enable SSE
+	// enable SSE
 	CALL	sse_enable(SB)
 
 	// Reconfigure Long-Mode Page Translation PDT (1GB) as follows:

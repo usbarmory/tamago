@@ -12,34 +12,35 @@
 // FIXME: WiP SMP
 
 TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
-	// 16-bit real mode
+	// 16-bit real mode: operand/address size override prefixes required
 
 	// WiP
 	//HLT
 
-	// Disable interrupts
+	// disable interrupts
 	CLI
 
-	// Set Protection Enable
+	// set Protection Enable
 	MOVL	CR0, AX
-	ORL	$1, AX		// set CR0.PE
+	ORL	$1, AX				// set CR0.PE
 	MOVL	AX, CR0
 
-	// Set Global Descriptor Table
+	// set Global Descriptor Table
+	BYTE	$0x66				// 32-bit operand size override prefix
+	BYTE	$0x67				// 32-bit address size override prefix
 	MOVL	$(const_gdtrBaseAddress), AX
+	BYTE	$0x66				// 32-bit operand size override prefix
+	BYTE	$0x67				// 32-bit address size override prefix
 	LGDT	(AX)
 
+	// set far return target
+	BYTE	$0x66				// 32-bit operand size override prefix
 	MOVL	$(const_apinitAddress), AX
 
+	// jump to target in protected mode
 	PUSHW	$0x08
-	PUSHW	AX
-
-	// WiP
-	// kvm_exit: vcpu 1 reason EPT_VIOLATION rip 0x1018 info1 0x0000000000000781
-	// kvm_page_fault: vcpu 1 rip 0x1018 address 0x0000000000542ab8 error_code 0x781
-	//PUSHW	$0x0008
-	//PUSHW	$0x3aba
-
+	BYTE	$0x66				// 32-bit operand size override prefix
+	PUSHQ	AX
 	RETFL
 
 	// force alignment padding
