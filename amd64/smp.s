@@ -12,36 +12,79 @@
 // FIXME: WiP SMP
 
 TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
-	// 16-bit real mode: operand/address size override prefixes required
-
-	// WiP
-	//HLT
+	// 16-bit real mode, the following prefixes are required:
+	//   0x66 32-bit operand size override prefix
+	//   0x67 32-bit address size override prefix
 
 	// disable interrupts
 	CLI
 
+	// mov %cs,%ax
+	BYTE	$0x8c
+	BYTE	$0xc8
+	// mov %eax,%ds
+	BYTE	$0x8e
+	BYTE	$0xd8
+
 	// set Protection Enable
 	MOVL	CR0, AX
-	ORL	$1, AX				// set CR0.PE
+	ORL	$1, AX			// set CR0.PE
 	MOVL	AX, CR0
 
 	// set Global Descriptor Table
-	BYTE	$0x66				// 32-bit operand size override prefix
-	BYTE	$0x67				// 32-bit address size override prefix
+
+	BYTE	$0x66
+	BYTE	$0x67
 	MOVL	$(const_gdtrBaseAddress), AX
-	BYTE	$0x66				// 32-bit operand size override prefix
-	BYTE	$0x67				// 32-bit address size override prefix
+
+	// convert linear address to CS offset
+	BYTE	$0x66
+	BYTE	$0x67
+	SUBL	$(const_apinitAddress), AX
+
+	BYTE	$0x67
+	BYTE	$0x2e			// CS segment override prefix
 	LGDT	(AX)
 
-	// set far return target
-	BYTE	$0x66				// 32-bit operand size override prefix
-	MOVL	$(const_apinitAddress), AX
+	BYTE	$0x66
+	MOVL	$0xf000, SP
+
+	// segment selector for GDT entry 2
+	BYTE	$0x66
+	MOVL	$0x10, AX
+
+	// mov %eax,%es
+	BYTE	$0x66
+	BYTE	$0x8e
+	BYTE	$0xc0
+
+	// mov %eax,%ss
+	BYTE	$0x66
+	BYTE	$0x8e
+	BYTE	$0xd0
+
+	// mov %eax,%ds
+	BYTE	$0x66
+	BYTE	$0x8e
+	BYTE	$0xd8
+
+	// mov %eax,%fs
+	BYTE	$0x66
+	BYTE	$0x8e
+	BYTE	$0xe0
+
+	// mov %eax,%gs
+	BYTE	$0x66
+	BYTE	$0x8e
+	BYTE	$0xe8
 
 	// jump to target in protected mode
-	PUSHW	$0x08
-	BYTE	$0x66				// 32-bit operand size override prefix
-	PUSHQ	AX
-	RETFL
+	// ljmp 0x08:0x6000 (FIXME)
+	BYTE	$0xea
+	BYTE	$0x00
+	BYTE	$0x60
+	BYTE	$0x08
+	BYTE	$0x00
 
 	// force alignment padding
 	BYTE	$0xcc

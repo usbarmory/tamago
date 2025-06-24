@@ -24,6 +24,8 @@ const (
 	gdtBaseAddress = 0x5000
 	// AP GDT Descriptor (GDTR) address
 	gdtrBaseAddress = 0x5018
+	// ·apinit trampoline to long mode enabling
+	trampolineAddress = 0x6000
 )
 
 // defined in smp.s
@@ -78,10 +80,15 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	// copy ·apinit to a memory location reachable in 16-bit real mode
 	apinit_reloc(apinitAddress)
 
+	// FIXME
+	// mov eax, 0x101f90a0
+	// call [eax]
+	reg.Write64(trampolineAddress, 0xcc10ff101f90a0b8)
+
 	// create AP Global Descriptor Table (GDT)
 	reg.Write64(gdtBaseAddress+0x00, 0x0000000000000000) // null descriptor
-	reg.Write64(gdtBaseAddress+0x08, 0x00209a0000000000) // code descriptor (x/r)
-	reg.Write64(gdtBaseAddress+0x10, 0x0000920000000000) // data descriptor (r/w)
+	reg.Write64(gdtBaseAddress+0x08, 0x00209a00000fffff) // code descriptor (x/r)
+	reg.Write64(gdtBaseAddress+0x10, 0x00009200000fffff) // data descriptor (r/w)
 
 	// create AP GDT Descriptor (GDTR)
 	reg.Write16(gdtrBaseAddress+0x00, 3*8-1)          // GTD Limit
