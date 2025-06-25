@@ -29,27 +29,28 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	DATA32
 	MOVL	$PML4T, SP
 
+	// BSP paging setup (see init.s)
 	MOVL	SP, CR3
 
-	BYTE	$0x8c; BYTE	$0xc8	// mov %cs,%ax
-	BYTE	$0x8e; BYTE	$0xd8	// mov %eax,%ds
+	BYTE	$0x8c; BYTE	$0xc8		// mov %cs,%ax
+	BYTE	$0x8e; BYTE	$0xd8		// mov %eax,%ds
 
 enable_long_mode:
 	MOVL	CR4, AX
 	DATA32
-	MOVL	$(1<<7 | 1<<5), AX	// set CR4.(PGE|PAE)
+	MOVL	$(1<<7 | 1<<5), AX		// set CR4.(PGE|PAE)
 	MOVL	AX, CR4
 
 	DATA32
 	MOVL	$MSR_EFER, CX
 	RDMSR
 	DATA32
-	ORL	$(1<<8), AX		// set MSR_EFER.LME
+	ORL	$(1<<8), AX			// set MSR_EFER.LME
 	WRMSR
 
 	MOVL	CR0, AX
 	DATA32
-	ORL	$(1<<31|1<<1|1<<0), AX	// set CR0.(PG|MP|PE)
+	ORL	$(1<<31 | 1<<1 |1<<0), AX	// set CR0.(PG|MP|PE)
 	MOVL	AX, CR0
 
 	// set Global Descriptor Table
@@ -61,7 +62,7 @@ enable_long_mode:
 	SUBL	$(const_apinitAddress), AX
 
 	DATA32; ADDR32
-	BYTE	$0x2e			// CS segment override prefix
+	BYTE	$0x2e				// CS segment override prefix
 	LGDT	(AX)
 
 	// segment selector for GDT entry 2
@@ -74,7 +75,7 @@ enable_long_mode:
 	DATA32; BYTE	$0x8e; BYTE	$0xe0	// mov %eax,%fs
 	DATA32; BYTE	$0x8e; BYTE	$0xe8	// mov %eax,%gs
 
-	// ljmp 0x08:0x6000 (FIXME)
+	// ljmp 0x08:0x6000 (FIXME: can we return here?)
 	BYTE	$0xea
 	BYTE	$0x00
 	BYTE	$0x60
