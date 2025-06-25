@@ -9,76 +9,71 @@
 #include "go_asm.h"
 #include "textflag.h"
 
-// FIXME: WiP SMP
+#define MSR_EFER 0xc0000080
 
+// Page Map Level 4 Table (see init.s)
+#define PML4T 0x9000
+
+// These legacy prefixes are required to ensure valid Go assembly
+// interpretation under 16-bit Real Mode.
+#define DATA32 BYTE $0x66	// 32-bit operand size override prefix
+#define ADDR32 BYTE $0x67	// 32-bit address size override prefix
+
+// apinit is invoked under 16-bit Real Mode to initialize an Application
+// Processor (AP) in SMP operation.
 TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
-	// 16-bit real mode, the following prefixes are required:
-	//   0x66 32-bit operand size override prefix
-	//   0x67 32-bit address size override prefix
-
 	// disable interrupts
 	CLI
 
-	// mov %cs,%ax
-	BYTE	$0x8c
-	BYTE	$0xc8
-	// mov %eax,%ds
-	BYTE	$0x8e
-	BYTE	$0xd8
+	// we might not have a valid stack pointer for CALLs
+	DATA32
+	MOVL	$PML4T, SP
 
-	// set Protection Enable
+	MOVL	SP, CR3
+
+	BYTE	$0x8c; BYTE	$0xc8	// mov %cs,%ax
+	BYTE	$0x8e; BYTE	$0xd8	// mov %eax,%ds
+
+enable_long_mode:
+	MOVL	CR4, AX
+	DATA32
+	MOVL	$(1<<7 | 1<<5), AX	// set CR4.(PGE|PAE)
+	MOVL	AX, CR4
+
+	DATA32
+	MOVL	$MSR_EFER, CX
+	RDMSR
+	DATA32
+	ORL	$(1<<8), AX		// set MSR_EFER.LME
+	WRMSR
+
 	MOVL	CR0, AX
-	ORL	$1, AX			// set CR0.PE
+	DATA32
+	ORL	$(1<<31|1<<1|1<<0), AX	// set CR0.(PG|MP|PE)
 	MOVL	AX, CR0
 
 	// set Global Descriptor Table
-
-	BYTE	$0x66
-	BYTE	$0x67
+	DATA32
 	MOVL	$(const_gdtrBaseAddress), AX
 
 	// convert linear address to CS offset
-	BYTE	$0x66
-	BYTE	$0x67
+	DATA32
 	SUBL	$(const_apinitAddress), AX
 
-	BYTE	$0x67
+	DATA32; ADDR32
 	BYTE	$0x2e			// CS segment override prefix
 	LGDT	(AX)
 
-	BYTE	$0x66
-	MOVL	$0xf000, SP
-
 	// segment selector for GDT entry 2
-	BYTE	$0x66
+	DATA32
 	MOVL	$0x10, AX
 
-	// mov %eax,%es
-	BYTE	$0x66
-	BYTE	$0x8e
-	BYTE	$0xc0
+	DATA32; BYTE	$0x8e; BYTE	$0xc0	// mov %eax,%es
+	DATA32; BYTE	$0x8e; BYTE	$0xd0	// mov %eax,%ss
+	DATA32; BYTE	$0x8e; BYTE	$0xd8	// mov %eax,%ds
+	DATA32; BYTE	$0x8e; BYTE	$0xe0	// mov %eax,%fs
+	DATA32; BYTE	$0x8e; BYTE	$0xe8	// mov %eax,%gs
 
-	// mov %eax,%ss
-	BYTE	$0x66
-	BYTE	$0x8e
-	BYTE	$0xd0
-
-	// mov %eax,%ds
-	BYTE	$0x66
-	BYTE	$0x8e
-	BYTE	$0xd8
-
-	// mov %eax,%fs
-	BYTE	$0x66
-	BYTE	$0x8e
-	BYTE	$0xe0
-
-	// mov %eax,%gs
-	BYTE	$0x66
-	BYTE	$0x8e
-	BYTE	$0xe8
-
-	// jump to target in protected mode
 	// ljmp 0x08:0x6000 (FIXME)
 	BYTE	$0xea
 	BYTE	$0x00
