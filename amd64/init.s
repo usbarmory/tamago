@@ -8,15 +8,9 @@
 
 //go:build !linkcpuinit
 
+#include "amd64.h"
 #include "go_asm.h"
 #include "textflag.h"
-
-#define MSR_EFER 0xc0000080
-
-#define PML4T 0x9000	// Page Map Level 4 Table       (512GB entries)
-#define PDPT  0xa000	// Page Directory Pointer Table   (1GB entries)
-#define PDT   0xb000	// Page Directory Table           (2MB entries)
-#define PT    0xc000	// Page Table                     (4kB entries)
 
 // Global Descriptor Table
 DATA	gdt<>+0x00(SB)/8, $0x0000000000000000	// null descriptor

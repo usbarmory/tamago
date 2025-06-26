@@ -6,21 +6,14 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+#include "amd64.h"
 #include "go_asm.h"
 #include "textflag.h"
 
-#define MSR_EFER 0xc0000080
+// NOTE: this offset needs adjustment in case of any changes to ·apinit
+#define doneOffset 0x68
 
-// Page Map Level 4 Table (see init.s)
-#define PML4T 0x9000
-
-// These legacy prefixes are required to ensure valid Go assembly
-// interpretation under 16-bit Real Mode.
-#define DATA32 BYTE $0x66	// 32-bit operand size override prefix
-#define ADDR32 BYTE $0x67	// 32-bit address size override prefix
-
-// apinit is invoked under 16-bit Real Mode to initialize an Application
-// Processor (AP) in SMP operation.
+// apinit is used in 16-bit Real Mode to start an Application Processor (AP)
 TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	// disable interrupts
 	CLI
@@ -29,13 +22,15 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	DATA32
 	MOVL	$PML4T, SP
 
-	// BSP paging setup (see init.s)
+	// apply BSP paging setup (see init.s)
 	MOVL	SP, CR3
 
+	// adjust data segment
 	BYTE	$0x8c; BYTE	$0xc8		// mov %cs,%ax
 	BYTE	$0x8e; BYTE	$0xd8		// mov %eax,%ds
 
-enable_long_mode:
+	// transition from 16-bit Real Mode to 64-bit Long Mode
+
 	MOVL	CR4, AX
 	DATA32
 	MOVL	$(1<<7 | 1<<5), AX		// set CR4.(PGE|PAE)
@@ -56,13 +51,9 @@ enable_long_mode:
 	// set Global Descriptor Table
 	DATA32
 	MOVL	$(const_gdtrBaseAddress), AX
-
-	// convert linear address to CS offset
 	DATA32
-	SUBL	$(const_apinitAddress), AX
-
-	DATA32; ADDR32
-	BYTE	$0x2e				// CS segment override prefix
+	SUBL	$(const_apinitAddress), AX	// convert linear address to CS offset
+	DATA32; ADDR32; CSADDR
 	LGDT	(AX)
 
 	// segment selector for GDT entry 2
@@ -75,14 +66,17 @@ enable_long_mode:
 	DATA32; BYTE	$0x8e; BYTE	$0xe0	// mov %eax,%fs
 	DATA32; BYTE	$0x8e; BYTE	$0xe8	// mov %eax,%gs
 
-	// ljmp 0x08:0x6000 (FIXME: can we return here?)
-	BYTE	$0xea
-	BYTE	$0x00
-	BYTE	$0x60
-	BYTE	$0x08
-	BYTE	$0x00
+	// set far return target
+	DATA32
+	MOVL	$(const_apinitAddress+doneOffset), AX
 
-	// force alignment padding
+	// jump to target in long mode
+	PUSHQ	$0x08
+	PUSHQ	AX
+	RETFQ
+done:
+	HLT
+marker:
 	BYTE	$0xcc
 	BYTE	$0xcc
 	BYTE	$0xcc
@@ -97,14 +91,14 @@ TEXT ·apinit_reloc(SB),$0-8
 	MOVQ	$·apinit<>(SB), SI
 	MOVL	ptr+0(FP), DI
 
-	// end of function marker (alignment padding)
+	// end of function marker
 	MOVQ	$0xcccccccccccccccc, BX
 copy_8:
 	MOVQ	(SI), AX
 	ADDQ	$8, SI
 
 	CMPQ	AX, BX
-	JAE	done
+	JE	done
 
 	MOVQ	AX, (DI)
 	ADDQ	$8, DI

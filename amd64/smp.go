@@ -24,8 +24,6 @@ const (
 	gdtBaseAddress = 0x5000
 	// AP GDT Descriptor (GDTR) address
 	gdtrBaseAddress = 0x5018
-	// FIXME
-	hltAddress = 0x6000
 )
 
 // defined in smp.s
@@ -67,11 +65,10 @@ func NumCPU() (n int) {
 func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	cpu.aps = nil
 
-	defer func() {
-		// FIXME: WiP
-		//runtime.GOMAXPROCS(1+len(cpu.APs))
-		runtime.GOMAXPROCS(1)
-	}()
+	// TODO: WiP
+	//defer func() {
+	//	runtime.GOMAXPROCS(1+len(cpu.APs))
+	//}()
 
 	if n == 0 || n == 1 {
 		return
@@ -79,9 +76,6 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 
 	// copy ·apinit to a memory location reachable in 16-bit real mode
 	apinit_reloc(apinitAddress)
-
-	// FIXME
-	reg.Write64(hltAddress, 0xf4)
 
 	// create AP Global Descriptor Table (GDT)
 	reg.Write64(gdtBaseAddress+0x00, 0x0000000000000000) // null descriptor
@@ -115,7 +109,6 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 		time.Sleep(10 * time.Millisecond)
 
 		cpu.LAPIC.IPI(i, vector, (1<<14)|lapic.ICR_SIPI)
-
 		cpu.aps = append(cpu.aps, ap)
 	}
 
