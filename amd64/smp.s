@@ -13,10 +13,19 @@
 // NOTE: this offset needs adjustment in case of any changes to ·apinit
 #define doneOffset 0x68
 
-// apinit is used in 16-bit Real Mode to start an Application Processor (AP)
 TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	// disable interrupts
 	CLI
+
+	// This function is called in 16-Bit Real Mode, for this reason Go
+	// Assembly must be treated different than usual.
+	//
+	// The DATA32 and ADDR32 macros (see amd64.h) are used to ensure
+	// correct interpretation of 32-bit operands and/or addresses.
+	//
+	// The function is relocated to a 16-bit address, using apinit_reloc,
+	// before use. For this reason RIP/EIP-relative addressing must be
+	// avoided.
 
 	// we might not have a valid stack pointer for CALLs
 	DATA32
@@ -50,7 +59,7 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 
 	// set Global Descriptor Table
 	DATA32
-	MOVL	$(const_gdtrBaseAddress), AX
+	MOVL	$(const_gdtrAddress), AX
 	DATA32
 	SUBL	$(const_apinitAddress), AX	// convert linear address to CS offset
 	DATA32; ADDR32; CSADDR
@@ -74,8 +83,19 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	PUSHQ	$0x08
 	PUSHQ	AX
 	RETFQ
+
 done:
+	// update GDT limits
+	MOVQ	$(const_gdtAddress), AX
+	ADDQ	$0x08, AX
+	MOVW	$0x0000, (AX)
+	ADDQ	$0x08, AX
+	MOVW	$0x0000, (AX)
+	SUBQ	$0x10, AX
+
+	LGDT	(AX)
 	HLT
+
 marker:
 	BYTE	$0xcc
 	BYTE	$0xcc

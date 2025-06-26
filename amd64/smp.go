@@ -18,12 +18,12 @@ import (
 )
 
 const (
-	// ·apinit relocation address
+	// ·apinit 16-bit relocation address
 	apinitAddress = 0x4000
-	// AP Global Descriptor Table (GDT) address
-	gdtBaseAddress = 0x5000
-	// AP GDT Descriptor (GDTR) address
-	gdtrBaseAddress = 0x5018
+	// AP Global Descriptor Table (GDT) 16-bit address
+	gdtAddress = 0x5000
+	// AP GDT Descriptor (GDTR) 16-bit address
+	gdtrAddress = 0x5018
 )
 
 // defined in smp.s
@@ -74,17 +74,17 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 		return
 	}
 
-	// copy ·apinit to a memory location reachable in 16-bit real mode
+	// copy ·apinit to a 16-bit address reachable in real mode
 	apinit_reloc(apinitAddress)
 
 	// create AP Global Descriptor Table (GDT)
-	reg.Write64(gdtBaseAddress+0x00, 0x0000000000000000) // null descriptor
-	reg.Write64(gdtBaseAddress+0x08, 0x00209a00000fffff) // code descriptor (x/r)
-	reg.Write64(gdtBaseAddress+0x10, 0x00009200000fffff) // data descriptor (r/w)
+	reg.Write64(gdtAddress+0x00, 0x0000000000000000) // null descriptor
+	reg.Write64(gdtAddress+0x08, 0x00209a00000fffff) // code descriptor (x/r)
+	reg.Write64(gdtAddress+0x10, 0x00009200000fffff) // data descriptor (r/w)
 
 	// create AP GDT Descriptor (GDTR)
-	reg.Write16(gdtrBaseAddress+0x00, 3*8-1)          // GTD Limit
-	reg.Write32(gdtrBaseAddress+0x02, gdtBaseAddress) // GDT Base Address
+	reg.Write16(gdtrAddress+0x00, 3*8-1)      // GTD Limit
+	reg.Write32(gdtrAddress+0x02, gdtAddress) // GDT Base Address
 
 	for i := 1; i < NumCPU(); i++ {
 		if i == n {
