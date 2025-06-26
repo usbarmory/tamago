@@ -12,20 +12,20 @@
 
 // NOTE: this offset needs adjustment in case of any changes to ·apinit
 #define doneOffset 0x68
+#define doneMarker 0xcccccccccccccccc
 
 TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	// disable interrupts
 	CLI
 
 	// This function is called in 16-Bit Real Mode, for this reason Go
-	// Assembly must be treated different than usual.
+	// Assembly must be treated differently.
 	//
 	// The DATA32 and ADDR32 macros (see amd64.h) are used to ensure
 	// correct interpretation of 32-bit operands and/or addresses.
 	//
-	// The function is relocated to a 16-bit address, using apinit_reloc,
-	// before use. For this reason RIP/EIP-relative addressing must be
-	// avoided.
+	// The function is copied by `apinit_reloc` to a 16-bit address to be
+	// called, for this reason RIP/EIP-relative addressing must be avoided.
 
 	// we might not have a valid stack pointer for CALLs
 	DATA32
@@ -83,7 +83,6 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	PUSHQ	$0x08
 	PUSHQ	AX
 	RETFQ
-
 done:
 	// update GDT limits
 	MOVQ	$(const_gdtAddress), AX
@@ -95,16 +94,8 @@ done:
 
 	LGDT	(AX)
 	HLT
-
 marker:
-	BYTE	$0xcc
-	BYTE	$0xcc
-	BYTE	$0xcc
-	BYTE	$0xcc
-	BYTE	$0xcc
-	BYTE	$0xcc
-	BYTE	$0xcc
-	BYTE	$0xcc
+	WORD	$doneMarker
 
 // func apinit_reloc(ptr uintptr)
 TEXT ·apinit_reloc(SB),$0-8
@@ -112,7 +103,7 @@ TEXT ·apinit_reloc(SB),$0-8
 	MOVL	ptr+0(FP), DI
 
 	// end of function marker
-	MOVQ	$0xcccccccccccccccc, BX
+	MOVQ	$doneMarker, BX
 copy_8:
 	MOVQ	(SI), AX
 	ADDQ	$8, SI
