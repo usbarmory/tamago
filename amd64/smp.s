@@ -79,7 +79,7 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	DATA32
 	MOVL	$(const_apinitAddress+doneOffset), AX
 
-	// jump to target in long mode
+	// jump to target in Long Mode
 	PUSHQ	$0x08
 	PUSHQ	AX
 	RETFQ
@@ -89,12 +89,15 @@ done:
 	// update GDT limits
 	MOVQ	$(const_gdtAddress), AX
 	ADDQ	$0x08, AX
-	MOVW	$0x0000, (AX)
+	MOVW	$0x0000, (AX)			// code descriptor limit
 	ADDQ	$0x08, AX
-	MOVW	$0x0000, (AX)
-	SUBQ	$0x10, AX
+	MOVW	$0x0000, (AX)			// data descriptor limit
 
+	// reload GDT
+	SUBQ	$0x10, AX
 	LGDT	(AX)
+
+	// go to idle state
 	HLT
 marker:
 	WORD	$doneMarker
