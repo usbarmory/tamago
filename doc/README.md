@@ -33,7 +33,7 @@ For an example see package [linux](<https://github.com/usbarmory/tamago/blob/mas
 var Bloc uintptr
 ```
 
-<a name="Exit"></a>Exit describes the optional set of [runtime.Exit](<https://pkg.go.dev/runtime/#Exit>) to define a runtime termination function.
+<a name="Exit"></a>Exit describes the optional [runtime.Exit](<https://pkg.go.dev/runtime/#Exit>) function, which can be set to override default runtime termination.
 
 For an example see package [microvm](<https://github.com/usbarmory/tamago/blob/master/board/qemu/microvm/microvm.go>).
 
@@ -41,7 +41,7 @@ For an example see package [microvm](<https://github.com/usbarmory/tamago/blob/m
 var Exit func(int32)
 ```
 
-<a name="Idle"></a>Idle describes the optional set of [runtime.Idle](<https://pkg.go.dev/runtime/#Idle>) to define a CPU idle function.
+<a name="Idle"></a>Idle describes the optional [runtime.Idle](<https://pkg.go.dev/runtime/#Idle>) function, which can be set to implement CPU idle time management.
 
 For a basic example see package [amd64](<https://github.com/usbarmory/tamago/blob/master/amd64/amd64.go>), a more advanced example involving a physical countdown timer such as \[arm.CPU.SetAlarm\] is implemented in the [tamago example](<https://github.com/usbarmory/tamago-example/blob/master/network/imx.go>).
 
