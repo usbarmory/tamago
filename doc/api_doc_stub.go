@@ -175,16 +175,16 @@ var RamStackOffset uint
 // [linux]: https://github.com/usbarmory/tamago/blob/master/user/linux/runtime.go
 var Bloc uintptr
 
-// Exit describes the optional set of [runtime.Exit] to define a runtime
-// termination function.
+// Exit describes the optional [runtime.Exit] function, which can be set to
+// override default runtime termination.
 //
 // For an example see package [microvm].
 //
 // [microvm]: https://github.com/usbarmory/tamago/blob/master/board/qemu/microvm/microvm.go
 var Exit func(int32)
 
-// Idle describes the optional set of [runtime.Idle] to define a CPU
-// idle function.
+// Idle describes the [runtime.Idle] function, which can be set to implement CPU
+// idle time management.
 //
 // For a basic example see package [amd64], a more advanced example involving a
 // physical countdown timer such as [arm.CPU.SetAlarm] is implemented in the [tamago example].
