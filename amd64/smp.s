@@ -18,8 +18,8 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	// disable interrupts
 	CLI
 
-	// This function is called in 16-Bit Real Mode, for this reason Go
-	// Assembly must be treated differently.
+	// This function runs in 16-Bit Real Mode, for this reason Go Assembly
+	// must be treated differently.
 	//
 	// The DATA32 and ADDR32 macros (see amd64.h) are used to ensure
 	// correct interpretation of 32-bit operands and/or addresses.
@@ -75,7 +75,7 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	DATA32; BYTE	$0x8e; BYTE	$0xe0	// mov %eax,%fs
 	DATA32; BYTE	$0x8e; BYTE	$0xe8	// mov %eax,%gs
 
-	// set far return target
+	// set far return target (avoiding RIP/EIP relative addressing)
 	DATA32
 	MOVL	$(const_apinitAddress+doneOffset), AX
 
@@ -84,6 +84,8 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	PUSHQ	AX
 	RETFQ
 done:
+	// 64-bit Long Mode
+
 	// update GDT limits
 	MOVQ	$(const_gdtAddress), AX
 	ADDQ	$0x08, AX
