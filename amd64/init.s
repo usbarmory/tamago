@@ -52,18 +52,19 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	MOVL	$PDPT, DI
 	MOVL	$(PDT | 1<<1 | 1<<0), (DI)			// set R/W, P
 
-	// Configure Long-Mode Page Translation as follows:
-	//   0x40000000 - 0x7fffffff (1GB) cacheable   physical page (1GB PDPE)
-	//   0x80000000 - 0xbfffffff (1GB) cacheable   physical page (1GB PDPE)
-	//   0xc0000000 - 0xffffffff (1GB) uncacheable physical page (1GB PDPE)
+	// PDPT[1]: 0xc0000000 - 0xffffffff (1GB) uncacheable physical page (1GB PDPE)
 	ADDL	$8, DI
 	MOVL	$(1<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+
+	// PDPT[2]: 0x80000000 - 0xbfffffff (1GB) cacheable physical page (1GB PDPE)
 	ADDL	$8, DI
 	MOVL	$(2<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+
+	// PDPT[3]: 0x40000000 - 0x7fffffff (1GB) cacheable physical page (1GB PDPE)
 	ADDL	$8, DI
 	MOVL	$(3<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
 
-	//   0x00000000 - 0x3fffffff (1GB) cacheable   physical page (2MB PDTEs)
+	// PDT[..]: 0x00000000 - 0x3fffffff (1GB) cacheable physical page (2MB PDTEs)
 	MOVL	$PDT, DI
 	MOVL	$0, AX
 add_pdt_entries:
@@ -129,23 +130,38 @@ TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 	// enable SSE
 	CALL	sse_enable(SB)
 
-	// Reconfigure Long-Mode Page Translation PDT (1GB) as follows:
-	//   0x00000000 - 0x001fffff inaccessible (zero page)
-	//   0x00200000 - 0x3fffffff cacheable physical page
+	// PDT[0] = PT
 	MOVL	$PDT, DI
-	//ANDL	$(1<<1 | 1<<0), (DI)	// clear R/W, P
+	MOVL	$(PT | 1<<1 | 1<<0), (DI)			// set R/W, P
 
-	// FIXME: WiP SMP
-	MOVL	$0, AX
-	ORL	$(1<<7 | 1<<1 | 1<<0), AX			// set PS, R/W, P
+	// PT[0]:  0x00000000 - 0x00001000 inaccessible (zero page)
+	MOVL	$PT, DI
+	ANDL	$(1<<1 | 1<<0), (DI)				// clear R/W, P
+
+	// PT[..]: 0x00001000 - 0x001fffff cacheable physical page (4KB PTEs)
+	ADDL	$8, DI
+	MOVL	$(4<<10), AX
+add_pt_entries:
+	CMPL	AX, $(1 << 21)
+	JAE	add_ext_entries
+
+	ORL	$(1<<1 | 1<<0), AX				// set R/W, P
 	MOVL	AX, (DI)
 
-	//  0x100000000 - 0x13fffffff (1GB) uncacheable physical page (1GB PDPE)
-	//  0x140000000 - 0x17fffffff (1GB) uncacheable physical page (1GB PDPE)
+	ADDL	$(4<<10), AX
+	ADDL	$8, DI
+	JMP	add_pt_entries
+
+add_ext_entries:
+	// add extended Long-Mode Page Translation PDT (1GB) entries.
 	MOVL	$PDPT, DI
+
+	// PDPT[4]: 0x100000000 - 0x13fffffff (1GB) uncacheable physical page (1GB PDPE)
 	ADDL	$(8*4), DI
 	MOVQ	$(4<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), AX	// set PS, PCD, R/W, P
 	MOVQ	AX, (DI)
+
+	// PDPT[5]: 0x140000000 - 0x17fffffff (1GB) uncacheable physical page (1GB PDPE)
 	ADDL	$8, DI
 	MOVQ	$(5<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), AX	// set PS, PCD, R/W, P
 	MOVQ	AX, (DI)
