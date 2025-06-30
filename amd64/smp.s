@@ -99,6 +99,13 @@ done:
 
 	// go to idle state
 	HLT
+
+	MOVQ	$(const_procAddress), AX
+	MOVQ	Proc_sp(AX), SP
+	MOVQ	Proc_pc(AX), R12
+
+	CALL	R12
+
 marker:
 	WORD	$doneMarker
 

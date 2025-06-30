@@ -9,11 +9,15 @@
 package amd64
 
 import (
+	"bytes"
+	"encoding/binary"
 	"runtime"
 	"time"
+	"unsafe"
 
 	"github.com/usbarmory/tamago/amd64/lapic"
 	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -24,7 +28,24 @@ const (
 	gdtAddress = 0x5000
 	// AP GDT Descriptor (GDTR) 16-bit address
 	gdtrAddress = 0x5018
+
+	procAddress = 0x5020
 )
+
+// Proc represents a CPU task
+type Proc struct {
+	sp uint64
+	mp uint64
+	gp uint64
+	pc uint64
+}
+
+// Bytes converts the descriptor structure to byte array format.
+func (d *Proc) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, d)
+	return buf.Bytes()
+}
 
 // defined in smp.s
 func apinit_reloc(addr uintptr)
@@ -54,6 +75,29 @@ func NumCPU() (n int) {
 	return
 }
 
+func (bsp *CPU) task(sp, mp, gp, fn unsafe.Pointer) {
+	proc := &Proc{
+		sp: uint64(uintptr(sp)),
+		mp: uint64(uintptr(mp)),
+		gp: uint64(uintptr(gp)),
+		pc: uint64(uintptr(fn)),
+	}
+
+	buf := proc.Bytes()
+	r, err := dma.NewRegion(procAddress, len(buf), false)
+
+	if err != nil {
+		panic(err)
+	}
+
+	addr, p := r.Reserve(len(buf), 0)
+	defer r.Release(addr)
+
+	copy(p, buf)
+
+	bsp.LAPIC.IPI(1, 255, lapic.ICR_NMI) // FIXME: ?
+}
+
 // InitSMP enables Secure Multiprocessor (SMP) operation by initializing the
 // available Application Processors (see [CPU.APs]).
 //
@@ -62,13 +106,13 @@ func NumCPU() (n int) {
 //
 // After initialization [runtime.NumCPU()] can be used to verify SMP use by the
 // runtime.
-func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
-	cpu.aps = nil
+func (bsp *CPU) InitSMP(n int) (aps []*CPU) {
+	bsp.aps = nil
 
-	// TODO: WiP
-	//defer func() {
-	//	runtime.GOMAXPROCS(1+len(cpu.APs))
-	//}()
+	defer func() {
+		runtime.Task = bsp.task
+		runtime.GOMAXPROCS(1+len(bsp.aps))
+	}()
 
 	if n == 0 || n == 1 {
 		return
@@ -92,9 +136,9 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 		}
 
 		ap := &CPU{
-			TimerMultiplier: cpu.TimerMultiplier,
+			TimerMultiplier: bsp.TimerMultiplier,
 			LAPIC: &lapic.LAPIC{
-				Base: cpu.LAPIC.Base,
+				Base: bsp.LAPIC.Base,
 			},
 		}
 
@@ -105,11 +149,11 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 		// The vector provides the upper 8 bits of a 20-bit physical address.
 		vector := apinitAddress >> 12
 
-		cpu.LAPIC.IPI(i, vector, (1<<16)|(1<<14)|lapic.ICR_INIT)
+		bsp.LAPIC.IPI(i, vector, (1<<16)|(1<<14)|lapic.ICR_INIT)
 		time.Sleep(10 * time.Millisecond)
 
-		cpu.LAPIC.IPI(i, vector, (1<<14)|lapic.ICR_SIPI)
-		cpu.aps = append(cpu.aps, ap)
+		bsp.LAPIC.IPI(i, vector, (1<<14)|lapic.ICR_SIPI)
+		bsp.aps = append(bsp.aps, ap)
 	}
 
 	return
