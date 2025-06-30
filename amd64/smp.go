@@ -16,7 +16,6 @@ import (
 	"unsafe"
 
 	"github.com/usbarmory/tamago/amd64/lapic"
-	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 )
@@ -24,78 +23,57 @@ import (
 const (
 	// ·apinit 16-bit relocation address
 	apinitAddress = 0x4000
-	// AP Global Descriptor Table (GDT) 16-bit address
-	gdtAddress = 0x5000
-	// AP GDT Descriptor (GDTR) 16-bit address
-	gdtrAddress = 0x5018
+	// ·apstart pointer address
+	apstartAddress = 0x5000
 
-	procAddress = 0x5020
+	// AP Global Descriptor Table (GDT) 16-bit address
+	gdtAddress = 0x6000
+	// AP GDT Descriptor (GDTR) 16-bit address
+	gdtrAddress = 0x6018
+
+	// AP task address
+	taskAddress = 0x6020
 )
 
-// Proc represents a CPU task
-type Proc struct {
+// defined in smp.s
+func apinit_reloc(init uintptr, start uintptr)
+
+// task represents a CPU task
+type task struct {
 	sp uint64
 	mp uint64
 	gp uint64
 	pc uint64
 }
 
-// Bytes converts the descriptor structure to byte array format.
-func (d *Proc) Bytes() []byte {
+/// Write writes the task structure to memory
+func (t *task) Write(addr uint) {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, d)
-	return buf.Bytes()
-}
+	binary.Write(buf, binary.LittleEndian, t)
 
-// defined in smp.s
-func apinit_reloc(addr uintptr)
+	n := buf.Len()
+	r, err := dma.NewRegion(addr, n, false)
 
-// NumCPU returns the number of logical CPUs.
-func NumCPU() (n int) {
-	_, _, ecx, _ := cpuid(CPUID_VENDOR, 0)
-
-	switch ecx {
-	case CPUID_VENDOR_ECX_AMD:
-		// AMD64 Architecture Programmer’s Manual
-		// Volume 3 - E4.7
-		_, _, ecx, _ := cpuid(CPUID_AMD_PROC, 0)
-		n = int(bits.Get(&ecx, AMD_PROC_NC, 0xff)) + 1
-	case CPUID_VENDOR_ECX_INTEL:
-		// Intel® Architecture Instruction Set Extensions and Future
-		// Features Programming Reference
-		// 5.1.12 x2APIC Features / Processor Topology (Function 0Bh)
-		_, ebx, _, _ := cpuid(CPUID_INTEL_APIC, 1) // core sublevel
-		n = int(bits.Get(&ebx, INTEL_APIC_LP, 0xffff))
+	if err != nil {
+		panic(err)
 	}
 
-	if n == 0 {
-		n = runtime.NumCPU()
-	}
+	_, p := r.Reserve(n, 0)
+	defer r.Release(addr)
 
-	return
+	copy(p, buf.Bytes())
 }
 
-func (bsp *CPU) task(sp, mp, gp, fn unsafe.Pointer) {
-	proc := &Proc{
+func (bsp *CPU) schedule(sp, mp, gp, fn unsafe.Pointer) {
+	t := &task{
 		sp: uint64(uintptr(sp)),
 		mp: uint64(uintptr(mp)),
 		gp: uint64(uintptr(gp)),
 		pc: uint64(uintptr(fn)),
 	}
 
-	buf := proc.Bytes()
-	r, err := dma.NewRegion(procAddress, len(buf), false)
-
-	if err != nil {
-		panic(err)
-	}
-
-	addr, p := r.Reserve(len(buf), 0)
-	defer r.Release(addr)
-
-	copy(p, buf)
-
-	bsp.LAPIC.IPI(1, 255, lapic.ICR_NMI) // FIXME: ?
+	t.Write(taskAddress)
+	bsp.LAPIC.IPI(1, 255, lapic.ICR_NMI)
 }
 
 // InitSMP enables Secure Multiprocessor (SMP) operation by initializing the
@@ -110,8 +88,9 @@ func (bsp *CPU) InitSMP(n int) (aps []*CPU) {
 	bsp.aps = nil
 
 	defer func() {
-		runtime.Task = bsp.task
-		runtime.GOMAXPROCS(1+len(bsp.aps))
+		runtime.Task = bsp.schedule
+		//time.Sleep(1 * time.Second)
+		//runtime.GOMAXPROCS(1+len(bsp.aps))
 	}()
 
 	if n == 0 || n == 1 {
@@ -119,7 +98,8 @@ func (bsp *CPU) InitSMP(n int) (aps []*CPU) {
 	}
 
 	// copy ·apinit to a 16-bit address reachable in real mode
-	apinit_reloc(apinitAddress)
+	// copy ·apstart pointer to avoid RIP/EIP-relative addressing
+	apinit_reloc(apinitAddress, apstartAddress)
 
 	// create AP Global Descriptor Table (GDT)
 	reg.Write64(gdtAddress+0x00, 0x0000000000000000) // null descriptor

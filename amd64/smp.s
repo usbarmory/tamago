@@ -14,6 +14,31 @@
 #define doneOffset 0x68
 #define doneMarker 0xcccccccccccccccc
 
+// func apinit_reloc(init uintptr, start uintptr)
+TEXT ·apinit_reloc(SB),$0-16
+	MOVQ	$·apinit<>(SB), SI
+	MOVL	init+0(FP), DI
+
+	// end of function marker
+	MOVQ	$doneMarker, BX
+copy_8:
+	MOVQ	(SI), AX
+	ADDQ	$8, SI
+
+	CMPQ	AX, BX
+	JE	done
+
+	MOVQ	AX, (DI)
+	ADDQ	$8, DI
+
+	JMP	copy_8
+done:
+	MOVQ	start+8(FP), DI
+	MOVQ	$·apstart<>(SB), SI
+	MOVQ	SI, (DI)
+
+	RET
+
 TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	// disable interrupts
 	CLI
@@ -97,35 +122,24 @@ done:
 	SUBQ	$0x10, AX
 	LGDT	(AX)
 
-	// go to idle state
-	HLT
-
-	MOVQ	$(const_procAddress), AX
-	MOVQ	Proc_sp(AX), SP
-	MOVQ	Proc_pc(AX), R12
-
-	CALL	R12
-
+	// call ·apstart (avoiding RIP/EIP relative addressing)
+	MOVQ	$(const_apstartAddress), AX
+	CALL	(AX)
 marker:
 	WORD	$doneMarker
 
-// func apinit_reloc(ptr uintptr)
-TEXT ·apinit_reloc(SB),$0-8
-	MOVQ	$·apinit<>(SB), SI
-	MOVL	ptr+0(FP), DI
+TEXT ·apstart<>(SB),NOSPLIT|NOFRAME,$0
+	CALL	sse_enable(SB)
+	CALL	runtime·settls(SB)
 
-	// end of function marker
-	MOVQ	$doneMarker, BX
-copy_8:
-	MOVQ	(SI), AX
-	ADDQ	$8, SI
+	// go to idle state
+	STI
+	HLT
 
-	CMPQ	AX, BX
-	JE	done
+	// load task
+	MOVQ	$(const_taskAddress), AX
+	MOVQ	task_sp(AX), SP
+	MOVQ	task_pc(AX), R12
 
-	MOVQ	AX, (DI)
-	ADDQ	$8, DI
-
-	JMP	copy_8
-done:
-	RET
+	// call task target
+	CALL	R12
