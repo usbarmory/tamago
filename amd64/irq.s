@@ -12,13 +12,13 @@
 // Interrupt Descriptor Table
 GLOBL	idt<>(SB),RODATA,$(const_vectors*16)
 
-DATA	idtptr<>+0x00(SB)/2, $(const_vectors*16-1)	// IDT Limit
-DATA	idtptr<>+0x02(SB)/8, $idt<>(SB)			// IDT Base Address
-GLOBL	idtptr<>(SB),RODATA,$(2+8)
+DATA	idtptr+0x00(SB)/2, $(const_vectors*16-1)	// IDT Limit
+DATA	idtptr+0x02(SB)/8, $idt<>(SB)			// IDT Base Address
+GLOBL	idtptr(SB),RODATA,$(2+8)
 
 // func load_idt() (idt uintptr, irqHandler uintptr)
 TEXT ·load_idt(SB),$0-16
-	MOVQ	$idtptr<>(SB), AX
+	MOVQ	$idtptr(SB), AX
 	LIDT	(AX)
 
 	MOVQ	$idt<>(SB), AX

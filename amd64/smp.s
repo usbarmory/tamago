@@ -130,16 +130,36 @@ marker:
 
 TEXT ·apstart<>(SB),NOSPLIT|NOFRAME,$0
 	CALL	sse_enable(SB)
+
+	// apply BSP IDT (TODO: WiP)
+	MOVQ	$idtptr(SB), AX
+	LIDT	(AX)
+	STI
+
+	// go to idle state
+	//HLT
+
+	// load task
+	MOVQ	$(const_taskAddress), AX
+loop:
+	MOVQ	task_sp(AX), SP
+	MOVQ	task_mp(AX), R13
+	MOVQ	task_gp(AX), g
+	MOVQ	task_pc(AX), R12
+
+	// TODO: WiP
+	CMPQ	R12, $0
+	JE	loop
+
+	// FIXME: g_m
+	MOVQ	R13, 0x30(g)
+
+	MOVQ	g, DI
 	CALL	runtime·settls(SB)
+
+	// call task target
+	CALL	R12
 
 	// go to idle state
 	STI
 	HLT
-
-	// load task
-	MOVQ	$(const_taskAddress), AX
-	MOVQ	task_sp(AX), SP
-	MOVQ	task_pc(AX), R12
-
-	// call task target
-	CALL	R12

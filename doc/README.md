@@ -41,7 +41,7 @@ For an example see package [microvm](<https://github.com/usbarmory/tamago/blob/m
 var Exit func(int32)
 ```
 
-<a name="Idle"></a>Idle describes the optional [runtime.Idle](<https://pkg.go.dev/runtime/#Idle>) function, which can be set to implement CPU idle time management.
+<a name="Idle"></a>Idle describes the [runtime.Idle](<https://pkg.go.dev/runtime/#Idle>) function, which can be set to implement CPU idle time management.
 
 For a basic example see package [amd64](<https://github.com/usbarmory/tamago/blob/master/amd64/amd64.go>), a more advanced example involving a physical countdown timer such as \[arm.CPU.SetAlarm\] is implemented in the [tamago example](<https://github.com/usbarmory/tamago-example/blob/master/network/imx.go>).
 
@@ -91,6 +91,14 @@ For an example see package [vnet](<https://github.com/usbarmory/virtio-net/blob/
 
 ```go
 var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr Addr) (interface{}, error)
+```
+
+<a name="Task"></a>Task describes the optional [runtime.Task](<https://pkg.go.dev/runtime/#Task>) function, which can be set to provide an implementation for HW/OS threading \(see \[runtime.newosproc\]\).
+
+The call takes effect only when [runtime.NumCPU](<https://pkg.go.dev/runtime/#NumCPU>) is greater than 1 \(see [runtime.SetNumCPU](<https://pkg.go.dev/runtime/#SetNumCPU>)\).
+
+```go
+var Task func(stk, mp, g0, fn unsafe.Pointer)
 ```
 
 <a name="GetRandomData"></a>

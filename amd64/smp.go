@@ -40,10 +40,10 @@ func apinit_reloc(init uintptr, start uintptr)
 
 // task represents a CPU task
 type task struct {
-	sp uint64
-	mp uint64
-	gp uint64
-	pc uint64
+	sp uint64 // stack pointer
+	mp uint64 // M
+	gp uint64 // G
+	pc uint64 // fn
 }
 
 /// Write writes the task structure to memory
@@ -64,7 +64,7 @@ func (t *task) Write(addr uint) {
 	copy(p, buf.Bytes())
 }
 
-func (bsp *CPU) schedule(sp, mp, gp, fn unsafe.Pointer) {
+func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
 	t := &task{
 		sp: uint64(uintptr(sp)),
 		mp: uint64(uintptr(mp)),
@@ -72,8 +72,17 @@ func (bsp *CPU) schedule(sp, mp, gp, fn unsafe.Pointer) {
 		pc: uint64(uintptr(fn)),
 	}
 
+	if t.sp == 0 || t.mp == 0 || t.gp == 0 {
+		return
+	}
+
 	t.Write(taskAddress)
-	bsp.LAPIC.IPI(1, 255, lapic.ICR_NMI)
+	cpu.LAPIC.IPI(1, 255, lapic.ICR_NMI) // FIXME
+}
+
+// NumCPU returns the number of logical CPUs initialized on the platform.
+func (cpu *CPU) NumCPU() (n int) {
+	return 1 + len(cpu.aps)
 }
 
 // InitSMP enables Secure Multiprocessor (SMP) operation by initializing the
@@ -84,13 +93,17 @@ func (bsp *CPU) schedule(sp, mp, gp, fn unsafe.Pointer) {
 //
 // After initialization [runtime.NumCPU()] can be used to verify SMP use by the
 // runtime.
-func (bsp *CPU) InitSMP(n int) (aps []*CPU) {
-	bsp.aps = nil
+func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
+	cpu.aps = nil
 
 	defer func() {
-		runtime.Task = bsp.schedule
-		//time.Sleep(1 * time.Second)
-		//runtime.GOMAXPROCS(1+len(bsp.aps))
+		n := cpu.NumCPU()
+
+		runtime.Task = cpu.Task
+		time.Sleep(1 * time.Second)
+
+		runtime.SetNumCPU(n)
+		runtime.GOMAXPROCS(n)
 	}()
 
 	if n == 0 || n == 1 {
@@ -116,9 +129,9 @@ func (bsp *CPU) InitSMP(n int) (aps []*CPU) {
 		}
 
 		ap := &CPU{
-			TimerMultiplier: bsp.TimerMultiplier,
+			TimerMultiplier: cpu.TimerMultiplier,
 			LAPIC: &lapic.LAPIC{
-				Base: bsp.LAPIC.Base,
+				Base: cpu.LAPIC.Base,
 			},
 		}
 
@@ -129,11 +142,11 @@ func (bsp *CPU) InitSMP(n int) (aps []*CPU) {
 		// The vector provides the upper 8 bits of a 20-bit physical address.
 		vector := apinitAddress >> 12
 
-		bsp.LAPIC.IPI(i, vector, (1<<16)|(1<<14)|lapic.ICR_INIT)
+		cpu.LAPIC.IPI(i, vector, (1<<16)|(1<<14)|lapic.ICR_INIT)
 		time.Sleep(10 * time.Millisecond)
 
-		bsp.LAPIC.IPI(i, vector, (1<<14)|lapic.ICR_SIPI)
-		bsp.aps = append(bsp.aps, ap)
+		cpu.LAPIC.IPI(i, vector, (1<<14)|lapic.ICR_SIPI)
+		cpu.aps = append(cpu.aps, ap)
 	}
 
 	return

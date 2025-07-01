@@ -121,7 +121,7 @@ func (cpu *CPU) Features() *Features {
 	}
 }
 
-// NumCPU returns the number of logical CPUs.
+// NumCPU returns the number of logical CPUs available on the platform.
 func NumCPU() (n int) {
 	_, _, ecx, _ := cpuid(CPUID_VENDOR, 0)
 

@@ -175,6 +175,13 @@ var RamStackOffset uint
 // [linux]: https://github.com/usbarmory/tamago/blob/master/user/linux/runtime.go
 var Bloc uintptr
 
+// Task describes the optional [runtime.Task] function, which can be set to
+// provide an implementation for HW/OS threading (see [runtime.newosproc]).
+//
+// The call takes effect only when [runtime.NumCPU] is greater than 1 (see
+// [runtime.SetNumCPU]).
+var Task func(stk, mp, g0, fn unsafe.Pointer)
+
 // Exit describes the optional [runtime.Exit] function, which can be set to
 // override default runtime termination.
 //
