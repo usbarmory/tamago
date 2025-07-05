@@ -98,7 +98,7 @@ var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, 
 The call takes effect only when [runtime.NumCPU](<https://pkg.go.dev/runtime/#NumCPU>) is greater than 1 \(see [runtime.SetNumCPU](<https://pkg.go.dev/runtime/#SetNumCPU>)\).
 
 ```go
-var Task func(stk, mp, g0, fn unsafe.Pointer)
+var Task func(sp, mp, gp, fn unsafe.Pointer)
 ```
 
 <a name="GetRandomData"></a>
