@@ -180,7 +180,7 @@ var Bloc uintptr
 //
 // The call takes effect only when [runtime.NumCPU] is greater than 1 (see
 // [runtime.SetNumCPU]).
-var Task func(stk, mp, g0, fn unsafe.Pointer)
+var Task func(sp, mp, gp, fn unsafe.Pointer)
 
 // Exit describes the optional [runtime.Exit] function, which can be set to
 // override default runtime termination.
