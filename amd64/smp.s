@@ -131,15 +131,26 @@ marker:
 TEXT ·apstart<>(SB),NOSPLIT|NOFRAME,$0
 	CALL	sse_enable(SB)
 
+	// apply BSP GDT
+	MOVQ	$gdtptr(SB), AX
+	LGDT	(AX)
+
 	// apply BSP IDT (TODO: WiP)
 	MOVQ	$idtptr(SB), AX
 	LIDT	(AX)
+
+	// restore GDT limits for next ·apinit
+	MOVQ	$(const_gdtAddress), AX
+	ADDQ	$0x08, AX
+	MOVW	$0xffff, (AX)			// code descriptor limit
+	ADDQ	$0x08, AX
+	MOVW	$0xffff, (AX)			// data descriptor limit
 
 	// go to idle state
 	//STI
 	//HLT
 
-	// load task
+	// load task (WiP: -smp 2 only)
 	MOVQ	$(const_taskAddress), AX
 loop:
 	MOVQ	task_pc(AX), R12
