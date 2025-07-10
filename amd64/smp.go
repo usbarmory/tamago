@@ -72,18 +72,28 @@ func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
 		pc: uint64(uintptr(fn)),
 	}
 
+	if cpu.LAPIC.ID() > 0 {
+		panic("Task on AP")
+	}
+
 	if t.sp == 0 || t.mp == 0 || t.gp == 0 {
-		return
+		panic("Task empty")
 	}
 
 	t.Write(taskAddress)
-	cpu.LAPIC.IPI(1, 255, lapic.ICR_NMI) // FIXME
+	//cpu.LAPIC.IPI(1, 255, 0) // lapic.ICR_NMI) // FIXME
 }
 
 // NumCPU returns the number of logical CPUs initialized on the platform.
 func (cpu *CPU) NumCPU() (n int) {
 	return 1 + len(cpu.aps)
 }
+
+// ID returns the processor identifier.
+func (cpu *CPU) ID() uint64 {
+	return uint64(cpu.LAPIC.ID())
+}
+
 
 // InitSMP enables Secure Multiprocessor (SMP) operation by initializing the
 // available Application Processors (see [CPU.APs]).
@@ -99,8 +109,8 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	defer func() {
 		n := cpu.NumCPU()
 
+		runtime.ProcID = cpu.ID
 		runtime.Task = cpu.Task
-		time.Sleep(1 * time.Second)
 
 		runtime.SetNumCPU(n)
 		runtime.GOMAXPROCS(n)
