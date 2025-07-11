@@ -175,13 +175,6 @@ var RamStackOffset uint
 // [linux]: https://github.com/usbarmory/tamago/blob/master/user/linux/runtime.go
 var Bloc uintptr
 
-// Task describes the optional [runtime.Task] function, which can be set to
-// provide an implementation for HW/OS threading (see [runtime.newosproc]).
-//
-// The call takes effect only when [runtime.NumCPU] is greater than 1 (see
-// [runtime.SetNumCPU]).
-var Task func(sp, mp, gp, fn unsafe.Pointer)
-
 // Exit describes the optional [runtime.Exit] function, which can be set to
 // override default runtime termination.
 //
@@ -200,6 +193,10 @@ var Exit func(int32)
 // [tamago example]: https://github.com/usbarmory/tamago-example/blob/master/network/imx.go
 var Idle func(until int64)
 
+// ProcID describes the optional [runtime.ProcID] function, which can be set to
+// provide the processor identifier for tracing purposes.
+var ProcID func() int64
+
 // SocketFunc describes the optional override of [net.SocketFunc] to
 // provide the network socket implementation. The returned interface
 // must match the requested socket and be either [net.Conn],
@@ -209,3 +206,14 @@ var Idle func(until int64)
 //
 // [vnet]: https://github.com/usbarmory/virtio-net/blob/master/runtime.go
 var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr Addr) (interface{}, error)
+
+// Task describes the optional [runtime.Task] function, which can be set to
+// provide an implementation for HW/OS threading (see [runtime.newosproc]).
+//
+// The call takes effect only when [runtime.NumCPU] is greater than 1 (see
+// [runtime.SetNumCPU]).
+//
+// For an example see package [amd64 SMP initialization].
+//
+// [amd64 SMP initialization]: https://github.com/usbarmory/tamago/blob/master/amd64/smp.go
+var Task func(sp, mp, gp, fn unsafe.Pointer)
