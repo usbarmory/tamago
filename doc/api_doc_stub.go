@@ -43,7 +43,7 @@ package doc
 // [arm CPU initialization]: https://github.com/usbarmory/tamago/blob/master/arm/init.s
 func cpuinit()
 
-// Hwinit0, which must be linked as [runtime.hwinit0]¹, takes care of the lower
+// Hwinit0, which must be linked as `runtime.hwinit0`¹, takes care of the lower
 // level initialization triggered before runtime setup (pre World start).
 //
 // It must be defined using Go's Assembler to retain Go's commitment to
@@ -59,7 +59,7 @@ func cpuinit()
 //go:linkname Hwinit0 runtime.hwinit0
 func Hwinit0()
 
-// Hwinit1, which must be linked as [runtime.hwinit1]¹, takes care of the lower
+// Hwinit1, which must be linked as `runtime.hwinit1`¹, takes care of the lower
 // level initialization triggered early in runtime setup (post World start).
 //
 // For an example see package [microvm platform initialization].
@@ -71,7 +71,7 @@ func Hwinit0()
 //go:linkname Hwinit1 runtime.hwinit1
 func Hwinit1()
 
-// Printk, which must be linked as [runtime.printk]¹, handles character printing
+// Printk, which must be linked as `runtime.printk`¹, handles character printing
 // to standard output.
 //
 // It must be defined using Go's Assembler to retain Go's commitment to
@@ -87,7 +87,7 @@ func Hwinit1()
 //go:linkname Printk runtime.printk
 func Printk(c byte)
 
-// InitRNG, which must be linked as [runtime.initRNG]¹, initializes random
+// InitRNG, which must be linked as `runtime.initRNG`¹, initializes random
 // number generation.
 //
 // For an example see package [amd64 randon number generation].
@@ -99,7 +99,7 @@ func Printk(c byte)
 //go:linkname InitRNG runtime.initRNG
 func InitRNG()
 
-// GetRandomData, which must be linked as [runtime.GetRandomData]¹, generates
+// GetRandomData, which must be linked as `runtime.GetRandomData`¹, generates
 // len(b) random bytes and writes them into b.
 //
 // For an example see package [amd64 random number generation].
@@ -111,7 +111,7 @@ func InitRNG()
 //go:linkname GetRandomData runtime.getRandomData
 func GetRandomData(b []byte)
 
-// Nanotime, which must be linked as [runtime.nanotime1]¹, returns the system
+// Nanotime, which must be linked as `runtime.nanotime1`¹, returns the system
 // time in nanoseconds.
 //
 // It must be defined using Go's Assembler to retain Go's commitment to
@@ -127,7 +127,7 @@ func GetRandomData(b []byte)
 //go:linkname Nanotime runtime.nanotime1
 func Nanotime() int64
 
-// RamStart, which must be linked as [runtime.ramStart]¹, defines the start
+// RamStart, which must be linked as `runtime.ramStart`¹, defines the start
 // address of the physical or virtual memory available to the runtime for
 // allocation (including the code segment which must be mapped within).
 //
@@ -140,7 +140,7 @@ func Nanotime() int64
 //go:linkname RamStart runtime.ramStart
 var RamStart uint
 
-// RamSize, which must be linked as [runtime.ramSize]¹, defines the total size
+// RamSize, which must be linked as `runtime.ramSize`¹, defines the total size
 // of the physical or virtual memory available to the runtime for allocation
 // (including the code segment which must be mapped within).
 //
@@ -153,7 +153,7 @@ var RamStart uint
 //go:linkname RamSize runtime.ramSize
 var RamSize uint
 
-// RamStackOffset, which must be linked as [runtime.ramStackOffset]¹, defines
+// RamStackOffset, which must be linked as `runtime.ramStackOffset`¹, defines
 // the negative offset from the end of the available memory for stack
 // allocation.
 //
@@ -187,7 +187,7 @@ var Exit func(int32)
 // idle time management.
 //
 // For a basic example see package [amd64], a more advanced example involving a
-// physical countdown timer such as [arm.CPU.SetAlarm] is implemented in the [tamago example].
+// physical countdown timer is implemented in the [tamago example].
 //
 // [amd64]: https://github.com/usbarmory/tamago/blob/master/amd64/amd64.go
 // [tamago example]: https://github.com/usbarmory/tamago-example/blob/master/network/imx.go
@@ -208,7 +208,7 @@ var ProcID func() int64
 var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr Addr) (interface{}, error)
 
 // Task describes the optional [runtime.Task] function, which can be set to
-// provide an implementation for HW/OS threading (see [runtime.newosproc]).
+// provide an implementation for HW/OS threading (see `runtime.newosproc`).
 //
 // The call takes effect only when [runtime.NumCPU] is greater than 1 (see
 // [runtime.SetNumCPU]).
