@@ -46,7 +46,7 @@ type task struct {
 	pc uint64 // fn
 }
 
-/// Write writes the task structure to memory
+// / Write writes the task structure to memory
 func (t *task) Write(addr uint) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, t)
@@ -80,7 +80,7 @@ func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
 		pc: uint64(uintptr(fn)),
 	}
 
-	if cpu.init + 1 >= runtime.NumCPU() {
+	if cpu.init+1 >= runtime.NumCPU() {
 		panic("Task exceeds available resources")
 	}
 
@@ -109,7 +109,7 @@ func (cpu *CPU) procresize() {
 	n := cpu.NumCPU()
 
 	// wait for all APs to reach ·apstart idle state
-	if !reg.WaitFor(1 * time.Second, taskAddress, 0, 0xffffffff, uint32(n-1)) {
+	if !reg.WaitFor(1*time.Second, taskAddress, 0, 0xffffffff, uint32(n-1)) {
 		return
 	}
 
