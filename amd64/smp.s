@@ -135,7 +135,7 @@ TEXT ·apstart<>(SB),NOSPLIT|NOFRAME,$0
 	MOVQ	$gdtptr(SB), AX
 	LGDT	(AX)
 
-	// apply BSP IDT (TODO: WiP)
+	// apply BSP IDT
 	MOVQ	$idtptr(SB), AX
 	LIDT	(AX)
 
@@ -146,18 +146,15 @@ TEXT ·apstart<>(SB),NOSPLIT|NOFRAME,$0
 	ADDQ	$0x08, AX
 	MOVW	$0xffff, (AX)			// data descriptor limit
 
+wait:
 	// go to idle state
-	//STI
-	//HLT
+	STI
+	HLT
 
-	// load task (WiP: -smp 2 only)
 	MOVQ	$(const_taskAddress), AX
-loop:
 	MOVQ	task_pc(AX), R12
-
-	// TODO: WiP, should HLT instead
 	CMPQ	R12, $0
-	JE	loop
+	JE	wait
 
 	MOVQ	task_sp(AX), SP
 	MOVQ	task_mp(AX), R13
@@ -169,9 +166,6 @@ loop:
 	MOVQ	$0, task_gp(AX)
 	MOVQ	$0, task_pc(AX)
 
-	// FIXME: g_m (?)
-	//MOVQ	R13, 0x30(g)
-
 	MOVQ	g, DI
 	CALL	runtime·settls(SB)
 	MOVQ	g, (TLS)
@@ -179,6 +173,5 @@ loop:
 	// call task target
 	CALL	R12
 
-	// go to idle state (unreachable)
-	STI
-	HLT
+	// go back to idle state in case we return
+	JMP wait

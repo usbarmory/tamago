@@ -36,14 +36,20 @@ const (
 	LAPIC_ICRH = 0x310
 	LAPIC_ICRL = 0x300
 
-	ICR_DST_SELF = 0b01 << 18
-	ICR_DST_ALL  = 0b10 << 18
-	ICR_DST_REST = 0b11 << 18
+	ICR_DST      = 18
+	ICR_DST_SELF = 0b01 << ICR_DST
+	ICR_DST_ALL  = 0b10 << ICR_DST
+	ICR_DST_REST = 0b11 << ICR_DST
 
-	ICR_SIPI = 0b110 << 8
-	ICR_INIT = 0b101 << 8
-	ICR_NMI  = 0b100 << 8
-	ICR_SMI  = 0b010 << 8
+	ICR_INIT = 14
+
+	ICR_DLV      = 8
+	ICR_DLV_SIPI = 0b110 << ICR_DLV
+	ICR_DLV_INIT = 0b101 << ICR_DLV
+	ICR_DLV_NMI  = 0b100 << ICR_DLV
+	ICR_DLV_SMI  = 0b010 << ICR_DLV
+	ICR_DLV_LOW  = 0b001 << ICR_DLV
+	ICR_DLV_INT  = 0b000 << ICR_DLV
 )
 
 // LAPIC represents a Local APIC instance.

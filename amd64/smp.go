@@ -64,7 +64,15 @@ func (t *task) Write(addr uint) {
 	copy(p, buf.Bytes())
 }
 
+// Task schedules a goroutine on a previously initialized Application Processor
+// (see [CPU.InitSMP]).
+//
+// On `GOOS=tamago` Go scheduler P's are never dropped, therefore the function
+// is invoked only once per AP.
 func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
+	cpu.Lock()
+	defer cpu.Unlock()
+
 	t := &task{
 		sp: uint64(uintptr(sp)),
 		mp: uint64(uintptr(mp)),
@@ -72,8 +80,8 @@ func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
 		pc: uint64(uintptr(fn)),
 	}
 
-	if cpu.LAPIC.ID() > 0 {
-		panic("Task on AP")
+	if cpu.init + 1 >= runtime.NumCPU() {
+		panic("Task exceeds available resources")
 	}
 
 	if t.sp == 0 || t.mp == 0 || t.gp == 0 {
@@ -81,7 +89,9 @@ func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
 	}
 
 	t.Write(taskAddress)
-	//cpu.LAPIC.IPI(1, 255, 0) // lapic.ICR_NMI) // FIXME
+
+	cpu.init += 1
+	cpu.LAPIC.IPI(cpu.init, 255, 1<<16|1<<lapic.ICR_INIT|lapic.ICR_DLV_NMI)
 }
 
 // NumCPU returns the number of logical CPUs initialized on the platform.
@@ -94,19 +104,20 @@ func (cpu *CPU) ID() uint64 {
 	return uint64(cpu.LAPIC.ID())
 }
 
-
 // InitSMP enables Secure Multiprocessor (SMP) operation by initializing the
 // available Application Processors (see [CPU.APs]).
 //
 // A positive argument caps the total (BSP+APs) number of cores, a negative
 // argument initializes all available APs, an agument of 0 or 1 disables SMP.
 //
-// After initialization [runtime.NumCPU()] can be used to verify SMP use by the
-// runtime.
+// After initialization [runtime.NumCPU] or [runtime.GOMAXPROCS] can be used to
+// verify SMP use by the runtime.
 func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	cpu.aps = nil
 
 	defer func() {
+		time.Sleep(100 * time.Millisecond) // FIXME
+
 		n := cpu.NumCPU()
 
 		runtime.ProcID = cpu.ID
@@ -152,10 +163,10 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 		// The vector provides the upper 8 bits of a 20-bit physical address.
 		vector := apinitAddress >> 12
 
-		cpu.LAPIC.IPI(i, vector, (1<<16)|(1<<14)|lapic.ICR_INIT)
+		cpu.LAPIC.IPI(i, vector, 1<<lapic.ICR_INIT|lapic.ICR_DLV_INIT)
 		time.Sleep(10 * time.Millisecond)
 
-		cpu.LAPIC.IPI(i, vector, (1<<14)|lapic.ICR_SIPI)
+		cpu.LAPIC.IPI(i, vector, 1<<lapic.ICR_INIT|lapic.ICR_DLV_SIPI)
 		cpu.aps = append(cpu.aps, ap)
 	}
 

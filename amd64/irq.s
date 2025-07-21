@@ -124,7 +124,7 @@ TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
 	// 0 to 31 - Exceptions
 	CALL	·handleException(SB) //  0 - Divide by Zero
 	CALL	·handleException(SB) //  1 - Debug
-	CALL	·handleException(SB) //  2 - Reserved
+	RET // CALL	·handleException(SB) //  2 - Reserved
 	CALL	·handleException(SB) //  3 - Breakpoint
 	CALL	·handleException(SB) //  4 - Overflow
 	CALL	·handleException(SB) //  5 - Bound Range
