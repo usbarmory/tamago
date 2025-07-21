@@ -49,7 +49,7 @@ const (
 	ICR_DLV_NMI  = 0b100 << ICR_DLV
 	ICR_DLV_SMI  = 0b010 << ICR_DLV
 	ICR_DLV_LOW  = 0b001 << ICR_DLV
-	ICR_DLV_INT  = 0b000 << ICR_DLV
+	ICR_DLV_IRQ  = 0b000 << ICR_DLV
 )
 
 // LAPIC represents a Local APIC instance.

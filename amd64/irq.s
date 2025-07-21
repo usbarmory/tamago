@@ -118,13 +118,16 @@ TEXT ·handleException(SB),NOSPLIT|NOFRAME,$0
 	// TODO: implement runtime.CallOnG0 for a cleaner approach
 	CALL	·DefaultExceptionHandler(SB)
 
+TEXT ·nmiException(SB),NOSPLIT|NOFRAME,$0
+	RET	// used during SMP by CPU.Task to wake up AP, see ·apstart
+
 // To allow a single user-defined ISR for all vectors, a jump table of CALLs,
 // which save the vector PC on the stack, is built to use as IDT offsets.
 TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
 	// 0 to 31 - Exceptions
 	CALL	·handleException(SB) //  0 - Divide by Zero
 	CALL	·handleException(SB) //  1 - Debug
-	RET // CALL	·handleException(SB) //  2 - Reserved
+	JMP	·nmiException(SB)    //  2 - NMI
 	CALL	·handleException(SB) //  3 - Breakpoint
 	CALL	·handleException(SB) //  4 - Overflow
 	CALL	·handleException(SB) //  5 - Bound Range

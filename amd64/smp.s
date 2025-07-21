@@ -146,6 +146,11 @@ TEXT ·apstart<>(SB),NOSPLIT|NOFRAME,$0
 	ADDQ	$0x08, AX
 	MOVW	$0xffff, (AX)			// data descriptor limit
 
+	// use taskAddress as counting semaphore for SMP enabling
+	MOVQ	$(const_taskAddress), BX
+	MOVL	$1, AX
+	LOCK
+	XADDL	AX, 0(BX)
 wait:
 	// go to idle state
 	STI

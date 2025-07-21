@@ -90,8 +90,9 @@ func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
 
 	t.Write(taskAddress)
 
+	// set last initialized CPU and signal task through NMI
 	cpu.init += 1
-	cpu.LAPIC.IPI(cpu.init, 255, 1<<16|1<<lapic.ICR_INIT|lapic.ICR_DLV_NMI)
+	cpu.LAPIC.IPI(cpu.init, 255, 1<<lapic.ICR_INIT|lapic.ICR_DLV_NMI)
 }
 
 // NumCPU returns the number of logical CPUs initialized on the platform.
@@ -104,6 +105,21 @@ func (cpu *CPU) ID() uint64 {
 	return uint64(cpu.LAPIC.ID())
 }
 
+func (cpu *CPU) procresize() {
+	n := cpu.NumCPU()
+
+	// wait for all APs to reach ·apstart idle state
+	if !reg.WaitFor(1 * time.Second, taskAddress, 0, 0xffffffff, uint32(n-1)) {
+		return
+	}
+
+	runtime.ProcID = cpu.ID
+	runtime.Task = cpu.Task
+
+	runtime.SetNumCPU(n)
+	runtime.GOMAXPROCS(n)
+}
+
 // InitSMP enables Secure Multiprocessor (SMP) operation by initializing the
 // available Application Processors (see [CPU.APs]).
 //
@@ -113,20 +129,6 @@ func (cpu *CPU) ID() uint64 {
 // After initialization [runtime.NumCPU] or [runtime.GOMAXPROCS] can be used to
 // verify SMP use by the runtime.
 func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
-	cpu.aps = nil
-
-	defer func() {
-		time.Sleep(100 * time.Millisecond) // FIXME
-
-		n := cpu.NumCPU()
-
-		runtime.ProcID = cpu.ID
-		runtime.Task = cpu.Task
-
-		runtime.SetNumCPU(n)
-		runtime.GOMAXPROCS(n)
-	}()
-
 	if n == 0 || n == 1 {
 		return
 	}
@@ -169,6 +171,8 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 		cpu.LAPIC.IPI(i, vector, 1<<lapic.ICR_INIT|lapic.ICR_DLV_SIPI)
 		cpu.aps = append(cpu.aps, ap)
 	}
+
+	cpu.procresize()
 
 	return
 }
