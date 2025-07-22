@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/usbarmory/tamago/amd64/lapic"
 	"github.com/usbarmory/tamago/dma"
 )
 
@@ -148,7 +149,11 @@ func (cpu *CPU) EnableExceptions() {
 // EnableInterrupts unmasks external interrupts.
 // status.
 func (cpu *CPU) EnableInterrupts() {
-	irq_enable()
+	if cpu.LAPIC.ID() == 0 {
+		irq_enable()
+	} else {
+		cpu.LAPIC.IPI(0, 250, 1<<lapic.ICR_INIT|lapic.ICR_DLV_NMI)
+	}
 }
 
 // DisableInterrupts masks external interrupts.
@@ -164,7 +169,7 @@ func (cpu *CPU) WaitInterrupt() {
 // ServiceInterrupts puts the calling goroutine in wait state, its execution is
 // resumed when a user defined interrupt is received, an argument function can
 // be set for servicing.
-func ServiceInterrupts(isr func(id int)) {
+func (cpu *CPU) ServiceInterrupts(isr func(id int)) {
 	irqHandlerG, _ = runtime.GetG()
 
 	if isr == nil {
@@ -177,7 +182,7 @@ func ServiceInterrupts(isr func(id int)) {
 	for {
 		// To avoid losing interrupts, re-enabling must happen only after we
 		// are sleeping.
-		go irq_enable()
+		go cpu.EnableInterrupts()
 
 		// Sleep indefinitely until woken up by runtime.WakeG
 		// (see irqHandler).
