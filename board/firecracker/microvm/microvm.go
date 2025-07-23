@@ -19,7 +19,6 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/amd64"
-	"github.com/usbarmory/tamago/amd64/lapic"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/kvm/pvclock"
 	"github.com/usbarmory/tamago/soc/intel/ioapic"
@@ -36,8 +35,7 @@ const (
 	// Communication port
 	COM1 = 0x3f8
 
-	// Intel I/O Programmable Interrupt Controllers
-	LAPIC_BASE   = 0xfee00000
+	// Intel I/O Programmable Interrupt Controller
 	IOAPIC0_BASE = 0xfec00000
 
 	// VirtIO Memory-mapped I/O
@@ -54,10 +52,6 @@ var (
 	AMD64 = &amd64.CPU{
 		// required before Init()
 		TimerMultiplier: 1,
-		// Local APIC
-		LAPIC: &lapic.LAPIC{
-			Base: LAPIC_BASE,
-		},
 	}
 
 	// I/O APIC - GSI 0-23

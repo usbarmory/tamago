@@ -30,6 +30,10 @@ import (
 const (
 	// Keyboard controller port
 	KBD_PORT = 0x64
+	// Intel Local Advanced Programmable Interrupt Controller
+	LAPIC_BASE = 0xfee00000
+	// End-Of-Interrupt
+	EOI = LAPIC_BASE + lapic.LAPIC_EOI
 )
 
 //go:linkname ramStackOffset runtime.ramStackOffset
@@ -75,13 +79,18 @@ func (cpu *CPU) Init() {
 	runtime.Exit = exit
 	runtime.Idle = func(pollUntil int64) {
 		// we have nothing to do forever
-		if pollUntil == math.MaxInt64 {
-			halt() // FIXME: SMP WiP
+		if pollUntil == math.MaxInt64 && cpu.init == 0 {
+			halt() // FIXME: WiP SMP
 		}
 	}
 
 	cpu.initFeatures()
 	cpu.initTimers()
+
+	// Local APIC
+	cpu.LAPIC = &lapic.LAPIC{
+		Base: LAPIC_BASE,
+	}
 }
 
 // Name returns the CPU identifier.

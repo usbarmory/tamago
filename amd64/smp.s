@@ -153,7 +153,6 @@ TEXT ·apstart<>(SB),NOSPLIT|NOFRAME,$0
 	XADDL	AX, 0(BX)
 wait:
 	// go to idle state
-	STI
 	HLT
 
 	MOVQ	$(const_taskAddress), AX
