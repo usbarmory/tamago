@@ -70,9 +70,6 @@ func (t *task) Write(addr uint) {
 // On `GOOS=tamago` Go scheduler P's are never dropped, therefore the function
 // is invoked only once per AP.
 func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
-	cpu.Lock()
-	defer cpu.Unlock()
-
 	t := &task{
 		sp: uint64(uintptr(sp)),
 		mp: uint64(uintptr(mp)),

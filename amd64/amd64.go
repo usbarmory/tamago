@@ -19,7 +19,6 @@ package amd64
 import (
 	"math"
 	"runtime"
-	"sync"
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/amd64/lapic"
@@ -41,8 +40,6 @@ var ramStackOffset uint64 = 0x100000 // 1 MB
 
 // CPU represens the Bootstrap Processor (BSP) instance.
 type CPU struct {
-	sync.Mutex
-
 	// Timer multiplier
 	TimerMultiplier float64
 	// Timer offset in nanoseconds
