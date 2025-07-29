@@ -211,7 +211,7 @@ var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, 
 // provide an implementation for HW/OS threading (see `runtime.newosproc`).
 //
 // The call takes effect only when [runtime.NumCPU] is greater than 1 (see
-// [runtime.SetNumCPU]) and it is invoked at most [runtime.GOMAXPROCS] times.
+// [runtime.SetNumCPU]) and it is invoked at most ncpu-1 times.
 //
 // For an example see package [amd64 SMP initialization].
 //
