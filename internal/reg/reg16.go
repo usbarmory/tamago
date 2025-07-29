@@ -73,8 +73,9 @@ func Or16(addr uint32, val uint16) {
 // cannot be used before runtime initialization with `GOOS=tamago`.
 func Wait16(addr uint32, pos int, mask int, val uint16) {
 	for Get16(addr, pos, mask) != val {
-		// tamago is single-threaded, give other goroutines a chance
-		runtime.Gosched()
+		if runtime.NumCPU() == 1 {
+			runtime.Gosched()
+		}
 	}
 }
 
@@ -86,8 +87,9 @@ func WaitFor16(timeout time.Duration, addr uint32, pos int, mask int, val uint16
 	start := time.Now()
 
 	for Get16(addr, pos, mask) != val {
-		// tamago is single-threaded, give other goroutines a chance
-		runtime.Gosched()
+		if runtime.NumCPU() == 1 {
+			runtime.Gosched()
+		}
 
 		if time.Since(start) >= timeout {
 			return false

@@ -101,7 +101,7 @@ var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, 
 
 <a name="Task"></a>Task describes the optional [runtime.Task](<https://pkg.go.dev/runtime/#Task>) function, which can be set to provide an implementation for HW/OS threading \(see \`runtime.newosproc\`\).
 
-The call takes effect only when [runtime.NumCPU](<https://pkg.go.dev/runtime/#NumCPU>) is greater than 1 \(see [runtime.SetNumCPU](<https://pkg.go.dev/runtime/#SetNumCPU>)\).
+The call takes effect only when [runtime.NumCPU](<https://pkg.go.dev/runtime/#NumCPU>) is greater than 1 \(see [runtime.SetNumCPU](<https://pkg.go.dev/runtime/#SetNumCPU>)\) and it is invoked at most [runtime.GOMAXPROCS](<https://pkg.go.dev/runtime/#GOMAXPROCS>) times.
 
 For an example see package [amd64 SMP initialization](<https://github.com/usbarmory/tamago/blob/master/amd64/smp.go>).
 
