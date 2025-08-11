@@ -77,7 +77,7 @@ func (cpu *CPU) Init() {
 	runtime.Idle = func(pollUntil int64) {
 		// we have nothing to do forever
 		if pollUntil == math.MaxInt64 && cpu.init == 0 {
-			halt() // FIXME: WiP SMP
+			halt() // TODO: SMP support
 		}
 	}
 
