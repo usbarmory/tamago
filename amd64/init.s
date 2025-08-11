@@ -8,14 +8,9 @@
 
 //go:build !linkcpuinit
 
+#include "amd64.h"
+#include "go_asm.h"
 #include "textflag.h"
-
-#define MSR_EFER 0xc0000080
-
-#define PML4T 0x9000	// Page Map Level 4 Table       (512GB entries)
-#define PDPT  0xa000	// Page Directory Pointer Table   (1GB entries)
-#define PDT   0xb000	// Page Directory Table           (2MB entries)
-#define PT    0xc000	// Page Table                     (4kB entries)
 
 // Global Descriptor Table
 DATA	gdt<>+0x00(SB)/8, $0x0000000000000000	// null descriptor
@@ -23,12 +18,12 @@ DATA	gdt<>+0x08(SB)/8, $0x00209a0000000000	// code descriptor (x/r)
 DATA	gdt<>+0x10(SB)/8, $0x0000920000000000	// data descriptor (r/w)
 GLOBL	gdt<>(SB),RODATA,$24
 
-DATA	gdtptr<>+0x00(SB)/2, $(3*8-1)		// GDT Limit
-DATA	gdtptr<>+0x02(SB)/8, $gdt<>(SB)		// GDT Base Address
-GLOBL	gdtptr<>(SB),RODATA,$(2+8)
+DATA	gdtptr+0x00(SB)/2, $(3*8-1)		// GDT Limit
+DATA	gdtptr+0x02(SB)/8, $gdt<>(SB)		// GDT Base Address
+GLOBL	gdtptr(SB),RODATA,$(2+8)
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
-	// Disable interrupts
+	// disable interrupts
 	CLI
 
 	// we might not have a valid stack pointer for CALLs
@@ -42,7 +37,7 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	// Intel® 64 and IA-32 Architectures Software Developer’s Manual
 	// Volume 3A - 4.5 IA-32E PAGING
 
-	// Clear tables
+	// clear tables
 	XORL	AX, AX		// value
 	MOVL	$PML4T, DI	// to
 	MOVL	$0x3000, CX	// n
@@ -51,24 +46,25 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 
 	// PML4T[0] = PDPT
 	MOVL	$PML4T, DI
-	MOVL	$(PDPT | 1<<1 | 1<<0), (DI)	// set R/W, P
+	MOVL	$(PDPT | 1<<1 | 1<<0), (DI)			// set R/W, P
 
 	// PDPT[0] = PDT
 	MOVL	$PDPT, DI
 	MOVL	$(PDT | 1<<1 | 1<<0), (DI)			// set R/W, P
 
-	// Configure Long-Mode Page Translation as follows:
-	//   0x40000000 - 0x7fffffff (1GB) cacheable   physical page (1GB PDPE)
-	//   0x80000000 - 0xbfffffff (1GB) cacheable   physical page (1GB PDPE)
-	//   0xc0000000 - 0xffffffff (1GB) uncacheable physical page (1GB PDPE)
+	// PDPT[1]: 0xc0000000 - 0xffffffff (1GB) uncacheable physical page (1GB PDPE)
 	ADDL	$8, DI
 	MOVL	$(1<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+
+	// PDPT[2]: 0x80000000 - 0xbfffffff (1GB) cacheable physical page (1GB PDPE)
 	ADDL	$8, DI
 	MOVL	$(2<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+
+	// PDPT[3]: 0x40000000 - 0x7fffffff (1GB) cacheable physical page (1GB PDPE)
 	ADDL	$8, DI
 	MOVL	$(3<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
 
-	//   0x00000000 - 0x3fffffff (1GB) cacheable   physical page (2MB PDTEs)
+	// PDT[..]: 0x00000000 - 0x3fffffff (1GB) cacheable physical page (2MB PDTEs)
 	MOVL	$PDT, DI
 	MOVL	$0, AX
 add_pdt_entries:
@@ -102,25 +98,26 @@ enable_long_mode:
 	ORL	$(1<<31 | 1<<0), AX	// set CR0.(PG|PE)
 	MOVL	AX, CR0
 
-	// Set Global Descriptor Table
-
+	// set Global Descriptor Table
 	CALL	·getPC<>(SB)
-	MOVL	$gdtptr<>(SB), BX	// 32-bit mode: only PC offset is copied
+	MOVL	$gdtptr(SB), BX		// 32-bit mode: only PC offset is copied
 	ADDL	$6, AX
 	ADDL	BX, AX
 	LGDT	(AX)
 
+	// set far return target
 	CALL	·getPC<>(SB)
 	MOVL	$·start<>(SB), BX	// 32-bit mode: only PC offset is copied
 	ADDL	$6, AX
 	ADDL	BX, AX
 
+	// jump to target in long mode
 	PUSHQ	$0x08
 	PUSHQ	AX
 	RETFQ
 
 TEXT ·reload_gdt<>(SB),NOSPLIT|NOFRAME,$0
-	MOVQ	$gdtptr<>(SB), AX
+	MOVQ	$gdtptr(SB), AX
 	LGDT	(AX)
 
 	MOVQ	$·start<>(SB), AX
@@ -130,21 +127,41 @@ TEXT ·reload_gdt<>(SB),NOSPLIT|NOFRAME,$0
 	RETFQ
 
 TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
-	// Enable SSE
+	// enable SSE
 	CALL	sse_enable(SB)
 
-	// Reconfigure Long-Mode Page Translation PDT (1GB) as follows:
-	//   0x00000000 - 0x001fffff inaccessible (zero page)
-	//   0x00200000 - 0x3fffffff cacheable physical page
+	// PDT[0] = PT
 	MOVL	$PDT, DI
-	ANDL	$(1<<1 | 1<<0), (DI)	// clear R/W, P
+	MOVL	$(PT | 1<<1 | 1<<0), (DI)			// set R/W, P
 
-	//  0x100000000 - 0x13fffffff (1GB) uncacheable physical page (1GB PDPE)
-	//  0x140000000 - 0x17fffffff (1GB) uncacheable physical page (1GB PDPE)
+	// PT[0]:  0x00000000 - 0x00001000 inaccessible (zero page)
+	MOVL	$PT, DI
+	ANDL	$(1<<1 | 1<<0), (DI)				// clear R/W, P
+
+	// PT[..]: 0x00001000 - 0x001fffff cacheable physical page (4KB PTEs)
+	ADDL	$8, DI
+	MOVL	$(4<<10), AX
+add_pt_entries:
+	CMPL	AX, $(1 << 21)
+	JAE	add_ext_entries
+
+	ORL	$(1<<1 | 1<<0), AX				// set R/W, P
+	MOVL	AX, (DI)
+
+	ADDL	$(4<<10), AX
+	ADDL	$8, DI
+	JMP	add_pt_entries
+
+add_ext_entries:
+	// add extended Long-Mode Page Translation PDT (1GB) entries.
 	MOVL	$PDPT, DI
+
+	// PDPT[4]: 0x100000000 - 0x13fffffff (1GB) uncacheable physical page (1GB PDPE)
 	ADDL	$(8*4), DI
 	MOVQ	$(4<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), AX	// set PS, PCD, R/W, P
 	MOVQ	AX, (DI)
+
+	// PDPT[5]: 0x140000000 - 0x17fffffff (1GB) uncacheable physical page (1GB PDPE)
 	ADDL	$8, DI
 	MOVQ	$(5<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), AX	// set PS, PCD, R/W, P
 	MOVQ	AX, (DI)

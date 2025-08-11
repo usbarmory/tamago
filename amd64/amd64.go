@@ -29,20 +29,17 @@ import (
 const (
 	// Keyboard controller port
 	KBD_PORT = 0x64
+	// Intel Local Advanced Programmable Interrupt Controller
+	LAPIC_BASE = 0xfee00000
+	// End-Of-Interrupt
+	EOI = LAPIC_BASE + lapic.LAPIC_EOI
 )
 
 //go:linkname ramStackOffset runtime.ramStackOffset
 var ramStackOffset uint64 = 0x100000 // 1 MB
 
-// CPU instance
+// CPU represents the Bootstrap Processor (BSP) instance.
 type CPU struct {
-	// features
-	invariant bool
-	kvm       bool
-	kvmclock  uint32
-
-	// core frequency in Hz
-	freq uint32
 	// Timer multiplier
 	TimerMultiplier float64
 	// Timer offset in nanoseconds
@@ -50,6 +47,21 @@ type CPU struct {
 
 	// LAPIC represents the Local APIC instance
 	LAPIC *lapic.LAPIC
+
+	// aps represents the Application Processors on symmetric
+	// multiprocessing (SMP systems, it is populated by [CPU.InitSMP] with
+	// the available number of additional cores.
+	aps []*CPU
+	// init represents the last initialized CPU index
+	init int
+
+	// features
+	invariant bool
+	kvm       bool
+	kvmclock  uint32
+
+	// core frequency in Hz
+	freq uint32
 }
 
 // defined in amd64.s
@@ -64,13 +76,18 @@ func (cpu *CPU) Init() {
 	runtime.Exit = exit
 	runtime.Idle = func(pollUntil int64) {
 		// we have nothing to do forever
-		if pollUntil == math.MaxInt64 {
-			halt()
+		if pollUntil == math.MaxInt64 && cpu.init == 0 {
+			halt() // TODO: SMP support
 		}
 	}
 
 	cpu.initFeatures()
 	cpu.initTimers()
+
+	// Local APIC
+	cpu.LAPIC = &lapic.LAPIC{
+		Base: LAPIC_BASE,
+	}
 }
 
 // Name returns the CPU identifier.

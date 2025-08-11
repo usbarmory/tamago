@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/usbarmory/tamago/amd64/lapic"
 	"github.com/usbarmory/tamago/dma"
 )
 
@@ -37,10 +38,7 @@ var (
 )
 
 // IRQ handling goroutine
-var (
-	irqHandlerG   uint64
-	currentVector uintptr
-)
+var irqHandlerG uint64
 
 // defined in irq.s
 func load_idt() (idt uintptr, irqHandler uintptr)
@@ -50,32 +48,6 @@ func wait_interrupt()
 
 //go:nosplit
 func irqHandler()
-
-var throwing bool
-
-func currentInterrupt() (id int) {
-	id = int(currentVector - irqHandlerAddr)
-
-	if id > 0 {
-		id = id / callSize
-	}
-
-	return
-}
-
-// DefaultExceptionHandler handles an exception by printing its vector and
-// processor mode before panicking.
-func DefaultExceptionHandler() {
-	if throwing {
-		exit(0)
-	}
-
-	// TODO: implement runtime.CallOnG0 for a cleaner approach
-	throwing = true
-
-	print("exception: vector ", currentInterrupt(), " \n")
-	panic("unhandled exception")
-}
 
 // GateDescriptor represents an IDT Gate descriptor
 // (Intel® 64 and IA-32 Architectures Software Developer’s Manual
@@ -138,17 +110,15 @@ func setIDT(start int, end int) {
 	}
 }
 
-// EnableExceptions initializes handling of processor exceptions through
-// DefaultExceptionHandler().
-func (cpu *CPU) EnableExceptions() {
-	// processor exceptions
-	setIDT(0, 31)
-}
-
 // EnableInterrupts unmasks external interrupts.
-// status.
 func (cpu *CPU) EnableInterrupts() {
-	irq_enable()
+	if cpu.LAPIC.ID() == 0 {
+		cpu.LAPIC.ClearInterrupt()
+		irq_enable()
+	} else {
+		// IRQs are always handled by the BSP
+		cpu.LAPIC.IPI(0, 250, 1<<lapic.ICR_INIT|lapic.ICR_DLV_NMI)
+	}
 }
 
 // DisableInterrupts masks external interrupts.
@@ -156,15 +126,15 @@ func (cpu *CPU) DisableInterrupts() {
 	irq_disable()
 }
 
-// Waitnterrupt suspends execution until an interrupt is received.
-func (cpu *CPU) Waitnterrupt() {
+// WaitInterrupt suspends execution until an interrupt is received.
+func (cpu *CPU) WaitInterrupt() {
 	wait_interrupt()
 }
 
 // ServiceInterrupts puts the calling goroutine in wait state, its execution is
 // resumed when a user defined interrupt is received, an argument function can
 // be set for servicing.
-func ServiceInterrupts(isr func(id int)) {
+func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	irqHandlerG, _ = runtime.GetG()
 
 	if isr == nil {
@@ -177,12 +147,12 @@ func ServiceInterrupts(isr func(id int)) {
 	for {
 		// To avoid losing interrupts, re-enabling must happen only after we
 		// are sleeping.
-		go irq_enable()
+		go cpu.EnableInterrupts()
 
 		// Sleep indefinitely until woken up by runtime.WakeG
-		// (see irqHandler).
+		// (see handleInterrupt).
 		time.Sleep(math.MaxInt64)
 
-		isr(currentInterrupt())
+		isr(currentVectorNumber())
 	}
 }

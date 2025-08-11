@@ -19,7 +19,6 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/amd64"
-	"github.com/usbarmory/tamago/amd64/lapic"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/kvm/pvclock"
 	"github.com/usbarmory/tamago/soc/intel/ioapic"
@@ -38,7 +37,6 @@ const (
 	COM1 = 0x3f8
 
 	// Intel I/O Programmable Interrupt Controllers
-	LAPIC_BASE   = 0xfee00000
 	IOAPIC0_BASE = 0xfec00000
 	IOAPIC1_BASE = 0xfec10000
 
@@ -52,14 +50,10 @@ const (
 
 // Peripheral instances
 var (
-	// AMD64 core
+	// CPU instance(s)
 	AMD64 = &amd64.CPU{
 		// required before Init()
 		TimerMultiplier: 1,
-		// Local APIC
-		LAPIC: &lapic.LAPIC{
-			Base: LAPIC_BASE,
-		},
 	}
 
 	// I/O APIC - GSI 0-23
@@ -96,7 +90,7 @@ func nanotime1() int64 {
 //
 //go:linkname Init runtime.hwinit1
 func Init() {
-	// initialize CPU
+	// initialize BSP
 	AMD64.Init()
 
 	// initialize I/O APICs
@@ -116,6 +110,9 @@ func Init() {
 func init() {
 	// trap CPU exceptions
 	AMD64.EnableExceptions()
+
+	// initialize APs
+	AMD64.InitSMP(-1)
 
 	// allocate global DMA region
 	dma.Init(dmaStart, dmaSize)

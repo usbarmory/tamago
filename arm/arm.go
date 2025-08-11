@@ -37,6 +37,11 @@ const (
 
 // CPU instance
 type CPU struct {
+	// Timer multiplier
+	TimerMultiplier float64
+	// Timer offset in nanoseconds
+	TimerOffset int64
+
 	// instruction sets
 	arm     bool
 	thumb   bool
@@ -49,11 +54,6 @@ type CPU struct {
 	mProfileModel    bool
 	virtualization   bool
 	genericTimer     bool
-
-	// Timer multiplier
-	TimerMultiplier float64
-	// Timer offset in nanoseconds
-	TimerOffset int64
 
 	// GIC Distributor base address
 	gicd uint32

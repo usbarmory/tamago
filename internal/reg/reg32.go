@@ -88,6 +88,10 @@ func Read(addr uint32) uint32 {
 // defined in reg_*.s
 func Write(addr uint32, val uint32)
 
+func Write32(addr uint32, val uint32) {
+	Write(addr, val)
+}
+
 func WriteBack(addr uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 
@@ -110,8 +114,9 @@ func Or(addr uint32, val uint32) {
 // cannot be used before runtime initialization with `GOOS=tamago`.
 func Wait(addr uint32, pos int, mask int, val uint32) {
 	for Get(addr, pos, mask) != val {
-		// tamago is single-threaded, give other goroutines a chance
-		runtime.Gosched()
+		if runtime.NumCPU() == 1 {
+			runtime.Gosched()
+		}
 	}
 }
 
@@ -123,8 +128,9 @@ func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) 
 	start := time.Now()
 
 	for Get(addr, pos, mask) != val {
-		// tamago is single-threaded, give other goroutines a chance
-		runtime.Gosched()
+		if runtime.NumCPU() == 1 {
+			runtime.Gosched()
+		}
 
 		if time.Since(start) >= timeout {
 			return false
@@ -140,8 +146,9 @@ func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) 
 // runtime initialization.
 func WaitSignal(exit chan struct{}, addr uint32, pos int, mask int, val uint32) bool {
 	for Get(addr, pos, mask) != val {
-		// tamago is single-threaded, give other goroutines a chance
-		runtime.Gosched()
+		if runtime.NumCPU() == 1 {
+			runtime.Gosched()
+		}
 
 		select {
 		case <-exit:

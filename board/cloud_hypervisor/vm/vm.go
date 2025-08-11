@@ -19,7 +19,6 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/amd64"
-	"github.com/usbarmory/tamago/amd64/lapic"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/kvm/pvclock"
@@ -38,8 +37,7 @@ const (
 	// Communication port
 	COM1 = 0x3f8
 
-	// Intel I/O Programmable Interrupt Controllers
-	LAPIC_BASE   = 0xfee00000
+	// Intel I/O Programmable Interrupt Controller
 	IOAPIC0_BASE = 0xfec00000
 
 	// VirtIO Memory-mapped I/O
@@ -52,14 +50,10 @@ const (
 
 // Peripheral instances
 var (
-	// AMD64 core
+	// CPU instance(s)
 	AMD64 = &amd64.CPU{
 		// required before Init()
 		TimerMultiplier: 1,
-		// Local APIC
-		LAPIC: &lapic.LAPIC{
-			Base: LAPIC_BASE,
-		},
 	}
 
 	// I/O APIC - GSI 0-23
@@ -101,6 +95,10 @@ func Init() {
 func init() {
 	// trap CPU exceptions
 	AMD64.EnableExceptions()
+
+	// TODO: Cloud Hypervisor is inconsistent with qemu/Firecracker
+	// microVMs in supporting our INIT-SIPI sequence.
+	// AMD64.InitSMP(-1)
 
 	// allocate global DMA region
 	dma.Init(dmaStart, dmaSize)

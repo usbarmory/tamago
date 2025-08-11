@@ -95,8 +95,9 @@ func (io *IOAPIC) EnableInterrupt(index int, id int) {
 	}
 
 	// set destination field for physical mode
-	bits.SetN(&val, REDTBL_DEST, 0xf, uint32(io.Index))
 	bits.Clear(&val, REDTBL_DESTMOD)
+	// set destination to BSP
+	bits.SetN(&val, REDTBL_DEST, 0xf, 0)
 
 	// set interrupt vector
 	bits.Clear(&val, REDTBL_MASK)
