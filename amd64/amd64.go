@@ -38,7 +38,7 @@ const (
 //go:linkname ramStackOffset runtime.ramStackOffset
 var ramStackOffset uint64 = 0x100000 // 1 MB
 
-// CPU represens the Bootstrap Processor (BSP) instance.
+// CPU represents the Bootstrap Processor (BSP) instance.
 type CPU struct {
 	// Timer multiplier
 	TimerMultiplier float64
