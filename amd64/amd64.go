@@ -9,7 +9,7 @@
 // Package amd64 provides support for AMD64 architecture specific operations.
 //
 // The following architectures/cores are supported/tested:
-//   - AMD64 (single-core)
+//   - AMD64 (multiprocessor)
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=amd64` as
 // supported by the TamaGo framework for bare metal Go, see
@@ -71,7 +71,8 @@ func halt()
 // Fault generates a triple fault.
 func Fault()
 
-// Init performs initialization of an AMD64 core instance.
+// Init performs initialization of an AMD64 bootstrap processor (BSP) instance
+// (see [CPU.InitSMP] for AP initialization).
 func (cpu *CPU) Init() {
 	runtime.Exit = exit
 	runtime.Idle = func(pollUntil int64) {

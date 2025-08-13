@@ -24,8 +24,8 @@ applications on bare metal AMD64/ARM/RISC-V processors.
 
 The [microvm](https://github.com/usbarmory/tamago/tree/master/board/firecracker/microvm)
 package provides support for [Firecracker microvm](https://firecracker-microvm.github.io/)
-paravirtualized Kernel-based Virtual Machine (KVM) configured with a single
-AMD64 core.
+paravirtualized Kernel-based Virtual Machine (KVM) configured with single or
+multiple AMD64 cores.
 
 Documentation
 =============

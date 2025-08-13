@@ -24,8 +24,8 @@ applications on bare metal AMD64/ARM/RISC-V processors.
 
 The [microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)
 package provides support for [QEMU microvm](https://www.qemu.org/docs/master/system/i386/microvm.html)
-paravirtualized Kernel-based Virtual Machine (KVM) configured with a single
-AMD64 core.
+paravirtualized Kernel-based Virtual Machine (KVM) configured with single or
+multiple AMD64 cores.
 
 Documentation
 =============
