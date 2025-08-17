@@ -67,7 +67,7 @@ func (t *task) Write(addr uint) {
 // Task schedules a goroutine on a previously initialized Application Processor
 // (see [CPU.InitSMP]).
 //
-// On `GOOS=tamago` Go scheduler P's are never dropped, therefore the function
+// On `GOOS=tamago` Go scheduler M's are never dropped, therefore the function
 // is invoked only once per AP.
 func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
 	t := &task{
