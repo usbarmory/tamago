@@ -68,7 +68,7 @@ func (t *task) Write(addr uint) {
 // (see [CPU.InitSMP]).
 //
 // On `GOOS=tamago` Go scheduler M's are never dropped, therefore the function
-// is invoked only once per AP.
+// is invoked only once per AP (i.e. GOMAXPROCS-1).
 func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
 	t := &task{
 		sp: uint64(uintptr(sp)),
@@ -77,7 +77,7 @@ func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
 		pc: uint64(uintptr(fn)),
 	}
 
-	if cpu.init+1 >= runtime.NumCPU() {
+	if cpu.init+1 >= runtime.GOMAXPROCS(-1) {
 		panic("Task exceeds available resources")
 	}
 
@@ -113,7 +113,6 @@ func (cpu *CPU) procresize() {
 	runtime.ProcID = cpu.ID
 	runtime.Task = cpu.Task
 
-	runtime.SetNumCPU(n)
 	runtime.GOMAXPROCS(n)
 }
 

@@ -114,7 +114,7 @@ func Or(addr uint32, val uint32) {
 // cannot be used before runtime initialization with `GOOS=tamago`.
 func Wait(addr uint32, pos int, mask int, val uint32) {
 	for Get(addr, pos, mask) != val {
-		if runtime.NumCPU() == 1 {
+		if runtime.GOMAXPROCS(-1) == 1 {
 			runtime.Gosched()
 		}
 	}
@@ -128,7 +128,7 @@ func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) 
 	start := time.Now()
 
 	for Get(addr, pos, mask) != val {
-		if runtime.NumCPU() == 1 {
+		if runtime.GOMAXPROCS(-1) == 1 {
 			runtime.Gosched()
 		}
 
@@ -146,7 +146,7 @@ func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) 
 // runtime initialization.
 func WaitSignal(exit chan struct{}, addr uint32, pos int, mask int, val uint32) bool {
 	for Get(addr, pos, mask) != val {
-		if runtime.NumCPU() == 1 {
+		if runtime.GOMAXPROCS(-1) == 1 {
 			runtime.Gosched()
 		}
 

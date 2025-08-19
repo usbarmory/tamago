@@ -210,8 +210,8 @@ var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, 
 // Task describes the optional [runtime.Task] function, which can be set to
 // provide an implementation for HW/OS threading (see `runtime.newosproc`).
 //
-// The call takes effect only when [runtime.NumCPU] is greater than 1 (see
-// [runtime.SetNumCPU]) and it is invoked at most ncpu-1 times.
+// The call takes effect only when [runtime.GOMAXPROCS] is greater than 1 and
+// it is invoked at most GOMAXPROCS-1 times.
 //
 // For an example see package [amd64 SMP initialization].
 //
