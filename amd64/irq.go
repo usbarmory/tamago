@@ -117,7 +117,7 @@ func (cpu *CPU) EnableInterrupts() {
 		irq_enable()
 	} else {
 		// IRQs are always handled by the BSP
-		cpu.LAPIC.IPI(0, 250, 1<<lapic.ICR_INIT|lapic.ICR_DLV_NMI)
+		cpu.LAPIC.IPI(0, 0, lapic.ICR_DLV_NMI)
 	}
 }
 

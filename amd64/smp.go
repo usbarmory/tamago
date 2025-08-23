@@ -89,7 +89,7 @@ func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
 
 	// set last initialized CPU and signal task through NMI
 	cpu.init += 1
-	cpu.LAPIC.IPI(cpu.init, 255, 1<<lapic.ICR_INIT|lapic.ICR_DLV_NMI)
+	cpu.LAPIC.IPI(cpu.init, 0, lapic.ICR_DLV_NMI)
 }
 
 // NumCPU returns the number of logical CPUs initialized on the platform.

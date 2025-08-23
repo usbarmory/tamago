@@ -76,9 +76,9 @@ func Fault()
 func (cpu *CPU) Init() {
 	runtime.Exit = exit
 	runtime.Idle = func(pollUntil int64) {
-		// we have nothing to do forever
+		// we have nothing to do forever (single-core only)
 		if pollUntil == math.MaxInt64 && cpu.init == 0 {
-			halt() // TODO: SMP support
+			halt()
 		}
 	}
 
