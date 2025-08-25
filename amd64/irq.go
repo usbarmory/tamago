@@ -98,7 +98,7 @@ func setIDT(start int, end int) {
 	addr, idt := r.Reserve(idtSize, 0)
 	defer r.Release(addr)
 
-	for i := start; i < end; i++ {
+	for i := start; i <= end; i++ {
 		if i == vectors {
 			break
 		}
