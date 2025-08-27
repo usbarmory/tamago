@@ -174,6 +174,11 @@ wait:
 	CALL	runtime·settls(SB)
 	MOVQ	g, (TLS)
 
+	// enable LAPIC and interrupts to support Run()
+	MOVL    $(const_LAPIC_BASE+0xf0), AX
+	MOVL    $(1<<8), (AX)			// set SVR_ENABLE
+	STI
+
 	// call task target
 	CALL	R12
 

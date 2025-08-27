@@ -31,6 +31,9 @@ const (
 	vectors  = 256
 )
 
+// IRQ number for [cpu.Run]
+const IRQ_WAKEUP = 255
+
 // IRQ handling jump table variables
 var (
 	idtAddr        uintptr
@@ -44,7 +47,6 @@ var irqHandlerG uint64
 func load_idt() (idt uintptr, irqHandler uintptr)
 func irq_enable()
 func irq_disable()
-func wait_interrupt()
 
 //go:nosplit
 func irqHandler()
@@ -124,11 +126,6 @@ func (cpu *CPU) EnableInterrupts() {
 // DisableInterrupts masks external interrupts.
 func (cpu *CPU) DisableInterrupts() {
 	irq_disable()
-}
-
-// WaitInterrupt suspends execution until an interrupt is received.
-func (cpu *CPU) WaitInterrupt() {
-	wait_interrupt()
 }
 
 // ServiceInterrupts puts the calling goroutine in wait state, its execution is
