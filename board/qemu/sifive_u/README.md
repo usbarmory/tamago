@@ -3,7 +3,7 @@ TamaGo - bare metal Go - QEMU sifive_u support
 
 tamago | https://github.com/usbarmory/tamago  
 
-Copyright (c) WithSecure Corporation  
+Copyright (c) The TamaGo Authors. All Rights Reserved.  
 
 ![TamaGo gopher](https://github.com/usbarmory/tamago/wiki/images/tamago.svg?sanitize=true)
 
@@ -135,7 +135,7 @@ License
 =======
 
 tamago | https://github.com/usbarmory/tamago  
-Copyright (c) WithSecure Corporation
+Copyright (c) The TamaGo Authors. All Rights Reserved.
 
 These source files are distributed under the BSD-style license found in the
 [LICENSE](https://github.com/usbarmory/tamago/blob/master/LICENSE) file.

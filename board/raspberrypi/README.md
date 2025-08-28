@@ -227,13 +227,10 @@ License
 =======
 
 tamago | https://github.com/usbarmory/tamago  
-Copyright (c) WithSecure Corporation
+Copyright (c) The TamaGo Authors. All Rights Reserved.
 
-raspberrypi | https://github.com/usbarmory/tamago/tree/master/board/raspberrypi  
-Copyright (c) the pi package authors
-
-These source files are distributed under the BSD-style license found in the
-[LICENSE](https://github.com/usbarmory/tamago/blob/master/board/raspberrypi/LICENSE) file.
+This project is distributed under the BSD-style license found in the
+[LICENSE](https://github.com/usbarmory/tamago/blob/master/LICENSE) file.
 
 The TamaGo logo is adapted from the Go gopher designed by Renee French and
 licensed under the Creative Commons 3.0 Attributions license. Go Gopher vector

@@ -1,7 +1,7 @@
 // USB armory Mk II support for tamago/arm
 // https://github.com/usbarmory/tamago
 //
-// Copyright (c) WithSecure Corporation
+// Copyright (c) The TamaGo Authors. All Rights Reserved.
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
@@ -20,9 +20,9 @@ import (
 	_ "unsafe"
 )
 
-// USB armory Mk II model revisions, boards manufactured by F-Secure and
-// WithSecure have model information fused in the MSB of OTP fuses bank 4 word
-// 2 (OCOTP_MAC0), returned by Model().
+// USB armory Mk II model revisions, boards manufactured by
+// F-Secure/WithSecure/Reversec have model information fused in the MSB of OTP
+// fuses bank 4 word 2 (OCOTP_MAC0), returned by Model().
 const (
 	// USB armory Mk II (rev. β) - UA-MKII-β
 	BETA = iota

@@ -52,10 +52,7 @@ License
 =======
 
 tamago | https://github.com/usbarmory/tamago  
-Copyright (c) WithSecure Corporation
+Copyright (c) The TamaGo Authors. All Rights Reserved.
 
-bcm2835 | https://github.com/usbarmory/tamago/tree/master/soc/bcm2835  
-Copyright (c) the bcm2835 package authors
-
-These source files are distributed under the BSD-style license found in the
-[LICENSE](https://github.com/usbarmory/tamago/blob/master/soc/bcm2835/LICENSE) file.
+This project is distributed under the BSD-style license found in the
+[LICENSE](https://github.com/usbarmory/tamago/blob/master/LICENSE) file.
