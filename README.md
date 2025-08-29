@@ -106,7 +106,7 @@ Userspace targets
 
 The execution of programs compiled with `GOOS=tamago` can also take place in
 user space by importing any package that implements the required
-[runtime changes](https://github.com/usbarmory/tamago/wiki/Internals#go-runtime-changes)
+[runtime changes](https://pkg.go.dev/github.com/usbarmory/tamago/doc)
 with OS supervision instead of bare metal drivers.
 
 Compiling and running Go programs in user space as `GOOS=tamago` provides the
@@ -174,7 +174,7 @@ Build tags
 ==========
 
 The following build tags allow application to override TamaGo own definition of
-functions [required by the runtime](https://github.com/usbarmory/tamago/wiki/Internals#go-runtime-changes):
+functions [required by the runtime](https://pkg.go.dev/github.com/usbarmory/tamago/doc):
 
 * `linkramstart`: override `ramStart`
 * `linkramsize`: override `ramSize`

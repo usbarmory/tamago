@@ -86,7 +86,7 @@ Build tags
 ==========
 
 The following build tags allow application to override the package own definition of
-[external functions required by the runtime](https://github.com/usbarmory/tamago/wiki/Internals#go-runtime-changes):
+[external functions required by the runtime](https://pkg.go.dev/github.com/usbarmory/tamago/doc):
 
 * `linkramsize`: exclude `ramSize` from `mem.go`
 * `linkprintk`: exclude `printk` from `console.go`
