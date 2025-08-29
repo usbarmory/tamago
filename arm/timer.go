@@ -93,11 +93,15 @@ func (cpu *CPU) SetTime(ns int64) {
 	cpu.TimerOffset = ns - int64(float64(read_cntpct())*cpu.TimerMultiplier)
 }
 
-// SetAlarm sets a physical timer countdown to the absolute time matching the
-// argument nanoseconds value.
+// SetAlarm sets a physical timer to the absolute time matching the argument
+// nanoseconds value, an interrupt is generated on expiration.
 func (cpu *CPU) SetAlarm(ns int64) {
 	if ns == 0 {
 		write_cntptval(0, false)
+		return
+	}
+
+	if cpu.TimerMultiplier == 0 {
 		return
 	}
 

@@ -17,6 +17,7 @@
 package lapic
 
 import (
+	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -33,8 +34,8 @@ const (
 	LAPIC_SVR  = 0xf0
 	SVR_ENABLE = 8
 
-	LAPIC_ICRH = 0x310
 	LAPIC_ICRL = 0x300
+	LAPIC_ICRH = 0x310
 
 	ICR_DST      = 18
 	ICR_DST_SELF = 0b01 << ICR_DST
@@ -42,14 +43,22 @@ const (
 	ICR_DST_REST = 0b11 << ICR_DST
 
 	ICR_INIT = 14
+	ICR_DLV  = 8
 
-	ICR_DLV      = 8
 	ICR_DLV_SIPI = 0b110 << ICR_DLV
 	ICR_DLV_INIT = 0b101 << ICR_DLV
 	ICR_DLV_NMI  = 0b100 << ICR_DLV
 	ICR_DLV_SMI  = 0b010 << ICR_DLV
 	ICR_DLV_LOW  = 0b001 << ICR_DLV
 	ICR_DLV_IRQ  = 0b000 << ICR_DLV
+
+	LAPIC_LVT_TIMER = 0x320
+	TIMER_MODE      = 17
+	TIMER_IRQ       = 0
+
+	TIMER_MODE_ONE_SHOT     = 0b00
+	TIMER_MODE_PERIODIC     = 0b01
+	TIMER_MODE_TSC_DEADLINE = 0b10
 )
 
 // LAPIC represents a Local APIC instance.
@@ -92,5 +101,15 @@ func (io *LAPIC) ClearInterrupt() {
 // IPI sends an Inter-Processor Interrupt (IPI).
 func (io *LAPIC) IPI(apicid int, id int, flags int) {
 	reg.SetN(io.Base+LAPIC_ICRH, ID, 0xff, uint32(apicid))
-	reg.Write(io.Base+LAPIC_ICRL, uint32(flags & 0xffffff00) | uint32(id & 0xff))
+	reg.Write(io.Base+LAPIC_ICRL, uint32(flags&0xffffff00)|uint32(id&0xff))
+}
+
+// SetTimer configures the LAPIC LVT Timer register.
+func (io *LAPIC) SetTimer(id int, mode int) {
+	var val uint32
+
+	bits.SetN(&val, TIMER_IRQ, 0xff, uint32(id))
+	bits.SetN(&val, TIMER_MODE, 0b11, uint32(mode))
+
+	reg.Write(io.Base+LAPIC_LVT_TIMER, val)
 }

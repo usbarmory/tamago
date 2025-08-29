@@ -31,7 +31,9 @@ const (
 	vectors  = 256
 )
 
-// IRQ number for [cpu.Run]
+// IRQ_WAKE represents the IRQ number raised by [cpu.Run] and [cpu.SetAlarm],
+// this IRQ is serviced internally (e.g. outside [cpu.ServiceInterrupt]) to
+// resume halted processors.
 const IRQ_WAKEUP = 255
 
 // IRQ handling jump table variables

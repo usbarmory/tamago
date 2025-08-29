@@ -56,9 +56,7 @@ type CPU struct {
 	init int
 
 	// features
-	invariant bool
-	kvm       bool
-	kvmclock  uint32
+	features Features
 
 	// core frequency in Hz
 	freq uint32
@@ -82,13 +80,13 @@ func (cpu *CPU) Init() {
 		}
 	}
 
-	cpu.initFeatures()
-	cpu.initTimers()
-
 	// Local APIC
 	cpu.LAPIC = &lapic.LAPIC{
 		Base: LAPIC_BASE,
 	}
+
+	cpu.initFeatures()
+	cpu.initTimers()
 }
 
 // Name returns the CPU identifier.

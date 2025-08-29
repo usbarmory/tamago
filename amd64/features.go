@@ -24,6 +24,9 @@ const (
 	CPUID_VENDOR_ECX_INTEL = 0x6c65746e // GenuineI(ntel)
 	CPUID_VENDOR_ECX_AMD   = 0x444d4163 // Authenti(cAMD)
 
+	CPUID_INFO        = 0x01
+	INFO_TSC_DEADLINE = 24
+
 	CPUID_INTEL_CACHE = 0x04
 
 	CPUID_INTEL_APIC = 0x0b
@@ -70,6 +73,22 @@ const (
 	MSR_KVM_SYSTEM_TIME_NEW = 0x4b564d01
 )
 
+// Features represents the processor capabilities detected through the CPUID
+// instruction.
+type Features struct {
+	// TSCInvariant indicates whether the Time Stamp Counter is guaranteed
+	// to be at constant rate.
+	TSCInvariant bool
+	// TSCDeadline indicates whether TSC-Deadline Mode of operation is
+	// available for the local-APIC timer to support [cpu.SetAlarm].
+	TSCDeadline bool
+
+	// KVM indicates whether a Kernel-base Virtual Machine is detected.
+	KVM bool
+	// KVMClockMSR returns the kvmclock Model Specific Register.
+	KVMClockMSR uint32
+}
+
 // defined in features.s
 func cpuid(eaxArg, ecxArg uint32) (eax, ebx, ecx, edx uint32)
 
@@ -80,45 +99,30 @@ func (cpu *CPU) CPUID(leaf, subleaf uint32) (eax, ebx, ecx, edx uint32) {
 
 func (cpu *CPU) initFeatures() {
 	_, _, _, apmFeatures := cpuid(CPUID_APM, 0)
-	cpu.invariant = bits.IsSet(&apmFeatures, APM_TSC_INVARIANT)
+	cpu.features.TSCInvariant = bits.IsSet(&apmFeatures, APM_TSC_INVARIANT)
 
-	_, kvmk, _, _ := cpuid(KVM_CPUID_SIGNATURE, 0)
-	cpu.kvm = kvmk == KVM_SIGNATURE
+	_, _, cpuFeatures, _ := cpuid(CPUID_INFO, 0)
+	cpu.features.TSCDeadline = bits.IsSet(&cpuFeatures, INFO_TSC_DEADLINE)
 
-	if !cpu.kvm {
+	if _, kvmk, _, _ := cpuid(KVM_CPUID_SIGNATURE, 0); kvmk != KVM_SIGNATURE {
 		return
 	}
 
+	cpu.features.KVM = true
 	kvmFeatures, _, _, _ := cpuid(KVM_CPUID_FEATURES, 0)
 
 	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE) {
-		cpu.kvmclock = 0x12
+		cpu.features.KVMClockMSR = 0x12
 	}
 
 	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE2) {
-		cpu.kvmclock = 0x4b564d01
+		cpu.features.KVMClockMSR = 0x4b564d01
 	}
-}
-
-// Features represents the processor capabilities detected through the CPUID
-// instruction.
-type Features struct {
-	// InvariantTSC indicates whether the Time Stamp Counter is guaranteed
-	// to be at constant rate.
-	InvariantTSC bool
-	// KVM indicates whether a Kernel-base Virtual Machine is detected.
-	KVM bool
-	// KVMClockMSR returns the kvmclock Model Specific Register.
-	KVMClockMSR uint32
 }
 
 // Features returns the processor capabilities.
-func (cpu *CPU) Features() *Features {
-	return &Features{
-		InvariantTSC: cpu.invariant,
-		KVM:          cpu.kvm,
-		KVMClockMSR:  cpu.kvmclock,
-	}
+func (cpu *CPU) Features() Features {
+	return cpu.features
 }
 
 // NumCPU returns the number of logical CPUs available on the platform.

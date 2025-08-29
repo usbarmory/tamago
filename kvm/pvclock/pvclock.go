@@ -109,9 +109,9 @@ func Init(cpu *amd64.CPU) {
 	features := cpu.Features()
 
 	switch {
-	case features.InvariantTSC && !features.KVM:
+	case features.TSCInvariant && !features.KVM:
 		// no action required as TSC is reliable
-	case features.InvariantTSC && features.KVM && features.KVMClockMSR > 0:
+	case features.TSCInvariant && features.KVM && features.KVMClockMSR > 0:
 		// no action required as TSC is reliable but we
 		// opportunistically adjust once with kvmclock
 		initTimeInfo(features.KVMClockMSR)

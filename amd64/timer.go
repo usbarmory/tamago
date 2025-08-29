@@ -9,6 +9,7 @@
 package amd64
 
 import (
+	"github.com/usbarmory/tamago/amd64/lapic"
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/kvm/clock"
@@ -19,6 +20,7 @@ const refFreq uint32 = 1e9
 
 // defined in timer.s
 func read_tsc() uint64
+func write_tsc_deadline(ns uint64)
 
 func (cpu *CPU) detectCoreFrequency() (freq uint32) {
 	if denominator, numerator, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); denominator != 0 {
@@ -30,7 +32,7 @@ func (cpu *CPU) detectCoreFrequency() (freq uint32) {
 		cpu.freq = uint32((uint64(numerator) * uint64(nominalFreq)) / uint64(denominator))
 	}
 
-	if cpu.kvm {
+	if cpu.features.KVM {
 		if khz, _, _, _ := cpuid(KVM_CPUID_TSC_KHZ, 0); khz != 0 {
 			cpu.freq = khz * 1000
 		} else {
@@ -96,4 +98,23 @@ func (cpu *CPU) SetTime(ns int64) {
 	}
 
 	cpu.TimerOffset = ns - int64(float64(read_tsc())*cpu.TimerMultiplier)
+}
+
+// SetAlarm sets a physical timer to the absolute time matching the argument
+// nanoseconds value, an interrupt is generated on expiration. This function
+// has effect only if the [CPU] supports [Features.TSCDeadline].
+func (cpu *CPU) SetAlarm(ns int64) {
+	if cpu.TimerMultiplier == 0 || !cpu.features.TSCDeadline {
+		return
+	}
+
+	cpu.LAPIC.SetTimer(IRQ_WAKEUP, lapic.TIMER_MODE_TSC_DEADLINE)
+
+	if ns == 0 {
+		write_tsc_deadline(0)
+		return
+	}
+
+	set := float64(ns-cpu.TimerOffset) / cpu.TimerMultiplier
+	write_tsc_deadline(uint64(set))
 }
