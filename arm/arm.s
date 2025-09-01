@@ -20,9 +20,3 @@ TEXT ·exit(SB),$0-4
 	// wait forever in low-power state
 	WORD	$0xf10c0080 // cpsid i
 	WORD	$0xe320f003 // wfi
-
-// func halt()
-TEXT ·halt(SB),$0
-	// wait until an interrupt is received in low-power state
-	WORD	$0xe320f003 // wfi
-	RET

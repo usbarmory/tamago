@@ -10,7 +10,7 @@ package amd64
 
 var (
 	currentVector uintptr
-	throwing      bool
+	isThrowing    bool
 )
 
 func currentVectorNumber() (id int) {
@@ -26,12 +26,12 @@ func currentVectorNumber() (id int) {
 // DefaultExceptionHandler handles an exception by printing its vector and
 // processor mode before panicking.
 func DefaultExceptionHandler() {
-	if throwing {
+	if isThrowing {
 		exit(0)
 	}
 
 	// TODO: implement runtime.CallOnG0 for a cleaner approach
-	throwing = true
+	isThrowing = true
 
 	print("exception: vector ", currentVectorNumber(), " \n")
 	panic("unhandled exception")

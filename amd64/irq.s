@@ -33,11 +33,29 @@ TEXT ·load_idt(SB),$0-16
 // func irq_enable()
 TEXT ·irq_enable(SB),$0
 	STI
+	MOVB	$0, ·isHandling(SB)
 	RET
 
 // func irq_disable()
 TEXT ·irq_disable(SB),$0
 	CLI
+	MOVB	$1, ·isHandling(SB)
+	RET
+
+// func wfi()
+TEXT ·wfi(SB),$0
+	// disable interrupts to avoid races while checking state
+	CLI
+	MOVB	·isHandling(SB), AX
+
+	// interrupts masked while handling interrupts, bail to avoid deadlock
+	CMPB	AX, $1
+	JE	done
+
+	// wait for interrupt
+	STI
+	HLT
+done:
 	RET
 
 TEXT ·ignoreInterrupt(SB),NOSPLIT|NOFRAME,$0
@@ -95,6 +113,8 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 
 	CMPQ	AX, $0
 	JNE	fail
+
+	MOVB	$1, ·isHandling(SB)
 
 	// the IRQ handling goroutine is expected to unmask IRQs
 	MOVQ	rflags+(24)(SP), AX

@@ -60,6 +60,12 @@ spsr:
 	WORD	$0xe169f000 // msr SPSR, r0
 	RET
 
+// func wfi()
+TEXT ·wfi(SB),$0
+	// wait until an interrupt is received in low-power state
+	WORD	$0xe320f003 // wfi
+	RET
+
 TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
 	// remove exception specific LR offset
 	SUB	$4, R14, R14

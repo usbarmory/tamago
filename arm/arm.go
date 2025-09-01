@@ -67,7 +67,6 @@ type CPU struct {
 // defined in arm.s
 func read_cpsr() uint32
 func exit(int32)
-func halt()
 
 // Init performs initialization of an ARM core instance, the argument must be a
 // pointer to a 64 kB memory area which will be reserved for storing the
@@ -78,7 +77,7 @@ func (cpu *CPU) Init(vbar uint32) {
 	runtime.Idle = func(pollUntil int64) {
 		// we have nothing to do forever
 		if pollUntil == math.MaxInt64 {
-			halt()
+			wfi()
 		}
 	}
 
@@ -120,9 +119,4 @@ func ModeName(mode int) string {
 	}
 
 	return "Unknown"
-}
-
-// Halt suspends execution until an interrupt is received.
-func (cpu *CPU) Halt() {
-	halt()
 }

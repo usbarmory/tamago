@@ -31,24 +31,33 @@ const (
 	vectors  = 256
 )
 
-// IRQ_WAKE represents the IRQ number raised by [cpu.Run] and [cpu.SetAlarm],
-// this IRQ is serviced internally (e.g. outside [cpu.ServiceInterrupt]) to
-// resume halted processors.
-const IRQ_WAKEUP = 255
+const (
+	// IRQ_ALARM represents the interrupt vector raised by [cpu.SetAlarm],
+	// this IRQ can be serviced by [cpu.ServiceInterrupt]).
+	IRQ_ALARM = 254
 
-// IRQ handling jump table variables
-var (
-	idtAddr        uintptr
-	irqHandlerAddr uintptr
+	// IRQ_WAKE represents the interrupt vector raised by [cpu.Run], this
+	// IRQ cannot be serviced by [cpu.ServiceInterrupt]) as it is handled
+	// internally to resume halted processors.
+	IRQ_WAKEUP = 255
 )
 
-// IRQ handling goroutine
-var irqHandlerG uint64
+var (
+	// IRQ handling jump table variables
+	idtAddr        uintptr
+	irqHandlerAddr uintptr
+
+	// IRQ handling goroutine
+	irqHandlerG uint64
+	// IRQ handling state
+	isHandling bool
+)
 
 // defined in irq.s
 func load_idt() (idt uintptr, irqHandler uintptr)
 func irq_enable()
 func irq_disable()
+func wfi()
 
 //go:nosplit
 func irqHandler()
@@ -128,6 +137,11 @@ func (cpu *CPU) EnableInterrupts() {
 // DisableInterrupts masks external interrupts.
 func (cpu *CPU) DisableInterrupts() {
 	irq_disable()
+}
+
+// WaitInterrupt suspends execution until an interrupt is received.
+func (cpu *CPU) WaitInterrupt() {
+	wfi()
 }
 
 // ServiceInterrupts puts the calling goroutine in wait state, its execution is

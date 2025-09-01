@@ -104,7 +104,7 @@ func (io *LAPIC) IPI(apicid int, id int, flags int) {
 	reg.Write(io.Base+LAPIC_ICRL, uint32(flags&0xffffff00)|uint32(id&0xff))
 }
 
-// SetTimer configures the LAPIC LVT Timer register.
+// SetTimer configures the LAPIC LVT Timer with the argument vector and mode.
 func (io *LAPIC) SetTimer(id int, mode int) {
 	var val uint32
 
