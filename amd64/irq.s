@@ -114,9 +114,8 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	CMPQ	AX, $0
 	JNE	fail
 
-	MOVB	$1, ·isHandling(SB)
-
 	// the IRQ handling goroutine is expected to unmask IRQs
+	MOVB	$1, ·isHandling(SB)
 	MOVQ	rflags+(24)(SP), AX
 	ANDL	$~(1<<9), AX		// clear RFLAGS.IF
 	MOVQ	AX, rflags+(24)(SP)
@@ -127,6 +126,7 @@ fail:
 	MOVL	$0, (AX)
 
 	// the IRQ handling goroutine will not wake, unmask IRQs
+	MOVB	$0, ·isHandling(SB)
 	MOVQ	rflags+(24)(SP), AX
 	ORL	$(1<<9), AX		// set RFLAGS.IF
 	MOVQ	AX, rflags+(24)(SP)
@@ -165,6 +165,7 @@ TEXT ·handleNMI(SB),NOSPLIT|NOFRAME,$0
 	MOVL	$0, (AX)
 
 	// unmask IRQs
+	MOVB	$0, ·isHandling(SB)
 	MOVQ	rflags+(16)(SP), AX
 	ORL	$(1<<9), AX		// set RFLAGS.IF
 	MOVQ	AX, rflags+(16)(SP)
