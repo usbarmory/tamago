@@ -119,11 +119,11 @@ runtime to directly access OS resources, this results in:
 
 The following table summarizes currently available userspace support:
 
-| Operating System                             | `GOARCH`          | Runtime packages                                                                             |
-|----------------------------------------------|-------------------|----------------------------------------------------------------------------------------------|
-| [Linux](https://www.kernel.org/)             | amd64,arm,riscv64 | [linux](https://github.com/usbarmory/tamago/tree/master/user/linux)                          |
-| [Linux](https://www.kernel.org/)             | amd64,arm,riscv64 | [testing](https://github.com/usbarmory/tamago-go/blob/latest/src/testing/testing_tamago.go)¹ |
-| [GoTEE](https://github.com/usbarmory/GoTEE/) |       arm,riscv64 | [applet](https://pkg.go.dev/github.com/usbarmory/GoTEE/applet)                               |
+| Operating System                             | `GOARCH`                | Runtime packages                                                                             |
+|----------------------------------------------|-------------------------|----------------------------------------------------------------------------------------------|
+| [Linux](https://www.kernel.org/)             | amd64,arm,arm64,riscv64 | [linux](https://github.com/usbarmory/tamago/tree/master/user/linux)                          |
+| [Linux](https://www.kernel.org/)             | amd64,arm,arm64,riscv64 | [testing](https://github.com/usbarmory/tamago-go/blob/latest/src/testing/testing_tamago.go)¹ |
+| [GoTEE](https://github.com/usbarmory/GoTEE/) |             arm,riscv64 | [applet](https://pkg.go.dev/github.com/usbarmory/GoTEE/applet)                               |
 
 ¹ Used to run [standard distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility)
 
