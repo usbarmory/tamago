@@ -94,17 +94,6 @@ func (cpu *CPU) Name() string {
 	return runtime.CPU()
 }
 
-// Halt suspends execution on the running processor until an interrupt is
-// received (see [cpu.Run]).
-func (cpu *CPU) Halt() {
-	halt()
-}
-
-// Run resumes execution on a halted processor (see [cpu.Halt]).
-func (cpu *CPU) Run(id uint64) {
-	cpu.LAPIC.IPI(int(id), IRQ_WAKEUP, lapic.ICR_DLV_IRQ)
-}
-
 // Reset resets the CPU pin via 8042 keyboard controller pulse.
 func (cpu *CPU) Reset() {
 	reg.Out8(KBD_PORT, 0xfe)

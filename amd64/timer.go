@@ -101,14 +101,16 @@ func (cpu *CPU) SetTime(ns int64) {
 }
 
 // SetAlarm sets a physical timer to the absolute time matching the argument
-// nanoseconds value, an interrupt (see [IRQ_ALARM] is generated on expiration.
-// This function has effect only if the [CPU] supports [Features.TSCDeadline].
+// nanoseconds value, an interrupt (see [IRQ_WAKEUP] is generated on
+// expiration. The timer is enabled only on [CPU] instances supporting
+// [Features.TSCDeadline].
 func (cpu *CPU) SetAlarm(ns int64) {
 	if cpu.TimerMultiplier == 0 || !cpu.features.TSCDeadline {
 		return
 	}
 
-	cpu.LAPIC.SetTimer(IRQ_ALARM, lapic.TIMER_MODE_TSC_DEADLINE)
+	// TODO: move to apinit ?
+	cpu.LAPIC.SetTimer(IRQ_WAKEUP, lapic.TIMER_MODE_TSC_DEADLINE)
 
 	if ns == 0 {
 		write_tsc_deadline(0)

@@ -46,9 +46,9 @@ TEXT ·irq_disable(SB),$0
 TEXT ·wfi(SB),$0
 	// disable interrupts to avoid races while checking state
 	CLI
-	MOVB	·isHandling(SB), AX
 
 	// interrupts masked while handling interrupts, bail to avoid deadlock
+	MOVB	·isHandling(SB), AX
 	CMPB	AX, $1
 	JE	done
 
@@ -64,21 +64,21 @@ TEXT ·ignoreInterrupt(SB),NOSPLIT|NOFRAME,$0
 	//  * cpu.SetAlarm at timer expiration
 
 	// save caller registers
-	MOVQ    AX, ax-(0*8+8)(SP)
+	MOVQ	AX, ax-(0*8+8)(SP)
 
 	// clear interrupt
-	MOVL    $(const_EOI), AX
-	MOVL    $0, (AX)
+	MOVL	$(const_EOI), AX
+	MOVL	$0, (AX)
 
 	// restore caller registers
-	MOVQ    ax-(0*8+8)(SP), AX
+	MOVQ	ax-(0*8+8)(SP), AX
 
 	// return to caller
-	ADDQ    $8, SP
+	ADDQ	$8, SP
 	IRETQ
 
 TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
-	// save caller registers
+	// save caller registers (TODO: we only need AX-DX, do we optimize?)
 	MOVQ	R15, r15-(14*8+8)(SP)
 	MOVQ	R14, r14-(13*8+8)(SP)
 	MOVQ	R13, r13-(12*8+8)(SP)

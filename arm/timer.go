@@ -94,7 +94,7 @@ func (cpu *CPU) SetTime(ns int64) {
 }
 
 // SetAlarm sets a physical timer to the absolute time matching the argument
-// nanoseconds value, an interrupt is generated on expiration.
+// nanoseconds value, an interrupt is generated at expiration.
 func (cpu *CPU) SetAlarm(ns int64) {
 	if ns == 0 {
 		write_cntptval(0, false)

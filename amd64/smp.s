@@ -153,6 +153,7 @@ TEXT ·apstart<>(SB),NOSPLIT|NOFRAME,$0
 	XADDL	AX, 0(BX)
 wait:
 	// go to idle state
+	CLI
 	HLT
 
 	MOVQ	$(const_taskAddress), AX
@@ -174,10 +175,9 @@ wait:
 	CALL	runtime·settls(SB)
 	MOVQ	g, (TLS)
 
-	// enable LAPIC and interrupts to support Run()
+	// enable LAPIC
 	MOVL    $(const_LAPIC_BASE+0xf0), AX
 	MOVL    $(1<<8), (AX)			// set SVR_ENABLE
-	STI
 
 	// call task target
 	CALL	R12

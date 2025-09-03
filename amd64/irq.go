@@ -32,13 +32,9 @@ const (
 )
 
 const (
-	// IRQ_ALARM represents the interrupt vector raised by [cpu.SetAlarm],
-	// this IRQ can be serviced by [cpu.ServiceInterrupt]).
-	IRQ_ALARM = 254
-
-	// IRQ_WAKE represents the interrupt vector raised by [cpu.Run], this
-	// IRQ cannot be serviced by [cpu.ServiceInterrupt]) as it is handled
-	// internally to resume halted processors.
+	// IRQ_WAKEUP represents the interrupt vector raised by [cpu.SetAlarm],
+	// it cannot be serviced by [cpu.ServiceInterrupt] as the IRQ is
+	// handled internally to resume halted processors.
 	IRQ_WAKEUP = 255
 )
 
@@ -139,7 +135,8 @@ func (cpu *CPU) DisableInterrupts() {
 	irq_disable()
 }
 
-// WaitInterrupt suspends execution until an interrupt is received.
+// WaitInterrupt suspends execution on the current processor until an interrupt
+// is received.
 func (cpu *CPU) WaitInterrupt() {
 	wfi()
 }
