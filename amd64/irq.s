@@ -64,36 +64,25 @@ TEXT ·ignoreInterrupt(SB),NOSPLIT|NOFRAME,$0
 	//  * cpu.SetAlarm at timer expiration
 
 	// save caller registers
-	MOVQ	AX, ax-(0*8+8)(SP)
+	PUSHQ	AX
 
 	// clear interrupt
 	MOVL	$(const_EOI), AX
 	MOVL	$0, (AX)
 
 	// restore caller registers
-	MOVQ	ax-(0*8+8)(SP), AX
+	POPQ	AX
 
 	// return to caller
 	ADDQ	$8, SP
 	IRETQ
 
 TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
-	// save caller registers (TODO: we only need AX-DX, do we optimize?)
-	MOVQ	R15, r15-(14*8+8)(SP)
-	MOVQ	R14, r14-(13*8+8)(SP)
-	MOVQ	R13, r13-(12*8+8)(SP)
-	MOVQ	R12, r12-(11*8+8)(SP)
-	MOVQ	R11, r11-(10*8+8)(SP)
-	MOVQ	R10, r10-(9*8+8)(SP)
-	MOVQ	R9, r9-(8*8+8)(SP)
-	MOVQ	R8, r8-(7*8+8)(SP)
-	MOVQ	DI, di-(6*8+8)(SP)
-	MOVQ	SI, si-(5*8+8)(SP)
-	MOVQ	BP, bp-(4*8+8)(SP)
-	MOVQ	BX, bx-(3*8+8)(SP)
-	MOVQ	DX, dx-(2*8+8)(SP)
-	MOVQ	CX, cx-(1*8+8)(SP)
-	MOVQ	AX, ax-(0*8+8)(SP)
+	// save caller registers
+	PUSHQ	BX
+	PUSHQ	DX
+	PUSHQ	CX
+	PUSHQ	AX
 
 	// AMD64 Architecture Programmer’s Manual
 	// Volume 2 - 8.9.3 Interrupt Stack Frame
@@ -107,10 +96,7 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	CMPQ	AX, $0
 	JE	done
 
-	SUBQ	$(15*8+8), SP
 	CALL	runtime·WakeG(SB)
-	ADDQ	$(15*8+8), SP
-
 	CMPQ	AX, $0
 	JNE	fail
 
@@ -132,21 +118,10 @@ fail:
 	MOVQ	AX, rflags+(24)(SP)
 done:
 	// restore caller registers
-	MOVQ	ax-(0*8+8)(SP), AX
-	MOVQ	cx-(1*8+8)(SP), CX
-	MOVQ	dx-(2*8+8)(SP), DX
-	MOVQ	bx-(3*8+8)(SP), BX
-	MOVQ	bp-(4*8+8)(SP), BP
-	MOVQ	si-(5*8+8)(SP), SI
-	MOVQ	di-(6*8+8)(SP), DI
-	MOVQ	r8-(7*8+8)(SP), R8
-	MOVQ	r9-(8*8+8)(SP), R9
-	MOVQ	r10-(9*8+8)(SP), R10
-	MOVQ	r11-(10*8+8)(SP), R11
-	MOVQ	r12-(11*8+8)(SP), R12
-	MOVQ	r13-(12*8+8)(SP), R13
-	MOVQ	r14-(13*8+8)(SP), R14
-	MOVQ	r15-(14*8+8)(SP), R15
+	POPQ	AX
+	POPQ	CX
+	POPQ	DX
+	POPQ	BX
 
 	// return to caller
 	ADDQ	$8, SP
@@ -158,7 +133,7 @@ TEXT ·handleNMI(SB),NOSPLIT|NOFRAME,$0
 	//  * cpu.EnableInterrupt to unmask IRQs on the BSP
 
 	// save caller registers
-	MOVQ	AX, ax-(0*8+8)(SP)
+	PUSHQ	AX
 
 	// clear interrupt
 	MOVL	$(const_EOI), AX
@@ -171,7 +146,7 @@ TEXT ·handleNMI(SB),NOSPLIT|NOFRAME,$0
 	MOVQ	AX, rflags+(16)(SP)
 
 	// restore caller registers
-	MOVQ	ax-(0*8+8)(SP), AX
+	POPQ	AX
 
 	// return to caller
 	IRETQ

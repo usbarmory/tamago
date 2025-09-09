@@ -101,9 +101,9 @@ func (io *LAPIC) ClearInterrupt() {
 
 // IPI sends an Inter-Processor Interrupt (IPI).
 func (io *LAPIC) IPI(apicid int, id int, flags int) {
-	reg.Wait(io.Base+LAPIC_ICRL, ICR_DLV_STATUS, 1, 0)
 	reg.SetN(io.Base+LAPIC_ICRH, ID, 0xff, uint32(apicid))
 	reg.Write(io.Base+LAPIC_ICRL, uint32(flags&0xffffff00)|uint32(id&0xff))
+	reg.Wait(io.Base+LAPIC_ICRL, ICR_DLV_STATUS, 1, 0)
 }
 
 // SetTimer configures the LAPIC LVT Timer with the argument vector and mode.
