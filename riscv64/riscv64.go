@@ -31,15 +31,18 @@ type CPU struct{}
 // defined in riscv64.s
 func exit(int32)
 
+// DefaultIdleGovernor is the default CPU idle time management function
+func DefaultIdleGovernor(pollUntil int64) {
+	// we have nothing to do forever
+	if pollUntil == math.MaxInt64 {
+		exit(0)
+	}
+}
+
 // Init performs initialization of an RV64 core instance in machine mode.
 func (cpu *CPU) Init() {
 	runtime.Exit = exit
-	runtime.Idle = func(pollUntil int64) {
-		// we have nothing to do forever
-		if pollUntil == math.MaxInt64 {
-			exit(0)
-		}
-	}
+	runtime.Idle = DefaultIdleGovernor
 
 	cpu.SetExceptionHandler(DefaultExceptionHandler)
 }

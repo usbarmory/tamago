@@ -69,16 +69,19 @@ func halt()
 // Fault generates a triple fault.
 func Fault()
 
+// DefaultIdleGovernor is the default CPU idle time management function
+func DefaultIdleGovernor(pollUntil int64) {
+	// we have nothing to do forever
+	if pollUntil == math.MaxInt64 {
+		wfi()
+	}
+}
+
 // Init performs initialization of an AMD64 bootstrap processor (BSP) instance
 // (see [CPU.InitSMP] for AP initialization).
 func (cpu *CPU) Init() {
 	runtime.Exit = exit
-	runtime.Idle = func(pollUntil int64) {
-		// we have nothing to do forever (single-core only)
-		if pollUntil == math.MaxInt64 && cpu.init == 0 {
-			wfi()
-		}
-	}
+	runtime.Idle = DefaultIdleGovernor
 
 	// Local APIC
 	cpu.LAPIC = &lapic.LAPIC{

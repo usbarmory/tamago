@@ -68,18 +68,21 @@ type CPU struct {
 func read_cpsr() uint32
 func exit(int32)
 
+// DefaultIdleGovernor is the default CPU idle time management function
+func DefaultIdleGovernor(pollUntil int64) {
+	// we have nothing to do forever
+	if pollUntil == math.MaxInt64 {
+		wfi()
+	}
+}
+
 // Init performs initialization of an ARM core instance, the argument must be a
 // pointer to a 64 kB memory area which will be reserved for storing the
 // exception vector table, L1/L2 page tables and the exception stack
 // (see https://github.com/usbarmory/tamago/wiki/Internals#memory-layout).
 func (cpu *CPU) Init(vbar uint32) {
 	runtime.Exit = exit
-	runtime.Idle = func(pollUntil int64) {
-		// we have nothing to do forever
-		if pollUntil == math.MaxInt64 {
-			wfi()
-		}
-	}
+	runtime.Idle = DefaultIdleGovernor
 
 	// the application is allowed to override the reserved area
 	if vecTableStart != 0 {
