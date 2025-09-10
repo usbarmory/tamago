@@ -16,6 +16,8 @@ DATA	idtptr+0x00(SB)/2, $(const_vectors*16-1)	// IDT Limit
 DATA	idtptr+0x02(SB)/8, $idt<>(SB)			// IDT Base Address
 GLOBL	idtptr(SB),RODATA,$(2+8)
 
+GLOBL	irqDisabled<>(SB),RODATA,$1
+
 // func load_idt() (idt uintptr, irqHandler uintptr)
 TEXT ·load_idt(SB),$0-16
 	MOVQ	$idtptr(SB), AX
@@ -33,13 +35,13 @@ TEXT ·load_idt(SB),$0-16
 // func irq_enable()
 TEXT ·irq_enable(SB),$0
 	STI
-	MOVB	$0, ·isHandling(SB)
+	MOVB	$0, irqDisabled<>(SB)
 	RET
 
 // func irq_disable()
 TEXT ·irq_disable(SB),$0
 	CLI
-	MOVB	$1, ·isHandling(SB)
+	MOVB	$1, irqDisabled<>(SB)
 	RET
 
 // func wfi()
@@ -48,7 +50,7 @@ TEXT ·wfi(SB),$0
 	CLI
 
 	// interrupts masked while handling interrupts, bail to avoid deadlock
-	MOVB	·isHandling(SB), AX
+	MOVB	irqDisabled<>(SB), AX
 	CMPB	AX, $1
 	JE	done
 
@@ -96,15 +98,20 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	CMPQ	AX, $0
 	JE	done
 
+	MOVQ	$1, ·irqHandling(SB)
 	CALL	runtime·WakeG(SB)
 	CMPQ	AX, $0
 	JNE	fail
 
+	// wake idle APs (TODO: use proper constants)
+	MOVL	$(const_LAPIC_BASE+0x300), AX
+	MOVL	$(0b11<<18|const_IRQ_WAKEUP), (AX)
+
 	// the IRQ handling goroutine is expected to unmask IRQs
-	MOVB	$1, ·isHandling(SB)
-	MOVQ	rflags+(24)(SP), AX
+	MOVB	$1, irqDisabled<>(SB)
+	MOVL	rflags+(24)(SP), AX
 	ANDL	$~(1<<9), AX		// clear RFLAGS.IF
-	MOVQ	AX, rflags+(24)(SP)
+	MOVL	AX, rflags+(24)(SP)
 	JMP	done
 fail:
 	// clear interrupt
@@ -112,10 +119,10 @@ fail:
 	MOVL	$0, (AX)
 
 	// the IRQ handling goroutine will not wake, unmask IRQs
-	MOVB	$0, ·isHandling(SB)
-	MOVQ	rflags+(24)(SP), AX
+	MOVB	$0, irqDisabled<>(SB)
+	MOVL	rflags+(24)(SP), AX
 	ORL	$(1<<9), AX		// set RFLAGS.IF
-	MOVQ	AX, rflags+(24)(SP)
+	MOVL	AX, rflags+(24)(SP)
 done:
 	// restore caller registers
 	POPQ	AX
@@ -125,6 +132,7 @@ done:
 
 	// return to caller
 	ADDQ	$8, SP
+	MOVQ	$0, ·irqHandling(SB)
 	IRETQ
 
 TEXT ·handleNMI(SB),NOSPLIT|NOFRAME,$0
@@ -140,10 +148,10 @@ TEXT ·handleNMI(SB),NOSPLIT|NOFRAME,$0
 	MOVL	$0, (AX)
 
 	// unmask IRQs
-	MOVB	$0, ·isHandling(SB)
-	MOVQ	rflags+(16)(SP), AX
+	MOVB	$0, irqDisabled<>(SB)
+	MOVL	rflags+(16)(SP), AX
 	ORL	$(1<<9), AX		// set RFLAGS.IF
-	MOVQ	AX, rflags+(16)(SP)
+	MOVL	AX, rflags+(16)(SP)
 
 	// restore caller registers
 	POPQ	AX

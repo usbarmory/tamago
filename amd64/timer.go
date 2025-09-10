@@ -113,6 +113,8 @@ func (cpu *CPU) SetAlarm(ns int64) {
 	cpu.LAPIC.SetTimer(IRQ_WAKEUP, lapic.TIMER_MODE_TSC_DEADLINE)
 
 	if ns == 0 {
+		// TODO: for now we apparently need to wake everyone else
+		cpu.LAPIC.IPI(0, IRQ_WAKEUP, lapic.ICR_DST_REST|lapic.ICR_DLV_IRQ)
 		write_tsc_deadline(0)
 		return
 	}

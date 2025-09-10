@@ -44,9 +44,9 @@ var (
 	irqHandlerAddr uintptr
 
 	// IRQ handling goroutine
-	irqHandlerG uint64
+	irqHandlerG uint
 	// IRQ handling state
-	isHandling bool
+	irqHandling bool
 )
 
 // defined in irq.s
@@ -157,7 +157,13 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	for {
 		// To avoid losing interrupts, re-enabling must happen only after we
 		// are sleeping.
-		go cpu.EnableInterrupts()
+		go func() {
+			for irqHandling || !runtime.Asleep(irqHandlerG) {
+				// SMP race detected, yield and retry
+				runtime.Gosched()
+			}
+			cpu.EnableInterrupts()
+		}()
 
 		// Sleep indefinitely until woken up by runtime.WakeG
 		// (see handleInterrupt).

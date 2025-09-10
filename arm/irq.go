@@ -15,7 +15,7 @@ import (
 )
 
 // IRQ handling goroutine
-var irqHandlerG uint32
+var irqHandlerG uint
 
 // defined in irq.s
 func irq_enable(spsr bool)
