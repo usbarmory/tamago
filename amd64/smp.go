@@ -117,7 +117,7 @@ func (cpu *CPU) procresize() {
 }
 
 // InitSMP enables Secure Multiprocessor (SMP) operation by initializing the
-// available Application Processors (see [CPU.APs]).
+// available Application Processors.
 //
 // A positive argument caps the total (BSP+APs) number of cores, a negative
 // argument initializes all available APs, an agument of 0 or 1 disables SMP.

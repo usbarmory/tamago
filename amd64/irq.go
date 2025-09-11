@@ -32,8 +32,8 @@ const (
 )
 
 const (
-	// IRQ_WAKEUP represents the interrupt vector raised by [cpu.SetAlarm],
-	// it cannot be serviced by [cpu.ServiceInterrupt] as the IRQ is
+	// IRQ_WAKEUP represents the interrupt vector raised by [CPU.SetAlarm],
+	// it cannot be serviced by [CPU.ServiceInterrupt] as the IRQ is
 	// handled internally to resume halted processors.
 	IRQ_WAKEUP = 255
 )
@@ -119,10 +119,12 @@ func setIDT(start int, end int) {
 	}
 }
 
-// EnableInterrupts unmasks external interrupts.
+// EnableInterrupts unmasks external interrupts, when SMP is enable (see
+// [CPU.InitSMP]) the function must only be called after scheduling
+// [CPU.ServiceInterrupts].
 func (cpu *CPU) EnableInterrupts() {
-	for !runtime.Asleep(irqHandlerG) {
-		// SMP race detected, yield and retry
+	// under SMP ensure time.Sleep has been reached by parent
+	for cpu.init > 0 && !runtime.Asleep(irqHandlerG) {
 		runtime.Gosched()
 	}
 
@@ -130,8 +132,8 @@ func (cpu *CPU) EnableInterrupts() {
 		cpu.LAPIC.ClearInterrupt()
 		irq_enable()
 	} else {
-		for irqHandling {
-			// SMP race detected, yield and retry
+		// under SMP ensure we are not interrupting ·handleInterrupt
+		for cpu.init > 0 && irqHandling {
 			runtime.Gosched()
 		}
 
@@ -170,7 +172,7 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 		go cpu.EnableInterrupts()
 
 		// Sleep indefinitely until woken up by runtime.WakeG
-		// (see handleInterrupt).
+		// (see ·handleInterrupt in irq.s).
 		time.Sleep(math.MaxInt64)
 
 		isr(currentVectorNumber())

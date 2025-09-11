@@ -69,7 +69,7 @@ func ServiceInterrupts(isr func()) {
 		go irq_enable(false)
 
 		// Sleep indefinitely until woken up by runtime.WakeG
-		// (see irqHandler in exception.s).
+		// (see ·handleInterrupt in irq.s).
 		time.Sleep(math.MaxInt64)
 
 		isr()
