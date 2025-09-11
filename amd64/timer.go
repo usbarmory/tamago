@@ -23,13 +23,13 @@ func read_tsc() uint64
 func write_tsc_deadline(cnt uint64)
 
 func (cpu *CPU) detectCoreFrequency() (freq uint32) {
-	if denominator, numerator, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); denominator != 0 {
+	if den, num, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); den != 0 {
 		if nominalFreq == 0 {
 			baseFreq, _, _, _ := cpuid(CPUID_CPU_FRQ, 0)
-			nominalFreq = uint32(uint64(baseFreq) * 1e6 * uint64(denominator) / uint64(numerator))
+			nominalFreq = uint32(uint64(baseFreq) * 1e6 * uint64(den) / uint64(num))
 		}
 
-		cpu.freq = uint32((uint64(numerator) * uint64(nominalFreq)) / uint64(denominator))
+		cpu.freq = uint32((uint64(num) * uint64(nominalFreq)) / uint64(den))
 	}
 
 	if cpu.features.KVM {
@@ -39,8 +39,8 @@ func (cpu *CPU) detectCoreFrequency() (freq uint32) {
 			_, nsecA, tscA := kvmclock.Pairing()
 			_, nsecB, tscB := kvmclock.Pairing()
 
-			if denominator := uint64(nsecB - nsecA); denominator != 0 {
-				cpu.freq = uint32(((tscB - tscA) * uint64(refFreq)) / denominator)
+			if den := uint64(nsecB - nsecA); den != 0 {
+				cpu.freq = uint32(((tscB - tscA) * uint64(refFreq)) / den)
 			}
 		}
 	}
@@ -55,11 +55,11 @@ func (cpu *CPU) detectCoreFrequency() (freq uint32) {
 		// Rev 3.03 - July, 2018 - Core::X86::Msr::PStateDef
 		pstate := reg.Msr(MSR_AMD_PSTATE)
 
-		numerator := float64(bits.Get(&pstate, 0, 0xff)) * 25
-		denominator := float64(bits.Get(&pstate, 8, 0b111111)) / 8
+		num := float64(bits.Get(&pstate, 0, 0xff)) * 25
+		den := float64(bits.Get(&pstate, 8, 0b111111)) / 8
 
-		if numerator != 0 && denominator != 0 {
-			cpu.freq = uint32(numerator/denominator) * 1e6
+		if num != 0 && den != 0 {
+			cpu.freq = uint32(num/den) * 1e6
 		}
 	}
 
