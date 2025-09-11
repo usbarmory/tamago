@@ -176,8 +176,8 @@ wait:
 	MOVQ	g, (TLS)
 
 	// enable LAPIC
-	MOVL	$(const_LAPIC_BASE+0xf0), AX
-	MOVL	$(1<<8), (AX)			// set SVR_ENABLE
+	MOVL	$(const_LAPIC_SVR), AX
+	MOVL	$(1<<const_SVR_ENABLE), (AX)	// set SVR_ENABLE
 
 	// call task target
 	CALL	R12

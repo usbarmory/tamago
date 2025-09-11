@@ -31,8 +31,18 @@ const (
 	KBD_PORT = 0x64
 	// Intel Local Advanced Programmable Interrupt Controller
 	LAPIC_BASE = 0xfee00000
-	// End-Of-Interrupt
-	EOI = LAPIC_BASE + lapic.LAPIC_EOI
+)
+
+// aliased constants
+const (
+	LAPIC_EOI  = LAPIC_BASE + lapic.LAPIC_EOI
+	LAPIC_SVR  = LAPIC_BASE + lapic.LAPIC_SVR
+	LAPIC_ICRL = LAPIC_BASE + lapic.LAPIC_ICRL
+
+	SVR_ENABLE = lapic.SVR_ENABLE
+
+	ICR_DST      = lapic.ICR_DST
+	ICR_DST_REST = lapic.ICR_DST_REST
 )
 
 //go:linkname ramStackOffset runtime.ramStackOffset

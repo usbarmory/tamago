@@ -69,7 +69,7 @@ TEXT ·ignoreInterrupt(SB),NOSPLIT|NOFRAME,$0
 	PUSHQ	AX
 
 	// clear interrupt
-	MOVL	$(const_EOI), AX
+	MOVL	$(const_LAPIC_EOI), AX
 	MOVL	$0, (AX)
 
 	// restore caller registers
@@ -103,9 +103,9 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	CMPQ	AX, $0
 	JNE	fail
 
-	// wake idle APs (TODO: use proper constants)
-	MOVL	$(const_LAPIC_BASE+0x300), AX
-	MOVL	$(0b11<<18|const_IRQ_WAKEUP), (AX)
+	// wake idle APs
+	MOVL	$(const_LAPIC_ICRL), AX
+	MOVL	$(const_ICR_DST_REST|const_IRQ_WAKEUP), (AX)
 
 	// the IRQ handling goroutine is expected to unmask IRQs
 	MOVB	$1, irqDisabled<>(SB)
@@ -115,7 +115,7 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	JMP	done
 fail:
 	// clear interrupt
-	MOVL	$(const_EOI), AX
+	MOVL	$(const_LAPIC_EOI), AX
 	MOVL	$0, (AX)
 
 	// the IRQ handling goroutine will not wake, unmask IRQs
@@ -144,7 +144,7 @@ TEXT ·handleNMI(SB),NOSPLIT|NOFRAME,$0
 	PUSHQ	AX
 
 	// clear interrupt
-	MOVL	$(const_EOI), AX
+	MOVL	$(const_LAPIC_EOI), AX
 	MOVL	$0, (AX)
 
 	// unmask IRQs
