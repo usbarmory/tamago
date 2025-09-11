@@ -40,16 +40,16 @@ The modifications maintain [complete standard library support](https://github.co
 Such aspects are motivated by the desire of providing a framework that allows
 secure Go firmware development on embedded systems.
 
-Current release level
-=====================
-[![GitHub release](https://img.shields.io/github/v/release/usbarmory/tamago-go)](https://github.com/usbarmory/tamago-go/tree/latest) [![Build Status](https://github.com/usbarmory/tamago-go/workflows/Build%20Go%20compiler/badge.svg)](https://github.com/usbarmory/tamago-go/actions)
+Current releases
+================
 
-The current release for the [TamaGo modified Go distribution](https://github.com/usbarmory/tamago-go) is
-[tamago1.25.1](https://github.com/usbarmory/tamago-go/tree/tamago1.25.1),
-which [adds](https://github.com/golang/go/compare/go1.25.1...usbarmory:tamago1.25.1)
-`GOOS=tamago` support to go1.25.1.
+The following links are the latest releases for the
+[TamaGo modified Go distribution](https://github.com/usbarmory/tamago-go),
+which adds `GOOS=tamago` support to the corresponding Go version, and
+[TamaGo library](https://github.com/usbarmory/tamago):
 
-Binary releases for amd64 and armv7l Linux hosts [are available](https://github.com/usbarmory/tamago-go/releases/latest).
+[![GitHub release](https://img.shields.io/github/v/release/usbarmory/tamago-go)](https://github.com/usbarmory/tamago-go/releases/latest) [![Build Status](https://github.com/usbarmory/tamago-go/workflows/Build%20Go%20compiler/badge.svg)](https://github.com/usbarmory/tamago-go/actions) - Go distribution
+[![GitHub release](https://img.shields.io/github/v/release/usbarmory/tamago)](https://github.com/usbarmory/tamagoo/releases/latest)
 
 Documentation
 =============
