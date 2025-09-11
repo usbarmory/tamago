@@ -121,10 +121,20 @@ func setIDT(start int, end int) {
 
 // EnableInterrupts unmasks external interrupts.
 func (cpu *CPU) EnableInterrupts() {
+	for !runtime.Asleep(irqHandlerG) {
+		// SMP race detected, yield and retry
+		runtime.Gosched()
+	}
+
 	if cpu.LAPIC.ID() == 0 {
 		cpu.LAPIC.ClearInterrupt()
 		irq_enable()
 	} else {
+		for irqHandling {
+			// SMP race detected, yield and retry
+			runtime.Gosched()
+		}
+
 		// IRQs are always handled by the BSP
 		cpu.LAPIC.IPI(0, 0, lapic.ICR_DLV_NMI)
 	}
@@ -157,13 +167,7 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	for {
 		// To avoid losing interrupts, re-enabling must happen only after we
 		// are sleeping.
-		go func() {
-			for irqHandling || !runtime.Asleep(irqHandlerG) {
-				// SMP race detected, yield and retry
-				runtime.Gosched()
-			}
-			cpu.EnableInterrupts()
-		}()
+		go cpu.EnableInterrupts()
 
 		// Sleep indefinitely until woken up by runtime.WakeG
 		// (see handleInterrupt).
