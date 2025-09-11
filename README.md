@@ -48,7 +48,7 @@ The following links are the latest releases for the
 which adds `GOOS=tamago` support to the corresponding Go version, and
 [TamaGo library](https://github.com/usbarmory/tamago):
 
-[![GitHub release](https://img.shields.io/github/v/release/usbarmory/tamago-go)](https://github.com/usbarmory/tamago-go/releases/latest) [![Build Status](https://github.com/usbarmory/tamago-go/workflows/Build%20Go%20compiler/badge.svg)](https://github.com/usbarmory/tamago-go/actions) - Go distribution
+[![GitHub release](https://img.shields.io/github/v/release/usbarmory/tamago-go)](https://github.com/usbarmory/tamago-go/releases/latest) [![Build Status](https://github.com/usbarmory/tamago-go/workflows/Build%20Go%20compiler/badge.svg)](https://github.com/usbarmory/tamago-go/actions)  
 [![GitHub release](https://img.shields.io/github/v/release/usbarmory/tamago)](https://github.com/usbarmory/tamagoo/releases/latest)
 
 Documentation
