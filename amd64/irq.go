@@ -119,7 +119,7 @@ func setIDT(start int, end int) {
 	}
 }
 
-// EnableInterrupts unmasks external interrupts, when SMP is enable (see
+// EnableInterrupts unmasks external interrupts, when SMP is enabled (see
 // [CPU.InitSMP]) the function must only be called after scheduling
 // [CPU.ServiceInterrupts].
 func (cpu *CPU) EnableInterrupts() {
