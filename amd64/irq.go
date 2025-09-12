@@ -112,8 +112,8 @@ func setIDT(start int, end int) {
 			break
 		}
 
-		off := irqHandlerAddr + uintptr(i*callSize)
 		// set ISR to irqHandler.abi0 + vector offset
+		off := irqHandlerAddr + uintptr(i*callSize)
 		desc.SetOffset(off)
 		copy(idt[i*gateSize:], desc.Bytes())
 	}
@@ -134,7 +134,7 @@ func (cpu *CPU) EnableInterrupts() {
 	} else {
 		// under SMP ensure we are not interrupting ·handleInterrupt
 		for cpu.init > 0 && irqHandling {
-			runtime.Gosched()
+			// stay on this M to keep control flow
 		}
 
 		// IRQs are always handled by the BSP
