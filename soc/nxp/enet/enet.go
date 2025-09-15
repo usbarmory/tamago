@@ -287,8 +287,8 @@ func (hw *ENET) SetMAC(mac net.HardwareAddr) {
 }
 
 // Start begins processing of incoming packets. When the argument is true the
-// function waits and handles received packets (see Rx()) through RxHandler()
-// (when set), it should never return.
+// function waits and handles received packets (see [ENET.Rx]) through
+// [ENET.RxHandler] (when set), it should never return.
 func (hw *ENET) Start(rx bool) {
 	var buf []byte
 

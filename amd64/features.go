@@ -80,7 +80,7 @@ type Features struct {
 	// to be at constant rate.
 	TSCInvariant bool
 	// TSCDeadline indicates whether TSC-Deadline Mode of operation is
-	// available for the local-APIC timer to support [cpu.SetAlarm].
+	// available for the local-APIC timer to support [CPU.SetAlarm].
 	TSCDeadline bool
 
 	// KVM indicates whether a Kernel-base Virtual Machine is detected.
