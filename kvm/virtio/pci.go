@@ -12,7 +12,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/usbarmory/tamago/amd64/lapic"
+	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/soc/intel/pci"
@@ -257,13 +257,13 @@ func (io *PCI) SetQueueSize(index int, n int) {
 
 // EnableInterrupt enables MSI-X interrupt vector routing to a LAPIC instance
 // for the indexed virtual queue.
-func (io *PCI) EnableInterrupt(id int, lapic *lapic.LAPIC, index int) (err error) {
+func (io *PCI) EnableInterrupt(id int, index int) (err error) {
 	if io.msix == nil {
 		return errors.New("missing required capabilities")
 	}
 
 	entry := 0
-	addr := uint64(lapic.Base)
+	addr := uint64(amd64.LAPIC_BASE)
 	data := uint32(id)
 
 	if err = io.msix.EnableInterrupt(entry, addr, data); err != nil {
