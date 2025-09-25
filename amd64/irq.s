@@ -132,7 +132,7 @@ done:
 
 	// return to caller
 	ADDQ	$8, SP
-	MOVQ	$0, ·irqHandling(SB)
+	MOVB	$0, ·irqHandling(SB)
 	IRETQ
 
 TEXT ·handleNMI(SB),NOSPLIT|NOFRAME,$0

@@ -123,23 +123,24 @@ func setIDT(start int, end int) {
 // [CPU.InitSMP]) the function must only be called after scheduling
 // [CPU.ServiceInterrupts].
 func (cpu *CPU) EnableInterrupts() {
+	if cpu.init == 0 || cpu.LAPIC.ID() == 0 {
+		cpu.LAPIC.ClearInterrupt()
+		irq_enable()
+		return
+	}
+
 	// under SMP ensure time.Sleep has been reached by parent
 	for cpu.init > 0 && !runtime.Asleep(irqHandlerG) {
 		runtime.Gosched()
 	}
 
-	if cpu.LAPIC.ID() == 0 {
-		cpu.LAPIC.ClearInterrupt()
-		irq_enable()
-	} else {
-		// under SMP ensure we are not interrupting ·handleInterrupt
-		for cpu.init > 0 && irqHandling {
-			// stay on this M to keep control flow
-		}
-
-		// IRQs are always handled by the BSP
-		cpu.LAPIC.IPI(0, 0, lapic.ICR_DLV_NMI)
+	// ensure we are not interrupting ·handleInterrupt on BSP
+	for cpu.init > 0 && irqHandling {
+		runtime.Gosched()
 	}
+
+	// IRQs are always handled by the BSP
+	cpu.LAPIC.IPI(0, 0, lapic.ICR_DLV_NMI)
 }
 
 // DisableInterrupts masks external interrupts.
