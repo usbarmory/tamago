@@ -69,10 +69,10 @@ func read_cpsr() uint32
 func exit(int32)
 
 // DefaultIdleGovernor is the default CPU idle time management function
-func DefaultIdleGovernor(pollUntil int64) {
+func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
 	// we have nothing to do forever
 	if pollUntil == math.MaxInt64 {
-		wfi()
+		cpu.WaitInterrupt()
 	}
 }
 
@@ -82,7 +82,7 @@ func DefaultIdleGovernor(pollUntil int64) {
 // (see https://github.com/usbarmory/tamago/wiki/Internals#memory-layout).
 func (cpu *CPU) Init(vbar uint32) {
 	runtime.Exit = exit
-	runtime.Idle = DefaultIdleGovernor
+	runtime.Idle = cpu.DefaultIdleGovernor
 
 	// the application is allowed to override the reserved area
 	if vecTableStart != 0 {

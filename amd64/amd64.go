@@ -80,10 +80,10 @@ func halt()
 func Fault()
 
 // DefaultIdleGovernor is the default CPU idle time management function
-func DefaultIdleGovernor(pollUntil int64) {
+func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
 	// we have nothing to do forever
 	if pollUntil == math.MaxInt64 {
-		wfi()
+		cpu.WaitInterrupt()
 	}
 }
 
@@ -91,7 +91,7 @@ func DefaultIdleGovernor(pollUntil int64) {
 // (see [CPU.InitSMP] for AP initialization).
 func (cpu *CPU) Init() {
 	runtime.Exit = exit
-	runtime.Idle = DefaultIdleGovernor
+	runtime.Idle = cpu.DefaultIdleGovernor
 
 	// Local APIC
 	cpu.LAPIC = &lapic.LAPIC{
