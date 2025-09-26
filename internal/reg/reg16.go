@@ -73,9 +73,7 @@ func Or16(addr uint32, val uint16) {
 // cannot be used before runtime initialization with `GOOS=tamago`.
 func Wait16(addr uint32, pos int, mask int, val uint16) {
 	for Get16(addr, pos, mask) != val {
-		if runtime.GOMAXPROCS(-1) == 1 {
-			runtime.Gosched()
-		}
+		runtime.Gosched()
 	}
 }
 
@@ -87,9 +85,7 @@ func WaitFor16(timeout time.Duration, addr uint32, pos int, mask int, val uint16
 	start := time.Now()
 
 	for Get16(addr, pos, mask) != val {
-		if runtime.GOMAXPROCS(-1) == 1 {
-			runtime.Gosched()
-		}
+		runtime.Gosched()
 
 		if time.Since(start) >= timeout {
 			return false
