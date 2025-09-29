@@ -13,14 +13,14 @@
 #include "textflag.h"
 
 // Global Descriptor Table
-DATA	gdt<>+0x00(SB)/8, $0x0000000000000000	// null descriptor
-DATA	gdt<>+0x08(SB)/8, $0x00209a0000000000	// code descriptor (x/r)
-DATA	gdt<>+0x10(SB)/8, $0x0000920000000000	// data descriptor (r/w)
-GLOBL	gdt<>(SB),RODATA,$24
+DATA	·gdt<>+0x00(SB)/8, $0x0000000000000000	// null descriptor
+DATA	·gdt<>+0x08(SB)/8, $0x00209a0000000000	// code descriptor (x/r)
+DATA	·gdt<>+0x10(SB)/8, $0x0000920000000000	// data descriptor (r/w)
+GLOBL	·gdt<>(SB),RODATA,$24
 
-DATA	gdtptr+0x00(SB)/2, $(3*8-1)		// GDT Limit
-DATA	gdtptr+0x02(SB)/8, $gdt<>(SB)		// GDT Base Address
-GLOBL	gdtptr(SB),RODATA,$(2+8)
+DATA	·gdtptr+0x00(SB)/2, $(3*8-1)		// GDT Limit
+DATA	·gdtptr+0x02(SB)/8, $·gdt<>(SB)		// GDT Base Address
+GLOBL	·gdtptr(SB),RODATA,$(2+8)
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	// disable interrupts
@@ -100,7 +100,7 @@ enable_long_mode:
 
 	// set Global Descriptor Table
 	CALL	·getPC<>(SB)
-	MOVL	$gdtptr(SB), BX		// 32-bit mode: only PC offset is copied
+	MOVL	$·gdtptr(SB), BX	// 32-bit mode: only PC offset is copied
 	ADDL	$6, AX
 	ADDL	BX, AX
 	LGDT	(AX)
@@ -117,7 +117,7 @@ enable_long_mode:
 	RETFQ
 
 TEXT ·reload_gdt<>(SB),NOSPLIT|NOFRAME,$0
-	MOVQ	$gdtptr(SB), AX
+	MOVQ	$·gdtptr(SB), AX
 	LGDT	(AX)
 
 	MOVQ	$·start<>(SB), AX
@@ -170,6 +170,7 @@ add_ext_entries:
 	MOVL	$PML4T, DI
 	MOVL	DI, CR3
 
+	STI	// required for ·wfi
 	JMP	_rt0_tamago_start(SB)
 
 TEXT ·getPC<>(SB),NOSPLIT|NOFRAME,$0

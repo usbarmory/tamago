@@ -43,10 +43,10 @@ var (
 	idtAddr        uintptr
 	irqHandlerAddr uintptr
 
-	// IRQ handling goroutine
+	// IRQ handling goroutine and state
 	irqHandlerG uint
-	// IRQ handling state
 	irqHandling bool
+	irqLock     bool
 )
 
 // defined in irq.s
@@ -119,33 +119,26 @@ func setIDT(start int, end int) {
 	}
 }
 
-// EnableInterrupts unmasks external interrupts, when SMP is enabled (see
-// [CPU.InitSMP]) the function must only be called after scheduling
-// [CPU.ServiceInterrupts].
-func (cpu *CPU) EnableInterrupts() {
-	if cpu.init == 0 || cpu.LAPIC.ID() == 0 {
+// ClearInterrupt signals the end of an interrupt handling routine.
+func (cpu *CPU) ClearInterrupt() {
+	if cpu.init == 0 {
 		cpu.LAPIC.ClearInterrupt()
-		irq_enable()
+		irqLock = false
 		return
 	}
 
-	// under SMP ensure time.Sleep has been reached by parent
-	for cpu.init > 0 && !runtime.Asleep(irqHandlerG) {
-		runtime.Gosched()
+	// ensure time.Sleep has been reached by parent
+	for !runtime.Asleep(irqHandlerG) {
+		// stay on this M
 	}
 
 	// ensure we are not interrupting ·handleInterrupt on BSP
-	for cpu.init > 0 && irqHandling {
-		runtime.Gosched()
+	for irqHandling {
+		// stay on this M
 	}
 
 	// IRQs are always handled by the BSP
 	cpu.LAPIC.IPI(0, 0, lapic.ICR_DLV_NMI)
-}
-
-// DisableInterrupts masks external interrupts.
-func (cpu *CPU) DisableInterrupts() {
-	irq_disable()
 }
 
 // WaitInterrupt suspends execution on the current processor until an interrupt
@@ -168,9 +161,9 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	setIDT(32, 255)
 
 	for {
-		// To avoid losing interrupts, re-enabling must happen only after we
-		// are sleeping.
-		go cpu.EnableInterrupts()
+		// To avoid losing interrupts, service completion must happen
+		// only after we are sleeping.
+		go cpu.ClearInterrupt()
 
 		// Sleep indefinitely until woken up by runtime.WakeG
 		// (see ·handleInterrupt in irq.s).

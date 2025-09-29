@@ -132,11 +132,11 @@ TEXT ·apstart<>(SB),NOSPLIT|NOFRAME,$0
 	CALL	sse_enable(SB)
 
 	// apply BSP GDT
-	MOVQ	$gdtptr(SB), AX
+	MOVQ	$·gdtptr(SB), AX
 	LGDT	(AX)
 
 	// apply BSP IDT
-	MOVQ	$idtptr(SB), AX
+	MOVQ	$·idtptr(SB), AX
 	LIDT	(AX)
 
 	// restore GDT limits for next ·apinit
@@ -152,7 +152,7 @@ TEXT ·apstart<>(SB),NOSPLIT|NOFRAME,$0
 	LOCK
 	XADDL	AX, 0(BX)
 wait:
-	// go to idle state
+	// wait NMI from CPU.Task
 	CLI
 	HLT
 
@@ -180,6 +180,7 @@ wait:
 	MOVL	$(1<<const_SVR_ENABLE), (AX)	// set SVR_ENABLE
 
 	// call task target
+	STI
 	CALL	R12
 
 	// go back to idle state in case we return
