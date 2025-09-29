@@ -13,12 +13,12 @@
 #define KVM_CLOCK_PAIRING_WALLCLOCK	0
 
 // holder for struct kvm_clock_pairing
-GLOBL	kvmclock<>(SB),RODATA,$8*3+4+4*9
+GLOBL	·kvmclock<>(SB),RODATA,$8*3+4+4*9
 
 // func Pairing() (sec int64, nsec int64, tsc uint64)
 TEXT ·Pairing(SB),$0-24
 	MOVQ	$KVM_HC_CLOCK_PAIRING, AX
-	MOVQ	$kvmclock<>(SB), BX
+	MOVQ	$·kvmclock<>(SB), BX
 	MOVQ	$KVM_CLOCK_PAIRING_WALLCLOCK, CX
 
 	// vmcall
