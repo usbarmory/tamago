@@ -11,7 +11,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal processors (amd64, arm, arm64, riscv64).
+applications on bare metal processors (AMD64, ARM, ARM64, RISCV64).
 
 The projects spawns from the desire of reducing the attack surface of embedded
 systems firmware by removing any runtime dependency on C code and Operating
@@ -133,7 +133,7 @@ The following table summarizes currently available userspace support:
 | [Linux](https://www.kernel.org/)             | amd64,arm,arm64,riscv64 | [testing](https://github.com/usbarmory/tamago-go/blob/latest/src/testing/testing_tamago.go)¹ |
 | [GoTEE](https://github.com/usbarmory/GoTEE/) |             arm,riscv64 | [applet](https://pkg.go.dev/github.com/usbarmory/GoTEE/applet)                               |
 
-¹ Used to run [standard distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility)
+¹ Used to run [standard distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility) and `go test -tags user_linux`
 
 Compiling
 =========
@@ -216,7 +216,7 @@ Applications using TamaGo
 * [ArmoredWitness](https://github.com/transparency-dev/armored-witness) - cross-ecosystem witness network
 * [armory-drive](https://github.com/usbarmory/armory-drive) - USB encrypted drive
 * [armory-ums](https://github.com/usbarmory/armory-ums) - USB Mass Storage firmware
-* [armory-boot](https://github.com/usbarmory/armory-boot) - USB armory bootloader
+* [armory-boot](https://github.com/usbarmory/armory-boot) - USB armory boot loader
 * [tamago-example](https://github.com/usbarmory/tamago-example) - TamaGo example application
 
 External drivers using TamaGo
