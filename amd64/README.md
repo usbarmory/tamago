@@ -20,7 +20,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal AMD64/ARM/RISC-V processors.
+applications on bare metal processors.
 
 The [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) package
 provides support for AMD/Intel 64-bit CPUs.

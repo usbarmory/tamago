@@ -1,5 +1,5 @@
-TamaGo - bare metal Go for AMD64/ARM/RISC-V processors
-======================================================
+TamaGo - bare metal Go
+======================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -11,7 +11,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal AMD64/ARM/RISC-V processors.
+applications on bare metal processors (amd64, arm, arm64, riscv64).
 
 The projects spawns from the desire of reducing the attack surface of embedded
 systems firmware by removing any runtime dependency on C code and Operating
@@ -90,6 +90,14 @@ The following table summarizes currently supported ARM SoCs and boards
 | Broadcom BCM2835      | [Raspberry Pi 1 Model A+](https://www.raspberrypi.org/products/raspberry-pi-1-model-a-plus/)                                                                                         | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)   | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
 | Broadcom BCM2835      | [Raspberry Pi 1 Model B+](https://www.raspberrypi.org/products/raspberry-pi-1-model-b-plus/)                                                                                         | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)   | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
 | Broadcom BCM2836      | [Raspberry Pi 2 Model B](https://www.raspberrypi.org/products/raspberry-pi-2-model-b)                                                                                                | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)   | [pi/pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
+
+Supported ARM64 targets
+=======================
+
+The support for an actual target is work-in-progress, the
+[testing environment](https://github.com/usbarmory/tamago-go/blob/tamago1.25.1/src/testing/testing_tamago.go)
+is supported and all Go standard library packages are supported and
+[tested using original distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility).
 
 Supported RISC-V targets
 ========================

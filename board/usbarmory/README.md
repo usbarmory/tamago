@@ -20,7 +20,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal AMD64/ARM/RISC-V processors.
+applications on bare metal processors.
 
 The [usbarmory](https://github.com/usbarmory/tamago/tree/master/board/usbarmory)
 package provides support for the [USB armory](https://github.com/usbarmory/usbarmory/wiki)

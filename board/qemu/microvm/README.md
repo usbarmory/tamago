@@ -20,7 +20,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal AMD64/ARM/RISC-V processors.
+applications on bare metal processors.
 
 The [microvm](https://github.com/usbarmory/tamago/tree/master/board/qemu/microvm)
 package provides support for [QEMU microvm](https://www.qemu.org/docs/master/system/i386/microvm.html)

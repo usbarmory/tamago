@@ -20,7 +20,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal AMD64/ARM//ARM64/RISC-V processors.
+applications on bare metal processors.
 
 The execution of programs compiled with `GOOS=tamago` can also take place in
 user space by importing any package that implements the required
@@ -34,6 +34,8 @@ runtime to directly access OS resources, this results in:
   * isolation from OS file system, through in-memory emulated disk
   * isolation from OS networking, see [net.SocketFunc](https://github.com/usbarmory/tamago-go/blob/latest/src/net/net_tamago.go)
   * API for custom networking, rng, time handlers
+
+Currently supported `GOOS` are `amd64`, `arm`, `arm64`, `riscv64`.
 
 Example
 =======
