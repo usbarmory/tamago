@@ -54,7 +54,7 @@ func cpuinit()
 //
 //	¹ //go:linkname Hwinit0 runtime.hwinit0
 //
-// [amd64 initialization]: https://github.com/usbarmory/tamago/blob/master/amd64/mem.go
+// [amd64 initialization]: https://github.com/usbarmory/tamago/blob/master/amd64/init.go
 //
 //go:linkname Hwinit0 runtime.hwinit0
 func Hwinit0()

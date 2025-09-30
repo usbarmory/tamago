@@ -135,7 +135,7 @@ Hwinit0, which must be linked as \`runtime.hwinit0\`¹, takes care of the lower 
 
 It must be defined using Go's Assembler to retain Go's commitment to backward compatibility, otherwise extreme care must be taken as the lack of World start does not allow memory allocation.
 
-For an example see package [amd64 initialization](<https://github.com/usbarmory/tamago/blob/master/amd64/mem.go>).
+For an example see package [amd64 initialization](<https://github.com/usbarmory/tamago/blob/master/amd64/init.go>).
 
 ```
 ¹ //go:linkname Hwinit0 runtime.hwinit0
