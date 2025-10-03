@@ -41,8 +41,9 @@ const (
 )
 
 type mailbox struct {
+	sync.Mutex
+
 	Region *dma.Region
-	Mutex  sync.Mutex
 }
 
 // Mailbox provides access to the BCM2835 mailbox used to communicate with
@@ -156,8 +157,8 @@ func (mb *mailbox) exchangeMessage(channel int, addr uint32) {
 
 	// For now, hold a global lock so only 1 outstanding mailbox
 	// message at any time.
-	mb.Mutex.Lock()
-	defer mb.Mutex.Unlock()
+	mb.Lock()
+	defer mb.Unlock()
 
 	// Wait for space to send
 	for (reg.Read(peripheralBase+MAILBOX_STATUS_REG) & MAILBOX_FULL) != 0 {

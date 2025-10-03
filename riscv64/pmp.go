@@ -10,7 +10,6 @@ package riscv64
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/usbarmory/tamago/bits"
 )
@@ -55,13 +54,11 @@ func write_pmpaddr5(uint64)
 func write_pmpaddr6(uint64)
 func write_pmpaddr7(uint64)
 
-var mux sync.Mutex
-
 // ReadPMP returns the Physical Memory Protection CSRs, configuration and
 // address, for the relevant index (currently limited to PMPs from 0 to 7).
 func (cpu *CPU) ReadPMP(i int) (addr uint64, r bool, w bool, x bool, a int, l bool, err error) {
-	mux.Lock()
-	defer mux.Unlock()
+	cpu.Lock()
+	defer cpu.Unlock()
 
 	switch i {
 	case 0:
@@ -103,8 +100,8 @@ func (cpu *CPU) ReadPMP(i int) (addr uint64, r bool, w bool, x bool, a int, l bo
 // WritePMP sets the Physical Memory Protection CSRs, configuration and
 // address, for the relevant index (currently limited to PMPs from 0 to 7).
 func (cpu *CPU) WritePMP(i int, addr uint64, r bool, w bool, x bool, a int, l bool) (err error) {
-	mux.Lock()
-	defer mux.Unlock()
+	cpu.Lock()
+	defer cpu.Unlock()
 
 	// addr holds bits 55:2
 	addr = addr >> 2

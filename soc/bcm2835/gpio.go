@@ -48,7 +48,7 @@ type GPIO struct {
 
 type GPIOFunction uint32
 
-var gpmux = sync.Mutex{}
+var gpmu = sync.Mutex{}
 
 // NewGPIO gets access to a single GPIO line
 func NewGPIO(num int) (*GPIO, error) {
@@ -128,8 +128,8 @@ func (gpio *GPIO) Value() (high bool) {
 func (gpio *GPIO) PullUpDown(val uint32) {
 	// The control registers are shared between GPIO pins, so
 	// hold a mutex for the period.
-	gpmux.Lock()
-	defer gpmux.Unlock()
+	gpmu.Lock()
+	defer gpmu.Unlock()
 
 	// There is a very specific documented dance (likely related
 	// to the persistence over power-down):

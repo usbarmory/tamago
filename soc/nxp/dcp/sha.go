@@ -17,7 +17,7 @@ import (
 
 // A single DCP channel is used for all operations, this entails that only one
 // digest state can be kept at any given time.
-var mux sync.Mutex
+var mu sync.Mutex
 
 // Hash is the common interface to DCP hardware backed hash functions.
 //
@@ -108,7 +108,7 @@ func (d *digest) Sum(in []byte) (sum []byte, err error) {
 		return append(in, d.sum[:]...), nil
 	}
 
-	defer mux.Unlock()
+	defer mu.Unlock()
 
 	if d.init && len(d.buf) == 0 {
 		d.sum = sha256.New().Sum(nil)
@@ -139,7 +139,7 @@ func (d *digest) BlockSize() int {
 // The digest instance starts with New256() and terminates when when Sum() is
 // invoked, after which the digest state can no longer be changed.
 func (hw *DCP) New256() (Hash, error) {
-	if !mux.TryLock() {
+	if !mu.TryLock() {
 		return nil, errors.New("another digest instance is already in use")
 	}
 

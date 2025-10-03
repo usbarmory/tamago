@@ -20,13 +20,16 @@ package riscv64
 import (
 	"math"
 	"runtime"
+	"sync"
 )
 
 // This package supports 64-bit cores.
 const XLEN = 64
 
 // CPU instance
-type CPU struct{}
+type CPU struct{
+	sync.Mutex
+}
 
 // defined in riscv64.s
 func exit(int32)
