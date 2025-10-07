@@ -52,7 +52,7 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	MOVL	$PDPT, DI
 	MOVL	$(PDT | 1<<1 | 1<<0), (DI)			// set R/W, P
 
-	// PDPT[1]: 0xc0000000 - 0xffffffff (1GB) uncacheable physical page (1GB PDPE)
+	// PDPT[1]: 0x40000000 - 0x7fffffff (1GB) cacheable physical page (1GB PDPE)
 	ADDL	$8, DI
 	MOVL	$(1<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
 
@@ -60,7 +60,7 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	ADDL	$8, DI
 	MOVL	$(2<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
 
-	// PDPT[3]: 0x40000000 - 0x7fffffff (1GB) cacheable physical page (1GB PDPE)
+	// PDPT[3]: 0xc0000000 - 0xffffffff (1GB) uncacheable physical page (1GB PDPE)
 	ADDL	$8, DI
 	MOVL	$(3<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
 
