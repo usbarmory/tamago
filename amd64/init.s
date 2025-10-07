@@ -130,13 +130,9 @@ TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 	// enable SSE
 	CALL	sse_enable(SB)
 
-	// PDT[0] = PT
-	MOVL	$PDT, DI
-	MOVL	$(PT | 1<<1 | 1<<0), (DI)			// set R/W, P
-
 	// PT[0]:  0x00000000 - 0x00001000 inaccessible (zero page)
 	MOVL	$PT, DI
-	ANDL	$(1<<1 | 1<<0), (DI)				// clear R/W, P
+	ANDL	$~(1<<1 | 1<<0), (DI)				// clear R/W, P
 
 	// PT[..]: 0x00001000 - 0x001fffff cacheable physical page (4KB PTEs)
 	ADDL	$8, DI
@@ -153,6 +149,10 @@ add_pt_entries:
 	JMP	add_pt_entries
 
 add_ext_entries:
+	// PDT[0] = PT
+	MOVL	$PDT, DI
+	MOVL	$(PT | 1<<1 | 1<<0), (DI)			// set R/W, P
+
 	// add extended Long-Mode Page Translation PDT (1GB) entries.
 	MOVL	$PDPT, DI
 
