@@ -134,7 +134,7 @@ The following table summarizes currently available userspace support:
 | [Linux](https://www.kernel.org/)             | amd64,arm,arm64,riscv64 | [testing](https://github.com/usbarmory/tamago-go/blob/latest/src/testing/testing_tamago.go)¹ |
 | [GoTEE](https://github.com/usbarmory/GoTEE/) |             arm,riscv64 | [applet](https://pkg.go.dev/github.com/usbarmory/GoTEE/applet)                               |
 
-¹ Used to run [standard distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility) and `go test`.
+¹ Used to run [standard distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility) and `go test -tags user_linux`
 
 Compiling
 =========
@@ -233,8 +233,8 @@ Additional resources
 
 * [Package API](https://pkg.go.dev/github.com/usbarmory/tamago)
 * [Runtime API](https://pkg.go.dev/github.com/usbarmory/tamago/doc)
-* [Internals](https://github.com/usbarmory/tamago/wiki/Internals)
 * [Compatibility](https://github.com/usbarmory/tamago/wiki/Compatibility)
+* [Internals](https://github.com/usbarmory/tamago/wiki/Internals)
 * [FAQ](https://github.com/usbarmory/tamago/wiki/Frequently-Asked-Questions-(FAQ))
 * [TamaGo presentation](https://github.com/abarisani/abarisani.github.io/tree/master/research/tamago)
 * [ArmoredWitness presentation](https://github.com/abarisani/abarisani.github.io/tree/master/research/witness)
