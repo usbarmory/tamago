@@ -126,6 +126,12 @@ b ecdsa.Verify
 continue
 ```
 
+Google Compute Engine
+---------------------
+
+The `microvm` target can be executed on [Google Compute Engine](https://cloud.google.com/products/compute), see
+[tools](https://github.com/usbarmory/tamago-example/tree/master/tools) for more information.
+
 License
 =======
 
