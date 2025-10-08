@@ -38,7 +38,7 @@ var Bloc uintptr
 For an example see package [microvm](<https://github.com/usbarmory/tamago/blob/master/board/qemu/microvm/microvm.go>).
 
 ```go
-var Exit func(int32)
+var Exit func(code int32)
 ```
 
 <a name="Idle"></a>Idle describes the [runtime.Idle](<https://pkg.go.dev/runtime/#Idle>) function, which can be set to implement CPU idle time management.

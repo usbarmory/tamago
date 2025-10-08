@@ -181,7 +181,7 @@ var Bloc uintptr
 // For an example see package [microvm].
 //
 // [microvm]: https://github.com/usbarmory/tamago/blob/master/board/qemu/microvm/microvm.go
-var Exit func(int32)
+var Exit func(code int32)
 
 // Idle describes the [runtime.Idle] function, which can be set to implement CPU
 // idle time management.
