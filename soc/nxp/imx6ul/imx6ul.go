@@ -290,6 +290,24 @@ var (
 		Clock: GetUARTClock,
 	}
 
+	// Serial port 3
+	UART3 = &uart.UART{
+		Index: 3,
+		Base:  UART3_BASE,
+		CCGR:  CCM_CCGR1,
+		CG:    CCGRx_CG5,
+		Clock: GetUARTClock,
+	}
+
+	// Serial port 4
+	UART4 = &uart.UART{
+		Index: 4,
+		Base:  UART4_BASE,
+		CCGR:  CCM_CCGR1,
+		CG:    CCGRx_CG12,
+		Clock: GetUARTClock,
+	}
+
 	// USB controller 1
 	USB1 = &usb.USB{
 		Index:     1,
