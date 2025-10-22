@@ -16,6 +16,8 @@
 package uart
 
 import (
+	"runtime"
+
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 )
@@ -319,6 +321,10 @@ func (hw *UART) Read(buf []byte) (n int, _ error) {
 		buf[n], valid = hw.Rx()
 
 		if !valid {
+			if n == 0 {
+				runtime.Gosched()
+			}
+
 			break
 		}
 	}
