@@ -9,5 +9,5 @@
 // func exit(int32)
 TEXT ·exit(SB),$0-4
 	// wait forever in low-power state
-	MSR	DAIFSet, #0b1111	// disable all interrupts
+	MSR	DAIFSet, $0b1111	// disable all interrupts
 	WORD	$0x7f2003d5		// wfi

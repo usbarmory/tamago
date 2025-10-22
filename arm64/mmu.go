@@ -6,7 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package arm
+package arm64
 
 import (
 	"runtime"
@@ -35,7 +35,7 @@ const (
 )
 
 // MMU access permissions
-// (Table B3-8, ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition).
+// (Table G5-9, ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile).
 const (
 	// PL1: no access   PL0: no access
 	TTE_AP_000 uint32 = 0b00

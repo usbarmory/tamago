@@ -12,7 +12,7 @@
 TEXT ·fp_enable(SB),$0
 	MRS	R0, CPACR_EL1
 	ORR	R0, R0, $(3 << 20)	// set CPACR_EL1.FPEN
-	MRS	CPACR_EL1, R0
+	MSR	CPACR_EL1, R0
 	ISB
 
 	RET

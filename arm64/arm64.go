@@ -14,7 +14,7 @@
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm64` as
 // supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
-package arm
+package arm64
 
 import (
 	"math"

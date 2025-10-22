@@ -6,7 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package arm
+package arm64
 
 // defined in cache.s
 func cache_enable()

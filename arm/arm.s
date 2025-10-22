@@ -8,7 +8,7 @@
 
 // func read_cpsr() uint32
 TEXT ·read_cpsr(SB),$0-4
-	// ARM Architecture Reference Manual - ARMv7-A and ARMv7-R edition
+	// ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
 	// B1.3.3 Program Status Registers (PSRs)
 	WORD	$0xe10f0000 // mrs r0, CPSR
 	MOVW	R0, ret+0(FP)

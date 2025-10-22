@@ -1,4 +1,4 @@
-// ARM processor support
+// ARM64 processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -6,7 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package arm
+package arm64
 
 import (
 	"math"
@@ -15,23 +15,17 @@ import (
 )
 
 // ARM timer register constants
+// (ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile)
 const (
-	// p2402, Table D5-1, ARMv7 Architecture Reference Manual
+	// p6721, Table 12-2
 	CNTCR = 0
 	// base frequency
 	CNTFID0 = 0x20
 
-	// p2410, D5.7.2 CNTCR, Counter Control Register, ARMv7 Architecture
-	// Reference Manual
-	//
-	// frequency = CNTFID0/CNTFID2
-	CNTCR_FCREQ2 = 10
-	// frequency = CNTFID0/CNTFID1
-	CNTCR_FCREQ1 = 9
-	// frequency = CNTFID0
-	CNTCR_FCREQ0 = 8
-	CNTCR_HDBG   = 1
-	CNTCR_EN     = 0
+	// p6855, I5.7.2 CNTCR, Counter Control Register
+	CNTCR_FCREQ = 8
+	CNTCR_HDBG  = 1
+	CNTCR_EN    = 0
 
 	CNTKCTL_PL0PCTEN = 0
 
@@ -44,13 +38,8 @@ func read_cntfrq() uint32
 func write_cntfrq(freq uint32)
 func write_cntkctl(val uint32)
 func read_cntpct() uint64
-func write_cntptval(val uint32, enable bool)
 
-// Busyloop spins the processor for busy waiting purposes, taking a counter
-// value for the number of loops.
-func Busyloop(count uint32)
-
-// InitGenericTimers initializes ARM Cortex-A7 timers.
+// InitGenericTimers initializes ARMv8 Generic Timers.
 func (cpu *CPU) InitGenericTimers(base uint32, freq uint32) {
 	if freq != 0 && cpu.Secure() {
 		// set base frequency
