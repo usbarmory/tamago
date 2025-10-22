@@ -20,7 +20,7 @@ import (
 
 // i.MX processor families
 const (
-	IMX8MP  = 0x23
+	IMX8MP = 0x23
 )
 
 //go:linkname ramStackOffset runtime.ramStackOffset
@@ -55,7 +55,7 @@ func Init() {
 func init() {
 	// Initialize watchdogs, this must be done within 16 seconds to clear
 	// their power-down counter event
-	// (p4085, 59.5.3 Power-down counter event, IMX6ULLRM).
+	// (p4085, 6.6.2.4 Power-down counter event, IMX8MPRM).
 	WDOG1.Init()
 	WDOG2.Init()
 	WDOG3.Init()

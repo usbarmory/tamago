@@ -12,8 +12,8 @@ import (
 	_ "unsafe"
 )
 
-// Timer registers (p178, Table 2-3, IMX6ULLRM)
-const SYS_CNT_BASE = 0x021dc000
+// Timer registers (p31, Table 2-4, IMX8MPRM)
+const SYS_CNT_BASE = 0x306a0000
 
 func initTimers() {
 	if !Native {
@@ -27,5 +27,5 @@ func initTimers() {
 
 //go:linkname nanotime1 runtime.nanotime1
 func nanotime1() int64 {
-	return ARM.GetTime()
+	return ARM64.GetTime()
 }

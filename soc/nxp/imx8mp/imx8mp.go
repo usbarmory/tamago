@@ -80,16 +80,14 @@ var (
 	OCOTP = &ocotp.OCOTP{
 		Base:     OCOTP_BASE,
 		BankBase: OCOTP_BANK_BASE,
-		CCGR:     CCM_CCGR2,
-		CG:       CCGRx_CG6,
+		CCGR:     CCM_CCGR34,
 	}
 
 	// Serial port 1
 	UART1 = &uart.UART{
 		Index: 1,
 		Base:  UART1_BASE,
-		CCGR:  CCM_CCGR5,
-		CG:    CCGRx_CG12,
+		CCGR:  CCM_CCGR73,
 		Clock: GetUARTClock,
 	}
 
@@ -97,8 +95,7 @@ var (
 	UART2 = &uart.UART{
 		Index: 2,
 		Base:  UART2_BASE,
-		CCGR:  CCM_CCGR0,
-		CG:    CCGRx_CG14,
+		CCGR:  CCM_CCGR74,
 		Clock: GetUARTClock,
 	}
 
@@ -106,27 +103,21 @@ var (
 	WDOG1 = &wdog.WDOG{
 		Index: 1,
 		Base:  WDOG1_BASE,
-		CCGR:  CCM_CCGR3,
-		CG:    CCGRx_CG8,
-		IRQ:   WDOG1_IRQ,
+		CCGR:  CCM_CCGR83,
 	}
 
 	// Watchdog Timer 2
 	WDOG2 = &wdog.WDOG{
 		Index: 2,
 		Base:  WDOG2_BASE,
-		CCGR:  CCM_CCGR5,
-		CG:    CCGRx_CG5,
-		IRQ:   WDOG2_IRQ,
+		CCGR:  CCM_CCGR84,
 	}
 
 	// Watchdog Timer 3
 	WDOG3 = &wdog.WDOG{
 		Index: 3,
 		Base:  WDOG3_BASE,
-		CCGR:  CCM_CCGR6,
-		CG:    CCGRx_CG10,
-		IRQ:   WDOG3_IRQ,
+		CCGR:  CCM_CCGR85,
 	}
 )
 
