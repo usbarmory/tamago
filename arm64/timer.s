@@ -6,12 +6,14 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+#define SY $0xf
+
 // func read_cntfrq() uint32
 TEXT ·read_cntfrq(SB),$0-4
 	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 	// D12.8.1 CNTFRQ_EL0, Counter-timer Frequency register
-	WORD	$0xdf3f03d5 // isb sy
-	MRS	R0, CNTFRQ_EL0
+	ISB	SY
+	MRS	CNTFRQ_EL0, R0
 	MOVW	R0, ret+0(FP)
 
 	RET
@@ -21,8 +23,8 @@ TEXT ·write_cntfrq(SB),$0-4
 	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 	// D12.8.1 CNTFRQ_EL0, Counter-timer Frequency register
 	MOVW	freq+0(FP), R0
-	WORD	$0xdf3f03d5 // isb sy
-	MSR	CNTFRQ_EL0, R0
+	ISB	SY
+	MSR	R0, CNTFRQ_EL0
 
 	RET
 
@@ -31,8 +33,8 @@ TEXT ·write_cntkctl(SB),$0-4
 	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 	// D12.8.15 CNTKCTL_EL1, Counter-timer Kernel Control register
 	MOVW	val+0(FP), R0
-	WORD	$0xdf3f03d5 // isb sy
-	MSR	CNTKCTL_EL1, R0
+	ISB	SY
+	MSR	R0, CNTKCTL_EL1
 
 	RET
 
@@ -40,8 +42,8 @@ TEXT ·write_cntkctl(SB),$0-4
 TEXT ·read_cntpct(SB),$0-8
 	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 	// D12.8.19 CNTPCT_EL0, Counter-timer Physical Count register
-	WORD	$0xdf3f03d5 // isb sy
-	MRS	R0, CNTPCT_EL0
+	ISB	SY
+	MRS	CNTPCT_EL0, R0
 	MOVW	R0, ret+0(FP)
 
 	RET

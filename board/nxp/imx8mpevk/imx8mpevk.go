@@ -22,7 +22,7 @@ import (
 
 // Peripheral instances
 var (
-	UART1 = imx6ul.UART1
+	UART1 = imx8mp.UART1
 )
 
 // Init takes care of the lower level initialization triggered early in runtime

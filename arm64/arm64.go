@@ -35,7 +35,7 @@ func exit(int32)
 // a pointer to a 64 kB memory area which will be reserved for storing the
 // exception vector table, L1/L2 page tables and the exception stack (see
 // https://github.com/usbarmory/tamago/wiki/Internals#memory-layout).
-func (cpu *CPU) Init(vbar uint32) {
+func (cpu *CPU) Init(vbar uint64) {
 	runtime.Exit = exit
 
 	// the application is allowed to override the reserved area

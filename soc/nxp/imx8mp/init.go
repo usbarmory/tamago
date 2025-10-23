@@ -12,10 +12,7 @@ import (
 	"runtime"
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/arm64"
-	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/dma"
-	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // i.MX processor families
@@ -37,11 +34,6 @@ var (
 // Init takes care of the lower level initialization triggered early in runtime
 // setup (e.g. runtime.hwinit1).
 func Init() {
-	if ARM.Mode() != arm64.SYS_MODE {
-		// initialization required only when in PL1
-		return
-	}
-
 	ramStart, _ := runtime.MemRegion()
 	ARM64.Init(ramStart)
 

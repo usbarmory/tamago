@@ -9,4 +9,4 @@
 package arm64
 
 // set by application or, if not previously defined, by cpu.Init()
-var vecTableStart uint32 // FIXME
+var vecTableStart uint64

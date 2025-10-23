@@ -8,18 +8,18 @@
 
 // func cache_disable()
 TEXT ·cache_disable(SB),$0
-	MRS	R0, SCTLR_EL1
+	MRS	SCTLR_EL1, R0
 	BIC	$1<<12, R0, R0	// Disable I-cache
 	BIC	$1<<2, R0, R0	// Disable D-cache
-	MSR	SCTLR_EL1, R0
-	ISB
+	MSR	R0, SCTLR_EL1
+	ISB	$1
 	RET
 
 // func cache_enable()
 TEXT ·cache_enable(SB),$0
-	MRS	X0, SCTLR_EL1
-	ORR	$1<<12, X0, X0	// Enable I-cache
-	ORR	$1<<2, X0, X0	// Enable D-cache
-	MSR	SCTLR_EL1, X0
-	ISB
+	MRS	SCTLR_EL1, R0
+	ORR	$1<<12, R0, R0	// Enable I-cache
+	ORR	$1<<2, R0, R0	// Enable D-cache
+	MSR	R0, SCTLR_EL1
+	ISB	$1
 	RET

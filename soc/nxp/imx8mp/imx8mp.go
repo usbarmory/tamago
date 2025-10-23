@@ -24,20 +24,10 @@ import (
 
 	"github.com/usbarmory/tamago/internal/reg"
 
-	"github.com/usbarmory/tamago/soc/nxp/bee"
-	"github.com/usbarmory/tamago/soc/nxp/caam"
-	"github.com/usbarmory/tamago/soc/nxp/csu"
-	"github.com/usbarmory/tamago/soc/nxp/dcp"
-	"github.com/usbarmory/tamago/soc/nxp/enet"
-	"github.com/usbarmory/tamago/soc/nxp/gpio"
-	"github.com/usbarmory/tamago/soc/nxp/i2c"
+	"github.com/usbarmory/tamago/arm64"
+
 	"github.com/usbarmory/tamago/soc/nxp/ocotp"
-	"github.com/usbarmory/tamago/soc/nxp/rngb"
-	"github.com/usbarmory/tamago/soc/nxp/snvs"
-	"github.com/usbarmory/tamago/soc/nxp/tempmon"
 	"github.com/usbarmory/tamago/soc/nxp/uart"
-	"github.com/usbarmory/tamago/soc/nxp/usb"
-	"github.com/usbarmory/tamago/soc/nxp/usdhc"
 	"github.com/usbarmory/tamago/soc/nxp/wdog"
 )
 
@@ -65,12 +55,10 @@ const (
 // Peripheral instances
 var (
 	// ARM64 core
-	ARM64 = &arm.CPU{
+	ARM64 = &arm64.CPU{
 		// required before Init()
 		TimerOffset: 1,
 	}
-
-	DDR_BASE = 0x40000000
 
 	// On-Chip OTP Controller
 	OCOTP = &ocotp.OCOTP{
@@ -84,7 +72,7 @@ var (
 		Index: 1,
 		Base:  UART1_BASE,
 		CCGR:  CCM_CCGR73,
-		Clock: GetUARTClock,
+		//Clock: GetUARTClock,
 	}
 
 	// Serial port 2
@@ -92,7 +80,7 @@ var (
 		Index: 2,
 		Base:  UART2_BASE,
 		CCGR:  CCM_CCGR74,
-		Clock: GetUARTClock,
+		//Clock: GetUARTClock,
 	}
 
 	// Watchdog Timer 1

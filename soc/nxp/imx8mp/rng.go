@@ -13,7 +13,6 @@ import (
 	"time"
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/rng"
 )
 
