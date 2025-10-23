@@ -24,10 +24,6 @@ import (
 
 	"github.com/usbarmory/tamago/internal/reg"
 
-	"github.com/usbarmory/tamago/arm"
-	"github.com/usbarmory/tamago/arm/gic"
-	"github.com/usbarmory/tamago/arm/tzc380"
-
 	"github.com/usbarmory/tamago/soc/nxp/bee"
 	"github.com/usbarmory/tamago/soc/nxp/caam"
 	"github.com/usbarmory/tamago/soc/nxp/csu"

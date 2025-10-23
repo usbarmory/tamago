@@ -9,8 +9,6 @@
 package arm64
 
 import (
-	"math"
-
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -41,7 +39,7 @@ func read_cntpct() uint64
 
 // InitGenericTimers initializes ARMv8 Generic Timers.
 func (cpu *CPU) InitGenericTimers(base uint32, freq uint32) {
-	if freq != 0 && cpu.Secure() {
+	if freq != 0 {
 		// set base frequency
 		write_cntfrq(freq)
 
@@ -49,7 +47,7 @@ func (cpu *CPU) InitGenericTimers(base uint32, freq uint32) {
 			reg.Write(base+CNTFID0, freq)
 
 			// set system counter to base frequency
-			reg.Set(base+CNTCR, CNTCR_FCREQ0)
+			reg.Set(base+CNTCR, CNTCR_FCREQ)
 			// stop system counter on debug
 			reg.Set(base+CNTCR, CNTCR_HDBG)
 			// start system counter

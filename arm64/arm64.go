@@ -17,7 +17,6 @@
 package arm64
 
 import (
-	"math"
 	"runtime"
 )
 
@@ -38,12 +37,12 @@ func exit(int32)
 // https://github.com/usbarmory/tamago/wiki/Internals#memory-layout).
 func (cpu *CPU) Init(vbar uint32) {
 	runtime.Exit = exit
-	runtime.Idle = cpu.DefaultIdleGovernor
 
 	// the application is allowed to override the reserved area
 	if vecTableStart != 0 {
 		vbar = vecTableStart
 	}
 
-	cpu.initVectorTable(vbar)
+	// TODO
+	//cpu.initVectorTable(vbar)
 }
