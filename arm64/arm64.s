@@ -6,6 +6,13 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+// func read_el() uint64
+TEXT ·read_el(SB),$0-8
+	MRS	CurrentEL, R0
+	MOVD	R0, ret+0(FP)
+
+	RET
+
 // func exit(int32)
 TEXT ·exit(SB),$0-4
 	// wait forever in low-power state

@@ -11,7 +11,7 @@
 // func fp_enable()
 TEXT ·fp_enable(SB),$0
 	MRS	CPACR_EL1, R0
-	ORR	$(3 << 20), R0, R0	// set CPACR_EL1.FPEN
+	ORR	$(3 << 20), R0	// set CPACR_EL1.FPEN
 	MSR	R0, CPACR_EL1
 	ISB	$1
 

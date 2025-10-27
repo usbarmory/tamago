@@ -35,7 +35,7 @@ func vector(fn ExceptionHandler) uint64 {
 
 // DefaultExceptionHandler handles an exception by printing its vector and
 // processor mode before panicking.
-func DefaultExceptionHandler(off int) {
+func DefaultExceptionHandler() {
 	if isThrowing {
 		exit(0)
 	}
@@ -43,7 +43,6 @@ func DefaultExceptionHandler(off int) {
 	// TODO: implement runtime.CallOnG0 for a cleaner approach
 	isThrowing = true
 
-	print("exception: vector ", off, "\n")
 	panic("unhandled exception")
 }
 
@@ -53,8 +52,8 @@ func DefaultExceptionHandler(off int) {
 // CPU.Init()).
 var SystemExceptionHandler = DefaultExceptionHandler
 
-func systemException(off int) {
-	SystemExceptionHandler(off)
+func systemException() {
+	SystemExceptionHandler()
 }
 
 //go:nosplit
