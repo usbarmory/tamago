@@ -9,7 +9,6 @@
 package imx8mp
 
 import (
-	"runtime"
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/dma"
@@ -34,8 +33,7 @@ var (
 // Init takes care of the lower level initialization triggered early in runtime
 // setup (e.g. runtime.hwinit1).
 func Init() {
-	ramStart, _ := runtime.MemRegion()
-	ARM64.Init(ramStart)
+	ARM64.Init()
 
 	// MMU initialization is required to take advantage of data cache
 	ARM64.InitMMU()

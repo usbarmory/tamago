@@ -72,7 +72,7 @@ var (
 		Index: 1,
 		Base:  UART1_BASE,
 		CCGR:  CCM_CCGR73,
-		//Clock: GetUARTClock,
+		Clock: GetUARTClock,
 	}
 
 	// Serial port 2
@@ -80,7 +80,7 @@ var (
 		Index: 2,
 		Base:  UART2_BASE,
 		CCGR:  CCM_CCGR74,
-		//Clock: GetUARTClock,
+		Clock: GetUARTClock,
 	}
 
 	// Watchdog Timer 1

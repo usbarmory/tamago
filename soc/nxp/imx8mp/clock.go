@@ -20,3 +20,17 @@ const (
 	CCM_CCGR84 = CCM_CCGR_BASE + 0x4540
 	CCM_CCGR85 = CCM_CCGR_BASE + 0x4550
 )
+
+// Oscillator frequencies
+const (
+	OSC_FREQ  = 24000000
+	PLL2_FREQ = 528000000
+	PLL3_FREQ = 480000000
+)
+
+// GetUARTClock returns the UART_CLK_ROOT frequency,
+// (p253, Figure 5-3. CCM Clock Tree Root Slics, IMX8MPRM).
+func GetUARTClock() uint32 {
+	// TODO
+	return 80000000
+}

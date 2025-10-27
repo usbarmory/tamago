@@ -31,18 +31,9 @@ type CPU struct {
 // defined in arm64.s
 func exit(int32)
 
-// Init performs initialization of an ARM64 core instance, the argument must be
-// a pointer to a 64 kB memory area which will be reserved for storing the
-// exception vector table, L1/L2 page tables and the exception stack (see
-// https://github.com/usbarmory/tamago/wiki/Internals#memory-layout).
-func (cpu *CPU) Init(vbar uint64) {
+// Init performs initialization of an ARM64 core instance.
+func (cpu *CPU) Init() {
 	runtime.Exit = exit
 
-	// the application is allowed to override the reserved area
-	if vecTableStart != 0 {
-		vbar = vecTableStart
-	}
-
-	// TODO
-	//cpu.initVectorTable(vbar)
+	cpu.initVectorTable()
 }
