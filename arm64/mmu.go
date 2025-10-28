@@ -8,8 +8,15 @@
 
 package arm64
 
-// MMU access permissions
-// (Table G5-9, ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile).
+// Memory region attributes (Table 4-113, ARM Architecture Reference Manual
+// ARMv8, for ARMv8-A architecture profile).
+const (
+	DEVICE_MEMORY = 0b00000000
+	NORMAL_MEMORY = 0b11111111
+)
+
+// MMU access permissions (Table G5-9, ARM Architecture Reference Manual ARMv8,
+// for ARMv8-A architecture profile).
 const (
 	// PL1: no access   PL0: no access
 	TTE_AP_000 uint32 = 0b00
@@ -21,6 +28,9 @@ const (
 	TTE_AP_011 uint32 = 0b11
 )
 
+// defined in mmu.s
+func write_mair_el3(val uint64)
+
 // InitMMU initializes the first-level translation tables for all available
 // memory with a flat mapping and privileged attribute flags.
 //
@@ -30,5 +40,10 @@ const (
 // All available memory is marked as non-executable except for the range
 // returned by runtime.TextRegion().
 func (cpu *CPU) InitMMU() {
+	attr0 := uint64(DEVICE_MEMORY)
+	attr1 := uint64(NORMAL_MEMORY)
+
+	write_mair_el3((attr1 << 8) | attr0)
+
 	return // TODO
 }
