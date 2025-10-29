@@ -1,4 +1,4 @@
-// x86-64 processor support
+// AMD64 processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.

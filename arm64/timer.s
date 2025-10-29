@@ -6,7 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-#define SY $0xf
+#include "arm64.h"
 
 // func read_cntfrq() uint32
 TEXT ·read_cntfrq(SB),$0-4

@@ -28,3 +28,12 @@ TEXT ·Write(SB),$0-8
 	MOVW	R1, (R0)
 
 	RET
+
+// func Write64(addr uint64, val uint64)
+TEXT ·Write64(SB),$0-16
+	MOVD	addr+0(FP), R0
+	MOVD	val+8(FP), R1
+
+	MOVD	R1, (R0)
+
+	RET

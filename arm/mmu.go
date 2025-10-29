@@ -32,6 +32,9 @@ const (
 	TTE_EXECUTE_NEVER uint32 = (1 << 4)
 	TTE_SUPERSECTION  uint32 = (1 << 18) | (1 << 1)
 	TTE_NS            uint32 = (1 << 19)
+
+	MemoryRegion = TTE_AP_001<<10 | TTE_CACHEABLE | TTE_BUFFERABLE | TTE_SECTION
+	DeviceRegion = TTE_AP_001<<10 | TTE_SECTION
 )
 
 // MMU access permissions
@@ -45,11 +48,6 @@ const (
 	TTE_AP_010 uint32 = 0b10
 	// PL1: read/write  PL0: read/write
 	TTE_AP_011 uint32 = 0b11
-)
-
-const (
-	MemoryRegion = TTE_AP_001<<10 | TTE_CACHEABLE | TTE_BUFFERABLE | TTE_SECTION
-	DeviceRegion = TTE_AP_001<<10 | TTE_SECTION
 )
 
 // defined in mmu.s
