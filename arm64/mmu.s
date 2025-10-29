@@ -36,4 +36,12 @@ TEXT ·set_ttbr0_el3(SB),$0-8
 	WORD	$0xd51e2000	// msr ttbr0_el3, x0
 	ISB	SY
 
+	WORD	$0xd53e1000	// mrs x0, sctlr_el3
+	ORR	$1<<12, R0	// enable I-cache
+	ORR	$1<<2, R0	// enable D-cache
+	ORR	$1<<0, R0	// enable MMU
+	// WiP
+	//WORD	$0xd51e1000	// msr sctlr_el3, r0
+	ISB	SY
+
 	RET
