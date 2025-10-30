@@ -30,13 +30,20 @@ const (
 // Memory region attributes (G5.7 ARM Architecture Reference Manual ARMv8, for
 // ARMv8-A architecture profile).
 const (
-	TTE_BLOCK         uint64 = (0b01 << 0)
-	TTE_TABLE         uint64 = (0b11 << 0)
-	TTE_PAGE          uint64 = (0b11 << 0)
-	TTE_NON_SH        uint64 = (0b00 << 8)
-	TTE_INNER_SH      uint64 = (0b11 << 8)
-	TTE_AF            uint64 = (0b1  << 10)
-	TTE_EXECUTE_NEVER uint64 = (0b11 << 53)
+	TTE_XN   = 53
+	TTE_AF   = 10
+	TTE_SH   = 8
+	TTE_AP   = 6
+	TTE_ATTR = 2
+	TTE_DESC = 0
+
+	TTE_BLOCK         uint64 = (0b01 << TTE_DESC)
+	TTE_TABLE         uint64 = (0b11 << TTE_DESC)
+	TTE_PAGE          uint64 = (0b11 << TTE_DESC)
+	TTE_NON_SH        uint64 = (0b00 << TTE_SH)
+	TTE_OUTER_SH      uint64 = (0b10 << TTE_SH)
+	TTE_INNER_SH      uint64 = (0b11 << TTE_SH)
+	TTE_EXECUTE_NEVER uint64 = (0b11 << TTE_XN)
 
 	// Device-nGnRnE
 	DeviceRegion uint64 = 0b00000000
@@ -46,8 +53,8 @@ const (
 	deviceAttributeIndex = 0
 	memoryAttributeIndex = 1
 
-	deviceAttributes = TTE_AF | TTE_INNER_SH | TTE_AP_001<<6 | deviceAttributeIndex<<2
-	memoryAttributes = TTE_AF | TTE_INNER_SH | TTE_AP_001<<6 | memoryAttributeIndex<<2
+	deviceAttributes = 1<<TTE_AF | TTE_OUTER_SH | TTE_AP_001<<TTE_AP | deviceAttributeIndex<<TTE_ATTR
+	memoryAttributes = 1<<TTE_AF | TTE_INNER_SH | TTE_AP_001<<TTE_AP | memoryAttributeIndex<<TTE_ATTR
 )
 
 // MMU access permissions (Table G5-9, ARM Architecture Reference Manual ARMv8,
@@ -70,25 +77,25 @@ const (
 	TCR_IRGN0 = 8
 	TCR_T0SZ  = 0
 
-	tcr uint32 =
+	tcr uint64 =
 		0b0 << TCR_TBID |
-		// memory region size offset 0:5
-		16 << TCR_T0SZ |
-		// inner cacheability (normal, cacheable)
-		0b01 << TCR_IRGN0 |
-		// outer cacheability (normal, cacheable)
-		0b01 << TCR_ORGN0 |
-		// inner shareable
-		0b11 << TCR_SH0 |
+		// 48-bit physical address size
+		0b101 << TCR_PS |
 		// 4KB granule
 		0b00 << TCR_TG0 |
-		// 48-bit physical address size
-		0b101 << TCR_PS
+		// inner shareable
+		0b11 << TCR_SH0 |
+		// outer cacheability (normal, cacheable)
+		0b01 << TCR_ORGN0 |
+		// inner cacheability (normal, cacheable)
+		0b01 << TCR_IRGN0 |
+		// memory region size offset 0:5
+		16 << TCR_T0SZ
 )
 
 // defined in mmu.s
 func write_mair_el3(val uint64)
-func write_tcr_el3(val uint32)
+func write_tcr_el3(val uint64)
 func set_ttbr0_el3(addr uint64)
 
 // D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats

@@ -18,11 +18,11 @@ TEXT ·write_mair_el3(SB),$0-8
 
 	RET
 
-// func write_tcr_el3(val uint32)
-TEXT ·write_tcr_el3(SB),$0-4
+// func write_tcr_el3(val uint64)
+TEXT ·write_tcr_el3(SB),$0-8
 	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 	// D12.2.105 TCR_EL3, Translation Control Register (EL3)
-	MOVW	val+0(FP), R0
+	MOVD	val+0(FP), R0
 	WORD	$0xd51e2040	// msr tcr_el3, x0
 	ISB	SY
 
@@ -45,6 +45,7 @@ TEXT ·set_ttbr0_el3(SB),$0-8
 	DSB	SY
 	ISB	SY
 
+	//WORD	$0xd53e1000	// mrs x0, sctlr_el3
 	MOVD	$0, R0
 	ORR	$1<<12, R0	// enable I-cache
 	ORR	$1<<2, R0	// enable D-cache
