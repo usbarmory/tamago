@@ -22,34 +22,41 @@ const (
 	l2pageTableOffset = 0x5000
 	l2pageTableSize   = 512
 
-	l3pageTableOffset = 0x6000
+	// another L2 table is appended at 0x6000
+
+	l3pageTableOffset = 0x7000
 	l3pageTableSize   = 512
 )
 
-// Memory region attributes (Table 4-113 ARM Architecture Reference Manual
-// ARMv8, for ARMv8-A architecture profile).
+// Memory region attributes (G5.7 ARM Architecture Reference Manual ARMv8, for
+// ARMv8-A architecture profile).
 const (
-	TTE_PAGE_TABLE    uint64 = (0b11 << 0)
-	TTE_EXECUTE_NEVER uint64 = (0b11 << 53)
+	TTE_BLOCK         uint64 = (0b01 << 0)
+	TTE_TABLE         uint64 = (0b11 << 0)
+	TTE_PAGE          uint64 = (0b11 << 0)
+	TTE_AF            uint64 = (0b1 << 10)
+	//TTE_EXECUTE_NEVER uint64 = (0b11 << 53)
+	TTE_EXECUTE_NEVER uint64 = (0b00 << 53)
 
+	// Device-nGnRnE memory
 	DeviceRegion uint64 = 0b00000000
+	// Normal Memory
 	MemoryRegion uint64 = 0b11111111
 
-	deviceAttribute = 0
-	memoryAttribute = 1
+	deviceAttributeIndex = 0
+	memoryAttributeIndex = 1
+
+	deviceAttributes = TTE_AF | 0b00 << 8 | TTE_AP_001<<6 | deviceAttributeIndex<<2
+	memoryAttributes = TTE_AF | 0b11 << 8 | TTE_AP_001<<6 | memoryAttributeIndex<<2
 )
 
 // MMU access permissions (Table G5-9, ARM Architecture Reference Manual ARMv8,
 // for ARMv8-A architecture profile).
 const (
-	// PL1: no access   PL0: no access
-	TTE_AP_000 uint64 = 0b00
-	// PL1: read/write  PL0: no access
-	TTE_AP_001 uint64 = 0b01
-	// PL1: read/write  PL0: read only
-	TTE_AP_010 uint64 = 0b10
-	// PL1: read/write  PL0: read/write
-	TTE_AP_011 uint64 = 0b11
+	// PL1: no access   Unprivileged: no access
+	TTE_AP_000 uint64 = 0b000
+	// PL1: read/write  Unprivileged: no access
+	TTE_AP_001 uint64 = 0b001
 )
 
 // ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
@@ -58,9 +65,9 @@ const (
 	TCR_PS    = 16
 	TCR_TG0   = 14
 	TCR_SH0   = 12
-	TCR_ORGN0 = 8
-	TCR_IRGN0 = 6
-	TCR_T0SZ  = 5
+	TCR_ORGN0 = 10
+	TCR_IRGN0 = 8
+	TCR_T0SZ  = 0
 )
 
 // defined in mmu.s
@@ -71,11 +78,67 @@ func set_ttbr0_el3(addr uint64)
 // D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats
 // (ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile).
 func (cpu *CPU) initL1Table(entry int, ttbr uint64, section uint64) {
+	ramStart, ramEnd := runtime.MemRegion()
+	_, textEnd := runtime.TextRegion()
+
+	memoryRegion := memoryAttributes | TTE_BLOCK
+	deviceRegion := deviceAttributes | TTE_BLOCK
+
+	for i := uint64(entry); i < l1pageTableSize; i++ {
+		page := ttbr + 8*i
+		addr := section + (i << 30)
+
+		switch {
+		case addr < textEnd && (addr+(1<<30)) > textEnd:
+			// skip first L2 table, pointing to L3
+			l2pageTableStart := ramStart + l2pageTableOffset
+			base := l2pageTableStart + l2pageTableSize*8
+
+			// use L2 table to end non-executable boundary
+			// precisely at textStart
+			reg.Write64(page, base|TTE_TABLE)
+			cpu.initL2Table(0, base, addr)
+		case addr >= ramStart && addr < textEnd:
+			reg.Write64(page, addr|memoryRegion)
+		case addr >= ramStart && addr < ramEnd:
+			reg.Write64(page, addr|memoryRegion|TTE_EXECUTE_NEVER)
+		default:
+			reg.Write64(page, addr|deviceRegion|TTE_EXECUTE_NEVER)
+		}
+	}
 }
 
 // D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats
 // (ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile).
-func (cpu *CPU) initL2Table(entry int, ttbr uint64, section uint64) {
+func (cpu *CPU) initL2Table(entry int, base uint64, section uint64) {
+	ramStart, ramEnd := runtime.MemRegion()
+	_, textEnd := runtime.TextRegion()
+
+	memoryRegion := memoryAttributes | TTE_BLOCK
+	deviceRegion := deviceAttributes | TTE_BLOCK
+
+	for i := uint64(entry); i < l2pageTableSize; i++ {
+		page := base + 8*i
+		addr := section + (i << 21)
+
+		switch {
+		case addr < textEnd && (addr+(1<<21)) > textEnd:
+			// skip first L3 table, reserved to trap null pointers
+			l3pageTableStart := ramStart + l3pageTableOffset
+			base := l3pageTableStart + l3pageTableSize*8
+
+			// use L3 table to end non-executable boundary
+			// precisely at textStart
+			reg.Write64(page, base|TTE_TABLE)
+			cpu.initL3Table(0, base, addr)
+		case addr >= ramStart && addr < textEnd:
+			reg.Write64(page, addr|memoryRegion)
+		case addr >= ramStart && addr < ramEnd:
+			reg.Write64(page, addr|memoryRegion|TTE_EXECUTE_NEVER)
+		default:
+			reg.Write64(page, addr|deviceRegion|TTE_EXECUTE_NEVER)
+		}
+	}
 }
 
 // D5.3.2 ARMv8 translation table level 3 descriptor formats
@@ -84,8 +147,8 @@ func (cpu *CPU) initL3Table(entry int, base uint64, section uint64) {
 	ramStart, ramEnd := runtime.MemRegion()
 	_, textEnd := runtime.TextRegion()
 
-	memoryRegion := TTE_AP_001<<6 | memoryAttribute<<2 | TTE_PAGE_TABLE
-	deviceRegion := TTE_AP_001<<6 | deviceAttribute<<2 | TTE_PAGE_TABLE
+	memoryRegion := memoryAttributes | TTE_PAGE
+	deviceRegion := deviceAttributes | TTE_PAGE
 
 	for i := uint64(entry); i < l3pageTableSize; i++ {
 		page := base + 8*i
@@ -118,12 +181,12 @@ func (cpu *CPU) InitMMU() {
 	l3pageTableStart := ramStart + l3pageTableOffset
 
 	// Map the first L1 entry to an L2 table.
-	tte := l2pageTableStart | TTE_PAGE_TABLE
+	tte := l2pageTableStart | TTE_TABLE
 	reg.Write64(l1pageTableStart, tte)
 
 	// Map the first L2 entry to an L3 table to trap null pointers within
 	// the smallest possible section (4KB starting from 0x00000000).
-	tte = l3pageTableStart | TTE_PAGE_TABLE
+	tte = l3pageTableStart | TTE_TABLE
 	reg.Write64(l2pageTableStart, tte)
 
 	// set first L3 entry as invalid
@@ -137,7 +200,9 @@ func (cpu *CPU) InitMMU() {
 	// set memory region attributes
 	//   * attr0: device
 	//   * attr1: memory
-	write_mair_el3((MemoryRegion << 8 * memoryAttribute) | (DeviceRegion << 8 * deviceAttribute))
+	write_mair_el3(
+		MemoryRegion << (8 * memoryAttributeIndex) |
+		DeviceRegion << (8 * deviceAttributeIndex))
 
 	// configure translation control register
 	var tcr uint32

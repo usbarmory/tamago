@@ -20,6 +20,8 @@ const (
 
 	l2pageTableOffset = 0xc000
 	l2pageTableSize   = 256
+
+	// another L2 table is appended at 0xc400
 )
 
 // Memory region attributes
