@@ -23,7 +23,7 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	WORD	$0xd53e1000	// mrs x0, sctlr_el3
 	BIC	$(1<<1), R0	// clear A bit
 	BIC	$(1<<0), R0	// clear M bit
-	WORD	$0xd51e1000	// msr sctlr_el3, r0
+	WORD	$0xd51e1000	// msr sctlr_el3, x0
 	ISB	$15
 
 	B	_rt0_tamago_start(SB)

@@ -11,7 +11,6 @@ package arm64
 import (
 	"runtime"
 
-	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -34,20 +33,21 @@ const (
 	TTE_BLOCK         uint64 = (0b01 << 0)
 	TTE_TABLE         uint64 = (0b11 << 0)
 	TTE_PAGE          uint64 = (0b11 << 0)
-	TTE_AF            uint64 = (0b1 << 10)
-	//TTE_EXECUTE_NEVER uint64 = (0b11 << 53)
-	TTE_EXECUTE_NEVER uint64 = (0b00 << 53)
+	TTE_NON_SH        uint64 = (0b00 << 8)
+	TTE_INNER_SH      uint64 = (0b11 << 8)
+	TTE_AF            uint64 = (0b1  << 10)
+	TTE_EXECUTE_NEVER uint64 = (0b11 << 53)
 
-	// Device-nGnRnE memory
+	// Device-nGnRnE
 	DeviceRegion uint64 = 0b00000000
-	// Normal Memory
+	// Normal, Inner/Outer WB/WA/RA
 	MemoryRegion uint64 = 0b11111111
 
 	deviceAttributeIndex = 0
 	memoryAttributeIndex = 1
 
-	deviceAttributes = TTE_AF | 0b00 << 8 | TTE_AP_001<<6 | deviceAttributeIndex<<2
-	memoryAttributes = TTE_AF | 0b11 << 8 | TTE_AP_001<<6 | memoryAttributeIndex<<2
+	deviceAttributes = TTE_AF | TTE_INNER_SH | TTE_AP_001<<6 | deviceAttributeIndex<<2
+	memoryAttributes = TTE_AF | TTE_INNER_SH | TTE_AP_001<<6 | memoryAttributeIndex<<2
 )
 
 // MMU access permissions (Table G5-9, ARM Architecture Reference Manual ARMv8,
@@ -68,6 +68,20 @@ const (
 	TCR_ORGN0 = 10
 	TCR_IRGN0 = 8
 	TCR_T0SZ  = 0
+
+	tcr uint32 =
+		// memory region size offset 0:5
+		0x3f << TCR_T0SZ |
+		// inner cacheability (normal, cacheable)
+		0b01 << TCR_IRGN0 |
+		// outer cacheability (normal, cacheable)
+		0b01 << TCR_ORGN0 |
+		// inner shareable
+		0b11 << TCR_SH0 |
+		// 4KB granule
+		0b00 << TCR_TG0 |
+		// 32-bit physical address size (4GB)
+		0b111 << TCR_PS
 )
 
 // defined in mmu.s
@@ -201,17 +215,10 @@ func (cpu *CPU) InitMMU() {
 	//   * attr0: device
 	//   * attr1: memory
 	write_mair_el3(
-		MemoryRegion << (8 * memoryAttributeIndex) |
-		DeviceRegion << (8 * deviceAttributeIndex))
+		MemoryRegion<<(8*memoryAttributeIndex) |
+			DeviceRegion<<(8*deviceAttributeIndex))
 
-	// configure translation control register
-	var tcr uint32
-	bits.SetN(&tcr, TCR_T0SZ, 0x3f, 16)    // memory region size offset 0:5
-	bits.SetN(&tcr, TCR_IRGN0, 0b11, 0b01) // inner cacheability (normal, cacheable)
-	bits.SetN(&tcr, TCR_ORGN0, 0b11, 0b01) // outer cacheability (normal, cacheable)
-	bits.SetN(&tcr, TCR_SH0, 0b11, 0b11)   // inner shareable
-	bits.SetN(&tcr, TCR_TG0, 0b11, 0b00)   // 4KB granule
-	bits.SetN(&tcr, TCR_PS, 0b111, 0b000)  // 32-bit physical address size (4GB)
+	// set translation control register
 	write_tcr_el3(tcr)
 
 	set_ttbr0_el3(l1pageTableStart)
