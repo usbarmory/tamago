@@ -89,8 +89,8 @@ const (
 		0b01 << TCR_ORGN0 |
 		// inner cacheability (normal, cacheable)
 		0b01 << TCR_IRGN0 |
-		// memory region size offset 0:5
-		16 << TCR_T0SZ
+		// memory region size offset 0:5 (39-bits VA space)
+		25 << TCR_T0SZ
 )
 
 // defined in mmu.s
