@@ -29,7 +29,6 @@ type CPU struct {
 }
 
 // defined in arm64.s
-func read_el() uint64
 func exit(int32)
 
 // Init performs initialization of an ARM64 core instance.

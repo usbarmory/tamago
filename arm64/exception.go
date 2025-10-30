@@ -26,6 +26,7 @@ const (
 
 // defined in exception.s
 func set_vbar()
+func read_el() uint64
 
 type ExceptionHandler func()
 
