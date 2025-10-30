@@ -59,15 +59,17 @@ func set_ttbr0(addr uint32)
 // First level address translation
 // 9.4, ARM® Cortex™ -A Series Programmer’s Guide
 func (cpu *CPU) initL1Table(entry int, ttbr uint32, section uint32) {
+	n := 20 // 1MB
+
 	ramStart, ramEnd := runtime.MemRegion()
 	_, textEnd := runtime.TextRegion()
 
 	for i := uint32(entry); i < l1pageTableSize; i++ {
 		page := ttbr + 4*i
-		addr := section + (i << 20)
+		addr := section + (i << n)
 
 		switch {
-		case addr < textEnd && (addr+(1<<20)) > textEnd:
+		case addr < textEnd && (addr+(1<<n)) > textEnd:
 			// skip first L2 table, reserved to trap null pointers
 			l2pageTableStart := cpu.vbar + l2pageTableOffset
 			base := l2pageTableStart + l2pageTableSize*4
@@ -89,6 +91,8 @@ func (cpu *CPU) initL1Table(entry int, ttbr uint32, section uint32) {
 // Level 2 translation tables
 // 9.5, ARM® Cortex™ -A Series Programmer’s Guide
 func (cpu *CPU) initL2Table(entry int, base uint32, section uint32) {
+	n := 12 // 4KB
+
 	ramStart, ramEnd := runtime.MemRegion()
 	_, textEnd := runtime.TextRegion()
 
@@ -97,7 +101,7 @@ func (cpu *CPU) initL2Table(entry int, base uint32, section uint32) {
 
 	for i := uint32(entry); i < l2pageTableSize; i++ {
 		page := base + 4*i
-		addr := section + (i << 12)
+		addr := section + (i << n)
 
 		switch {
 		case addr >= ramStart && addr < textEnd:

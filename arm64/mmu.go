@@ -62,6 +62,7 @@ const (
 // ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 // D12.2.105 TCR_EL3, Translation Control Register (EL3).
 const (
+	TCR_TBID  = 29
 	TCR_PS    = 16
 	TCR_TG0   = 14
 	TCR_SH0   = 12
@@ -70,8 +71,9 @@ const (
 	TCR_T0SZ  = 0
 
 	tcr uint32 =
+		0b0 << TCR_TBID |
 		// memory region size offset 0:5
-		0x3f << TCR_T0SZ |
+		16 << TCR_T0SZ |
 		// inner cacheability (normal, cacheable)
 		0b01 << TCR_IRGN0 |
 		// outer cacheability (normal, cacheable)
@@ -80,8 +82,8 @@ const (
 		0b11 << TCR_SH0 |
 		// 4KB granule
 		0b00 << TCR_TG0 |
-		// 32-bit physical address size (4GB)
-		0b111 << TCR_PS
+		// 48-bit physical address size
+		0b101 << TCR_PS
 )
 
 // defined in mmu.s
@@ -92,6 +94,8 @@ func set_ttbr0_el3(addr uint64)
 // D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats
 // (ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile).
 func (cpu *CPU) initL1Table(entry int, ttbr uint64, section uint64) {
+	n := 30 // 1GB
+
 	ramStart, ramEnd := runtime.MemRegion()
 	_, textEnd := runtime.TextRegion()
 
@@ -100,10 +104,10 @@ func (cpu *CPU) initL1Table(entry int, ttbr uint64, section uint64) {
 
 	for i := uint64(entry); i < l1pageTableSize; i++ {
 		page := ttbr + 8*i
-		addr := section + (i << 30)
+		addr := section + (i << n)
 
 		switch {
-		case addr < textEnd && (addr+(1<<30)) > textEnd:
+		case addr < textEnd && (addr+(1<<n)) > textEnd:
 			// skip first L2 table, pointing to L3
 			l2pageTableStart := ramStart + l2pageTableOffset
 			base := l2pageTableStart + l2pageTableSize*8
@@ -125,6 +129,8 @@ func (cpu *CPU) initL1Table(entry int, ttbr uint64, section uint64) {
 // D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats
 // (ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile).
 func (cpu *CPU) initL2Table(entry int, base uint64, section uint64) {
+	n := 21 // 2MB
+
 	ramStart, ramEnd := runtime.MemRegion()
 	_, textEnd := runtime.TextRegion()
 
@@ -133,10 +139,10 @@ func (cpu *CPU) initL2Table(entry int, base uint64, section uint64) {
 
 	for i := uint64(entry); i < l2pageTableSize; i++ {
 		page := base + 8*i
-		addr := section + (i << 21)
+		addr := section + (i << n)
 
 		switch {
-		case addr < textEnd && (addr+(1<<21)) > textEnd:
+		case addr < textEnd && (addr+(1<<n)) > textEnd:
 			// skip first L3 table, reserved to trap null pointers
 			l3pageTableStart := ramStart + l3pageTableOffset
 			base := l3pageTableStart + l3pageTableSize*8
@@ -158,6 +164,8 @@ func (cpu *CPU) initL2Table(entry int, base uint64, section uint64) {
 // D5.3.2 ARMv8 translation table level 3 descriptor formats
 // (ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile).
 func (cpu *CPU) initL3Table(entry int, base uint64, section uint64) {
+	n := 12 // 4KB
+
 	ramStart, ramEnd := runtime.MemRegion()
 	_, textEnd := runtime.TextRegion()
 
@@ -166,7 +174,7 @@ func (cpu *CPU) initL3Table(entry int, base uint64, section uint64) {
 
 	for i := uint64(entry); i < l3pageTableSize; i++ {
 		page := base + 8*i
-		addr := section + (i << 12)
+		addr := section + (i << n)
 
 		switch {
 		case addr >= ramStart && addr < textEnd:
@@ -221,5 +229,6 @@ func (cpu *CPU) InitMMU() {
 	// set translation control register
 	write_tcr_el3(tcr)
 
+	// enable MMU
 	set_ttbr0_el3(l1pageTableStart)
 }
