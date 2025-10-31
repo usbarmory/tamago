@@ -44,6 +44,6 @@ TEXT ·read_cntpct(SB),$0-8
 	// D12.8.19 CNTPCT_EL0, Counter-timer Physical Count register
 	ISB	SY
 	MRS	CNTPCT_EL0, R0
-	MOVW	R0, ret+0(FP)
+	MOVD	R0, ret+0(FP)
 
 	RET
