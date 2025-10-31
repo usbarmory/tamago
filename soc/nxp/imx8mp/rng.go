@@ -18,6 +18,7 @@ import (
 
 //go:linkname initRNG runtime.initRNG
 func initRNG() {
+	// only emulated targets have been tested so far
 	Native = false
 
 	if !Native {

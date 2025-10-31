@@ -94,6 +94,7 @@ const (
 )
 
 // defined in mmu.s
+func flush_tlb()
 func write_mair_el3(val uint64)
 func write_tcr_el3(val uint64)
 func set_ttbr0_el3(addr uint64)

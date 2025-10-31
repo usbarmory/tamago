@@ -8,6 +8,19 @@
 
 #include "arm64.h"
 
+// func flush_tlb()
+TEXT ·flush_tlb(SB),$0
+	// invalidate TLBs
+	DSB	SY
+	ISB	SY
+
+	// invalidate EL3 TLBs
+	WORD	$0xd50e871f	// tlbi alle3
+	DSB	SY
+	ISB	SY
+
+	RET
+
 // func write_mair_el3(val uint64)
 TEXT ·write_mair_el3(SB),$0-8
 	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
@@ -36,14 +49,7 @@ TEXT ·set_ttbr0_el3(SB),$0-8
 	WORD	$0xd51e2000	// msr ttbr0_el3, x0
 	ISB	SY
 
-	// invalidate TLBs
-	DSB	SY
-	ISB	SY
-
-	// invalidate EL3 TLBs
-	WORD	$0xd50e871f	// tlbi alle3
-	DSB	SY
-	ISB	SY
+	CALL	·flush_tlb(SB)
 
 	MOVD	$0, R0
 	ORR	$1<<12, R0	// enable I-cache

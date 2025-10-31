@@ -60,8 +60,4 @@ func init() {
 	case "i.MX8MP":
 		OCOTP.Banks = 40
 	}
-
-	if !Native {
-		return
-	}
 }
