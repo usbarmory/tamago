@@ -24,13 +24,17 @@ const (
 // Oscillator frequencies
 const (
 	OSC_FREQ  = 24000000
-	PLL2_FREQ = 528000000
-	PLL3_FREQ = 480000000
 )
+
+// ARMFreq returns the ARM core frequency.
+func ARMFreq() (hz uint32) {
+	// FIXME
+	return 1200000000
+}
 
 // GetUARTClock returns the UART_CLK_ROOT frequency,
 // (p253, Figure 5-3. CCM Clock Tree Root Slics, IMX8MPRM).
 func GetUARTClock() uint32 {
-	// TODO
+	// FIXME
 	return 80000000
 }
