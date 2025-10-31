@@ -17,10 +17,8 @@ const SYS_CNT_BASE = 0x306a0000
 
 func initTimers() {
 	if !Native {
-		// use QEMU fixed CNTFRQ value (62.5MHz)
-		ARM64.InitGenericTimers(0, 62500000)
+		ARM64.InitGenericTimers(0, 8000000)
 	} else {
-		// U-Boot value for i.MX6 family (8.0MHz)
 		ARM64.InitGenericTimers(SYS_CNT_BASE, 8000000)
 	}
 }
