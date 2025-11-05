@@ -178,7 +178,7 @@ type ENET struct {
 func (hw *ENET) Init() {
 	hw.Lock()
 
-	if hw.Base == 0 || hw.Clock == nil || hw.EnablePLL == nil || hw.EnablePHY == nil {
+	if hw.Base == 0 || hw.Clock == nil || hw.EnablePLL == nil {
 		panic("invalid ENET controller instance")
 	}
 
@@ -270,8 +270,10 @@ func (hw *ENET) setup() {
 	// enable Ethernet MAC
 	reg.Set(hw.ecr, ECR_ETHEREN)
 
-	// enable Ethernet PHY
-	hw.EnablePHY(hw)
+	if hw.EnablePHY != nil {
+		// enable Ethernet PHY
+		hw.EnablePHY(hw)
+	}
 }
 
 // SetMAC allows to change the controller physical address register after
