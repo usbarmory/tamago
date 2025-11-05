@@ -26,6 +26,7 @@ import (
 
 	"github.com/usbarmory/tamago/arm64"
 
+	"github.com/usbarmory/tamago/soc/nxp/enet"
 	"github.com/usbarmory/tamago/soc/nxp/ocotp"
 	"github.com/usbarmory/tamago/soc/nxp/uart"
 	"github.com/usbarmory/tamago/soc/nxp/wdog"
@@ -33,12 +34,15 @@ import (
 
 // Peripheral registers
 const (
+	// DDR base address
+	DDR_BASE = 0x40000000
+
+	// Ethernet MAC
+	ENET1_BASE = 0x30be0000
+
 	// On-Chip OTP Controller
 	OCOTP_BASE      = 0x021bc000
 	OCOTP_BANK_BASE = 0x021bc400
-
-	// DDR base address
-	DDR_BASE = 0x40000000
 
 	// Serial ports
 	UART1_BASE = 0x30860000
@@ -49,7 +53,7 @@ const (
 	// Watchdog Timers
 	WDOG1_BASE = 0x30280000
 	WDOG2_BASE = 0x30290000
-	WDOG3_BASE = 0x302a0000 
+	WDOG3_BASE = 0x302a0000
 )
 
 // Peripheral instances
@@ -58,6 +62,15 @@ var (
 	ARM64 = &arm64.CPU{
 		// required before Init()
 		TimerOffset: 1,
+	}
+
+	// Ethernet MAC 1
+	ENET1 = &enet.ENET{
+		Index:     1,
+		Base:      ENET1_BASE,
+		CCGR:      CCM_CCGR10,
+		Clock:     GetPeripheralClock,
+		EnablePLL: func(_ int) (err error) { return },
 	}
 
 	// On-Chip OTP Controller
