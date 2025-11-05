@@ -95,10 +95,12 @@ The following table summarizes currently supported ARM SoCs and boards
 Supported ARM64 targets
 =======================
 
-The support for an actual target is work-in-progress, the
-[testing environment](https://github.com/usbarmory/tamago-go/blob/tamago1.25.1/src/testing/testing_tamago.go)
-is supported and all Go standard library packages are supported and
-[tested using original distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility).
+The following table summarizes currently supported ARM SoCs and boards
+(`GOOS=tamago GOARCH=arm64`).
+
+| SoC                   | Board                                                                                                                                                                                | SoC package                                                              | Board package                                                                    |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| NXP i.MX8M Plus       | [8MPLUSLPD4-EVK](https://www.nxp.com/design/design-center/development-boards-and-designs/8MPLUSLPD4-EVK)                                                                             | [imx8mp](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx8mp) | [imx8mpevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/imx8mpevk) |
 
 Supported RISC-V targets
 ========================
@@ -168,6 +170,9 @@ GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main
 
 # Example for USB armory Mk II
 GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
+
+# Example for [8MPLUSLPD4-EVK
+GOOS=tamago GOARCH=arm64 ${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main.go
 
 # Example for QEMU RISC-V sifive_u
 GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
