@@ -102,13 +102,6 @@ const (
 	ENET1_CLK_SEL    = 13
 )
 
-// Oscillator frequencies
-const (
-	OSC_FREQ  = 24000000
-	PLL2_FREQ = 528000000
-	PLL3_FREQ = 480000000
-)
-
 // Operating ARM core frequencies in MHz (care must be taken as not all P/Ns
 // support the entire range)
 // (p24, Table 10. Operating Ranges, IMX6ULLCEC).
@@ -125,8 +118,10 @@ const (
 // Clocks at boot time
 // (p261, Table 8-4. Normal frequency clocks configuration, IMX6ULLRM)
 const (
-	IPG_FREQ = 66000000
-	AHB_FREQ = 132000000
+	OSC_FREQ  = 24000000  // 24MHz
+	PLL2_FREQ = 528000000 // 528MHz
+	PLL3_FREQ = 480000000 // 480MHz
+	AHB_FREQ  = 132000000 // 132MHz
 )
 
 // ARMCoreDiv returns the ARM core divider value
