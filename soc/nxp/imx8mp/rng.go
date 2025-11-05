@@ -18,6 +18,8 @@ import (
 
 //go:linkname initRNG runtime.initRNG
 func initRNG() {
+	_, Family, _, _ = SiliconVersion()
+
 	// only emulated targets have been tested so far
 	Native = false
 

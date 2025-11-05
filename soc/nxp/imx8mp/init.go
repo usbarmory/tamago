@@ -16,7 +16,7 @@ import (
 
 // i.MX processor families
 const (
-	IMX8MP = 0x23
+	IMX8MP = 0x82
 )
 
 //go:linkname ramStackOffset runtime.ramStackOffset
