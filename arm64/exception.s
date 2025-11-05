@@ -31,16 +31,16 @@
 // Table D1-7 Vector offsets from vector table base address
 TEXT ·vectorTable(SB),NOSPLIT|NOFRAME,$0
 	// EL0
-	CALL	·systemException(SB); PAD // Synchronous Exception
-	CALL	·systemException(SB); PAD // IRQ or vIRQ
-	CALL	·systemException(SB); PAD // FIQ or vFIQ
-	CALL	·systemException(SB); PAD // SError or vSError
+	JMP	·systemException(SB); PAD // Synchronous Exception
+	JMP	·systemException(SB); PAD // IRQ or vIRQ
+	JMP	·systemException(SB); PAD // FIQ or vFIQ
+	JMP	·systemException(SB); PAD // SError or vSError
 
 	// ELx, x>0
-	CALL	·systemException(SB); PAD // Synchronous Exception
-	CALL	·systemException(SB); PAD // IRQ or vIRQ
-	CALL	·systemException(SB); PAD // FIQ or vFIQ
-	CALL	·systemException(SB); PAD // SError or vSError
+	JMP	·systemException(SB); PAD // Synchronous Exception
+	JMP	·systemException(SB); PAD // IRQ or vIRQ
+	JMP	·systemException(SB); PAD // FIQ or vFIQ
+	JMP	·systemException(SB); PAD // SError or vSError
 
 // func set_vbar()
 TEXT ·set_vbar(SB),NOSPLIT,$0
