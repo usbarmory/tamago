@@ -171,7 +171,7 @@ GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main
 # Example for USB armory Mk II
 GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
 
-# Example for [8MPLUSLPD4-EVK
+# Example for 8MPLUSLPD4-EVK
 GOOS=tamago GOARCH=arm64 ${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main.go
 
 # Example for QEMU RISC-V sifive_u
