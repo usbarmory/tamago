@@ -88,7 +88,7 @@ func (hw *CAAM) Init() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if hw.Base == 0 || hw.CCGR == 0 {
+	if hw.Base == 0 {
 		panic("invalid CAAM instance")
 	}
 
@@ -97,8 +97,10 @@ func (hw *CAAM) Init() {
 	hw.rtent0 = hw.Base + CAAM_RTENT0
 	hw.rtent15 = hw.Base + CAAM_RTENT15
 
-	// enable clock
-	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
+	if hw.CCGR != 0 {
+		// enable clock
+		reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
+	}
 
 	// enter program mode
 	reg.Set(hw.rtmctl, RTMCTL_PRGM)
