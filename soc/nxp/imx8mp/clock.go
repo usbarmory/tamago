@@ -28,7 +28,7 @@ const (
 const (
 	ARM_FREQ = 1000000000 // 1GHz
 	AHB_FREQ = 133000000  // 133MHz
-	REF_FREQ =  24000000  // 24MHz
+	REF_FREQ = 24000000   // 24MHz
 )
 
 // ARMFreq returns the ARM core frequency.

@@ -99,7 +99,7 @@ func (io *IOAPIC) EnableInterrupt(index int, id int) {
 
 	// set destination to BSP
 	reg.Write(io.Base+IOREGSEL, IOAPICREDTBLn+uint32(index*2)+1)
-	reg.Write(io.Base+IOWIN, 0 << (REDTBL_DEST-32))
+	reg.Write(io.Base+IOWIN, 0<<(REDTBL_DEST-32))
 
 	// set interrupt vector
 	bits.Clear(&val, REDTBL_MASK)

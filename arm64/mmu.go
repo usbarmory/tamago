@@ -77,20 +77,19 @@ const (
 	TCR_IRGN0 = 8
 	TCR_T0SZ  = 0
 
-	tcr uint64 =
-		0b0 << TCR_TBID |
+	tcr uint64 = 0b0<<TCR_TBID |
 		// 48-bit physical address size
-		0b101 << TCR_PS |
+		0b101<<TCR_PS |
 		// 4KB granule
-		0b00 << TCR_TG0 |
+		0b00<<TCR_TG0 |
 		// inner shareable
-		0b11 << TCR_SH0 |
+		0b11<<TCR_SH0 |
 		// outer cacheability (normal, cacheable)
-		0b01 << TCR_ORGN0 |
+		0b01<<TCR_ORGN0 |
 		// inner cacheability (normal, cacheable)
-		0b01 << TCR_IRGN0 |
+		0b01<<TCR_IRGN0 |
 		// memory region size offset 0:5 (39-bits VA space)
-		25 << TCR_T0SZ
+		25<<TCR_T0SZ
 )
 
 // defined in mmu.s

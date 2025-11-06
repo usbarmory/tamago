@@ -27,7 +27,7 @@ import (
 const XLEN = 64
 
 // CPU instance
-type CPU struct{
+type CPU struct {
 	sync.Mutex
 }
 
