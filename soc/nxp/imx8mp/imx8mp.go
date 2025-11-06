@@ -26,14 +26,19 @@ import (
 
 	"github.com/usbarmory/tamago/arm64"
 
+	"github.com/usbarmory/tamago/soc/nxp/caam"
 	"github.com/usbarmory/tamago/soc/nxp/enet"
 	"github.com/usbarmory/tamago/soc/nxp/ocotp"
+	"github.com/usbarmory/tamago/soc/nxp/snvs"
 	"github.com/usbarmory/tamago/soc/nxp/uart"
 	"github.com/usbarmory/tamago/soc/nxp/wdog"
 )
 
 // Peripheral registers
 const (
+	// Cryptographic Acceleration and Assurance Module
+	CAAM_BASE = 0x30900000
+
 	// DDR base address
 	DDR_BASE = 0x40000000
 
@@ -41,8 +46,11 @@ const (
 	ENET1_BASE = 0x30be0000
 
 	// On-Chip OTP Controller
-	OCOTP_BASE      = 0x021bc000
-	OCOTP_BANK_BASE = 0x021bc400
+	OCOTP_BASE      = 0x30350000
+	OCOTP_BANK_BASE = 0x30350400
+
+	// Secure Non-Volatile Storage
+	SNVS_HP_BASE = 0x30370000
 
 	// Serial ports
 	UART1_BASE = 0x30860000
@@ -64,6 +72,9 @@ var (
 		TimerOffset: 1,
 	}
 
+	// Cryptographic Acceleration and Assurance Module (UL only)
+	CAAM *caam.CAAM
+
 	// Ethernet MAC 1
 	ENET1 = &enet.ENET{
 		Index:     1,
@@ -78,6 +89,12 @@ var (
 		Base:     OCOTP_BASE,
 		BankBase: OCOTP_BANK_BASE,
 		CCGR:     CCM_CCGR34,
+	}
+
+	// Secure Non-Volatile Storage
+	SNVS = &snvs.SNVS{
+		Base: SNVS_HP_BASE,
+		CCGR: CCM_CCGR71,
 	}
 
 	// Serial port 1

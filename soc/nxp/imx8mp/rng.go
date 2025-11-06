@@ -13,7 +13,9 @@ import (
 	"time"
 	_ "unsafe"
 
+	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/rng"
+	"github.com/usbarmory/tamago/soc/nxp/caam"
 )
 
 //go:linkname initRNG runtime.initRNG
@@ -28,5 +30,22 @@ func initRNG() {
 		binary.LittleEndian.PutUint64(drbg.Seed[:], uint64(time.Now().UnixNano()))
 		rng.GetRandomDataFn = drbg.GetRandomData
 		return
+	}
+
+	switch Family {
+	case IMX8MP:
+		// Cryptographic Acceleration and Assurance Module
+		CAAM = &caam.CAAM{
+			Base:            CAAM_BASE,
+			DeriveKeyMemory: dma.Default(),
+		}
+		CAAM.Init()
+
+		// The CAAM TRNG is too slow for direct use, therefore
+		// we use it to seed an AES-CTR based DRBG.
+		drbg := &rng.DRBG{}
+		CAAM.GetRandomData(drbg.Seed[:])
+
+		rng.GetRandomDataFn = drbg.GetRandomData
 	}
 }
