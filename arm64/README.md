@@ -39,9 +39,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| CPU                     | Related platform packages                                                           |
-|-------------------------|-------------------------------------------------------------------------------------|
-| ARM Cortex-A53 (ARMv8A) | [xp/imx8mpevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/imx8mpevk) |
+| CPU                     | Related platform packages                                                            |
+|-------------------------|--------------------------------------------------------------------------------------|
+| ARM Cortex-A53 (ARMv8A) | [nxp/imx8mpevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/imx8mpevk) |
 
 Build tags
 ==========
