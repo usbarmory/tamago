@@ -12,9 +12,9 @@
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	// get current exception level
-	MRS     CurrentEL, R0
-	LSR     $2, R0, R0
-	AND     $0b11, R0, R0
+	MRS	CurrentEL, R0
+	LSR	$2, R0, R0
+	AND	$0b11, R0, R0
 
 	// ensure we are running at EL3
 	CMP	$3, R0
