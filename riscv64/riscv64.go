@@ -1,4 +1,4 @@
-// RISC-V processor support
+// RISC-V 64-bit processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -6,7 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package riscv64 provides support for RISC-V architecture specific
+// Package riscv64 provides support for RISC-V 64-bit architecture specific
 // operations.
 //
 // The following architectures/cores are supported/tested:
