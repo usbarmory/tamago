@@ -30,7 +30,6 @@ func DefaultExceptionHandler() {
 		exit(0)
 	}
 
-	// TODO: implement runtime.CallOnG0 for a cleaner approach
 	isThrowing = true
 
 	print("exception: vector ", currentVectorNumber(), " \n")

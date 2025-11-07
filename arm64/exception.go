@@ -10,6 +10,8 @@ package arm64
 
 import (
 	"unsafe"
+
+	"github.com/usbarmory/tamago/internal/exception"
 )
 
 var (
@@ -36,16 +38,15 @@ func vector(fn ExceptionHandler) uint64 {
 
 // DefaultExceptionHandler handles an exception by printing its vector and
 // processor mode before panicking.
-func DefaultExceptionHandler() {
+func DefaultExceptionHandler(pc uintptr) {
 	if isThrowing {
 		exit(0)
 	}
 
-	// TODO: implement runtime.CallOnG0 for a cleaner approach
 	isThrowing = true
 
-	print("exception at EL", int(read_el()&0b1100) >> 2, "\n")
-	panic("unhandled exception")
+	print("EL", int(read_el()&0b1100) >> 2, " exception\n")
+	exception.Throw(pc)
 }
 
 // SystemExceptionHandler allows to override the default exception handler
@@ -54,8 +55,8 @@ func DefaultExceptionHandler() {
 // CPU.Init()).
 var SystemExceptionHandler = DefaultExceptionHandler
 
-func systemException() {
-	SystemExceptionHandler()
+func systemException(pc uintptr) {
+	SystemExceptionHandler(pc)
 }
 
 //go:nosplit
