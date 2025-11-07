@@ -7,7 +7,7 @@
 // that can be found in the LICENSE file.
 
 // Package imx8mp provides support to Go bare metal unikernels, written using
-// the TamaGo framework, on the NXP i.MX8MP family of System-on-Chip (SoC)
+// the TamaGo framework, on the NXP i.MX 8M Plus family of System-on-Chip (SoC)
 // application processors.
 //
 // The package implements initialization and drivers for NXP i.MX8MP SoCs,
@@ -136,11 +136,10 @@ var (
 
 // SiliconVersion returns the SoC silicon version information
 // (p566, 5.1.8.39 DIGPROG Register (CCM_ANALOG_DIGPROG), IMX8MPRM).
-func SiliconVersion() (sv, family, revMajor, revMinor uint32) {
+func SiliconVersion() (sv, revMajor, revMinor uint32) {
 	sv = reg.Read(CCM_ANALOG_DIGPROG)
 
-	family = (sv >> 16) & 0xff
-	revMajor = (sv >> 8) & 0xff
+	revMajor = (sv >> 8) & 0xffff
 	revMinor = sv & 0xff
 
 	return
@@ -164,8 +163,14 @@ func UniqueID() (uid [16]byte) {
 // Model returns the SoC model name.
 func Model() (model string) {
 	switch Family {
-	case IMX8MP:
-		model = "i.MX8MP"
+	case IMX8MPD:
+		model = "i.MX 8M Plus Dual"
+	case IMX8MPQ:
+		model = "i.MX 8M Plus Quad"
+	case IMX8MMD:
+		model = "i.MX 8M Mini Dual"
+	case IMX8MMQ:
+		model = "i.MX 8M Mini Quad"
 	default:
 		model = "unknown"
 	}

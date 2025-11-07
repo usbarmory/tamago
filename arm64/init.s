@@ -20,6 +20,8 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	CMP	$3, R0
 	BNE	exit
 
+	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
+	// D12.2.102 SCTLR_EL3, System Control Register (EL3)
 	WORD	$0xd53e1000	// mrs x0, sctlr_el3
 	BIC	$(1<<1), R0	// clear A bit
 	BIC	$(1<<0), R0	// clear M bit

@@ -20,7 +20,7 @@ import (
 
 //go:linkname initRNG runtime.initRNG
 func initRNG() {
-	_, Family, _, _ = SiliconVersion()
+	_, Family, _ = SiliconVersion()
 
 	// only emulated targets have been tested so far
 	Native = false
@@ -33,7 +33,7 @@ func initRNG() {
 	}
 
 	switch Family {
-	case IMX8MP:
+	case IMX8MPD, IMX8MPQ:
 		// Cryptographic Acceleration and Assurance Module
 		CAAM = &caam.CAAM{
 			Base:            CAAM_BASE,

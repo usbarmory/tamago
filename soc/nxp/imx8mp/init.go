@@ -14,9 +14,15 @@ import (
 	"github.com/usbarmory/tamago/dma"
 )
 
-// i.MX processor families
+// i.MX8 processor families
 const (
-	IMX8MP = 0x82
+	// i.MX 8M Mini
+	IMX8MMD = 0x8201
+	IMX8MMQ = 0x8241
+
+	// i.MX 8M Plus
+	IMX8MPD = 0x8203
+	IMX8MPQ = 0x8240
 )
 
 //go:linkname ramStackOffset runtime.ramStackOffset
@@ -54,10 +60,11 @@ func init() {
 	dma.Init(OCRAM_START, OCRAM_SIZE)
 
 	OCOTP.Init()
-	model := Model()
 
-	switch model {
-	case "i.MX8MP":
+	switch Family {
+	case IMX8MMD, IMX8MMQ:
+		OCOTP.Banks = 14
+	case IMX8MPD, IMX8MPQ:
 		OCOTP.Banks = 40
 	}
 }

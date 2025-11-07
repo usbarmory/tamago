@@ -8,6 +8,9 @@
 
 #include "arm64.h"
 
+// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
+// D12.2.102 SCTLR_EL3, System Control Register (EL3)
+
 // func cache_disable()
 TEXT ·cache_disable(SB),$0
 	WORD	$0xd53e1000	// mrs x0, sctlr_el3

@@ -27,8 +27,10 @@ const (
 	l3pageTableSize   = 512
 )
 
-// Memory region attributes (G5.7 ARM Architecture Reference Manual ARMv8, for
-// ARMv8-A architecture profile).
+// Memory region attributes
+//
+// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
+// G5.7.
 const (
 	TTE_XN   = 53
 	TTE_AF   = 10
@@ -57,8 +59,10 @@ const (
 	memoryAttributes = 1<<TTE_AF | TTE_INNER_SH | TTE_AP_001<<TTE_AP | memoryAttributeIndex<<TTE_ATTR
 )
 
-// MMU access permissions (Table G5-9, ARM Architecture Reference Manual ARMv8,
-// for ARMv8-A architecture profile).
+// MMU access permissions
+//
+// ARM Architecture Reference Manual ARMv8,for ARMv8-A architecture profile
+// Table G5-9, ARM Architecture Reference Manual ARMv8.
 const (
 	// PL1: no access   Unprivileged: no access
 	TTE_AP_000 uint64 = 0b000
@@ -98,8 +102,8 @@ func write_mair_el3(val uint64)
 func write_tcr_el3(val uint64)
 func set_ttbr0_el3(addr uint64)
 
-// D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats
-// (ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile).
+// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
+// D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats.
 func (cpu *CPU) initL1Table(entry int, ttbr uint64, section uint64) {
 	n := 30 // 1GB
 
@@ -133,8 +137,8 @@ func (cpu *CPU) initL1Table(entry int, ttbr uint64, section uint64) {
 	}
 }
 
-// D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats
-// (ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile).
+// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
+// D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats.
 func (cpu *CPU) initL2Table(entry int, base uint64, section uint64) {
 	n := 21 // 2MB
 
@@ -168,8 +172,8 @@ func (cpu *CPU) initL2Table(entry int, base uint64, section uint64) {
 	}
 }
 
-// D5.3.2 ARMv8 translation table level 3 descriptor formats
-// (ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile).
+// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
+// D5.3.2 ARMv8 translation table level 3 descriptor formats.
 func (cpu *CPU) initL3Table(entry int, base uint64, section uint64) {
 	n := 12 // 4KB
 

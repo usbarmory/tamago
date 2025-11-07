@@ -1,5 +1,5 @@
-TamaGo - bare metal Go - i.MX 8MP support
-=========================================
+TamaGo - bare metal Go - i.MX 8M Plus support
+=============================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -23,8 +23,8 @@ TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal processors.
 
 The [imx8mp](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx8mp)
-package provides support for the NXP i.MX 8MP series of System-on-Chip (SoCs)
-parts.
+package provides support for the NXP i.MX 8M Plus series of System-on-Chip
+(SoCs) parts.
 
 Documentation
 =============

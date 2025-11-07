@@ -22,6 +22,7 @@ import (
 
 // Peripheral instances
 var (
+	ENET1 = imx8mp.ENET1
 	UART1 = imx8mp.UART1
 )
 

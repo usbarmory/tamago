@@ -10,6 +10,8 @@
 
 // func fp_enable()
 TEXT ·fp_enable(SB),$0
+	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
+	// D12.2.29 CPACR_EL1, Architectural Feature Access Control Register
 	MRS	CPACR_EL1, R0
 	ORR	$(3 << 20), R0	// set CPACR_EL1.FPEN
 	MSR	R0, CPACR_EL1

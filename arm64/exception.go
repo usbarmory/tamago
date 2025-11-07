@@ -44,6 +44,7 @@ func DefaultExceptionHandler() {
 	// TODO: implement runtime.CallOnG0 for a cleaner approach
 	isThrowing = true
 
+	print("exception at EL", int(read_el()&0b1100) >> 2, "\n")
 	panic("unhandled exception")
 }
 
