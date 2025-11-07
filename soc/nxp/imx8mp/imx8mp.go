@@ -81,7 +81,6 @@ var (
 		Base:      ENET1_BASE,
 		CCGR:      CCM_CCGR10,
 		Clock:     GetPeripheralClock,
-		EnablePLL: func(_ int) (err error) { return },
 	}
 
 	// On-Chip OTP Controller
