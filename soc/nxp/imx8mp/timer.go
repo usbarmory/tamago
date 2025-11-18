@@ -15,11 +15,14 @@ import (
 // Timer registers (p31, Table 2-4, IMX8MPRM)
 const SYS_CNT_BASE = 0x306a0000
 
+// CNTFID0 (p215, 4.11.4.1.6.4, IMX8MPRM)
+const CNTFID0_FREQ = REF_FREQ / 3
+
 func initTimers() {
 	if !Native {
-		ARM64.InitGenericTimers(0, 8000000)
+		ARM64.InitGenericTimers(0, CNTFID0_FREQ)
 	} else {
-		ARM64.InitGenericTimers(SYS_CNT_BASE, 8000000)
+		ARM64.InitGenericTimers(SYS_CNT_BASE, CNTFID0_FREQ)
 	}
 }
 

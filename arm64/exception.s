@@ -11,7 +11,7 @@
 
 #define PAD					 	\
 	WORD	$0xd503201f; WORD	$0xd503201f	\ // nop; nop
-	WORD	$0xd503201f; WORD	$0xd503201f	\
+	WORD	$0xd503201f; WORD	$0xd503201f	\ // ...
 	WORD	$0xd503201f; WORD	$0xd503201f	\
 	WORD	$0xd503201f; WORD	$0xd503201f	\
 	WORD	$0xd503201f; WORD	$0xd503201f	\
@@ -57,5 +57,4 @@ TEXT ·set_vbar(SB),NOSPLIT,$0
 TEXT ·read_el(SB),$0-8
 	MRS	CurrentEL, R0
 	MOVD	R0, ret+0(FP)
-
 	RET

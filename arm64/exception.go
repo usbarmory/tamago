@@ -50,10 +50,7 @@ func DefaultExceptionHandler(pc uintptr) {
 	exception.Throw(pc)
 }
 
-// SystemExceptionHandler allows to override the default exception handler
-// executed at any exception by the table returned by SystemVectorTable(),
-// which is used by default when initializing the CPU instance (e.g.
-// CPU.Init()).
+// SystemExceptionHandler allows to override the default exception handler.
 var SystemExceptionHandler = DefaultExceptionHandler
 
 func systemException(pc uintptr) {
