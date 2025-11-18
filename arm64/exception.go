@@ -9,6 +9,7 @@
 package arm64
 
 import (
+	"runtime"
 	"unsafe"
 
 	"github.com/usbarmory/tamago/internal/exception"
@@ -40,12 +41,12 @@ func vector(fn ExceptionHandler) uint64 {
 // processor mode before panicking.
 func DefaultExceptionHandler(pc uintptr) {
 	if isThrowing {
-		exit(0)
+		runtime.Exit(1)
 	}
 
 	isThrowing = true
 
-	print("EL", int(read_el()&0b1100) >> 2, " exception\n")
+	print("EL", int(read_el()&0b1100)>>2, " exception\n")
 	exception.Throw(pc)
 }
 

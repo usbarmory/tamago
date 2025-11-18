@@ -14,6 +14,5 @@ func Throw(pc uintptr) {
 	file, line := fn.FileLine(pc)
 
 	print("\t", file, ":", line, "\n")
-
 	panic("unhandled exception")
 }
