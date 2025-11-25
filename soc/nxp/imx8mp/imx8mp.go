@@ -25,6 +25,7 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 
 	"github.com/usbarmory/tamago/arm64"
+	"github.com/usbarmory/tamago/arm64/gic"
 
 	"github.com/usbarmory/tamago/soc/nxp/caam"
 	"github.com/usbarmory/tamago/soc/nxp/enet"
@@ -32,6 +33,20 @@ import (
 	"github.com/usbarmory/tamago/soc/nxp/snvs"
 	"github.com/usbarmory/tamago/soc/nxp/uart"
 	"github.com/usbarmory/tamago/soc/nxp/wdog"
+)
+
+// Interrupts
+const (
+	// The first 32 interrupts are private to the CPUs' interface.
+	BASE_IRQ = 32
+
+	// Ethernet MAC
+	ENET1_IRQ = BASE_IRQ + 118
+
+	// Watchdog Timers
+	WDOG1_IRQ = BASE_IRQ + 78
+	WDOG2_IRQ = BASE_IRQ + 79
+	WDOG3_IRQ = BASE_IRQ + 10
 )
 
 // Peripheral registers
@@ -44,6 +59,10 @@ const (
 
 	// Ethernet MAC
 	ENET1_BASE = 0x30be0000
+
+	// General Interrupt Controller
+	GICD_BASE = 0x38800000
+	GICR_BASE = 0x38880000
 
 	// On-Chip OTP Controller
 	OCOTP_BASE      = 0x30350000
@@ -81,6 +100,13 @@ var (
 		Base:      ENET1_BASE,
 		CCGR:      CCM_CCGR10,
 		Clock:     GetPeripheralClock,
+		IRQ:       ENET1_IRQ,
+	}
+
+	// Generic Interrupt Controller
+	GIC = &gic.GIC{
+		GICD: GICD_BASE,
+		GICR: GICR_BASE,
 	}
 
 	// On-Chip OTP Controller

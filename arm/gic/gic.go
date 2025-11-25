@@ -1,4 +1,4 @@
-// ARM Generic Interrupt Controller (GIC) driver
+// ARM Generic Interrupt Controller (GICv2) driver
 // https://github.com/usbarmory/tamago
 //
 // IP: ARM Generic Interrupt Controller version 2.0
@@ -32,12 +32,12 @@ const (
 
 	// Distributor register map
 	// (p75, Table 4-1, ARM Generic Interrupt Controller Architecture Specification).
-	GICD_CTLR            = 0x000
-	GICD_CTLR_ENABLEGRP1 = 1
-	GICD_CTLR_ENABLEGRP0 = 0
+	GICD_CTLR       = 0x000
+	CTLR_ENABLEGRP1 = 1
+	CTLR_ENABLEGRP0 = 0
 
-	GICD_TYPER         = 0x004
-	GICD_TYPER_ITLINES = 0
+	GICD_TYPER    = 0x004
+	TYPER_ITLINES = 0
 
 	GICD_IGROUPR   = 0x080
 	GICD_ISENABLER = 0x100
@@ -46,25 +46,23 @@ const (
 
 	// CPU interface register map
 	// (p76, Table 4-2, ARM Generic Interrupt Controller Architecture Specification).
-	GICC_CTLR            = 0x0000
-	GICC_CTLR_FIQEN      = 3
-	GICC_CTLR_ENABLEGRP1 = 1
-	GICC_CTLR_ENABLEGRP0 = 0
+	GICC_CTLR  = 0x0000
+	CTLR_FIQEN = 3
 
-	GICC_PMR          = 0x0004
-	GICC_PMR_PRIORITY = 0
+	GICC_PMR     = 0x0004
+	PMR_PRIORITY = 0
 
-	GICC_IAR    = 0x000c
-	GICC_IAR_ID = 0
+	GICC_IAR = 0x000c
+	IAR_ID   = 0
 
-	GICC_EOIR    = 0x0010
-	GICC_EOIR_ID = 0
+	GICC_EOIR = 0x0010
+	EOIR_ID   = 0
 
-	GICC_AIAR    = 0x0020
-	GICC_AIAR_ID = 0
+	GICC_AIAR = 0x0020
+	AIAR_ID   = 0
 
-	GICC_AEOIR    = 0x0024
-	GICC_AEOIR_ID = 0
+	GICC_AEOIR = 0x0024
+	AEOIR_ID   = 0
 )
 
 // GIC represents a Generic Interrupt Controller (GICv2) instance.
@@ -87,7 +85,7 @@ func (hw *GIC) Init(secure bool, fiqen bool) {
 	hw.gicc = hw.Base + GICC_OFF
 
 	// Get the maximum number of external interrupt lines
-	itLinesNum := reg.Get(hw.gicd+GICD_TYPER, GICD_TYPER_ITLINES, 0x1f)
+	itLinesNum := reg.Get(hw.gicd+GICD_TYPER, TYPER_ITLINES, 0x1f)
 
 	// Add a line for the 32 internal interrupts
 	itLinesNum += 1
@@ -111,13 +109,13 @@ func (hw *GIC) Init(secure bool, fiqen bool) {
 	// of the priority range.
 	reg.Write(hw.gicc+GICC_PMR, 0x80)
 
-	reg.SetTo(hw.gicc+GICC_CTLR, GICC_CTLR_FIQEN, fiqen)
+	reg.SetTo(hw.gicc+GICC_CTLR, CTLR_FIQEN, fiqen)
 
-	reg.Set(hw.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP1)
-	reg.Set(hw.gicc+GICC_CTLR, GICC_CTLR_ENABLEGRP0)
+	reg.Set(hw.gicc+GICC_CTLR, CTLR_ENABLEGRP1)
+	reg.Set(hw.gicc+GICC_CTLR, CTLR_ENABLEGRP0)
 
-	reg.Set(hw.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP1)
-	reg.Set(hw.gicd+GICD_CTLR, GICD_CTLR_ENABLEGRP0)
+	reg.Set(hw.gicd+GICD_CTLR, CTLR_ENABLEGRP1)
+	reg.Set(hw.gicd+GICD_CTLR, CTLR_ENABLEGRP0)
 }
 
 // FIQEn controls whether Group 0 (Secure) interrupts should be signalled as
@@ -127,39 +125,39 @@ func (hw *GIC) FIQEn(fiq bool) {
 		return
 	}
 
-	reg.SetTo(hw.gicc+GICC_CTLR, GICC_CTLR_FIQEN, fiq)
+	reg.SetTo(hw.gicc+GICC_CTLR, CTLR_FIQEN, fiq)
 }
 
-func irq(gicd uint32, m int, secure bool, enable bool) {
-	if gicd == 0 {
+func (hw *GIC) irq(m int, secure bool, enable bool) {
+	if hw.gicd == 0 {
 		return
 	}
 
-	var addr uint32
+	addr := hw.gicd
 
 	n := uint32(m / 32)
 	i := m % 32
 
 	if enable {
-		reg.SetTo(gicd+GICD_IGROUPR+4*n, i, !secure)
-		addr = gicd + GICD_ISENABLER + 4*n
+		reg.SetTo(hw.gicd+GICD_IGROUPR+4*n, i, !secure)
+		addr += GICD_ISENABLER
 	} else {
-		addr = gicd + GICD_ICENABLER + 4*n
+		addr += GICD_ICENABLER
 	}
 
-	reg.SetTo(addr, i, true)
+	reg.SetTo(addr+4*n, i, true)
 }
 
 // EnableInterrupt enables forwarding of the corresponding interrupt to the CPU
 // and configures its group status (Secure: Group 0, Non-Secure: Group 1).
 func (hw *GIC) EnableInterrupt(id int, secure bool) {
-	irq(hw.gicd, id, secure, true)
+	hw.irq(id, secure, true)
 }
 
 // DisableInterrupt disables forwarding of the corresponding interrupt to the
 // CPU.
 func (hw *GIC) DisableInterrupt(id int) {
-	irq(hw.gicd, id, false, false)
+	hw.irq(id, false, false)
 }
 
 // GetInterrupt obtains and acknowledges a signaled interrupt.
@@ -171,16 +169,16 @@ func (hw *GIC) GetInterrupt(secure bool) (id int) {
 	var m uint32
 
 	if secure {
-		m = reg.Get(hw.gicc+GICC_IAR, GICC_IAR_ID, 0x3ff)
+		m = reg.Get(hw.gicc+GICC_IAR, IAR_ID, 0x3ff)
 	} else {
-		m = reg.Get(hw.gicc+GICC_AIAR, GICC_AIAR_ID, 0x3ff)
+		m = reg.Get(hw.gicc+GICC_AIAR, AIAR_ID, 0x3ff)
 	}
 
 	if m < 1020 {
 		if secure {
-			reg.SetN(hw.gicc+GICC_EOIR, GICC_EOIR_ID, 0x3ff, m)
+			reg.SetN(hw.gicc+GICC_EOIR, EOIR_ID, 0x3ff, m)
 		} else {
-			reg.SetN(hw.gicc+GICC_AEOIR, GICC_AEOIR_ID, 0x3ff, m)
+			reg.SetN(hw.gicc+GICC_AEOIR, AEOIR_ID, 0x3ff, m)
 		}
 	}
 

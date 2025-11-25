@@ -37,14 +37,14 @@ TEXT ·handleException(SB),NOSPLIT|NOFRAME,$0
 TEXT ·vectorTable(SB),NOSPLIT|NOFRAME,$0
 	// EL0
 	JMP	·handleException(SB); PAD // Synchronous Exception
-	JMP	·handleException(SB); PAD // IRQ or vIRQ
-	JMP	·handleException(SB); PAD // FIQ or vFIQ
+	JMP	·handleInterrupt(SB); PAD // IRQ or vIRQ
+	JMP	·handleInterrupt(SB); PAD // FIQ or vFIQ
 	JMP	·handleException(SB); PAD // SError or vSError
 
 	// ELx, x>0
 	JMP	·handleException(SB); PAD // Synchronous Exception
-	JMP	·handleException(SB); PAD // IRQ or vIRQ
-	JMP	·handleException(SB); PAD // FIQ or vFIQ
+	JMP	·handleInterrupt(SB); PAD // IRQ or vIRQ
+	JMP	·handleInterrupt(SB); PAD // FIQ or vFIQ
 	JMP	·handleException(SB); PAD // SError or vSError
 
 // func set_vbar()
