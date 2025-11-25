@@ -8,7 +8,8 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package gic implements a driver for the ARM Generic Interrupt Controller.
+// Package gic implements a driver for the ARM Generic Interrupt Controller
+// (GICv2).
 //
 // The driver is based on the following reference specifications:
 //   - ARM IHI 0048B.b - ARM Generic Interrupt Controller - Architecture version 2.0
@@ -22,7 +23,7 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
-// GIC registers
+// GICv2 registers
 const (
 	// GIC offsets in Cortex-A7
 	// (p178, Table 8-1, Cortex-A7 MPCore Technical Reference Manual).
@@ -66,7 +67,7 @@ const (
 	GICC_AEOIR_ID = 0
 )
 
-// GIC represents the Generic Interrupt Controller instance.
+// GIC represents a Generic Interrupt Controller (GICv2) instance.
 type GIC struct {
 	// Base register
 	Base uint32
@@ -76,7 +77,7 @@ type GIC struct {
 	gicc uint32
 }
 
-// InitGIC initializes the ARM Generic Interrupt Controller (GIC).
+// InitGIC initializes an ARM Generic Interrupt Controller (GICv2) instance.
 func (hw *GIC) Init(secure bool, fiqen bool) {
 	if hw.Base == 0 {
 		panic("invalid GIC instance")
