@@ -41,8 +41,8 @@ Supported hardware
 ==================
 
 | SoC              | Related board packages                                                               | Peripheral drivers                                                                                                                                                                                                                                                                 |
-|------------------|--------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| NXP i.MX 8M Plus | [nxp/imx8mpevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/imx8mpevk) | [CAAM, ENET, OCOTP, UART, USDHC, WDOG](https://github.com/usbarmory/tamago/tree/master/soc/nxp) |
+|------------------|--------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| NXP i.MX 8M Plus | [nxp/imx8mpevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/imx8mpevk) | [CAAM, ENET, OCOTP, UART, USDHC, WDOG](https://github.com/usbarmory/tamago/tree/master/soc/nxp), [GIC](https://github.com/usbarmory/tamago/tree/master/arm64/gic) |
 
 > [!WARNING]
 > This package is in early development stages, only emulated runs (qemu) have been tested.
