@@ -18,6 +18,7 @@
 package arm64
 
 import (
+	"math"
 	"runtime"
 )
 
@@ -32,9 +33,18 @@ type CPU struct {
 // defined in arm64.s
 func exit(int32)
 
+// DefaultIdleGovernor is the default CPU idle time management function
+func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
+	// we have nothing to do forever
+	if pollUntil == math.MaxInt64 {
+		cpu.WaitInterrupt()
+	}
+}
+
 // Init performs initialization of an ARM64 core instance.
 func (cpu *CPU) Init() {
 	runtime.Exit = exit
+	runtime.Idle = cpu.DefaultIdleGovernor
 
 	cpu.initVectorTable()
 }
