@@ -11,8 +11,6 @@ package arm64
 // defined in cache.s
 func cache_enable()
 func cache_disable()
-func cache_flush_data()
-func cache_flush_instruction()
 
 // EnableCache activates the ARM instruction and data caches.
 func (cpu *CPU) EnableCache() {
@@ -22,16 +20,6 @@ func (cpu *CPU) EnableCache() {
 // DisableCache disables the ARM instruction and data caches.
 func (cpu *CPU) DisableCache() {
 	cache_disable()
-}
-
-// FlushDataCache flushes the ARM data cache.
-func (cpu *CPU) FlushDataCache() {
-	cache_flush_data()
-}
-
-// FlushInstructionCache flushes the ARM instruction cache.
-func (cpu *CPU) FlushInstructionCache() {
-	cache_flush_instruction()
 }
 
 // FlushTLBs flushes the ARM Translation Lookaside Buffers.

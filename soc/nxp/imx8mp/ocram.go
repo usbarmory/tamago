@@ -11,5 +11,5 @@ package imx8mp
 // On-Chip Random-Access Memory
 const (
 	OCRAM_START = 0x00900000
-	OCRAM_SIZE  = 0x20000
+	OCRAM_SIZE  = 0x90000
 )
