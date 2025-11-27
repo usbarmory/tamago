@@ -1,4 +1,4 @@
-// ARM processor support
+// RISC-V 64-bit processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.

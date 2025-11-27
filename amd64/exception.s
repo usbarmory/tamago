@@ -1,4 +1,4 @@
-// x86-64 processor support
+// AMD64 processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -13,12 +13,20 @@ TEXT ·handleException(SB),NOSPLIT|NOFRAME,$0
 	CLI
 
 	// find ISR offset from stack linking information (see irqHandler)
-	MOVQ	isr-(0)(SP), AX
-	SUBQ	$(const_callSize), AX
-	MOVQ	AX, ·currentVector(SB)
+	MOVQ	isr+(8*0)(SP), R12
+	SUBQ	$(const_callSize), R12
+	MOVQ	R12, ·isr(SB)
 
-	// TODO: implement runtime.CallOnG0 for a cleaner approach
-	CALL	·DefaultExceptionHandler(SB)
+	// find EIP from handler's stack
+	ADDQ	$(8*2), SP
+	MOVQ	eip+(8*0)(SP), R12
+	MOVQ	R12, ·eip(SB)
+
+	// call exception handler on system stack (g0)
+	MOVQ	$·SystemExceptionHandler(SB), AX
+	MOVQ	(AX), AX
+	PUSHQ	AX
+	CALL	runtime·systemstack(SB)
 
 // To allow a single user-defined ISR for all vectors, a jump table of CALLs,
 // which save the vector PC on the stack, is built to use as IDT offsets.
@@ -32,13 +40,13 @@ TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
 	CALL	·handleException(SB) //  5 - Bound Range
 	CALL	·handleInterrupt(SB) //  6 - Invalid Opcode
 	CALL	·handleException(SB) //  7 - Device Not Available
-	CALL	$0 // triple fault   //  8 - Double Fault
+	CALL	·handleException(SB) //  8 - Double Fault
 	CALL	·handleException(SB) //  9 - Reserved
 	CALL	·handleException(SB) // 10 - Invalid TSS
 	CALL	·handleException(SB) // 11 - Segment Not Present
 	CALL	·handleException(SB) // 12 - Stack Fault
 	CALL	·handleException(SB) // 13 - General Protection
-	CALL	$0 // triple fault   // 14 - Page Fault
+	CALL	·handleException(SB) // 14 - Page Fault
 	CALL	·handleException(SB) // 15 - Reserved
 	CALL	·handleException(SB) // 16 - x87 Floating Point
 	CALL	·handleException(SB) // 17 - Alignment Check

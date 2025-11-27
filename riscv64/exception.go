@@ -1,4 +1,4 @@
-// RISC-V processor support
+// RISC-V 64-bit processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -10,6 +10,8 @@ package riscv64
 
 import (
 	"unsafe"
+
+	"github.com/usbarmory/tamago/internal/exception"
 )
 
 // RISC-V exception codes (non-interrupt)
@@ -54,8 +56,8 @@ func DefaultExceptionHandler() {
 	irq := int(mcause >> size)
 	code := int(mcause) & ^(1 << size)
 
-	print("machine exception: pc ", int(read_mepc()), " interrupt ", irq, " code ", code, "\n")
-	panic("unhandled exception")
+	print("machine exception: interrupt ", irq, " code ", code, "\n")
+	exception.Throw(uintptr(read_mepc()))
 }
 
 // DefaultSupervisorExceptionHandler handles an exception by printing the

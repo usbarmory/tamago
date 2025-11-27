@@ -28,8 +28,8 @@ const (
 // Oscillator frequencies
 const (
 	// p43, 7.1 Clocking, FU540C00RM
-	RTCCLK  = 1000000
-	COREPLL = 33330000
+	RTCCLK  = 1000000  // 1MHz
+	COREPLL = 33330000 // 33.33MHz
 )
 
 func init() {

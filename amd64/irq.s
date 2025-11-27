@@ -1,4 +1,4 @@
-// x86-64 processor support
+// AMD64 processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -79,7 +79,7 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	// find ISR offset from stack linking information (see irqHandler)
 	MOVQ	isr-(0)(SP), AX
 	SUBQ	$(const_callSize), AX
-	MOVQ	AX, ·currentVector(SB)
+	MOVQ	AX, ·isr(SB)
 
 	MOVQ	·irqHandlerG(SB), AX
 	CMPQ	AX, $0

@@ -10,6 +10,7 @@
 // Assurance Module (CAAM) adopting the following reference specifications:
 //   - IMX6ULSRM - i.MX6UL Security Reference Manual - Rev 0 04/2016
 //   - IMX7DSSRM - i.MX7DS Security Reference Manual - Rev 0 03/2017
+//   - IMX8MPSRM - i.MX8MP Security Reference Manual - Rev A 06/2020
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go, see
@@ -60,8 +61,7 @@ type CAAM struct {
 	// initialized before DeriveKey().
 	//
 	// When BEE is not used to encrypt external RAM it is recommended to
-	// use a DMA region within the internal RAM (e.g. i.MX6 On-Chip
-	// OCRAM/iRAM).
+	// use a DMA region within the internal RAM (e.g. On-Chip OCRAM/iRAM).
 	//
 	// The DeriveKey() function uses DeriveKeyMemory only if the default
 	// DMA region start does not overlap with it.
@@ -88,7 +88,7 @@ func (hw *CAAM) Init() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if hw.Base == 0 || hw.CCGR == 0 {
+	if hw.Base == 0 {
 		panic("invalid CAAM instance")
 	}
 
@@ -97,8 +97,10 @@ func (hw *CAAM) Init() {
 	hw.rtent0 = hw.Base + CAAM_RTENT0
 	hw.rtent15 = hw.Base + CAAM_RTENT15
 
-	// enable clock
-	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
+	if hw.CCGR != 0 {
+		// enable clock
+		reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
+	}
 
 	// enter program mode
 	reg.Set(hw.rtmctl, RTMCTL_PRGM)

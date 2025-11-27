@@ -1,4 +1,4 @@
-// x86-64 processor support
+// AMD64 processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -8,13 +8,20 @@
 
 package amd64
 
+import (
+	"runtime"
+
+	"github.com/usbarmory/tamago/internal/exception"
+)
+
 var (
-	currentVector uintptr
-	isThrowing    bool
+	isr        uintptr
+	eip        uintptr
+	isThrowing bool
 )
 
 func currentVectorNumber() (id int) {
-	id = int(currentVector - irqHandlerAddr)
+	id = int(isr - irqHandlerAddr)
 
 	if id >= 0 {
 		id = id / callSize
@@ -27,15 +34,20 @@ func currentVectorNumber() (id int) {
 // processor mode before panicking.
 func DefaultExceptionHandler() {
 	if isThrowing {
-		exit(0)
+		runtime.Exit(1)
 	}
 
-	// TODO: implement runtime.CallOnG0 for a cleaner approach
 	isThrowing = true
 
 	print("exception: vector ", currentVectorNumber(), " \n")
-	panic("unhandled exception")
+	exception.Throw(eip)
 }
+
+// SystemExceptionHandler allows to override the default exception handler
+// executed at any exception by the table returned by SystemVectorTable(),
+// which is used by default when initializing the CPU instance (e.g.
+// CPU.Init()).
+var SystemExceptionHandler = DefaultExceptionHandler
 
 // EnableExceptions initializes handling of processor exceptions through
 // DefaultExceptionHandler().

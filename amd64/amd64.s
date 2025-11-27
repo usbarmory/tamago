@@ -1,4 +1,4 @@
-// x86-64 processor support
+// AMD64 processor support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -9,9 +9,17 @@
 // func Fault()
 TEXT ·Fault(SB),$0
 	CLI
-	XORL	AX, AX
-	LGDT	(AX)
+
+	// invalidate IDT
+	MOVQ	$·idtptr(SB), AX
+	MOVQ	$0, (AX)
+	LIDT	(AX)
+
+	// triple-fault
+	CALL	$0
+halt:
 	HLT
+	JMP halt
 
 // func exit(int32)
 TEXT ·exit(SB),$0-8

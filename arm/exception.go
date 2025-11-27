@@ -31,7 +31,6 @@ var vecTableStart uint32
 
 const (
 	vecTableJump   = 0xe59ff018 // ldr pc, [pc, #24]
-	vecTableSize   = 0x4000     // 16 kB
 	excStackOffset = 0x8000     // 32 kB
 	excStackSize   = 0x4000     // 16 kB
 )

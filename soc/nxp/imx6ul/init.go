@@ -22,7 +22,7 @@ import (
 	"github.com/usbarmory/tamago/soc/nxp/usb"
 )
 
-// i.MX processor families
+// i.MX6 processor families
 const (
 	IMX6UL  = 0x64
 	IMX6ULL = 0x65
