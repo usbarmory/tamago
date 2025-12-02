@@ -96,9 +96,8 @@ func init() {
 	// trap CPU exceptions
 	AMD64.EnableExceptions()
 
-	// TODO: Cloud Hypervisor is inconsistent with qemu/Firecracker
-	// microVMs in supporting our INIT-SIPI sequence.
-	// AMD64.InitSMP(-1)
+	// initialize APs
+	AMD64.InitSMP(-1)
 
 	// allocate global DMA region
 	dma.Init(dmaStart, dmaSize)
