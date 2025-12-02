@@ -23,7 +23,7 @@ The TamaGo framework consists of the following components:
    which extends `GOOS` support to the `tamago` target, allowing bare metal
    execution.
 
- - Go packages for SoC driver support.
+ - Go packages for processor/SoC support.
 
  - Go packages for board support.
 
