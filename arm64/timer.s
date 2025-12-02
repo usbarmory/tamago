@@ -47,3 +47,15 @@ TEXT ·read_cntpct(SB),$0-8
 	MOVD	R0, ret+0(FP)
 
 	RET
+
+// func write_cntptval(val uint32, enable bool)
+TEXT ·write_cntptval(SB),$0-8
+	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
+	// D12.8.18 CNTP_TVAL_EL0, Counter-timer Physical Timer TimerValue register
+	MOVW	val+0(FP), R0
+	MOVW	enable+4(FP), R1
+
+	MSR	R0, CNTP_TVAL_EL0
+	MSR	R1, CNTP_CTL_EL0
+
+	RET

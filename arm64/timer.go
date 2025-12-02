@@ -9,6 +9,8 @@
 package arm64
 
 import (
+	"math"
+
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -31,11 +33,15 @@ const (
 	refFreq int64 = 1e9
 )
 
+// Interrupts
+const TIMER_IRQ = 30
+
 // defined in timer.s
 func read_cntfrq() uint32
 func write_cntfrq(freq uint32)
 func write_cntkctl(val uint32)
 func read_cntpct() uint64
+func write_cntptval(val uint32, enable bool)
 
 // InitGenericTimers initializes ARMv8 Generic Timers.
 func (cpu *CPU) InitGenericTimers(base uint32, freq uint32) {
@@ -78,4 +84,29 @@ func (cpu *CPU) SetTime(ns int64) {
 	}
 
 	cpu.TimerOffset = ns - int64(float64(read_cntpct())*cpu.TimerMultiplier)
+}
+
+// SetAlarm sets a physical timer to the absolute time matching the argument
+// nanoseconds value, an interrupt is generated at expiration.
+func (cpu *CPU) SetAlarm(ns int64) {
+	if ns == 0 {
+		write_cntptval(0, false)
+		return
+	}
+
+	if cpu.TimerMultiplier == 0 {
+		return
+	}
+
+	set := uint64(ns) / uint64(cpu.TimerMultiplier)
+	now := read_cntpct()
+	cnt := set - now
+
+	if set <= now {
+		cnt = 1
+	} else if cnt > math.MaxInt32 {
+		cnt = math.MaxInt32
+	}
+
+	write_cntptval(uint32(cnt), true)
 }
