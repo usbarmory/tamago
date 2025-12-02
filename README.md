@@ -95,7 +95,7 @@ The following table summarizes currently supported ARM SoCs and boards
 Supported ARM64 targets
 =======================
 
-The following table summarizes currently supported ARM SoCs and boards
+The following table summarizes currently supported ARM64 SoCs and boards
 (`GOOS=tamago GOARCH=arm64`).
 
 | SoC                   | Board                                                                                                                                                                                | SoC package                                                              | Board package                                                                    |
