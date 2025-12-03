@@ -7,7 +7,7 @@
 // that can be found in the LICENSE file.
 
 // Package microvm provides hardware initialization, automatically on import,
-// for a Firecracker microvm configured with a single x86_64 core.
+// for a Firecracker microvm configured with one or more x86_64 cores.
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=amd64` as
 // supported by the TamaGo framework for bare metal Go, see

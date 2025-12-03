@@ -133,6 +133,9 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	// copy ·apstart pointer to avoid RIP/EIP-relative addressing
 	apinit_reloc(apinitAddress, apstartAddress)
 
+	// reset counting semaphore
+	reg.Write(taskAddress, 0)
+
 	// create AP Global Descriptor Table (GDT)
 	reg.Write64(gdtAddress+0x00, 0x0000000000000000) // null descriptor
 	reg.Write64(gdtAddress+0x08, 0x00209a00000fffff) // code descriptor (x/r)

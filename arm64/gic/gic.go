@@ -46,9 +46,22 @@ const (
 // GIC Redistributor register map
 // (p615, Table 12-27 Redistributor register map, ARM IHI 0069G).
 const (
-	GICR_WAKER            = 0x0014
+	// Redistributor frames
+	RD_BASE  = 0x00000
+	SGI_BASE = 0x10000
+
+	GICR_WAKER            = RD_BASE + 0x0014
 	WAKER_CHILDREN_ASLEEP = 2
 	WAKER_PROCESSOR_SLEEP = 1
+
+	GICR_IGROUPR = SGI_BASE + 0x0080
+)
+
+const (
+	firstSGI = 0    // Software Generated Interrupts (SGI)
+	firstPPI = 16   // Private Peripheral Interrupts (PPI)
+	firstSPI = 32   //  Shared Peripheral Interrupts (SPI)
+	firstSIN = 1020 //     Special Interrupt Numbers
 )
 
 // GIC represents a Generic Interrupt Controller (GICv3) instance.
@@ -71,7 +84,7 @@ func read_mpidr_el1() uint64
 func write_icc_eoir0(val uint64)
 
 // InitGIC initializes an ARM Generic Interrupt Controller (GICv3) instance.
-func (hw *GIC) Init(secure bool, fiqen bool) {
+func (hw *GIC) Init() {
 	if hw.GICD == 0 || hw.GICR == 0 {
 		panic("invalid GIC instance")
 	}
@@ -99,22 +112,24 @@ func (hw *GIC) Init(secure bool, fiqen bool) {
 		reg.Write(addr, 0xffffffff)
 	}
 
-	// Enable affinity routing and cache core identifier
-	reg.Set(hw.GICD+GICD_CTLR, CTLR_ARE_NS)
-	reg.Set(hw.GICD+GICD_CTLR, CTLR_ARE_S)
-	hw.mpidr = read_mpidr_el1()
-
 	// Enable system register interface
 	write_icc_sre_el3(1)
 
 	// Unmask all interrupt priorities
 	write_icc_pmr_el1(0xff)
 
+	// Enable Group0 interrupts (CPU interface)
+	write_icc_igrpen0_el1(1)
+
 	// Enable Group0 interrupts (Distributor)
 	reg.Set(hw.GICD+GICD_CTLR, CTLR_ENABLEGRP0)
 
-	// Enable Group0 interrupts (CPU interface)
-	write_icc_igrpen0_el1(1)
+	// Enable affinity routing
+	reg.Set(hw.GICD+GICD_CTLR, CTLR_ARE_NS)
+	reg.Set(hw.GICD+GICD_CTLR, CTLR_ARE_S)
+
+	// Cache core identifier
+	hw.mpidr = read_mpidr_el1()
 }
 
 func (hw *GIC) irq(m int, enable bool) {
@@ -122,22 +137,30 @@ func (hw *GIC) irq(m int, enable bool) {
 		return
 	}
 
-	addr := hw.GICD
+	var off uint32
 	n := uint32(m / 32)
 	i := m % 32
 
 	if enable {
-		// route to core identified at initialization
-		reg.Write64(uint64(hw.GICD+GICD_IROUTER)+uint64(8*m), hw.mpidr)
-		// assign to Group0
-		reg.Clear(hw.GICD+GICD_IGROUPR+4*n, i)
+		if m < firstSPI {
+			reg.Clear(hw.GICR+GICR_IGROUPR+4*n, i)
+		} else {
+			// route to core identified at initialization
+			reg.Write64(uint64(hw.GICD+GICD_IROUTER)+uint64(8*m), hw.mpidr)
+			// assign to Group0
+			reg.Clear(hw.GICD+GICD_IGROUPR+4*n, i)
+		}
 
-		addr += GICD_ISENABLER
+		off += GICD_ISENABLER
 	} else {
-		addr += GICD_ICENABLER
+		off += GICD_ICENABLER
 	}
 
-	reg.SetTo(addr+4*n, i, true)
+	if m < firstSPI {
+		reg.SetTo(hw.GICR+SGI_BASE+off+4*n, i, true)
+	} else {
+		reg.SetTo(hw.GICD+off+4*n, i, true)
+	}
 }
 
 // EnableInterrupt enables forwarding of the corresponding interrupt to the CPU
@@ -160,7 +183,7 @@ func (hw *GIC) GetInterrupt() (id int) {
 
 	m := read_icc_iar0() & 0xffffff
 
-	if m < 1020 {
+	if m < firstSIN {
 		write_icc_eoir0(m)
 	}
 

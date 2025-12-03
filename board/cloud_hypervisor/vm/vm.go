@@ -7,7 +7,7 @@
 // that can be found in the LICENSE file.
 
 // Package vm provides hardware initialization, automatically on import, for a
-// Cloud Hypervisor virtual machine configured with a single x86_64 core.
+// Cloud Hypervisor virtual machine configured with one or more x86_64 cores.
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=amd64` as
 // supported by the TamaGo framework for bare metal Go, see
@@ -96,9 +96,8 @@ func init() {
 	// trap CPU exceptions
 	AMD64.EnableExceptions()
 
-	// TODO: Cloud Hypervisor is inconsistent with qemu/Firecracker
-	// microVMs in supporting our INIT-SIPI sequence.
-	// AMD64.InitSMP(-1)
+	// initialize APs
+	AMD64.InitSMP(-1)
 
 	// allocate global DMA region
 	dma.Init(dmaStart, dmaSize)

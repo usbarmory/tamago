@@ -39,6 +39,9 @@ const (
 	refFreq int64 = 1e9
 )
 
+// Interrupts
+const TIMER_IRQ = 29
+
 // defined in timer.s
 func read_cntfrq() uint32
 func write_cntfrq(freq uint32)
