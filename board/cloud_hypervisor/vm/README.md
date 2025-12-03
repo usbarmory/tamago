@@ -24,8 +24,8 @@ applications on bare metal processors.
 
 The [vm](https://github.com/usbarmory/tamago/tree/master/board/cloud_hypervisor/vm)
 package provides support for [Cloud Hypervisor VMs](https://www.cloudhypervisor.org)
-paravirtualized Kernel-based Virtual Machine (KVM) configured with a single
-AMD64 core.
+paravirtualized Kernel-based Virtual Machine (KVM) configured with single or
+multiple AMD64 cores.
 
 Documentation
 =============
