@@ -33,7 +33,7 @@ func (cpu *CPU) detectCoreFrequency() (freq uint32) {
 	}
 
 	if cpu.features.KVM {
-		if khz, _, _, _ := cpuid(KVM_CPUID_TSC_KHZ, 0); khz != 0 {
+		if khz, _, _, _ := cpuid(CPUID_KVM_TSC_KHZ, 0); khz != 0 {
 			cpu.freq = khz * 1000
 		} else {
 			_, nsecA, tscA := kvmclock.Pairing()

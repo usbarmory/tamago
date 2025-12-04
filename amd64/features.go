@@ -25,6 +25,7 @@ const (
 	CPUID_VENDOR_ECX_AMD   = 0x444d4163 // Authenti(cAMD)
 
 	CPUID_INFO        = 0x01
+	INFO_HYPERVISOR   = 31
 	INFO_TSC_DEADLINE = 24
 
 	CPUID_INTEL_CACHE = 0x04
@@ -46,20 +47,26 @@ const (
 const (
 	CPUID_AMD_PROC = 0x80000008
 	AMD_PROC_NC    = 0
+
+	CPUID_AMD_ENCM = 0x8000001f
+	AMD_ENCM_SNP   = 4
 )
 
 // KVM CPUID function numbers
 //
 // (https://docs.kernel.org/virt/kvm/x86/cpuid.html)
 const (
-	KVM_CPUID_SIGNATURE = 0x40000000
+	CPUID_KVM_SIGNATURE = 0x40000000
 	KVM_SIGNATURE       = 0x4b4d564b // "KVMK"
 
-	KVM_CPUID_FEATURES    = 0x40000001
+	CPUID_KVM_FEATURES    = 0x40000001
 	FEATURES_CLOCKSOURCE  = 0
 	FEATURES_CLOCKSOURCE2 = 3
 
-	KVM_CPUID_TSC_KHZ = 0x40000010
+	CPUID_KVM_ISOLATION = 0x4000000c
+	ISOLATION_SNP       = 1
+
+	CPUID_KVM_TSC_KHZ = 0x40000010
 )
 
 // AMD MSRs
@@ -87,6 +94,9 @@ type Features struct {
 	KVM bool
 	// KVMClockMSR returns the kvmclock Model Specific Register.
 	KVMClockMSR uint32
+
+	// SNP indicates whether AMD SEV-SNP is detected (as KVM guest).
+	SNP bool
 }
 
 // defined in features.s
@@ -104,12 +114,12 @@ func (cpu *CPU) initFeatures() {
 	_, _, cpuFeatures, _ := cpuid(CPUID_INFO, 0)
 	cpu.features.TSCDeadline = bits.IsSet(&cpuFeatures, INFO_TSC_DEADLINE)
 
-	if _, kvmk, _, _ := cpuid(KVM_CPUID_SIGNATURE, 0); kvmk != KVM_SIGNATURE {
+	if _, kvmk, _, _ := cpuid(CPUID_KVM_SIGNATURE, 0); kvmk != KVM_SIGNATURE {
 		return
 	}
 
 	cpu.features.KVM = true
-	kvmFeatures, _, _, _ := cpuid(KVM_CPUID_FEATURES, 0)
+	kvmFeatures, _, _, _ := cpuid(CPUID_KVM_FEATURES, 0)
 
 	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE) {
 		cpu.features.KVMClockMSR = 0x12
@@ -117,6 +127,14 @@ func (cpu *CPU) initFeatures() {
 
 	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE2) {
 		cpu.features.KVMClockMSR = 0x4b564d01
+	}
+
+	if _, _, ecx, _ := cpuid(CPUID_VENDOR, 0); ecx == CPUID_VENDOR_ECX_AMD {
+		eax, _, _, _ := cpuid(CPUID_AMD_ENCM, 0)
+		_, ebx, _, _ := cpuid(CPUID_KVM_ISOLATION, 0)
+
+		cpu.features.SNP = bits.IsSet(&eax, AMD_ENCM_SNP) &&
+			bits.IsSet(&ebx, ISOLATION_SNP)
 	}
 }
 
