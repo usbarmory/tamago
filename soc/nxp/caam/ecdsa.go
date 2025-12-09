@@ -148,7 +148,7 @@ func (hw *CAAM) Sign(priv *ecdsa.PrivateKey, hash []byte, pdb *SignPDB) (r, s *b
 	jd = append(jd, op.Bytes()...)
 	hdr.Length(1 + len(jd)/4)
 
-	if err = hw.job(hdr, jd); err != nil {
+	if err = hw.Job(hdr, jd); err != nil {
 		return
 	}
 

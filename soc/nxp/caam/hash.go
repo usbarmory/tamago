@@ -60,7 +60,7 @@ func (hw *CAAM) hash(buf []byte, mode int, size int, init bool, term bool) (sum 
 		}()
 	}
 
-	err = hw.job(nil, jd)
+	err = hw.Job(nil, jd)
 
 	return
 }
