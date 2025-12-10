@@ -95,7 +95,7 @@ func (io *LegacyPCI) Init(features uint64) (err error) {
 		return errors.New("invalid VirtIO instance")
 	}
 
-	if rev := io.Device.Read(0, pci.RevisionID); rev & 0xff != 0 {
+	if rev := io.Device.Read(0, pci.RevisionID); rev&0xff != 0 {
 		return errors.New("not a transitional device")
 	}
 
@@ -105,7 +105,7 @@ func (io *LegacyPCI) Init(features uint64) (err error) {
 
 	bar0 := io.Device.BaseAddress(0)
 
-	if bar0 & 1 != 1 {
+	if bar0&1 != 1 {
 		return errors.New("unexpected PCI BAR type, expected I/O port")
 	}
 
@@ -142,12 +142,12 @@ func (io *LegacyPCI) DeviceID() uint32 {
 
 // DeviceFeatures returns the device feature bits,
 func (io *LegacyPCI) DeviceFeatures() (features uint64) {
-	return uint64(reg.In32(io.config+legacyDeviceFeatures))
+	return uint64(reg.In32(io.config + legacyDeviceFeatures))
 }
 
 // DriverFeatures returns the driver feature bits.
 func (io *LegacyPCI) DriverFeatures() (features uint64) {
-	return uint64(reg.In32(io.config+legacyDriverFeatures))
+	return uint64(reg.In32(io.config + legacyDriverFeatures))
 }
 
 // SetDriverFeatures sets the driver feature bits (note that only the first 32
@@ -170,15 +170,15 @@ func (io *LegacyPCI) QueueReady(index int) (ready bool) {
 // MaxQueueSize returns the maximum virtual queue size.
 func (io *LegacyPCI) MaxQueueSize(index int) int {
 	reg.Out16(io.config+legacyQueueSelect, uint16(index))
-	return int(reg.In16(io.config+legacyQueueSize))
+	return int(reg.In16(io.config + legacyQueueSize))
 }
 
 // SetQueueSize is unsupported on legacy devuces.
-func (io *LegacyPCI) SetQueueSize(_ int, _ int) { }
+func (io *LegacyPCI) SetQueueSize(_ int, _ int) {}
 
 // Status returns the device status.
 func (io *LegacyPCI) Status() uint32 {
-	return uint32(reg.In16(io.config+legacyDeviceStatus))
+	return uint32(reg.In16(io.config + legacyDeviceStatus))
 }
 
 func (io *LegacyPCI) setStatus(s uint32) {
