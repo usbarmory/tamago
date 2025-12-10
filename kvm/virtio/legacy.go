@@ -82,11 +82,9 @@ func (io *LegacyPCI) addCapability(off uint32, hdr *pci.CapabilityHeader) error 
 	return nil
 }
 
-func (io *LegacyPCI) negotiate(driverFeatures uint64) (err error) {
+func (io *LegacyPCI) negotiate(driverFeatures uint64) {
 	io.features = negotiate(io.DeviceFeatures(), driverFeatures)
 	io.SetDriverFeatures(io.features)
-
-	return
 }
 
 // Init initializes a legacy VirtIO over PCI device instance.
@@ -126,7 +124,9 @@ func (io *LegacyPCI) Init(features uint64) (err error) {
 	s |= (1 << Driver)
 	io.setStatus(s)
 
-	return io.negotiate(features)
+	io.negotiate(features)
+
+	return
 }
 
 // Config returns the device configuration.
@@ -188,7 +188,6 @@ func (io *LegacyPCI) setStatus(s uint32) {
 // SetQueue registers the indexed virtual queue for device access.
 func (io *LegacyPCI) SetQueue(index int, queue *VirtualQueue) {
 	desc, _, _ := queue.Address()
-
 	reg.Out16(io.config+legacyQueueSelect, uint16(index))
 	reg.Out32(io.config+legacyQueueAddress, uint32(desc/pageSize))
 }
@@ -205,10 +204,9 @@ func (io *LegacyPCI) QueueNotify(index int) {
 	reg.Out16(io.config+legacyQueueNotify, uint16(index))
 }
 
-// ConfigVersion always returns 0 as legacy devices do not have a configuration
-// generation field.
+// ConfigVersion always returns 0 as legacy devices do not support a generation
+// count for the configuration space.
 func (io *LegacyPCI) ConfigVersion() uint32 {
-	// 2.3.4 Legacy Interface: Device Configuration Space
 	return 0
 }
 
