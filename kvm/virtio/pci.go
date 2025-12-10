@@ -1,4 +1,4 @@
-// VirtIO over PCI driver
+// VirtIO over PCI driver (non-transitional)
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.

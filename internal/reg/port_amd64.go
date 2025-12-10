@@ -10,5 +10,7 @@ package reg
 // defined in port_amd64.s
 func In8(port uint16) (val uint8)
 func Out8(port uint16, val uint8)
-func In32(port uint32) (val uint32)
-func Out32(port uint32, val uint32)
+func In16(port uint16) (val uint16)
+func Out16(port uint16, val uint16)
+func In32(port uint16) (val uint32)
+func Out32(port uint16, val uint32)
