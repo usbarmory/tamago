@@ -18,13 +18,15 @@ import (
 	"github.com/usbarmory/tamago/soc/intel/pci"
 )
 
-// 4.1.2.3 Legacy Interfaces
 const (
 	deviceMin = 0x1000
 	deviceMax = 0x103f
 )
 
-const configurationLength = 20
+const (
+	pageSize            = 4096
+	configurationLength = 20
+)
 
 // VirtIO Common Configuration offsets (legacy interface)
 const (
@@ -188,8 +190,7 @@ func (io *LegacyPCI) SetQueue(index int, queue *VirtualQueue) {
 	desc, _, _ := queue.Address()
 
 	reg.Out16(io.config+legacyQueueSelect, uint16(index))
-	reg.Out32(io.config+legacyQueueAddress, uint32(desc))
-	// FIXME: check offsets and padding
+	reg.Out32(io.config+legacyQueueAddress, uint32(desc/pageSize))
 }
 
 // SetReady indicates that the driver is set up and ready to drive the device.
