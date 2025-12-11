@@ -25,7 +25,7 @@ applications on bare metal processors.
 The [gcp](https://github.com/usbarmory/tamago/tree/master/board/google/gcp)
 package provides support for [Google Compute Engine](https://cloud.google.com/products/compute)
 paravirtualized Kernel-based Virtual Machine (KVM) configured with single or
-multiple AMD64 cores.
+multiple AMD64 cores and machine type `t2d-standard-?`.
 
 Documentation
 =============
@@ -101,6 +101,9 @@ paravirtualized execution on Google Compute Engine can be accomplished through a
 
 The [uefi/x64](https://github.com/usbarmory/go-boot/tree/main/uefi/x64) package
 [can be used as an alternative](https://github.com/usbarmory/go-boot/wiki/Google-Compute-Engine).
+
+The Google Cloud Compute instance machine type verified with this package is
+`t2d-standard-?`.
 
 QEMU
 ----
