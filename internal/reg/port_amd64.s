@@ -25,7 +25,8 @@ TEXT ·Out8(SB),$0-3
 TEXT ·In16(SB),$0-10
 	MOVW	port+0(FP), DX
 	// in ax, dx
-	BYTE	$0x66ed
+	BYTE	$0x66
+	BYTE	$0xed
 	MOVW	AX, val+8(FP)
 	RET
 
@@ -33,8 +34,9 @@ TEXT ·In16(SB),$0-10
 TEXT ·Out16(SB),$0-4
 	MOVW	port+0(FP), DX
 	MOVW	val+2(FP), AX
-	// out dx, al
-	BYTE	$0x66ef
+	// out dx, ax
+	BYTE	$0x66
+	BYTE	$0xef
 	RET
 
 // func In32(port uint16) (val uint32)
