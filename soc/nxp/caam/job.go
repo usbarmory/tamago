@@ -145,7 +145,8 @@ func (hw *CAAM) initJobRing() {
 	hw.initRNG()
 }
 
-func (hw *CAAM) job(hdr *Header, jd []byte) (err error) {
+// Job adds a job descriptor to the CAAM job input ring.
+func (hw *CAAM) Job(hdr *Header, jd []byte) (err error) {
 	once.Do(hw.initJobRing)
 	return hw.jr.add(hdr, jd)
 }

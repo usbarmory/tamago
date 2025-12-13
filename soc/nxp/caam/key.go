@@ -39,7 +39,7 @@ func (hw *CAAM) mkv(buf []byte) (err error) {
 	jd := dst.Bytes()
 	jd = append(jd, op.Bytes()...)
 
-	if err = hw.job(nil, jd); err != nil {
+	if err = hw.Job(nil, jd); err != nil {
 		return
 	}
 

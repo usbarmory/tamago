@@ -75,7 +75,7 @@ func (hw *CAAM) cipher(buf []byte, key []byte, iv []byte, mode uint32, enc bool)
 	jd = append(jd, src.Bytes()...)
 	jd = append(jd, dst.Bytes()...)
 
-	if err = hw.job(nil, jd); err != nil {
+	if err = hw.Job(nil, jd); err != nil {
 		return
 	}
 

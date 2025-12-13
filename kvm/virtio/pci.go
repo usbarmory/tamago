@@ -1,4 +1,4 @@
-// VirtIO over PCI driver
+// VirtIO over PCI driver (non-transitional)
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -255,27 +255,6 @@ func (io *PCI) SetQueueSize(index int, n int) {
 	binary.LittleEndian.PutUint16(io.common[queueSize:], uint16(n))
 }
 
-// EnableInterrupt enables MSI-X interrupt vector routing to a LAPIC instance
-// for the indexed virtual queue.
-func (io *PCI) EnableInterrupt(id int, index int) (err error) {
-	if io.msix == nil {
-		return errors.New("missing required capabilities")
-	}
-
-	entry := 0
-	addr := uint64(amd64.LAPIC_BASE)
-	data := uint32(id)
-
-	if err = io.msix.EnableInterrupt(entry, addr, data); err != nil {
-		return
-	}
-
-	binary.LittleEndian.PutUint16(io.common[queueSel:], uint16(index))
-	binary.LittleEndian.PutUint16(io.common[queueMSIXVector:], uint16(entry))
-
-	return
-}
-
 // Status returns the device status.
 func (io *PCI) Status() uint32 {
 	return uint32(io.common[deviceStatus])
@@ -309,4 +288,25 @@ func (io *PCI) QueueNotify(index int) {
 // ConfigVersion returns the device configuration (see Config field) version.
 func (io *PCI) ConfigVersion() uint32 {
 	return uint32(io.common[configGeneration])
+}
+
+// EnableInterrupt enables MSI-X interrupt vector routing to a LAPIC instance
+// for the indexed virtual queue.
+func (io *PCI) EnableInterrupt(id int, index int) (err error) {
+	if io.msix == nil {
+		return errors.New("missing required capabilities")
+	}
+
+	entry := 0
+	addr := uint64(amd64.LAPIC_BASE)
+	data := uint32(id)
+
+	if err = io.msix.EnableInterrupt(entry, addr, data); err != nil {
+		return
+	}
+
+	binary.LittleEndian.PutUint16(io.common[queueSel:], uint16(index))
+	binary.LittleEndian.PutUint16(io.common[queueMSIXVector:], uint16(entry))
+
+	return
 }

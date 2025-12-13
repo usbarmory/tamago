@@ -225,9 +225,10 @@ func (d *VirtualQueue) Bytes() ([]byte, int, int) {
 	driver := buf.Len()
 	buf.Write(d.Available.Bytes())
 
-	// Used ring requires 4 bytes alignment
-	if r := buf.Len() % 4; r != 0 {
-		buf.Write(make([]byte, 4-r))
+	// Used ring requires 4 bytes alignment but we apply legacy values to
+	// support both *PCI and *LegacyPCI.
+	if r := buf.Len() % pageSize; r != 0 {
+		buf.Write(make([]byte, pageSize-r))
 	}
 
 	device := buf.Len()
@@ -246,7 +247,7 @@ func (d *VirtualQueue) Init(size int, length int, flags uint16) {
 	_, buf := dma.Reserve(size*length, 0)
 
 	for i := 0; i < size; i++ {
-		off := size * i
+		off := length * i
 
 		desc := &Descriptor{}
 		desc.Init(buf[off:off+length], flags)
@@ -265,7 +266,7 @@ func (d *VirtualQueue) Init(size int, length int, flags uint16) {
 
 	// allocate DMA buffer
 	buf, driver, device := d.Bytes()
-	d.desc, d.buf = dma.Reserve(len(buf), 16)
+	d.desc, d.buf = dma.Reserve(len(buf), pageSize)
 	copy(d.buf, buf)
 
 	// calculate area pointers
