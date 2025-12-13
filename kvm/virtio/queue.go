@@ -247,7 +247,7 @@ func (d *VirtualQueue) Init(size int, length int, flags uint16) {
 	_, buf := dma.Reserve(size*length, 0)
 
 	for i := 0; i < size; i++ {
-		off := size * i
+		off := length * i
 
 		desc := &Descriptor{}
 		desc.Init(buf[off:off+length], flags)
