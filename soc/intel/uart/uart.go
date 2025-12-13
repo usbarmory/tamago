@@ -29,11 +29,18 @@ const (
 	THR = 0x00
 	IER = 0x01
 	FCR = 0x02
-	MCR = 0x04
+	LCR = 0x03
+
+	MCR       = 0x04
+	MCR_INTEN = 3
+	MCR_RTS   = 1
+	MCR_DTR   = 0
 
 	LSR      = 0x05
 	LSR_DR   = 0
 	LSR_THRE = 5
+
+	MSR = 0x06
 )
 
 // UART represents a serial port instance.
@@ -42,6 +49,11 @@ type UART struct {
 	Index int
 	// Base register
 	Base uint16
+
+	// Data Terminal Ready
+	DTR bool
+	// Request To Send
+	RTS bool
 }
 
 // Init initializes and enables the UART.
@@ -49,6 +61,18 @@ func (hw *UART) Init() {
 	if hw.Base == 0 {
 		panic("invalid UART controller instance")
 	}
+
+	mcr := uint8(1<<MCR_INTEN)
+
+	if hw.RTS {
+		mcr |= 1 << MCR_RTS
+	}
+
+	if hw.DTR {
+		mcr |= 1 << MCR_DTR
+	}
+
+	reg.Out8(hw.Base+MCR, mcr)
 }
 
 // Tx transmits a single character to the serial port.
