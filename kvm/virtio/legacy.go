@@ -9,7 +9,6 @@
 package virtio
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -38,20 +37,11 @@ const (
 	legacyQueueNotify      = 0x10
 	legacyDeviceStatus     = 0x12
 	legacyISRStatus        = 0x13
+	legacyDeviceConfig     = 0x14
 	legacyConfigMSIXVector = 0x14
 	legacyQueueMSIXVector  = 0x16
-	legacyDeviceConfig     = 0x18
+	legacyDeviceConfigMSI  = 0x18
 )
-
-func (io *LegacyPCI) readConfig(addr uint16, size int) (buf []byte, err error) {
-	buf = make([]byte, size)
-
-	for i := addr; i < uint16(size); i += 4 {
-		binary.LittleEndian.PutUint32(buf[i:i+4], reg.In32(io.config+i))
-	}
-
-	return
-}
 
 // LegacyPCI represents a legacy VirtIO over PCI device.
 type LegacyPCI struct {
@@ -62,7 +52,8 @@ type LegacyPCI struct {
 	config   uint16
 	features uint64
 
-	msix *pci.CapabilityMSIX
+	msix        *pci.CapabilityMSIX
+	msixEnabled bool
 }
 
 func (io *LegacyPCI) addCapability(off uint32, hdr *pci.CapabilityHeader) error {
@@ -131,7 +122,20 @@ func (io *LegacyPCI) Init(features uint64) (err error) {
 
 // Config returns the device configuration.
 func (io *LegacyPCI) Config(size int) (config []byte) {
-	config, _ = io.readConfig(legacyDeviceConfig, size)
+	var off int
+
+	if io.msixEnabled {
+		off = legacyDeviceConfigMSI
+	} else {
+		off = legacyDeviceConfig
+	}
+
+	config = make([]byte, size)
+
+	for i := 0; i < size; i += 1 {
+		config[i] = reg.In8(io.config + uint16(off+i))
+	}
+
 	return
 }
 
@@ -225,6 +229,7 @@ func (io *LegacyPCI) EnableInterrupt(id int, index int) (err error) {
 		return
 	}
 
+	io.msixEnabled = true
 	reg.Out16(io.config+legacyQueueSelect, uint16(index))
 	reg.Out16(io.config+legacyQueueMSIXVector, uint16(entry))
 
