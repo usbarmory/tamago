@@ -8,4 +8,5 @@
 package reg
 
 // defined in msr_amd64.s
-func Msr(addr uint32) (val uint32)
+func ReadMSR(addr uint32) (val uint32)
+func WriteMSR(addr uint32, val uint32)
