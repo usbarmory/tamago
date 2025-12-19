@@ -96,7 +96,7 @@ var RamStart uint
 For an example see package [vnet](<https://github.com/usbarmory/virtio-net/blob/master/runtime.go>).
 
 ```go
-var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr Addr) (interface{}, error)
+var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr net.Addr) (interface{}, error)
 ```
 
 <a name="Task"></a>Task describes the optional [runtime.Task](<https://pkg.go.dev/runtime/#Task>) function, which can be set to provide an implementation for HW/OS threading \(see \`runtime.newosproc\`\).

@@ -32,6 +32,12 @@
 // [applet]: https://github.com/usbarmory/GoTEE/tree/master/applet
 package doc
 
+import (
+	"context"
+	"net"
+	"unsafe"
+)
+
 // cpuinit handles pre-runtime CPU initialization.
 //
 // It must be defined using Go's Assembler to retain Go's commitment to
@@ -205,7 +211,7 @@ var ProcID func() int64
 // For an example see package [vnet].
 //
 // [vnet]: https://github.com/usbarmory/virtio-net/blob/master/runtime.go
-var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr Addr) (interface{}, error)
+var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr net.Addr) (interface{}, error)
 
 // Task describes the optional [runtime.Task] function, which can be set to
 // provide an implementation for HW/OS threading (see `runtime.newosproc`).
