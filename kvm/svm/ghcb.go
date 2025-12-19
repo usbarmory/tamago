@@ -51,7 +51,7 @@ type GHCB struct {
 // sufficient size for the desired guest/hypervisor request/responses payloads.
 func (b *GHCB) Init() {
 	b.seqNo = 1
-	b.addr, b.buf = dma.Reserve(pageSize, pageSize)
+	b.addr, b.buf = dma.Reserve(pageSize, pageSize) // FIXME: clear C-bit
 	reg.WriteMSR(MSR_AMD_GHCB, uint32(b.addr))
 }
 
