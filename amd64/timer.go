@@ -53,7 +53,7 @@ func (cpu *CPU) detectCoreFrequency() (freq uint32) {
 		// Open-Source Register Reference
 		// For AMD Family 17h Processors Models 00h-2Fh
 		// Rev 3.03 - July, 2018 - Core::X86::Msr::PStateDef
-		pstate := reg.ReadMSR(MSR_AMD_PSTATE)
+		pstate := uint32(reg.ReadMSR(MSR_AMD_PSTATE))
 
 		num := float64(bits.Get(&pstate, 0, 0xff)) * 25
 		den := float64(bits.Get(&pstate, 8, 0b111111)) / 8

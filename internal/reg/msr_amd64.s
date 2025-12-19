@@ -5,16 +5,16 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// func ReadMSR(addr uint32) (val uint32)
-TEXT ·ReadMSR(SB),$0-12
-	MOVL	addr+0(FP), CX
+// func ReadMSR(addr uint64) (val uint64)
+TEXT ·ReadMSR(SB),$0-16
+	MOVQ	addr+0(FP), CX
 	RDMSR
-	MOVL	AX, val+8(FP)
+	MOVQ	AX, val+8(FP)
 	RET
 
-// func WriteMSR(addr uint32, val uint32)
-TEXT ·WriteMSR(SB),$0-8
-	MOVL	addr+0(FP), CX
-	MOVL	val+4(FP), AX
+// func WriteMSR(addr uint64, val uint64)
+TEXT ·WriteMSR(SB),$0-16
+	MOVQ	addr+0(FP), CX
+	MOVQ	val+8(FP), AX
 	WRMSR
 	RET

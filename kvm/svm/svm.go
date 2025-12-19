@@ -20,3 +20,4 @@ package svm
 
 // defined in svm.s
 func vmgexit()
+func pvalidate(addr uint64, validate bool) uint32

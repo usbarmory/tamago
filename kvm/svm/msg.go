@@ -13,6 +13,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/binary"
+	"errors"
 )
 
 const (
@@ -57,7 +58,7 @@ func (h *MessageHeader) Seq() uint64 {
 	return binary.LittleEndian.Uint64(h.SeqNo[0:8])
 }
 
-func seal(key, nonce, data, additionalData []byte) (err error) {
+func seal(key, nonce, plaintext, additionalData []byte) (ciphertext []byte, err error) {
 	block, err := aes.NewCipher(key)
 
 	if err != nil {
@@ -70,12 +71,12 @@ func seal(key, nonce, data, additionalData []byte) (err error) {
 		return
 	}
 
-	aesgcm.Seal(data[:0], nonce, data, additionalData)
+	ciphertext = aesgcm.Seal(nil, nonce, plaintext, additionalData)
 
 	return
 }
 
-func unseal(key, nonce, data, additionalData []byte) (err error) {
+func unseal(key, nonce, ciphertext, additionalData []byte) (plaintext []byte, err error) {
 	block, err := aes.NewCipher(key)
 
 	if err != nil {
@@ -88,7 +89,50 @@ func unseal(key, nonce, data, additionalData []byte) (err error) {
 		return
 	}
 
-	_, err = aesgcm.Open(data[:0], nonce, data, additionalData)
+	return aesgcm.Open(nil, nonce, ciphertext, additionalData)
+}
+
+func (b *GHCB) sealMessage(hdr *MessageHeader, plaintext, key []byte) (msg []byte, err error) {
+	// update header
+	hdr.MessageSize = uint16(len(plaintext))
+	binary.LittleEndian.PutUint64(hdr.SeqNo[:], b.seqNo)
+
+	// encrypt request
+	ciphertext, err := seal(key, hdr.SeqNo[0:12], plaintext, hdr.Bytes())
+
+	if err != nil {
+		return
+	}
+
+	// set authentication tag
+	tagOffset := len(ciphertext) - 16
+	authTag := ciphertext[tagOffset:]
+	copy(hdr.AuthTag[:], authTag)
+
+	// concatenate header and encrypted message
+	msg = hdr.Bytes()
+	msg = append(msg, ciphertext[:tagOffset]...)
+
+	return
+}
+
+func (b *GHCB) openMessage(hdr *MessageHeader, ciphertext, key []byte) (plaintext []byte, err error) {
+	if hdr.Seq() != b.seqNo {
+		return nil, errors.New("invalid response header")
+	}
+
+	// append authentication tag to ciphertext
+	ciphertext = append(ciphertext, hdr.AuthTag[:16]...)
+
+	// zero AuthTag header before unseal
+	copy(hdr.AuthTag[:], make([]byte, 32))
+
+	// decrypt response
+	if plaintext, err = unseal(key, hdr.SeqNo[0:12], ciphertext, hdr.Bytes()); err != nil {
+		return
+	}
+
+	b.seqNo += 1
 
 	return
 }

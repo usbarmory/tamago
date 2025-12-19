@@ -10,6 +10,7 @@ package svm
 
 import (
 	"encoding/binary"
+	"errors"
 
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
@@ -17,7 +18,18 @@ import (
 
 const (
 	MSR_AMD_GHCB = 0xc0010130
-	pageSize     = 4096
+
+	sharedPage = 2 << 52
+	pageSize   = 4096
+)
+
+// SEV-ES Guest-Hypervisor Communication Block Standardization
+// 2.3.1 GHCB MSR Protocol.
+const (
+	GHCB_MSR_REG_GPA_REQ = 0x012
+	GHCB_MSR_REG_GPA_RES = 0x013
+	GHCB_MSR_PGS_CHG_REQ = 0x014
+	GHCB_MSR_PGS_CHG_RES = 0x015
 )
 
 // SEV-ES Guest-Hypervisor Communication Block Standardization
@@ -37,35 +49,70 @@ const (
 // GHCB represents a Guest-Hypervisor Communication Block instance, used to
 // expose register state to an AMD SEV-ES hypervisor.
 type GHCB struct {
-	seqNo uint64
+	// SharedMemory is a required unencrypted memory region for shared
+	// guest/hypervisor access.
+	SharedMemory *dma.Region
 
 	// DMA buffer
 	addr uint
 	buf  []byte
+
+	seqNo uint64
+}
+
+func (b *GHCB) msr(val uint64, req uint64, res uint64) (valid bool) {
+	// 2.3.1 GHCB MSR Protocol
+	reg.WriteMSR(MSR_AMD_GHCB, val|req)
+	vmgexit()
+
+	return reg.ReadMSR(MSR_AMD_GHCB) == (val | res)
+}
+
+func (b *GHCB) write(off uint, val uint64) {
+	binary.LittleEndian.PutUint64(b.buf[off:off+8], val)
 }
 
 // Init initializes a Guest-Hypervisor Communication Block instance, mapping
 // its memory location for guest/hypervisor access.
 //
-// The initialization will panic unless a default DMA region is allocated with
-// sufficient size for the desired guest/hypervisor request/responses payloads.
-func (b *GHCB) Init() {
-	b.seqNo = 1
-	b.addr, b.buf = dma.Reserve(pageSize, pageSize) // FIXME: clear C-bit
-	reg.WriteMSR(MSR_AMD_GHCB, uint32(b.addr))
+// The argument DMA region must be initialized and have been previously
+// allocated as unencrypted for hypervisor access (e.g. C-bit disabled).
+func (b *GHCB) Init() (err error) {
+	if b.SharedMemory == nil {
+		return errors.New("invalid instance, null shared memory")
+	}
+
+	b.addr, b.buf = b.SharedMemory.Reserve(pageSize, pageSize)
+	gpa := uint64(b.addr)
+
+	if !b.msr(gpa|sharedPage, GHCB_MSR_PGS_CHG_REQ, GHCB_MSR_PGS_CHG_RES) {
+		return errors.New("could not change GHCB GPA page state")
+	}
+
+	// FIXME: this only applies to the first 4k, we need b.SharedMemory.Size()
+	if pvalidate(gpa, true) != 0 {
+		return errors.New("could not PVALIDATE GHCB GPA")
+	}
+
+	if !b.msr(gpa, GHCB_MSR_REG_GPA_REQ, GHCB_MSR_REG_GPA_RES) {
+		return errors.New("could not register GHCB GPA")
+	}
+
+	return
 }
 
-// Yield triggers an Automatic Exit (AE) event to transfer control to an AMD
+// Exit triggers an Automatic Exit (AE) event to transfer control to an AMD
 // SEV-ES hypervisor for updated GHCB access.
-func (b *GHCB) Yield() {
+func (b *GHCB) Exit(code uint64, info1 uint64, info2 uint64) {
+	b.write(SW_EXITCODE, code)
+	b.write(SW_EXITINFO1, info1)
+	b.write(SW_EXITINFO2, info2)
+
 	vmgexit()
+	b.seqNo += 1
 }
 
 // Clear clears any previous GHCB field invocation data.
 func (b *GHCB) Clear() {
 	// TODO
-}
-
-func (b *GHCB) write(off uint, val uint64) {
-	binary.LittleEndian.PutUint64(b.buf[off:off+8], val)
 }
