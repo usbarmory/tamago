@@ -18,18 +18,6 @@ const (
 	GHCBSize     = 4096
 )
 
-// SEV-ES Guest-Hypervisor Communication Block Standardization
-// 2.6 GHCB Layout
-const (
-	SW_EXITCODE = 0x0390
-)
-
-// SEV-ES Guest-Hypervisor Communication Block Standardization
-// 2.7 SEV-SNP Secrets Page
-const (
-	VPML0 = 0x0000
-)
-
 // GHCB represents a Guest-Hypervisor Communication Block instance, used to
 // expose register state to an AMD SEV-ES hypervisor.
 type GHCB struct {
@@ -39,7 +27,7 @@ type GHCB struct {
 }
 
 // Init initializes a Guest-Hypervisor Communication Block instance, mapping
-// its memory location for hypervisor access.
+// its memory location for guest/hypervisor access.
 func (b *GHCB) Init() {
 	b.addr, b.buf = dma.Reserve(GHCBSize, GHCBSize)
 	reg.WriteMSR(MSR_AMD_GHCB, uint32(b.addr))
