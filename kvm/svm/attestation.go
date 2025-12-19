@@ -9,59 +9,24 @@
 package svm
 
 import (
-	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"encoding/binary"
 	"errors"
 
 	"github.com/usbarmory/tamago/dma"
 )
 
-const reportSize = 128
-
-const MSG_REPORT_REQ = 1
-
-// ReportRequest represents an AMD SEV-SNP MSG_REPORT_REQ Message
-// (SEV Secure Nested Paging Firmware ABI Specification
-// Table 22. MSG_REPORT_REQ Message Structure).
-type ReportRequest struct {
-	Data   [64]byte
-	VMPL   uint32
-	KeySel uint32
-	_      [24]byte
-}
-
-// Bytes converts the descriptor structure to byte array format.
-func (m *ReportRequest) Bytes() []byte {
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, m)
-	return buf.Bytes()
-}
-
-// GetAttestationReport sends a guest request for an attestation report through
-// the Guest-Hypervisor Communication Block. The arguments represent guest
-// provided data and the VM Communication Key (see [SNPSecrets.VPMCK]) payload
-// and index for encrypting the request.
-func (b *GHCB) GetAttestationReport(data []byte, key []byte, index int) (res []byte, err error) {
+// GetAttestationReport sends a guest request for an AMD SEV-SNP attestation
+// report through the Guest-Hypervisor Communication Block.
+//
+// The arguments represent guest provided data and the VM Communication Key
+// (see [SNPSecrets.VPMCK]) payload and index for encrypting the request.
+func (b *GHCB) GetAttestationReport(data []byte, key []byte, index int) (r *AttestationReport, err error) {
 	if b.addr == 0 {
 		return nil, errors.New("invalid instance")
 	}
 
 	if len(data) > 64 {
 		return nil, errors.New("data length must not exceed %d bytes")
-	}
-
-	block, err := aes.NewCipher(key)
-
-	if err != nil {
-		return
-	}
-
-	aesgcm, err := cipher.NewGCM(block)
-
-	if err != nil {
-		return
 	}
 
 	hdr := &MessageHeader{
@@ -77,25 +42,27 @@ func (b *GHCB) GetAttestationReport(data []byte, key []byte, index int) (res []b
 		KeySel: 0,
 	}
 
+	res := &ReportResponse{}
+
 	// update sequence number
 	binary.LittleEndian.PutUint64(hdr.SeqNo[:], b.seqNo)
-	b.seqNo += 2
 
 	// fill message data and update header with its size
 	copy(msg.Data[:], data)
 	msgData := msg.Bytes()
 	hdr.MessageSize = uint16(len(msgData))
 
-	// protect with AEAD
-	ciphertext := aesgcm.Seal(nil, hdr.SeqNo[0:12], msgData, hdr.Bytes())
-	copy(hdr.AuthTag[:], ciphertext[0:16])
+	if err = seal(key, hdr.SeqNo[0:12], msgData, hdr.Bytes()); err != nil {
+		return
+	}
 
-	// concatenate header and encrypted message
+	// concatenate updated header and encrypted message
+	copy(hdr.AuthTag[:], msgData[len(msgData)-16:])
 	req := hdr.Bytes()
-	req = append(req, ciphertext...)
+	req = append(req, msgData[:len(msgData)-16]...)
 
 	// allocate shared page for guest/hypervisor communication
-	addr, shm := dma.Reserve(pageSize, pageSize)
+	addr, shm := dma.Reserve(pageSize, pageSize) // FIXME: clear C-bit
 	defer dma.Release(addr)
 
 	// set up GHCB layout
@@ -106,9 +73,28 @@ func (b *GHCB) GetAttestationReport(data []byte, key []byte, index int) (res []b
 	// trigger NAE event
 	b.Yield()
 
-	// copy response as DMA buffer will be released
-	res = make([]byte, pageSize)
-	copy(res, shm)
+	if err = hdr.unmarshal(shm); err != nil {
+		return
+	}
 
-	return
+	if hdr.Seq() != b.seqNo {
+		return nil, errors.New("invalid response header")
+	}
+
+	// zero auth AuthTag before unseal
+	copy(shm[headerSize:headerSize+32], make([]byte, 32))
+
+	if err = unseal(key, hdr.SeqNo[0:12], shm[headerSize:headerSize+hdr.MessageSize], hdr.Bytes()); err != nil {
+		return
+	}
+
+	b.seqNo += 2
+
+	if err = res.unmarshal(shm[headerSize : headerSize+hdr.MessageSize]); err != nil {
+		return
+	}
+
+	// TODO: validate response fields
+
+	return &res.Report, nil
 }

@@ -67,5 +67,5 @@ func (b *GHCB) Clear() {
 }
 
 func (b *GHCB) write(off uint, val uint64) {
-	binary.LittleEndian.PutUint64(b.buf[off:off+4], val)
+	binary.LittleEndian.PutUint64(b.buf[off:off+8], val)
 }
