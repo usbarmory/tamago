@@ -22,7 +22,7 @@ const (
 	SNP_SECRETS_VMPCK0  = 0x020
 )
 
-const snpSecretSize = 256
+const snpSecretSize = 32
 
 // SNPSecrets represents a Secrets Page format version 2 or 3 (AMD SEV-SNP).
 type SNPSecrets struct {
@@ -49,14 +49,14 @@ func (s *SNPSecrets) Init(addr uint, size int) (err error) {
 	return
 }
 
-// VMPCK returns a VM communication key (VMPCK).
+// VMPCK returns a VM Communication Key (VMPCK).
 func (s *SNPSecrets) VMPCK(index int) (vmpck []byte, err error) {
 	if s.addr == 0 {
 		return nil, errors.New("invalid instance")
 	}
 
-	off := SNP_SECRETS_VMPCK0 + index * snpSecretSize
-	vmpck = s.buf[off:off+snpSecretSize]
+	off := SNP_SECRETS_VMPCK0 + index*snpSecretSize
+	vmpck = s.buf[off : off+snpSecretSize]
 
 	return
 }
