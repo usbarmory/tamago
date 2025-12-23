@@ -135,7 +135,7 @@ func (b *GHCB) openMessage(hdr *MessageHeader, ciphertext, key []byte) (plaintex
 	copy(hdr.AuthTag[:], make([]byte, 32))
 
 	// decrypt response
-	if plaintext, err = unseal(key, hdr.SeqNo[0:12], ciphertext, hdr.Bytes()); err != nil {
+	if plaintext, err = unseal(key, hdr.SeqNo[0:12], ciphertext, hdr.Bytes()[48:]); err != nil {
 		return
 	}
 
