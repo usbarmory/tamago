@@ -1,4 +1,4 @@
-// AMD virtualization support
+// AMD secure virtualization support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -19,6 +19,8 @@ import (
 const (
 	headerVersion = 0x1
 	headerSize    = 96
+
+	messageVersion = 0x1
 )
 
 // AEAD Algorithm Encodings
@@ -56,6 +58,11 @@ func (h *MessageHeader) Bytes() []byte {
 // Seq returns the 64-bit sequence number for this message.
 func (h *MessageHeader) Seq() uint64 {
 	return binary.LittleEndian.Uint64(h.SeqNo[0:8])
+}
+
+// SetSeq sets the 64-bit sequence number for this message.
+func (h *MessageHeader) SetSeq(seq uint64) {
+	binary.LittleEndian.PutUint64(h.SeqNo[0:8], seq)
 }
 
 func seal(key, nonce, plaintext, additionalData []byte) (ciphertext []byte, err error) {
@@ -98,7 +105,7 @@ func (b *GHCB) sealMessage(hdr *MessageHeader, plaintext, key []byte) (msg []byt
 	binary.LittleEndian.PutUint64(hdr.SeqNo[:], b.seqNo)
 
 	// encrypt request
-	ciphertext, err := seal(key, hdr.SeqNo[0:12], plaintext, hdr.Bytes())
+	ciphertext, err := seal(key, hdr.SeqNo[0:12], plaintext, hdr.Bytes()[48:])
 
 	if err != nil {
 		return

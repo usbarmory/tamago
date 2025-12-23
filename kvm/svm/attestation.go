@@ -1,4 +1,4 @@
-// AMD virtualization support
+// AMD secure virtualization support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -29,11 +29,12 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 	}
 
 	hdr := &MessageHeader{
-		Algo:          AES_256_GCM,
-		HeaderVersion: headerVersion,
-		HeaderSize:    headerSize,
-		MessageType:   MSG_REPORT_REQ,
-		VMPCK:         uint8(index),
+		Algo:           AES_256_GCM,
+		HeaderVersion:  headerVersion,
+		HeaderSize:     headerSize,
+		MessageType:    MSG_REPORT_REQ,
+		MessageVersion: messageVersion,
+		VMPCK:          uint8(index),
 	}
 
 	req := &ReportRequest{
@@ -45,6 +46,7 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 
 	// fill message data
 	copy(req.Data[:], data)
+	hdr.MessageSize = uint16(len(data))
 
 	// encrypt request message
 	if msg, err = b.sealMessage(hdr, req.Bytes(), key); err != nil {

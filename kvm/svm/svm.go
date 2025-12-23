@@ -1,4 +1,4 @@
-// AMD virtualization support
+// AMD secure virtualization support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
