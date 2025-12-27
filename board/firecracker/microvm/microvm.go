@@ -43,7 +43,7 @@ const (
 
 	// VirtIO Networking
 	VIRTIO_NET0_BASE = VIRTIO_MMIO_BASE + 0x2000
-	VIRTIO_NET0_IRQ  = 6
+	VIRTIO_NET0_IRQ  = 7
 )
 
 // Peripheral instances

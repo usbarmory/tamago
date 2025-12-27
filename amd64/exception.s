@@ -38,8 +38,8 @@ TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
 	CALL	·handleException(SB) //  3 - Breakpoint
 	CALL	·handleException(SB) //  4 - Overflow
 	CALL	·handleException(SB) //  5 - Bound Range
-	CALL	·handleInterrupt(SB) //  6 - Invalid Opcode
-	CALL	·handleException(SB) //  7 - Device Not Available
+	CALL	·handleException(SB) //  6 - Invalid Opcode
+	CALL	·handleInterrupt(SB) //  7 - Device Not Available
 	CALL	·handleException(SB) //  8 - Double Fault
 	CALL	·handleException(SB) //  9 - Reserved
 	CALL	·handleException(SB) // 10 - Invalid TSS

@@ -21,10 +21,10 @@ TEXT ·Pairing(SB),$0-24
 	MOVQ	$·kvmclock<>(SB), BX
 	MOVQ	$KVM_CLOCK_PAIRING_WALLCLOCK, CX
 
-	// vmcall
+	// vmmcall
 	BYTE	$0x0f
 	BYTE	$0x01
-	BYTE	$0xc1
+	BYTE	$0xd9
 
 	MOVQ	0(BX), AX
 	MOVQ	AX, sec+0(FP)
