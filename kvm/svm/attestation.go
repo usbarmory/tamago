@@ -28,6 +28,9 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 		return nil, errors.New("data length must not exceed %d bytes")
 	}
 
+	// SEV Secure Nested Paging Firmware ABI Specification
+	// 8.26 SNP_GUEST_REQUEST
+
 	hdr := &MessageHeader{
 		Algo:           AES_256_GCM,
 		HeaderVersion:  headerVersion,

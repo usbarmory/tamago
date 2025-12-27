@@ -11,7 +11,6 @@ package svm
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -72,10 +71,6 @@ func TestAEAD(t *testing.T) {
 	data := make([]byte, 96)
 	copy(req.Data[:], data)
 	hdr.MessageSize = uint16(len(data))
-
-	fmt.Printf("Key:\n%s", hex.Dump(key))
-	fmt.Printf("Header:\n%s", hex.Dump(hdr.Bytes()))
-	fmt.Printf("Message (Report Request):\n%s", hex.Dump(req.Bytes()))
 
 	sealedMsg, err := b.sealMessage(hdr, req.Bytes(), key)
 
