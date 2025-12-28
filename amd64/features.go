@@ -12,6 +12,7 @@ import (
 	"runtime"
 
 	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // CPUID function numbers
@@ -46,10 +47,8 @@ const (
 // Volume 3 - Appendix E.4 Extended Feature Function Numbers.
 const (
 	CPUID_AMD_PROC = 0x80000008
+	AMD_PROC_CPPC  = 27
 	AMD_PROC_NC    = 0
-
-	CPUID_AMD_ENCM = 0x8000001f
-	AMD_ENCM_SNP   = 4
 )
 
 // KVM CPUID function numbers
@@ -62,9 +61,6 @@ const (
 	CPUID_KVM_FEATURES    = 0x40000001
 	FEATURES_CLOCKSOURCE  = 0
 	FEATURES_CLOCKSOURCE2 = 3
-
-	CPUID_KVM_ISOLATION = 0x4000000c
-	ISOLATION_SNP       = 1
 
 	CPUID_KVM_TSC_KHZ = 0x40000010
 )
@@ -94,9 +90,6 @@ type Features struct {
 	KVM bool
 	// KVMClockMSR returns the kvmclock Model Specific Register.
 	KVMClockMSR uint32
-
-	// SNP indicates whether AMD SEV-SNP is detected (as KVM guest).
-	SNP bool
 }
 
 // defined in features.s
@@ -105,6 +98,11 @@ func cpuid(eaxArg, ecxArg uint32) (eax, ebx, ecx, edx uint32)
 // CPUID returns the processor capabilities.
 func (cpu *CPU) CPUID(leaf, subleaf uint32) (eax, ebx, ecx, edx uint32) {
 	return cpuid(leaf, subleaf)
+}
+
+// MSR returns a machine-specific register.
+func (cpu *CPU) MSR(addr uint64) (val uint64) {
+	return reg.ReadMSR(addr)
 }
 
 func (cpu *CPU) initFeatures() {
@@ -122,19 +120,11 @@ func (cpu *CPU) initFeatures() {
 	kvmFeatures, _, _, _ := cpuid(CPUID_KVM_FEATURES, 0)
 
 	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE) {
-		cpu.features.KVMClockMSR = 0x12
+		cpu.features.KVMClockMSR = MSR_KVM_SYSTEM_TIME
 	}
 
 	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE2) {
-		cpu.features.KVMClockMSR = 0x4b564d01
-	}
-
-	if _, _, ecx, _ := cpuid(CPUID_VENDOR, 0); ecx == CPUID_VENDOR_ECX_AMD {
-		eax, _, _, _ := cpuid(CPUID_AMD_ENCM, 0)
-		_, ebx, _, _ := cpuid(CPUID_KVM_ISOLATION, 0)
-
-		cpu.features.SNP = bits.IsSet(&eax, AMD_ENCM_SNP) &&
-			bits.IsSet(&ebx, ISOLATION_SNP)
+		cpu.features.KVMClockMSR = MSR_KVM_SYSTEM_TIME_NEW
 	}
 }
 

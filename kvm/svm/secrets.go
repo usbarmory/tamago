@@ -34,6 +34,10 @@ type SNPSecrets struct {
 // Init initializes a Secrets Page instance, mapping the argument memory
 // location for guest/hypervisor access.
 func (s *SNPSecrets) Init(addr uint, size int) (err error) {
+	if size < pageSize {
+		return errors.New("invalid size")
+	}
+
 	r, err := dma.NewRegion(addr, size, false)
 
 	if err != nil {
