@@ -30,10 +30,10 @@ type SNPSecrets struct {
 	// Address represents the Secrets Page address.
 	Address uint
 	// Size represents the Secrets Page size.
-	Size   int
+	Size int
 
 	// DMA buffer
-	buf  []byte
+	buf []byte
 }
 
 // Init initializes a Secrets Page instance, mapping the argument memory
