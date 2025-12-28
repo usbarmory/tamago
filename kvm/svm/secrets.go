@@ -24,27 +24,36 @@ const (
 
 const snpSecretSize = 32
 
-// SNPSecrets represents a Secrets Page format version 2 or 3 (AMD SEV-SNP).
+// SNPSecrets represents the SNP Secrets Page format version 2 or 3 (AMD
+// SEV-SNP).
 type SNPSecrets struct {
+	// Address represents the Secrets Page address.
+	Address uint
+	// Size represents the Secrets Page size.
+	Size   int
+
 	// DMA buffer
-	addr uint
 	buf  []byte
 }
 
 // Init initializes a Secrets Page instance, mapping the argument memory
 // location for guest/hypervisor access.
-func (s *SNPSecrets) Init(addr uint, size int) (err error) {
-	if size < pageSize {
+func (s *SNPSecrets) Init() (err error) {
+	if s.Address == 0 {
+		return errors.New("invalid address")
+	}
+
+	if s.Size < pageSize {
 		return errors.New("invalid size")
 	}
 
-	r, err := dma.NewRegion(addr, size, false)
+	r, err := dma.NewRegion(s.Address, s.Size, false)
 
 	if err != nil {
 		return
 	}
 
-	s.addr, s.buf = r.Reserve(size, 0)
+	_, s.buf = r.Reserve(s.Size, 0)
 
 	if binary.LittleEndian.Uint32(s.buf[0:4]) < 2 {
 		return errors.New("invalid version")
@@ -55,7 +64,7 @@ func (s *SNPSecrets) Init(addr uint, size int) (err error) {
 
 // VMPCK returns a VM Communication Key (VMPCK).
 func (s *SNPSecrets) VMPCK(index int) (vmpck []byte, err error) {
-	if s.addr == 0 {
+	if len(s.buf) == 0 {
 		return nil, errors.New("invalid instance")
 	}
 
