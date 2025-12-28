@@ -11,16 +11,18 @@
 // func read_tsc() uint64
 TEXT ·read_tsc(SB),$0-8
 	RDTSC
-	MOVL	AX, ret+0(FP)
-	MOVL	DX, ret+4(FP)
+	SHLQ	$32, DX
+	ORQ	DX, AX
+	MOVQ	AX, ret+0(FP)
 	RET
 
 // func write_tsc_deadline(cnt uint64)
 TEXT ·write_tsc_deadline(SB),$0-8
 	// Intel® 64 and IA-32 Architectures Software Developer’s Manual
 	// Volume 3A - 10.5.4.1 TSC-Deadline Mode
-	MOVL	cnt+0(FP), AX
-	MOVL	cnt+4(FP), DX
-	MOVL	$MSR_TSC_DEADLINE, CX
+	MOVQ	$MSR_TSC_DEADLINE, CX
+	MOVQ	cnt+0(FP), AX
+	MOVQ	AX, DX
+	SHRQ	$32, DX
 	WRMSR
 	RET

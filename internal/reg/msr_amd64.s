@@ -9,14 +9,16 @@
 TEXT ·ReadMSR(SB),$0-16
 	MOVQ	addr+0(FP), CX
 	RDMSR
-	MOVL	AX, val+8(FP)
-	MOVL	DX, val+4(FP)
+	SHLQ	$32, DX
+	ORQ	DX, AX
+	MOVQ	AX, val+8(FP)
 	RET
 
 // func WriteMSR(addr uint64, val uint64)
 TEXT ·WriteMSR(SB),$0-16
 	MOVQ	addr+0(FP), CX
-	MOVL	val+8(FP),  AX
-	MOVL	val+12(FP), DX
+	MOVQ	val+8(FP),  AX
+	MOVQ	AX, DX
+	SHRQ	$32, DX
 	WRMSR
 	RET
