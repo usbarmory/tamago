@@ -57,23 +57,27 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 		return
 	}
 
-	// allocate shared page for guest/hypervisor communication
-	addr, shm := b.SharedMemory.Reserve(pageSize, pageSize)
-	defer b.SharedMemory.Release(addr)
-	copy(shm, msg)
+	// allocate request pages for guest to hypervisor communication
+	reqAddr, buf := b.SharedMemory.Reserve(pageSize/2, 0)
+	defer b.SharedMemory.Release(reqAddr)
+	copy(buf, msg)
+
+	// allocate response page for hypervisor to guest communication
+	resAddr, buf := b.SharedMemory.Reserve(pageSize/2, 0)
+	defer b.SharedMemory.Release(resAddr)
 
 	// yield to hypervisor
-	if code, info1, info2 := b.Exit(SNP_GUEST_REQUEST, uint64(addr), uint64(addr)); info2 != 0 {
+	if code, info1, info2 := b.Exit(SNP_GUEST_REQUEST, uint64(reqAddr), uint64(resAddr)); info2 != 0 {
 		return nil, fmt.Errorf("exit error (code:%x info1:%x info2:%x)", code, info1, info2)
 	}
 
 	// decode response header
-	if err = hdr.unmarshal(shm); err != nil {
+	if err = hdr.unmarshal(buf); err != nil {
 		return
 	}
 
 	// decrypt response message
-	if msg, err = b.openMessage(hdr, shm[headerSize:headerSize+hdr.MessageSize], key); err != nil {
+	if msg, err = b.openMessage(hdr, buf[headerSize:headerSize+hdr.MessageSize], key); err != nil {
 		return
 	}
 
