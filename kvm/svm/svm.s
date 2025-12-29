@@ -8,6 +8,7 @@
 
 // func vmgexit()
 TEXT ·vmgexit(SB),$0
+	BYTE	$0xf3
 	BYTE	$0x0f
 	BYTE	$0x01
 	BYTE	$0xd9
