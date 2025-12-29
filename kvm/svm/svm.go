@@ -40,6 +40,7 @@ const (
 // AMD MSRs
 const (
 	MSR_AMD_PSTATE = 0xc0010064
+	MSR_AMD_GHCB   = 0xc0010130
 )
 
 // SEVStatus represents active AMD Secure Encrypted Virtualization (SEV)

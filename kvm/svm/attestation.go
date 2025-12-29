@@ -63,8 +63,8 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 	copy(shm, msg)
 
 	// yield to hypervisor
-	if exit1, exit2 := b.Exit(SNP_GUEST_REQUEST, uint64(addr), uint64(addr)); exit2 != 0 {
-		return nil, fmt.Errorf("exit code (EXITINFO1:%x EXITINFO2:%x)", exit1, exit2)
+	if code, info1, info2 := b.Exit(SNP_GUEST_REQUEST, uint64(addr), uint64(addr)); info2 != 0 {
+		return nil, fmt.Errorf("exit error (code:%x info1:%x info2:%x)", code, info1, info2)
 	}
 
 	// decode response header
