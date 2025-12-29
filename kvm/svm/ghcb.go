@@ -25,6 +25,8 @@ const (
 // SEV-ES Guest-Hypervisor Communication Block Standardization
 // 2.3.1 GHCB MSR Protocol.
 const (
+	MSR_AMD_GHCB = 0xc0010130
+
 	GHCB_MSR_GHCB_REQ = 0x012
 	GHCB_MSR_GHCB_RES = 0x013
 	GHCB_MSR_PSC_REQ  = 0x014
