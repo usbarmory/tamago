@@ -17,8 +17,6 @@ import (
 )
 
 const (
-	MSR_AMD_GHCB = 0xc0010130
-
 	sharedPage = 2 << 52
 	pageSize   = 4096
 )
@@ -30,6 +28,8 @@ const (
 	GHCB_MSR_REG_GPA_RES = 0x013
 	GHCB_MSR_PGS_CHG_REQ = 0x014
 	GHCB_MSR_PGS_CHG_RES = 0x015
+
+        MSR_AMD_GHCB = 0xc0010130
 )
 
 // SEV-ES Guest-Hypervisor Communication Block Standardization
@@ -60,6 +60,10 @@ type GHCB struct {
 	seqNo uint64
 }
 
+// defined in svm.s
+func vmgexit()
+func pvalidate(addr uint64, validate bool) uint32
+
 func (b *GHCB) msr(val uint64, req uint64, res uint64) (valid bool) {
 	// 2.3.1 GHCB MSR Protocol
 	reg.WriteMSR(MSR_AMD_GHCB, val|req)
@@ -68,28 +72,27 @@ func (b *GHCB) msr(val uint64, req uint64, res uint64) (valid bool) {
 	return reg.ReadMSR(MSR_AMD_GHCB) == (val | res)
 }
 
-func (b *GHCB) write(off uint, val uint64) {
-	binary.LittleEndian.PutUint64(b.buf[off:off+8], val)
-}
-
 // Init initializes a Guest-Hypervisor Communication Block instance, mapping
 // its memory location for guest/hypervisor access.
 //
 // The argument DMA region must be initialized and have been previously
 // allocated as unencrypted for hypervisor access (e.g. C-bit disabled).
-func (b *GHCB) Init() (err error) {
+func (b *GHCB) Init(register bool) (err error) {
 	if b.SharedMemory == nil {
-		return errors.New("invalid instance, null shared memory")
+		return errors.New("invalid instance, no shared memory")
 	}
 
 	b.addr, b.buf = b.SharedMemory.Reserve(pageSize, pageSize)
 	gpa := uint64(b.addr)
 
+	if !register {
+		return
+	}
+
 	if !b.msr(gpa|sharedPage, GHCB_MSR_PGS_CHG_REQ, GHCB_MSR_PGS_CHG_RES) {
 		return errors.New("could not change GHCB GPA page state")
 	}
 
-	// FIXME: this only applies to the first 4k, we need b.SharedMemory.Size()
 	if pvalidate(gpa, true) != 0 {
 		return errors.New("could not PVALIDATE GHCB GPA")
 	}
@@ -101,15 +104,28 @@ func (b *GHCB) Init() (err error) {
 	return
 }
 
+func (b *GHCB) write(off uint, val uint64) {
+	binary.LittleEndian.PutUint64(b.buf[off:off+8], val)
+}
+
+func (b *GHCB) read(off uint) (val uint64) {
+	return binary.LittleEndian.Uint64(b.buf[off:off+8])
+}
+
 // Exit triggers an Automatic Exit (AE) event to transfer control to an AMD
 // SEV-ES hypervisor for updated GHCB access.
-func (b *GHCB) Exit(code uint64, info1 uint64, info2 uint64) {
+func (b *GHCB) Exit(code uint64, info1 uint64, info2 uint64) (exit1 uint64, exit2 uint64) {
 	b.write(SW_EXITCODE, code)
 	b.write(SW_EXITINFO1, info1)
 	b.write(SW_EXITINFO2, info2)
 
 	vmgexit()
 	b.seqNo += 1
+
+	exit1 = b.read(SW_EXITINFO1)
+	exit2 = b.read(SW_EXITINFO2)
+
+	return
 }
 
 // Clear clears any previous GHCB field invocation data.

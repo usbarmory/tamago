@@ -6,6 +6,11 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+// The following build tag is to allow testing of this package using:
+//	GOOS=tamago $TAMAGO test -tags fakenet,user_linux
+//
+//go:build !user_linux
+
 // Package svm implements a driver for AMD specific hypervisor calls, issued by
 // a Secure Virtual Machine, following reference specifications:
 //
@@ -22,10 +27,6 @@ import (
 	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/bits"
 )
-
-// defined in svm.s
-func vmgexit()
-func pvalidate(addr uint64, validate bool) uint32
 
 // AMD64 Architecture Programmer’s Manual, Volume 2
 // 15.34.10 SEV_STATUS MSR

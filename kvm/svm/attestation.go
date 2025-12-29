@@ -10,6 +10,7 @@ package svm
 
 import (
 	"errors"
+	"fmt"
 )
 
 // GetAttestationReport sends a guest request for an AMD SEV-SNP attestation
@@ -20,12 +21,12 @@ import (
 func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *AttestationReport, err error) {
 	var msg []byte
 
-	if b.addr == 0 {
-		return nil, errors.New("invalid instance")
+	if b.SharedMemory == nil {
+		return nil, errors.New("invalid instance, no shared memory")
 	}
 
 	if len(data) > 64 {
-		return nil, errors.New("data length must not exceed %d bytes")
+		return nil, errors.New("data length must not exceed 64 bytes")
 	}
 
 	// SEV Secure Nested Paging Firmware ABI Specification
@@ -59,10 +60,12 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 	// allocate shared page for guest/hypervisor communication
 	addr, shm := b.SharedMemory.Reserve(pageSize, pageSize)
 	defer b.SharedMemory.Release(addr)
-
-	// set up GHCB layout and yield to hypervisor
 	copy(shm, msg)
-	b.Exit(SNP_GUEST_REQUEST, 0, uint64(addr))
+
+	// yield to hypervisor
+	if exit1, exit2 := b.Exit(SNP_GUEST_REQUEST, uint64(addr), uint64(addr)); exit2 != 0 {
+		return nil, fmt.Errorf("exit code (EXITINFO1:%x EXITINFO2:%x)", exit1, exit2)
+	}
 
 	// decode response header
 	if err = hdr.unmarshal(shm); err != nil {
@@ -74,8 +77,9 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 		return
 	}
 
-	// TODO: validate response fields
-	err = res.unmarshal(msg)
+	if err = res.unmarshal(msg); err != nil {
+		return
+	}
 
 	return &res.Report, nil
 }
