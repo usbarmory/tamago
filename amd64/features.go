@@ -49,6 +49,8 @@ const (
 	CPUID_AMD_PROC = 0x80000008
 	AMD_PROC_CPPC  = 27
 	AMD_PROC_NC    = 0
+
+	CPUID_AMD_ENCM = 0x8000001f
 )
 
 // KVM CPUID function numbers
