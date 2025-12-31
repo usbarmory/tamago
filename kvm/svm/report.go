@@ -61,27 +61,33 @@ type AttestationReport struct {
 	ImageID         [16]byte
 	VMPL            uint32
 	SignatureAlgo   uint32
-	PlatformVersion uint64
+	CurrentTCB      uint64
 	PlatformInfo    uint64
-	Flags           uint32
-	Reserved0       uint32
+	SignerInfo      uint32
+	_               uint32
+	ReportData      [64]byte
 	Measurement     [48]byte
 	HostData        [32]byte
 	IDKeyDigest     [48]byte
 	AuthorKeyDigest [48]byte
-	ReportData      [64]byte
-	Reserved1       [192]byte
+	ReportID        [32]byte
+	ReportIDMA      [32]byte
+	ReportedTCB     uint64
+	CPUIDFamID      uint8
+	CPUIDModID      uint8
+	CPUIDStep       uint8
+	_               [20]byte
 	ChipID          [64]byte
 	CommittedTCB    uint64
 	CurrentBuild    uint8
 	CurrentMinor    uint8
 	CurrentMajor    uint8
-	Reserved2       uint8
+	_               uint8
 	CommittedBuild  uint8
 	CommittedMinor  uint8
 	CommittedMajor  uint8
-	Reserved3       uint8
+	_               uint8
 	LaunchTCB       uint64
-	Reserved4       [168]byte
+	_               [168]byte
 	Signature       [512]byte
 }

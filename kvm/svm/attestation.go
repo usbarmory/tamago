@@ -10,6 +10,7 @@ package svm
 
 import (
 	"errors"
+	"fmt"
 )
 
 // GetAttestationReport sends a guest request for an AMD SEV-SNP attestation
@@ -60,6 +61,7 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 	resAddr := reqAddr
 	resBuf := reqBuf
 
+	// re-use request buffer if no response page has been provided
 	if b.ResponsePage != nil {
 		resAddr, resBuf = b.ResponsePage.Reserve(pageSize, pageSize)
 	}
@@ -71,21 +73,20 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 		return
 	}
 
+	// copy response buffer as soon as possible as GHCB might overwrite it
 	buf := make([]byte, pageSize)
 	copy(buf, resBuf)
 
-	// decode response header
 	if err = hdr.unmarshal(buf); err != nil {
-		return
+		return nil, fmt.Errorf("could not parse response header, %v", err)
 	}
 
-	// decrypt response message
 	if msg, err = b.openMessage(hdr, buf[headerSize:headerSize+hdr.MessageSize], key); err != nil {
-		return
+		return nil, fmt.Errorf("could not decrypt response message, %v", err)
 	}
 
 	if err = res.unmarshal(msg); err != nil {
-		return
+		return nil, fmt.Errorf("could not parse report, %v", err)
 	}
 
 	return &res.Report, nil

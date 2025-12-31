@@ -122,6 +122,7 @@ func (b *GHCB) Init(register bool) (err error) {
 	}
 
 	b.addr, b.buf = b.GHCBPage.Reserve(int(b.GHCBPage.Size()), pageSize)
+	b.seqNo = 1
 
 	if !register {
 		return

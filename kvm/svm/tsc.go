@@ -16,7 +16,6 @@ func (b *GHCB) SecureTSC() (tsc uint64, err error) {
 	}
 
 	vmgexit()
-	b.seqNo += 1
 
 	return b.read(RDX)<<32 | b.read(RAX), nil
 }
