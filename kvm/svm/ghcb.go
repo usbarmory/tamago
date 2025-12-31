@@ -169,7 +169,10 @@ func (b *GHCB) Exit(code uint64, info1 uint64, info2 uint64) (err error) {
 		return fmt.Errorf("exit code mismatch (%#x)", exit)
 	}
 
-	if info1 = b.read(SW_EXITINFO1); info1 != 0 {
+	info1 = b.read(SW_EXITINFO1)
+	info2 = b.read(SW_EXITINFO2)
+
+	if info1 != 0 || info2 != 0 {
 		return fmt.Errorf("exit error (info1:%#x info2:%#x)", info1, b.read(SW_EXITINFO2))
 	}
 
