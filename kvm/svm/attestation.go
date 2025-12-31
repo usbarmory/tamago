@@ -10,7 +10,6 @@ package svm
 
 import (
 	"errors"
-	"fmt"
 )
 
 // GetAttestationReport sends a guest request for an AMD SEV-SNP attestation
@@ -21,8 +20,8 @@ import (
 func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *AttestationReport, err error) {
 	var msg []byte
 
-	if b.SharedMemory == nil {
-		return nil, errors.New("invalid instance, no shared memory")
+	if b.RequestPage == nil {
+		return nil, errors.New("invalid instance, no request page")
 	}
 
 	if len(data) > 64 {
@@ -43,7 +42,7 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 
 	req := &ReportRequest{
 		VMPL:   0,
-		KeySel: 0,
+		KeySel: 0, // sign with VLEK | VCEK
 	}
 
 	res := &ReportResponse{}
@@ -57,19 +56,23 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 		return
 	}
 
-	// allocate request pages for guest to hypervisor communication
-	reqAddr, buf := b.SharedMemory.Reserve(pageSize/2, 0)
-	defer b.SharedMemory.Release(reqAddr)
-	copy(buf, msg)
+	reqAddr, reqBuf := b.RequestPage.Reserve(pageSize, pageSize)
+	resAddr := reqAddr
+	resBuf := reqBuf
 
-	// allocate response page for hypervisor to guest communication
-	resAddr, buf := b.SharedMemory.Reserve(pageSize/2, 0)
-	defer b.SharedMemory.Release(resAddr)
+	if b.ResponsePage != nil {
+		resAddr, resBuf = b.ResponsePage.Reserve(pageSize, pageSize)
+	}
+
+	copy(reqBuf, msg)
 
 	// yield to hypervisor
-	if code, info1, info2 := b.Exit(SNP_GUEST_REQUEST, uint64(reqAddr), uint64(resAddr)); info2 != 0 {
-		return nil, fmt.Errorf("exit error (code:%x info1:%x info2:%x)", code, info1, info2)
+	if err = b.Exit(SNP_GUEST_REQUEST, uint64(reqAddr), uint64(resAddr)); err != nil {
+		return
 	}
+
+	buf := make([]byte, pageSize)
+	copy(buf, resBuf)
 
 	// decode response header
 	if err = hdr.unmarshal(buf); err != nil {

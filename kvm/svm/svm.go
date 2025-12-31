@@ -51,7 +51,8 @@ type SEVStatus struct {
 // SVMFeatures represents the processor AMD Secure Virtual Machine
 // capabilities.
 type SVMFeatures struct {
-	SEV SEVStatus
+	SEV           SEVStatus
+	EncryptionBit uint32
 }
 
 // Features returns the processor AMD Secure Virtual Machine capabilities.
@@ -67,6 +68,8 @@ func Features(cpu *amd64.CPU) (f SVMFeatures) {
 	f.SEV.SEV = bits.IsSet(&status, SEV_STATUS_SEV)
 	f.SEV.ES = bits.IsSet(&status, SEV_STATUS_SEV_ES)
 	f.SEV.SNP = bits.IsSet(&status, SEV_STATUS_SEV_SNP)
+
+	_, f.EncryptionBit, _, _ = cpu.CPUID(amd64.CPUID_AMD_ENCM, 0)
 
 	return
 }
