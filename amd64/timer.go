@@ -18,11 +18,59 @@ import (
 // nanoseconds
 const refFreq uint32 = 1e9
 
+// ACPI PM Timer constants
+const (
+	ACPI_PM_TIMER_PORT = 0xb008
+	ACPI_PM_FREQ       = 3579545
+)
+
 // defined in timer.s
 func read_tsc() uint64
 func write_tsc_deadline(cnt uint64)
 
-func (cpu *CPU) detectCoreFrequency() (freq uint32) {
+// calibrate frequency based on KVM clock
+func (cpu *CPU) calibrateByPairing() {
+	_, nsecA, tscA := kvmclock.Pairing()
+	_, nsecB, tscB := kvmclock.Pairing()
+
+	if den := uint64(nsecB - nsecA); den != 0 {
+		cpu.freq = uint32(((tscB - tscA) * uint64(refFreq)) / den)
+	}
+}
+
+// calibrate frequency based on ACPI PM timer
+func (cpu *CPU) calibrateByTimer() {
+	var apmB uint32
+	var tscB uint64
+
+	loop := ACPI_PM_FREQ / uint32(100)
+	mask := uint32(0xffffff)
+
+	apmA := reg.In32(ACPI_PM_TIMER_PORT)
+	tscA := read_tsc()
+
+	if apmA & ^mask != 0 {
+		// invalid I/O port
+		return
+	}
+
+	for {
+		apmB = reg.In32(ACPI_PM_TIMER_PORT)
+
+		if (apmB-apmA)&mask > loop {
+			tscB = read_tsc()
+			break
+		}
+	}
+
+	if den := (apmB - apmA) & mask; den != 0 {
+		cpu.freq = uint32((tscB-tscA)/uint64(den)) * ACPI_PM_FREQ
+	}
+
+	return
+}
+
+func (cpu *CPU) detectCoreFrequency() {
 	if den, num, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); den != 0 {
 		if nominalFreq == 0 {
 			baseFreq, _, _, _ := cpuid(CPUID_CPU_FRQ, 0)
@@ -33,14 +81,13 @@ func (cpu *CPU) detectCoreFrequency() (freq uint32) {
 	}
 
 	if cpu.features.KVM {
-		if khz, _, _, _ := cpuid(KVM_CPUID_TSC_KHZ, 0); khz != 0 {
+		if khz, _, _, _ := cpuid(CPUID_KVM_TSC_KHZ, 0); khz != 0 {
 			cpu.freq = khz * 1000
 		} else {
-			_, nsecA, tscA := kvmclock.Pairing()
-			_, nsecB, tscB := kvmclock.Pairing()
+			cpu.calibrateByPairing()
 
-			if den := uint64(nsecB - nsecA); den != 0 {
-				cpu.freq = uint32(((tscB - tscA) * uint64(refFreq)) / den)
+			if cpu.freq == 0 {
+				cpu.calibrateByTimer()
 			}
 		}
 	}
@@ -50,22 +97,19 @@ func (cpu *CPU) detectCoreFrequency() (freq uint32) {
 	}
 
 	if _, _, ecx, _ := cpuid(CPUID_VENDOR, 0); ecx == CPUID_VENDOR_ECX_AMD {
-		// Open-Source Register Reference
-		// For AMD Family 17h Processors Models 00h-2Fh
-		// Rev 3.03 - July, 2018 - Core::X86::Msr::PStateDef
-		pstate := reg.Msr(MSR_AMD_PSTATE)
+		if _, ebx, _, _ := cpuid(CPUID_AMD_PROC, 0); bits.IsSet(&ebx, AMD_PROC_CPPC) {
+			// Open-Source Register Reference
+			// For AMD Family 17h Processors Models 00h-2Fh
+			// Rev 3.03 - July, 2018 - Core::X86::Msr::PStateDef
+			pstate := uint32(reg.ReadMSR(MSR_AMD_PSTATE))
 
-		num := float64(bits.Get(&pstate, 0, 0xff)) * 25
-		den := float64(bits.Get(&pstate, 8, 0b111111)) / 8
+			num := float64(bits.Get(&pstate, 0, 0xff)) * 25
+			den := float64(bits.Get(&pstate, 8, 0b111111)) / 8
 
-		if num != 0 && den != 0 {
-			cpu.freq = uint32(num/den) * 1e6
+			if num != 0 && den != 0 {
+				cpu.freq = uint32(num/den) * 1e6
+			}
 		}
-	}
-
-	if cpu.freq == 0 {
-		print("WARNING: TSC frequency is unavailable\n")
-		return 1
 	}
 
 	return
@@ -73,6 +117,12 @@ func (cpu *CPU) detectCoreFrequency() (freq uint32) {
 
 func (cpu *CPU) initTimers() {
 	cpu.detectCoreFrequency()
+
+	if cpu.freq == 0 {
+		print("WARNING: TSC frequency is unavailable\n")
+		cpu.freq = 1
+	}
+
 	cpu.TimerMultiplier = float64(refFreq) / float64(cpu.freq)
 }
 
