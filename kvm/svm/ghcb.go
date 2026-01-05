@@ -164,7 +164,6 @@ func (b *GHCB) Exit(code uint64, info1 uint64, info2 uint64) (err error) {
 	b.valid([]uint64{SW_EXITCODE, SW_EXITINFO1, SW_EXITINFO2})
 
 	vmgexit()
-	b.seqNo += 1
 
 	if exit := b.read(SW_EXITCODE); exit != code {
 		return fmt.Errorf("exit code mismatch (%#x)", exit)
@@ -176,6 +175,8 @@ func (b *GHCB) Exit(code uint64, info1 uint64, info2 uint64) (err error) {
 	if info1 != 0 || info2 != 0 {
 		return fmt.Errorf("exit error (info1:%#x info2:%#x)", info1, b.read(SW_EXITINFO2))
 	}
+
+	b.seqNo += 1
 
 	return
 }
