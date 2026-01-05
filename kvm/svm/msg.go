@@ -139,5 +139,7 @@ func (b *GHCB) openMessage(hdr *MessageHeader, ciphertext, key []byte) (plaintex
 		return
 	}
 
+	b.seqNo += 1
+
 	return
 }
