@@ -87,7 +87,7 @@ func (hw *UART) Rx() (c byte, valid bool) {
 
 // Write data from buffer to serial port.
 func (hw *UART) Write(buf []byte) (n int, _ error) {
-	for n = 0; n < len(buf); n++ {
+	for n = range buf {
 		hw.Tx(buf[n])
 	}
 
@@ -98,7 +98,7 @@ func (hw *UART) Write(buf []byte) (n int, _ error) {
 func (hw *UART) Read(buf []byte) (n int, _ error) {
 	var valid bool
 
-	for n = 0; n < len(buf); n++ {
+	for n = range buf {
 		buf[n], valid = hw.Rx()
 
 		if !valid {

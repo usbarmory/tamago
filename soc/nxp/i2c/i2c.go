@@ -237,7 +237,7 @@ func (hw *I2C) rx(buf []byte) (err error) {
 	// dummy read
 	reg.Read16(hw.i2dr)
 
-	for i := 0; i < size; i++ {
+	for i := range size {
 		if !reg.WaitFor16(hw.Timeout, hw.i2sr, I2SR_IIF, 1, 1) {
 			return errors.New("timeout on byte reception")
 		}
@@ -256,7 +256,7 @@ func (hw *I2C) rx(buf []byte) (err error) {
 }
 
 func (hw *I2C) tx(buf []byte) (err error) {
-	for i := 0; i < len(buf); i++ {
+	for i := range buf {
 		reg.Clear16(hw.i2sr, I2SR_IIF)
 		reg.Write16(hw.i2dr, uint16(buf[i]))
 

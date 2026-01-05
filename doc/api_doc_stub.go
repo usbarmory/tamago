@@ -211,7 +211,7 @@ var ProcID func() int64
 // For an example see package [vnet].
 //
 // [vnet]: https://github.com/usbarmory/virtio-net/blob/master/runtime.go
-var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr net.Addr) (interface{}, error)
+var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr net.Addr) (any, error)
 
 // Task describes the optional [runtime.Task] function, which can be set to
 // provide an implementation for HW/OS threading (see `runtime.newosproc`).
