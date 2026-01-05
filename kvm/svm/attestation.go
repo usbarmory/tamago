@@ -58,12 +58,15 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 	}
 
 	reqAddr, reqBuf := b.RequestPage.Reserve(pageSize, pageSize)
+	defer b.RequestPage.Release(reqAddr)
+
 	resAddr := reqAddr
 	resBuf := reqBuf
 
 	// re-use request buffer if no response page has been provided
 	if b.ResponsePage != nil {
 		resAddr, resBuf = b.ResponsePage.Reserve(pageSize, pageSize)
+		defer b.RequestPage.Release(resAddr)
 	}
 
 	copy(reqBuf, msg)
