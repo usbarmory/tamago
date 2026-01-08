@@ -1,4 +1,4 @@
-// AMD secure virtualization support
+// AMD Secure Encrypted Virtualization support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -6,7 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package svm
+package sev
 
 import (
 	"encoding/binary"
@@ -77,7 +77,7 @@ type GHCB struct {
 	seqNo uint64
 }
 
-// defined in svm.s
+// defined in sev.s
 func vmgexit()
 func pvalidate(addr uint64, validate bool) (ret uint32)
 

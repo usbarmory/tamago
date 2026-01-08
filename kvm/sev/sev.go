@@ -1,4 +1,4 @@
-// AMD secure virtualization support
+// AMD Secure Encrypted Virtualization support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -11,8 +11,8 @@
 //
 //go:build !user_linux
 
-// Package svm implements a driver for AMD specific hypervisor calls, issued by
-// a Secure Virtual Machine, following reference specifications:
+// Package sev implements a driver for AMD Secure Encrypted Virtualization
+// (SEV), following reference specifications:
 //
 //   - AMD64 Architecture Programmer’s Manual, Volume 2
 //   - SEV-ES Guest-Hypervisor Communication Block Standardization
@@ -21,7 +21,7 @@
 // This package is only meant to be used with `GOOS=tamago` as
 // supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
-package svm
+package sev
 
 import (
 	"github.com/usbarmory/tamago/amd64"
