@@ -76,7 +76,7 @@ type AttestationReport struct {
 	CPUIDFamID      uint8
 	CPUIDModID      uint8
 	CPUIDStep       uint8
-	_               [20]byte
+	_               [21]byte
 	ChipID          [64]byte
 	CommittedTCB    uint64
 	CurrentBuild    uint8
@@ -90,4 +90,11 @@ type AttestationReport struct {
 	LaunchTCB       uint64
 	_               [168]byte
 	Signature       [512]byte
+}
+
+// Bytes converts the descriptor structure to byte array format.
+func (r *AttestationReport) Bytes() []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, r)
+	return buf.Bytes()
 }
