@@ -12,6 +12,7 @@ import (
 	"runtime"
 
 	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // CPUID function numbers
@@ -25,6 +26,7 @@ const (
 	CPUID_VENDOR_ECX_AMD   = 0x444d4163 // Authenti(cAMD)
 
 	CPUID_INFO        = 0x01
+	INFO_HYPERVISOR   = 31
 	INFO_TSC_DEADLINE = 24
 
 	CPUID_INTEL_CACHE = 0x04
@@ -45,21 +47,24 @@ const (
 // Volume 3 - Appendix E.4 Extended Feature Function Numbers.
 const (
 	CPUID_AMD_PROC = 0x80000008
+	AMD_PROC_CPPC  = 27
 	AMD_PROC_NC    = 0
+
+	CPUID_AMD_ENCM = 0x8000001f
 )
 
 // KVM CPUID function numbers
 //
 // (https://docs.kernel.org/virt/kvm/x86/cpuid.html)
 const (
-	KVM_CPUID_SIGNATURE = 0x40000000
+	CPUID_KVM_SIGNATURE = 0x40000000
 	KVM_SIGNATURE       = 0x4b4d564b // "KVMK"
 
-	KVM_CPUID_FEATURES    = 0x40000001
+	CPUID_KVM_FEATURES    = 0x40000001
 	FEATURES_CLOCKSOURCE  = 0
 	FEATURES_CLOCKSOURCE2 = 3
 
-	KVM_CPUID_TSC_KHZ = 0x40000010
+	CPUID_KVM_TSC_KHZ = 0x40000010
 )
 
 // AMD MSRs
@@ -97,6 +102,11 @@ func (cpu *CPU) CPUID(leaf, subleaf uint32) (eax, ebx, ecx, edx uint32) {
 	return cpuid(leaf, subleaf)
 }
 
+// MSR returns a machine-specific register.
+func (cpu *CPU) MSR(addr uint64) (val uint64) {
+	return reg.ReadMSR(addr)
+}
+
 func (cpu *CPU) initFeatures() {
 	_, _, _, apmFeatures := cpuid(CPUID_APM, 0)
 	cpu.features.TSCInvariant = bits.IsSet(&apmFeatures, APM_TSC_INVARIANT)
@@ -104,19 +114,19 @@ func (cpu *CPU) initFeatures() {
 	_, _, cpuFeatures, _ := cpuid(CPUID_INFO, 0)
 	cpu.features.TSCDeadline = bits.IsSet(&cpuFeatures, INFO_TSC_DEADLINE)
 
-	if _, kvmk, _, _ := cpuid(KVM_CPUID_SIGNATURE, 0); kvmk != KVM_SIGNATURE {
+	if _, kvmk, _, _ := cpuid(CPUID_KVM_SIGNATURE, 0); kvmk != KVM_SIGNATURE {
 		return
 	}
 
 	cpu.features.KVM = true
-	kvmFeatures, _, _, _ := cpuid(KVM_CPUID_FEATURES, 0)
+	kvmFeatures, _, _, _ := cpuid(CPUID_KVM_FEATURES, 0)
 
 	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE) {
-		cpu.features.KVMClockMSR = 0x12
+		cpu.features.KVMClockMSR = MSR_KVM_SYSTEM_TIME
 	}
 
 	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE2) {
-		cpu.features.KVMClockMSR = 0x4b564d01
+		cpu.features.KVMClockMSR = MSR_KVM_SYSTEM_TIME_NEW
 	}
 }
 
