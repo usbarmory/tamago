@@ -46,9 +46,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| CPU              | Board                                                                     | CPU package                                                    | Board package                                                                      |
-|------------------|---------------------------------------------------------------------------|----------------------------------------------------------------|------------------------------------------------------------------------------------|
-| AMD/Intel 64-bit | [Google Compute Engine](https://cloud.google.com/products/compute)        | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [google/gcp](https://github.com/usbarmory/tamago/tree/master/board/google/gcp)     |
+| CPU              | Board                                                              | CPU package                                                    | Board package                                                                  |
+|------------------|--------------------------------------------------------------------|----------------------------------------------------------------|--------------------------------------------------------------------------------|
+| AMD/Intel 64-bit | [Google Compute Engine](https://cloud.google.com/products/compute) | [amd64](https://github.com/usbarmory/tamago/tree/master/amd64) | [google/gcp](https://github.com/usbarmory/tamago/tree/master/board/google/gcp) |
 
 Compiling
 =========

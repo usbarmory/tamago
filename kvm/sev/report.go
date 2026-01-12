@@ -18,6 +18,8 @@ const (
 	MSG_REPORT_RSP = 6
 )
 
+const reportVersion = 0x5
+
 // ReportRequest represents an AMD SEV-SNP Report Request Message
 // (SEV Secure Nested Paging Firmware ABI Specification
 // Table 22. MSG_REPORT_REQ Message Structure).
@@ -54,42 +56,44 @@ func (r *ReportResponse) unmarshal(buf []byte) (err error) {
 // (SEV Secure Nested Paging Firmware ABI Specification
 // Table 23. ATTESTATION_REPORT Structure).
 type AttestationReport struct {
-	Version         uint32
-	GuestSVN        uint32
-	Policy          uint64
-	FamilyID        [16]byte
-	ImageID         [16]byte
-	VMPL            uint32
-	SignatureAlgo   uint32
-	CurrentTCB      uint64
-	PlatformInfo    uint64
-	SignerInfo      uint32
-	_               uint32
-	ReportData      [64]byte
-	Measurement     [48]byte
-	HostData        [32]byte
-	IDKeyDigest     [48]byte
-	AuthorKeyDigest [48]byte
-	ReportID        [32]byte
-	ReportIDMA      [32]byte
-	ReportedTCB     uint64
-	CPUIDFamID      uint8
-	CPUIDModID      uint8
-	CPUIDStep       uint8
-	_               [21]byte
-	ChipID          [64]byte
-	CommittedTCB    uint64
-	CurrentBuild    uint8
-	CurrentMinor    uint8
-	CurrentMajor    uint8
-	_               uint8
-	CommittedBuild  uint8
-	CommittedMinor  uint8
-	CommittedMajor  uint8
-	_               uint8
-	LaunchTCB       uint64
-	_               [168]byte
-	Signature       [512]byte
+	Version          uint32
+	GuestSVN         uint32
+	Policy           uint64
+	FamilyID         [16]byte
+	ImageID          [16]byte
+	VMPL             uint32
+	SignatureAlgo    uint32
+	CurrentTCB       uint64
+	PlatformInfo     uint64
+	SignerInfo       uint32
+	_                uint32
+	ReportData       [64]byte
+	Measurement      [48]byte
+	HostData         [32]byte
+	IDKeyDigest      [48]byte
+	AuthorKeyDigest  [48]byte
+	ReportID         [32]byte
+	ReportIDMA       [32]byte
+	ReportedTCB      uint64
+	CPUIDFamID       uint8
+	CPUIDModID       uint8
+	CPUIDStep        uint8
+	_                [21]byte
+	ChipID           [64]byte
+	CommittedTCB     uint64
+	CurrentBuild     uint8
+	CurrentMinor     uint8
+	CurrentMajor     uint8
+	_                uint8
+	CommittedBuild   uint8
+	CommittedMinor   uint8
+	CommittedMajor   uint8
+	_                uint8
+	LaunchTCB        uint64
+	LaunchMitVector  uint64
+	CurrentMitVector uint64
+	_                [152]byte
+	Signature        [512]byte
 }
 
 // Bytes converts the descriptor structure to byte array format.

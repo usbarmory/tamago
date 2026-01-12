@@ -92,5 +92,9 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 		return nil, fmt.Errorf("could not parse report, %v", err)
 	}
 
-	return &res.Report, nil
+	if res.Report.Version != reportVersion {
+		err = errors.New("unsupported report version")
+	}
+
+	return &res.Report, err
 }
