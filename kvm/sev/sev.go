@@ -69,7 +69,8 @@ func Features(cpu *amd64.CPU) (f SVMFeatures) {
 	f.SEV.ES = bits.IsSet(&status, SEV_STATUS_SEV_ES)
 	f.SEV.SNP = bits.IsSet(&status, SEV_STATUS_SEV_SNP)
 
-	_, f.EncryptionBit, _, _ = cpu.CPUID(amd64.CPUID_AMD_ENCM, 0)
+	_, ebx, _, _ := cpu.CPUID(amd64.CPUID_AMD_ENCM, 0) & 0b111111
+	f.EncryptionBit = ebx  0b111111
 
 	return
 }
