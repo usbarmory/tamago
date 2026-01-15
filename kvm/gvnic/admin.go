@@ -11,9 +11,9 @@ package gvnic
 import (
 	"encoding/binary"
 	"fmt"
+	"math/bits"
 	"time"
 
-	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -42,18 +42,25 @@ const (
 	COMMAND_ERROR_UNKNOWN_ERROR       = 0xffffffff
 )
 
-type adminCommand struct {
+const (
+	pageSize       = 4096
+	adminQueueSize = pageSize
+	hdrSize        = 8
+	cmdSize        = 64
+)
+
+type adminCommandHeader struct {
 	Opcode uint32
 	Status uint32
-	Data   [56]byte
 }
 
 type adminQueue struct {
+	// control registers
 	Doorbell uint32
 	Counter  uint32
 
 	// internal counter
-	cnt int
+	cnt uint32
 
 	// DMA buffer
 	addr uint
@@ -61,25 +68,31 @@ type adminQueue struct {
 }
 
 func (aq *adminQueue) Push(opcode uint32, cmd any) (err error) {
-	low := aq.cnt * commandSize
-	high := low + commandSize
-
-	ac := &adminCommand{
+	ac := &adminCommandHeader{
 		Opcode: opcode,
 	}
 
-	if _, err = binary.Encode(ac.Data[:], binary.BigEndian, cmd); err != nil {
-		return
-	}
+	low := aq.cnt * cmdSize
+	high := low + cmdSize
 
 	if _, err = binary.Encode(aq.buf[low:high], binary.BigEndian, ac); err != nil {
 		return
 	}
 
-	aq.cnt = (aq.cnt + 1) % (adminQueueSize / commandSize)
-	reg.Write(aq.Doorbell, uint32(aq.cnt))
+	if _, err = binary.Encode(aq.buf[low+hdrSize:high], binary.BigEndian, cmd); err != nil {
+		return
+	}
 
-	if !reg.WaitFor(CommandTimeout, aq.Counter, 0, 0xff, uint32(aq.cnt)) {
+	// zero out remaining buffer
+	pad := cmdSize - binary.Size(cmd)
+	copy(aq.buf[hdrSize+binary.Size(cmd):cmdSize], make([]byte, pad))
+
+	// bump counter and ring door bell
+	aq.cnt = (aq.cnt + 1) % (adminQueueSize / cmdSize)
+	cnt := bits.ReverseBytes32(aq.cnt)
+	reg.Write(aq.Doorbell, cnt)
+
+	if !reg.WaitFor(CommandTimeout, aq.Counter, 0, 0xffffffff, cnt) {
 		return fmt.Errorf("admin queue timeout")
 	}
 
@@ -96,10 +109,16 @@ func (hw *GVE) initAdminQueue() (err error) {
 		Counter:  hw.registers + ADMINQ_EVENT_COUNTER,
 	}
 
-	hw.aq.addr, hw.aq.buf = dma.Reserve(adminQueueSize, 0)
+	hw.aq.addr, hw.aq.buf = hw.QueueRegion.Reserve(adminQueueSize, 0)
 
-	// set admin queue based address to region page frame number
-	reg.Write(hw.Base+ADMINQ_PFN, uint32(hw.aq.addr>>12))
+	if hw.Device.Revision < 1 {
+		// set admin queue based address to region page frame number
+		hw.set(ADMINQ_PFN, uint32(hw.aq.addr/pageSize))
+	} else {
+		// set admin queue based address and size
+		hw.set(ADMINQ_LENGTH, uint16(adminQueueSize))
+		hw.set(ADMINQ_BASE_ADDRESS_LOW, uint32(hw.aq.addr))
+	}
 
 	return
 }

@@ -10,8 +10,6 @@ package gvnic
 
 import (
 	"encoding/binary"
-
-	"github.com/usbarmory/tamago/dma"
 )
 
 const (
@@ -46,8 +44,8 @@ func (hw *GVE) describeDevice() (err error) {
 		hw.Info = &DeviceDescriptor{}
 	}
 
-	addr, buf := dma.Reserve(pageSize, pageSize)
-	defer dma.Release(addr)
+	addr, buf := hw.CommandRegion.Reserve(pageSize, 0)
+	defer hw.CommandRegion.Release(addr)
 
 	cmd := &deviceDescriptorCommand{
 		Address: uint64(addr),

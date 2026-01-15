@@ -12,9 +12,10 @@ package gvnic
 import (
 	"errors"
 	"fmt"
-	"net"
+	"math/bits"
 	"sync"
 
+	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/soc/intel/pci"
 )
@@ -27,24 +28,26 @@ const (
 
 // gVNIC configuration registers (Bar0)
 const (
-	DEVICE_STATUS = 0x00
-	STATUS_LINK   = 1
-	STATUS_RESET  = 0
+	DEVICE_STATUS              = 0x00
+	DEVICE_STATUS_LINK  uint32 = 1
+	DEVICE_STATUS_RESET uint32 = 0
 
-	DRIVER_STATUS        = 0x04
+	DRIVER_STATUS              = 0x04
+	DRIVER_STATUS_RESET uint32 = 0
+	DRIVER_STATUS_RUN   uint32 = 1
+
 	MAX_TX_QUEUES        = 0x08
 	MAX_RX_QUEUES        = 0x0c
-	ADMINQ_PFN           = 0x10
 	ADMINQ_DOORBELL      = 0x14
 	ADMINQ_EVENT_COUNTER = 0x18
-)
 
-const (
-	pageSize       = 4096
-	commandSize    = 64
-	adminQueueSize = 4096
-	txQueueSize    = 256
-	rxQueueSize    = 256
+	// PCI Revision 00
+	ADMINQ_PFN = 0x10
+
+	// PCI Revision 01
+	ADMINQ_BASE_ADDRESS_LOW  = 0x20
+	ADMINQ_BASE_ADDRESS_HIGH = 0x24
+	ADMINQ_LENGTH            = 0x28
 )
 
 // GVE represents a Google Virtual NIC instance.
@@ -53,17 +56,23 @@ type GVE struct {
 
 	// Controller index
 	Index int
-	// Base register
-	Base uint32
 	// Interrupt ID
 	IRQ int
-	// MAC address
-	MAC net.HardwareAddr
 
 	// Device represents the probed PCI device.
 	Device *pci.Device
 	// Info represents the initialized device descriptor.
 	Info *DeviceDescriptor
+
+	// QueueRegion is an optional memory page for persistent allocation of
+	// the shared queue. It must be set to override the global DMA region
+	// with unencrypted memory when running in a Confidential VM.
+	QueueRegion *dma.Region
+
+	// CommandRegion is an optional memory page for on-demand allocation of
+	// shared command buffers. It must be set to override the global DMA
+	// region with unencrypted memory when running in a Confidential VM.
+	CommandRegion *dma.Region
 
 	// PCI memory BARS
 	registers uint32
@@ -74,13 +83,30 @@ type GVE struct {
 	aq *adminQueue
 }
 
+func (hw *GVE) set(off uint32, val any) {
+	switch v := val.(type) {
+	case uint32:
+		reg.Write(hw.registers+off, bits.ReverseBytes32(v))
+	case uint16:
+		reg.Write16(hw.registers+off, bits.ReverseBytes16(v))
+	}
+}
+
 // Init initializes a Google Virtual NIC instance.
 func (hw *GVE) Init() (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
 	if hw.Device == nil {
-		return errors.New("invalid PCI device")
+		return errors.New("invalid GVE instance")
+	}
+
+	if hw.QueueRegion == nil {
+		hw.QueueRegion = dma.Default()
+	}
+
+	if hw.CommandRegion == nil {
+		hw.CommandRegion = dma.Default()
 	}
 
 	hw.registers = uint32(hw.Device.BaseAddress(0))
@@ -90,14 +116,14 @@ func (hw *GVE) Init() (err error) {
 		return errors.New("unexpected PCI BAR type, expected memory")
 	}
 
-	// soft reset
-	reg.Write(hw.Base+DEVICE_STATUS, STATUS_RESET)
+	hw.set(DEVICE_STATUS, uint32(DEVICE_STATUS_RESET))
 
 	if err := hw.initAdminQueue(); err != nil {
 		return fmt.Errorf("failed to initialize admin queue, %v", err)
 	}
 
-	// query device capabilities
+	hw.set(DRIVER_STATUS, uint32(DRIVER_STATUS_RUN))
+
 	if err = hw.describeDevice(); err != nil {
 		return fmt.Errorf("failed to describe device, %v", err)
 	}
