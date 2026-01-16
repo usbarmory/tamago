@@ -21,12 +21,11 @@ const (
 
 // KeySelect masks
 const (
-	RootKeySelVMRK = 1 << 0
-	RootKeySelVCEK = 0 << 0
-
-	KeySelVLEKOrVCEK = 0 << 1
-	KeySelVCEK       = 1 << 1
 	KeySelVLEK       = 2 << 1
+	KeySelVCEK       = 1 << 1
+	KeySelVLEKOrVCEK = 0 << 1
+	RootKeySelVMRK   = 1 << 0
+	RootKeySelVCEK   = 0 << 0
 )
 
 // GuestFieldSelect masks
@@ -51,6 +50,7 @@ type KeyRequest struct {
 	GuestSVN         uint32
 	TCBVersion       uint64
 	LaunchMitVector  uint64
+	_                [472]byte
 }
 
 // Bytes converts the descriptor structure to byte array format.
@@ -65,6 +65,7 @@ func (m *KeyRequest) Bytes() []byte {
 // Table 21. MSG_KEY_RSP Message Structure).
 type KeyResponse struct {
 	Status     uint32
+	_          [28]byte
 	DerivedKey [32]byte
 }
 
