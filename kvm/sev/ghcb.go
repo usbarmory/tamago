@@ -57,9 +57,9 @@ const (
 // GHCB represents a Guest-Hypervisor Communication Block instance, used to
 // expose register state to an AMD SEV-ES hypervisor.
 type GHCB struct {
-	// GHCBPage is a required unencrypted memory page for shared
+	// LayoutPage is a required unencrypted memory page for shared
 	// guest/hypervisor access of the GHCB Layout.
-	GHCBPage *dma.Region
+	LayoutPage *dma.Region
 
 	// RequestPage is a required unencrypted memory page for shared
 	// guest/hypervisor access of SNP Guest Requests.
@@ -117,11 +117,11 @@ func (b *GHCB) read(off uint) (val uint64) {
 // The argument DMA region must be initialized and have been previously
 // allocated as unencrypted for hypervisor access (e.g. C-bit disabled).
 func (b *GHCB) Init(register bool) (err error) {
-	if b.GHCBPage == nil {
+	if b.LayoutPage == nil {
 		return errors.New("invalid instance, no GHCB page")
 	}
 
-	b.addr, b.buf = b.GHCBPage.Reserve(int(b.GHCBPage.Size()), pageSize)
+	b.addr, b.buf = b.LayoutPage.Reserve(int(b.LayoutPage.Size()), pageSize)
 	b.seqNo = 1
 
 	if !register {
@@ -132,7 +132,7 @@ func (b *GHCB) Init(register bool) (err error) {
 		return errors.New("could not register GHCB GPA")
 	}
 
-	for i := uint(0); i < b.GHCBPage.Size(); i += pageSize {
+	for i := uint(0); i < b.LayoutPage.Size(); i += pageSize {
 		gpa := uint64(b.addr + i)
 
 		if ret := pvalidate(gpa, false); ret != 0 {
@@ -152,7 +152,7 @@ func (b *GHCB) Init(register bool) (err error) {
 // state towards the hypervisor, the return values represent hypervisor state
 // towards the guest.
 func (b *GHCB) Exit(code uint64, info1 uint64, info2 uint64) (err error) {
-	if b.GHCBPage == nil {
+	if b.LayoutPage == nil {
 		return errors.New("invalid instance, no GHCB page")
 	}
 

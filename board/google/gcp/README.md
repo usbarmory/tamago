@@ -99,11 +99,12 @@ reference usage and a Makefile target for automatic creation of an ELF image,
 paravirtualized execution on Google Compute Engine can be accomplished through a
 [boot disk image](https://github.com/usbarmory/tamago-example/tree/master/tools).
 
-The [uefi/x64](https://github.com/usbarmory/go-boot/tree/main/uefi/x64) package
-[can be used as an alternative](https://github.com/usbarmory/go-boot/wiki/Google-Compute-Engine).
-
 The Google Cloud Compute instance machine type verified with this package is
 T2D.
+
+The [uefi/x64](https://github.com/usbarmory/go-boot/tree/main/uefi/x64) package
+can be used as an alternative to run under [UEFI capable GCP VMs](https://github.com/usbarmory/go-boot/wiki/Google-Compute-Engine)
+and is required for execution under [GCP Confidential VMs](https://github.com/usbarmory/go-boot/wiki/Google-Compute-Engine-(AMD-SEV%E2%80%90SNP)).
 
 QEMU
 ----
