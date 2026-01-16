@@ -250,5 +250,5 @@ func (b *GHCB) GuestRequest(index int, key, req []byte, messageType int) (res []
 		return nil, fmt.Errorf("could not decrypt response message, %v", err)
 	}
 
-	return
+	return msg, nil
 }
