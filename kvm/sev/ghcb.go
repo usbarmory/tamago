@@ -187,3 +187,68 @@ func (b *GHCB) Dump() (buf []byte) {
 	copy(buf, b.buf)
 	return
 }
+
+// GuestRequest issues an SNP Guest Request from an SEV-SNP guest to the
+// SEV-SNP firmware running inside the Platform Security Processor (PSP).
+//
+// The message is protected with authenticated AES-256 GCM encryption, using
+// the argument key index and value (see [SNPSecrets.VMPCK]).
+//
+// See [SEV Secure Nested Paging Firmware ABI Specification - Chapter 7].
+func (b *GHCB) GuestRequest(index int, key, req []byte, messageType int) (res []byte, err error) {
+	var msg []byte
+
+	if b.RequestPage == nil {
+		return nil, errors.New("invalid instance, no request page")
+	}
+
+	// SEV Secure Nested Paging Firmware ABI Specification
+	// 8.26 SNP_GUEST_REQUEST
+
+	hdr := &MessageHeader{
+		Algo:           AES_256_GCM,
+		HeaderVersion:  headerVersion,
+		HeaderSize:     headerSize,
+		MessageType:    uint8(messageType),
+		MessageVersion: messageVersion,
+		VMPCK:          uint8(index),
+	}
+
+	// encrypt request message
+	if msg, err = b.sealMessage(hdr, req, key); err != nil {
+		return
+	}
+
+	reqAddr, reqBuf := b.RequestPage.Reserve(pageSize, pageSize)
+	defer b.RequestPage.Release(reqAddr)
+
+	resAddr := reqAddr
+	resBuf := reqBuf
+
+	// re-use request buffer if no response page has been provided
+	if b.ResponsePage != nil {
+		resAddr, resBuf = b.ResponsePage.Reserve(pageSize, pageSize)
+		defer b.ResponsePage.Release(resAddr)
+	}
+
+	copy(reqBuf, msg)
+
+	// yield to hypervisor
+	if err = b.Exit(SNP_GUEST_REQUEST, uint64(reqAddr), uint64(resAddr)); err != nil {
+		return
+	}
+
+	// copy response buffer as soon as possible as GHCB might overwrite it
+	buf := make([]byte, pageSize)
+	copy(buf, resBuf)
+
+	if err = hdr.unmarshal(buf); err != nil {
+		return nil, fmt.Errorf("could not parse response header, %v", err)
+	}
+
+	if msg, err = b.openMessage(hdr, buf[headerSize:headerSize+hdr.MessageSize], key); err != nil {
+		return nil, fmt.Errorf("could not decrypt response message, %v", err)
+	}
+
+	return
+}

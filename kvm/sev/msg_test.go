@@ -70,7 +70,6 @@ func TestAEAD(t *testing.T) {
 	// fill message data
 	data := make([]byte, 96)
 	copy(req.Data[:], data)
-	hdr.MessageSize = uint16(len(data))
 
 	sealedMsg, err := b.sealMessage(hdr, req.Bytes(), key)
 
