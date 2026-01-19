@@ -65,8 +65,8 @@ type GVE struct {
 	Info *DeviceDescriptor
 
 	// QueueRegion is an optional memory page for persistent allocation of
-	// the shared queue. It must be set to override the global DMA region
-	// with unencrypted memory when running in a Confidential VM.
+	// the shared admin queue. It must be set to override the global DMA
+	// region with unencrypted memory when running in a Confidential VM.
 	QueueRegion *dma.Region
 
 	// CommandRegion is an optional memory page for on-demand allocation of
@@ -126,6 +126,10 @@ func (hw *GVE) Init() (err error) {
 
 	if err = hw.describeDevice(); err != nil {
 		return fmt.Errorf("failed to describe device, %v", err)
+	}
+
+	if err = hw.configureDeviceResources(); err != nil {
+		return fmt.Errorf("failed to configure device resources, %v", err)
 	}
 
 	return
