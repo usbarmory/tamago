@@ -210,7 +210,7 @@ var ProcID func() int64
 //
 // For an example see package [vnet].
 //
-// [vnet]: https://github.com/usbarmory/virtio-net/blob/master/runtime.go
+// [vnet]: https://github.com/usbarmory/virtio-net/blob/main/runtime.go
 var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr net.Addr) (any, error)
 
 // Task describes the optional [runtime.Task] function, which can be set to
