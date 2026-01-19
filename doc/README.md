@@ -93,7 +93,7 @@ var RamStart uint
 
 <a name="SocketFunc"></a>SocketFunc describes the optional override of [net.SocketFunc](<https://pkg.go.dev/net/#SocketFunc>) to provide the network socket implementation. The returned interface must match the requested socket and be either [net.Conn](<https://pkg.go.dev/net/#Conn>), [net.PacketConn](<https://pkg.go.dev/net/#PacketConn>) or [net.Listen](<https://pkg.go.dev/net/#Listen>).
 
-For an example see package [vnet](<https://github.com/usbarmory/virtio-net/blob/master/runtime.go>).
+For an example see package [vnet](<https://github.com/usbarmory/virtio-net/blob/main/runtime.go>).
 
 ```go
 var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr net.Addr) (interface{}, error)
