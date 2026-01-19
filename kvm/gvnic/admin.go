@@ -84,8 +84,8 @@ func (aq *adminQueue) Push(opcode uint32, cmd any) (err error) {
 	}
 
 	// zero out remaining buffer
-	pad := cmdSize - binary.Size(cmd)
-	copy(aq.buf[hdrSize+binary.Size(cmd):cmdSize], make([]byte, pad))
+	pad := cmdSize - hdrSize - binary.Size(cmd)
+	copy(aq.buf[high-uint32(pad):high], make([]byte, pad))
 
 	// bump counter and ring door bell
 	aq.cnt = (aq.cnt + 1) % (adminQueueSize / cmdSize)
