@@ -21,18 +21,18 @@ const (
 
 // KeySelect masks
 const (
-	KeySelVLEK       = 2 << 1
-	KeySelVCEK       = 1 << 1
+	KeySelVLEK       = 2 << 1 // Versioned Loaded Endorsement Key
+	KeySelVCEK       = 1 << 1 // Versioned Chip Endorsement Key (VCEK)
 	KeySelVLEKOrVCEK = 0 << 1
-	RootKeySelVMRK   = 1 << 0
-	RootKeySelVCEK   = 0 << 0
+	RootKeySelVMRK   = 1 << 0 // VM root key
+	RootKeySelVCEK   = 0 << 0 // Versioned Chip Endorsement Key
 )
 
 // GuestFieldSelect masks
 const (
-	LaunchMitVector = 1 << 6
-	TCBVersion      = 1 << 5
-	GuestSVN        = 1 << 4
+	LaunchMitVector = 1 << 6 // Launch Mitigation Vector
+	TCBVersion      = 1 << 5 // Trusted Computing Base Version
+	GuestSVN        = 1 << 4 // Guest Security Version Number
 	Measurement     = 1 << 3
 	FamilyID        = 1 << 2
 	ImageID         = 1 << 1
@@ -50,7 +50,7 @@ type KeyRequest struct {
 	GuestSVN         uint32
 	TCBVersion       uint64
 	LaunchMitVector  uint64
-	_                [472]byte
+	_                [24]byte
 }
 
 // Bytes converts the descriptor structure to byte array format.
