@@ -48,7 +48,7 @@ func (hw *GVE) configureDeviceResources() (err error) {
 		NumIRQDBs:            uint32(doorbells),
 		IRQDBStride:          uint32(irqDoorbellSize),
 		NtfyBlockMSIXBaseIdx: 0,
-		QueueFormat:          GVE_GQI_QPL_FORMAT, // s/QPL/RDA ?
+		QueueFormat:          GVE_GQI_QPL_FORMAT,
 	}
 
 	return hw.aq.Push(ADMINQ_CONFIGURE_DEVICE_RESOURCES, cmd)

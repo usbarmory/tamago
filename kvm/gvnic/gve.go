@@ -79,8 +79,8 @@ type GVE struct {
 	msixTable uint32
 	doorbells uint32
 
-	// Admin Queue (AQ)
 	aq *adminQueue
+	rx *rxQueue
 }
 
 func (hw *GVE) set(off uint32, val any) {
@@ -130,6 +130,10 @@ func (hw *GVE) Init() (err error) {
 
 	if err = hw.configureDeviceResources(); err != nil {
 		return fmt.Errorf("failed to configure device resources, %v", err)
+	}
+
+	if err = hw.initRxQueue(0); err != nil {
+		return fmt.Errorf("failed to initialize rx queue, %v", err)
 	}
 
 	return
