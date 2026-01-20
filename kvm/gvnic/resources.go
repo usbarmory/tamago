@@ -34,12 +34,12 @@ func (hw *GVE) configureDeviceResources() (err error) {
 	counterSize := int(hw.Info.Counters) * 4
 
 	// allocate counter array
-	counterArrayAddr, _ := hw.CommandRegion.Reserve(counterSize, pageSize)
+	counterArrayAddr, _ := hw.Region.Reserve(counterSize, pageSize)
 
 	// allocate IRQ doorbell array
 	doorbells := 2 // rx+tx
 	irqDoorbellSize := binary.Size(irqDoorbell{})
-	irqDBAddr, _ := hw.CommandRegion.Reserve(irqDoorbellSize*doorbells, 64)
+	irqDBAddr, _ := hw.Region.Reserve(irqDoorbellSize*doorbells, 64)
 
 	cmd := &deviceResourcesCommand{
 		CounterArray:         uint64(counterArrayAddr),

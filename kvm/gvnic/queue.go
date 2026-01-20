@@ -77,17 +77,17 @@ func (hw *GVE) initRxQueue(index int) (err error) {
 
 	// allocate queue resources
 	n := binary.Size(queueResources{})
-	addr, hw.rx.res = hw.CommandRegion.Reserve(n, 0)
+	addr, hw.rx.res = hw.Region.Reserve(n, 0)
 	cmd.QueueResourcesAddr = uint64(addr)
 
 	// allocate descriptor ring
 	n = binary.Size(rxDesc{}) * int(size)
-	addr, hw.rx.desc = hw.CommandRegion.Reserve(n, 0)
+	addr, hw.rx.desc = hw.Region.Reserve(n, 0)
 	cmd.RxDescRingAddr = uint64(addr)
 
 	// allocate data ring
 	n = 8 * int(size)
-	addr, hw.rx.data = hw.CommandRegion.Reserve(n, 0)
+	addr, hw.rx.data = hw.Region.Reserve(n, 0)
 	cmd.RxDataRingAddr = uint64(addr)
 
 	// TODO: create Queue-page-list

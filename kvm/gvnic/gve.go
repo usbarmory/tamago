@@ -64,15 +64,13 @@ type GVE struct {
 	// Info represents the initialized device descriptor.
 	Info *DeviceDescriptor
 
-	// QueueRegion is an optional memory page for persistent allocation of
-	// the shared admin queue. It must be set to override the global DMA
-	// region with unencrypted memory when running in a Confidential VM.
-	QueueRegion *dma.Region
-
-	// CommandRegion is an optional memory page for on-demand allocation of
-	// shared command buffers. It must be set to override the global DMA
-	// region with unencrypted memory when running in a Confidential VM.
-	CommandRegion *dma.Region
+	// Region represents the memory region for shared DMA buffers, it is
+	// initialized to the global DMA region if unset at [GVE.Init].
+	//
+	// It can be used to override the global DMA region as needed, for
+	// example to specify an unencrypted memory region when running in a
+	// Confidential VMs.
+	Region *dma.Region
 
 	// PCI memory BARS
 	registers uint32
@@ -101,12 +99,8 @@ func (hw *GVE) Init() (err error) {
 		return errors.New("invalid GVE instance")
 	}
 
-	if hw.QueueRegion == nil {
-		hw.QueueRegion = dma.Default()
-	}
-
-	if hw.CommandRegion == nil {
-		hw.CommandRegion = dma.Default()
+	if hw.Region == nil {
+		hw.Region = dma.Default()
 	}
 
 	hw.registers = uint32(hw.Device.BaseAddress(0))

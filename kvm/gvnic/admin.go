@@ -109,7 +109,7 @@ func (hw *GVE) initAdminQueue() (err error) {
 		Counter:  hw.registers + ADMINQ_EVENT_COUNTER,
 	}
 
-	hw.aq.addr, hw.aq.buf = hw.QueueRegion.Reserve(adminQueueSize, 0)
+	hw.aq.addr, hw.aq.buf = hw.Region.Reserve(adminQueueSize, 0)
 
 	if hw.Device.Revision < 1 {
 		// set admin queue based address to region page frame number

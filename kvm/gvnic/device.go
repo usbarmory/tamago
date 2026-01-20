@@ -45,8 +45,8 @@ func (hw *GVE) describeDevice() (err error) {
 		hw.Info = &DeviceDescriptor{}
 	}
 
-	addr, buf := hw.CommandRegion.Reserve(pageSize, 0)
-	defer hw.CommandRegion.Release(addr)
+	addr, buf := hw.Region.Reserve(pageSize, 0)
+	defer hw.Region.Release(addr)
 
 	cmd := &deviceDescriptorCommand{
 		Address: uint64(addr),
