@@ -10,6 +10,7 @@ package gvnic
 
 import (
 	"encoding/binary"
+	"net"
 )
 
 const (
@@ -60,4 +61,13 @@ func (hw *GVE) describeDevice() (err error) {
 	_, err = binary.Decode(buf, binary.BigEndian, hw.Info)
 
 	return
+}
+
+// MAC returns the Media Access Control hardware addres.
+func (hw *GVE) MAC() (mac net.HardwareAddr) {
+	if hw.Info == nil {
+		return
+	}
+
+	return hw.Info.MAC[:]
 }
