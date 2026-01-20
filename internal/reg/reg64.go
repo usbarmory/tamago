@@ -19,6 +19,39 @@ func IsSet64(addr uint64, pos int) bool {
 	return (int(r)>>pos)&1 == 1
 }
 
+func Get64(addr uint64, pos int, mask int) uint64 {
+	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
+	r := atomic.LoadUint64(reg)
+
+	return uint64((int(r) >> pos) & mask)
+}
+
+func Set64(addr uint64, pos int) {
+	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
+
+	r := atomic.LoadUint64(reg)
+	r |= (1 << pos)
+
+	atomic.StoreUint64(reg, r)
+}
+
+func Clear64(addr uint64, pos int) {
+	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
+
+	r := atomic.LoadUint64(reg)
+	r &= ^(1 << pos)
+
+	atomic.StoreUint64(reg, r)
+}
+
+func SetTo64(addr uint64, pos int, val bool) {
+	if val {
+		Set64(addr, pos)
+	} else {
+		Clear64(addr, pos)
+	}
+}
+
 func Read64(addr uint64) uint64 {
 	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
 	return atomic.LoadUint64(reg)
