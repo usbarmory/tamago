@@ -24,7 +24,7 @@ const reportVersion = 0x5
 
 // ReportRequest represents an AMD SEV-SNP Report Request Message
 // (SEV Secure Nested Paging Firmware ABI Specification
-// Table 22. MSG_REPORT_REQ Message Structure).
+// Table 22: MSG_REPORT_REQ Message Structure).
 type ReportRequest struct {
 	Data   [64]byte
 	VMPL   uint32
@@ -33,15 +33,15 @@ type ReportRequest struct {
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (m *ReportRequest) Bytes() []byte {
+func (r *ReportRequest) Bytes() []byte {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, m)
+	binary.Write(buf, binary.LittleEndian, r)
 	return buf.Bytes()
 }
 
 // ReportResponse represents an AMD SEV-SNP Report Request Response
 // (SEV Secure Nested Paging Firmware ABI Specification
-// Table 25. MSG_REPORT_RSP Message Structure).
+// Table 25: MSG_REPORT_RSP Message Structure).
 type ReportResponse struct {
 	Status uint32
 	Size   uint32
@@ -56,7 +56,7 @@ func (r *ReportResponse) unmarshal(buf []byte) (err error) {
 
 // AttestationReport represents an AMD SEV-SNP attestation report
 // (SEV Secure Nested Paging Firmware ABI Specification
-// Table 23. ATTESTATION_REPORT Structure).
+// Table 23: ATTESTATION_REPORT Structure).
 type AttestationReport struct {
 	Version          uint32
 	GuestSVN         uint32
@@ -106,10 +106,8 @@ func (r *AttestationReport) Bytes() []byte {
 }
 
 // GetAttestationReport sends a guest request for an AMD SEV-SNP attestation
-// report through the Guest-Hypervisor Communication Block.
-//
-// The arguments represent guest provided data and the VM Communication Key
-// (see [SNPSecrets.VMPCK]) payload and index for encrypting the request.
+// report. The arguments represent guest provided data and the VM Communication
+// Key (see [SNPSecrets.VMPCK]) payload and index for encrypting the request.
 func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *AttestationReport, err error) {
 	var buf []byte
 
@@ -128,7 +126,11 @@ func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *Attestation
 	}
 
 	if err = res.unmarshal(buf); err != nil {
-		return nil, fmt.Errorf("could not parse report, %v", err)
+		return nil, fmt.Errorf("could not parse response, %v", err)
+	}
+
+	if res.Status != 0 {
+		return nil, fmt.Errorf("request error, %#x", res.Status)
 	}
 
 	if res.Report.Version != reportVersion {
