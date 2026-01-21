@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	sharedPage = 2 << 52
-	pageSize   = 4096
+	sharedPageOp = 2 << 52
+	pageSize     = 4096
 )
 
 // SEV-ES Guest-Hypervisor Communication Block Standardization
@@ -41,18 +41,16 @@ const (
 	SW_EXITCODE  = 0x0390
 	SW_EXITINFO1 = 0x0398
 	SW_EXITINFO2 = 0x03a0
+	SW_SCRATCH   = 0x03a8
 	VALID_BITMAP = 0x03f0
 
-	// 2032 bytes shared buffer area
-	SharedBuffer = 0x0800
+	SharedBuffer     = 0x0800
+	SharedBufferSize = 0x7f0
 )
 
 // SEV-ES Guest-Hypervisor Communication Block Standardization
-// Table 7: List of Supported Non-Automatic Events
-const (
-	RDTSC             = 0x6e
-	SNP_GUEST_REQUEST = 0x80000011
-)
+// Table 7: List of Supported Non-Automatic Events.
+const SNP_GUEST_REQUEST = 0x80000011
 
 // GHCB represents a Guest-Hypervisor Communication Block instance, used to
 // expose register state to an AMD SEV-ES hypervisor.
@@ -61,14 +59,9 @@ type GHCB struct {
 	// guest/hypervisor access of the GHCB Layout.
 	GHCBPage *dma.Region
 
-	// RequestPage is a required unencrypted memory page for shared
-	// guest/hypervisor access of SNP Guest Requests.
-	RequestPage *dma.Region
-
-	// ResponsePage is an unencrypted memory page for shared
-	// guest/hypervisor access of SNP Guest responses, when not set
-	// [RequestPage] is used.
-	ResponsePage *dma.Region
+	// Region is a required unencrypted memory region for shared
+	// guest/hypervisor buffers for SNP Guest Requests/Responses.
+	Region *dma.Region
 
 	// DMA buffer
 	addr uint
@@ -79,7 +72,6 @@ type GHCB struct {
 
 // defined in sev.s
 func vmgexit()
-func pvalidate(addr uint64, validate bool) (ret uint32)
 
 func (b *GHCB) msr(val uint64, req uint64, res uint64) (valid bool) {
 	// 2.3.1 GHCB MSR Protocol
@@ -135,11 +127,11 @@ func (b *GHCB) Init(register bool) (err error) {
 	for i := uint(0); i < b.GHCBPage.Size(); i += pageSize {
 		gpa := uint64(b.addr + i)
 
-		if ret := pvalidate(gpa, false); ret != 0 {
+		if ret := pvalidate(gpa, PAGE_SIZE_4K, false); ret != 0 {
 			return fmt.Errorf("could not rescind page validation (%d)", ret)
 		}
 
-		if !b.msr(gpa|sharedPage, GHCB_MSR_PSC_REQ, GHCB_MSR_PSC_RES) {
+		if !b.msr(gpa|sharedPageOp, GHCB_MSR_PSC_REQ, GHCB_MSR_PSC_RES) {
 			return errors.New("could not change page state")
 		}
 	}
@@ -151,7 +143,7 @@ func (b *GHCB) Init(register bool) (err error) {
 // SEV-ES hypervisor for updated GHCB access. The arguments represent guest
 // state towards the hypervisor, the return values represent hypervisor state
 // towards the guest.
-func (b *GHCB) Exit(code uint64, info1 uint64, info2 uint64) (err error) {
+func (b *GHCB) Exit(code, info1, info2, scratch uint64) (err error) {
 	if b.GHCBPage == nil {
 		return errors.New("invalid instance, no GHCB page")
 	}
@@ -159,10 +151,14 @@ func (b *GHCB) Exit(code uint64, info1 uint64, info2 uint64) (err error) {
 	b.write(SW_EXITCODE, code)
 	b.write(SW_EXITINFO1, info1)
 	b.write(SW_EXITINFO2, info2)
+	valid := []uint64{SW_EXITCODE, SW_EXITINFO1, SW_EXITINFO2}
 
-	// set valid bitmap
-	b.valid([]uint64{SW_EXITCODE, SW_EXITINFO1, SW_EXITINFO2})
+	if scratch > 0 {
+		b.write(SW_SCRATCH, scratch)
+		valid = append(valid, SW_SCRATCH)
+	}
 
+	b.valid(valid)
 	vmgexit()
 
 	if exit := b.read(SW_EXITCODE); exit != code {
@@ -172,7 +168,7 @@ func (b *GHCB) Exit(code uint64, info1 uint64, info2 uint64) (err error) {
 	info1 = b.read(SW_EXITINFO1)
 	info2 = b.read(SW_EXITINFO2)
 
-	if info1 != 0 || info2 != 0 {
+	if info1 != 0 {
 		return fmt.Errorf("exit error (info1:%#x info2:%#x)", info1, b.read(SW_EXITINFO2))
 	}
 
@@ -198,8 +194,8 @@ func (b *GHCB) Dump() (buf []byte) {
 func (b *GHCB) GuestRequest(index int, key, req []byte, messageType int) (res []byte, err error) {
 	var msg []byte
 
-	if b.RequestPage == nil {
-		return nil, errors.New("invalid instance, no request page")
+	if b.Region == nil {
+		return nil, errors.New("invalid instance, nil DMA Region")
 	}
 
 	// SEV Secure Nested Paging Firmware ABI Specification
@@ -219,22 +215,18 @@ func (b *GHCB) GuestRequest(index int, key, req []byte, messageType int) (res []
 		return
 	}
 
-	reqAddr, reqBuf := b.RequestPage.Reserve(pageSize, pageSize)
-	defer b.RequestPage.Release(reqAddr)
+	reqAddr, reqBuf := b.Region.Reserve(pageSize, pageSize)
+	defer b.Region.Release(reqAddr)
 
-	resAddr := reqAddr
-	resBuf := reqBuf
+	resAddr, resBuf := b.Region.Reserve(pageSize, pageSize)
+	defer b.Region.Release(resAddr)
 
-	// re-use request buffer if no response page has been provided
-	if b.ResponsePage != nil {
-		resAddr, resBuf = b.ResponsePage.Reserve(pageSize, pageSize)
-		defer b.ResponsePage.Release(resAddr)
-	}
-
+	// zero out response buffer flush speculative read
+	copy(resBuf, make([]byte, pageSize))
 	copy(reqBuf, msg)
 
 	// yield to hypervisor
-	if err = b.Exit(SNP_GUEST_REQUEST, uint64(reqAddr), uint64(resAddr)); err != nil {
+	if err = b.Exit(SNP_GUEST_REQUEST, uint64(reqAddr), uint64(resAddr), 0); err != nil {
 		return
 	}
 

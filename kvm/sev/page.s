@@ -6,10 +6,19 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// func vmgexit()
-TEXT ·vmgexit(SB),$0
-	BYTE	$0xf3
+#include "go_asm.h"
+
+// func pvalidate(addr uint64, size int, validate bool) (ret uint32)
+TEXT ·pvalidate(SB),$16
+	MOVQ	addr+0(FP), AX
+	MOVL	size+8(FP), CX
+	MOVBLZX	validate+16(FP), DX
+
+	// pvalidate
+	BYTE	$0xf2
 	BYTE	$0x0f
 	BYTE	$0x01
-	BYTE	$0xd9
+	BYTE	$0xff
+
+	MOVL AX, ret+16(FP)
 	RET
