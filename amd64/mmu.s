@@ -6,12 +6,6 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// func flush_tlb()
-TEXT ·flush_tlb(SB),$0
-	MOVL	CR3, AX
-	MOVL	AX, CR3
-	WBINVD
-
 // func read_cr0() uint64
 TEXT ·read_cr0(SB),$0-8
 	MOVQ	CR0, AX

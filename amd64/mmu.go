@@ -39,15 +39,10 @@ const (
 	addrMask     = 0x000ffffffffff000
 )
 
-func flush_tlb()
+// defined in mmu.s
 func read_cr0() uint64
 func write_cr0(val uint64)
 func read_cr3() uint64
-
-// FlushTLBs invalidates non-global page translations.
-func (cpu *CPU) FlushTLBs() {
-	flush_tlb()
-}
 
 // SetWriteProtect configures the Write Protect (WP) bit in Control Register 0
 // (CR0).
