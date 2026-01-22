@@ -50,17 +50,36 @@ const (
 	// page types
 	privatePage = 0x0001
 	sharedPage  = 0x0002
+
+	MaxPSCEntries = 253
 )
 
 type psc struct {
 	Header  pscHeader
-	Entries [253]uint64
+	Entries [MaxPSCEntries]uint64
 }
 
 func (r *psc) Bytes() []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, r)
 	return buf.Bytes()
+}
+
+func (r *psc) AddEntry(index int, gpa uint64, pageSize int, private bool) {
+	var entry uint64
+
+	bits.SetN64(&entry, entryGFN, 0xffffffffff, gpa>>12)
+	bits.SetN64(&entry, entryPageSize, 1, uint64(pageSize))
+
+	if private {
+		bits.SetN64(&entry, entryOperation, 0b1111, privatePage)
+	} else {
+		bits.SetN64(&entry, entryOperation, 0b1111, sharedPage)
+	}
+
+	r.Entries[index] = entry
+
+	return
 }
 
 // defined in page.s
@@ -71,7 +90,7 @@ func pvalidate(addr uint64, pageSize int, validate bool) (ret uint32)
 // transition [see SetEncryptedBit] must be performed after/before.
 func (b *GHCB) PageStateChange(start uint64, end uint64, pageSize int, private bool) (err error) {
 	var size uint64
-	var n uint16
+	var i int
 
 	switch pageSize {
 	case PAGE_SIZE_4K:
@@ -85,34 +104,30 @@ func (b *GHCB) PageStateChange(start uint64, end uint64, pageSize int, private b
 	req := &psc{}
 
 	for gpa := start; gpa < end; gpa += size {
-		var entry uint64
-
-		bits.SetN64(&entry, entryGFN, 0xffffffffff, gpa>>12)
-		bits.SetTo64(&entry, entryPageSize, pageSize == PAGE_SIZE_2M)
-
-		if private {
-			bits.SetN64(&entry, entryOperation, 0b1111, privatePage)
-		} else {
-			bits.SetN64(&entry, entryOperation, 0b1111, sharedPage)
-		}
-
-		if ret := pvalidate(gpa, pageSize, private); ret != 0 {
-			return fmt.Errorf("pvalidate error, gpa:%#x %v ret:%d", gpa, private, ret)
-		}
-
-		n += 1
-
-		if int(n) > len(req.Entries) {
+		if i >= MaxPSCEntries {
 			return errors.New("range exceeds page state change entries size")
 		}
 
-		req.Header.EndEntry = n
-		req.Entries[n-1] = entry
+		req.AddEntry(i, gpa, pageSize, private)
+		i += 1
+
+		if !private {
+			if ret := pvalidate(gpa, pageSize, false); ret != 0 {
+				return fmt.Errorf("pvalidate error, gpa:%#x ret:%d", gpa, ret)
+			}
+		} else {
+			defer func() {
+				if ret := pvalidate(gpa, pageSize, true); ret != 0 {
+					err = fmt.Errorf("pvalidate error, gpa:%#x ret:%d", gpa, ret)
+				}
+			}()
+		}
 	}
 
-	num := req.Header.EndEntry
-	buf := req.Bytes()
+	last := uint16(i-1)
+	req.Header.EndEntry = last
 
+	buf := req.Bytes()
 	copy(b.buf[SharedBuffer:], buf)
 
 	if err = b.Exit(PAGE_STATE_CHANGE, 0, 0, uint64(b.addr)+SharedBuffer); err != nil {
@@ -123,8 +138,8 @@ func (b *GHCB) PageStateChange(start uint64, end uint64, pageSize int, private b
 		return fmt.Errorf("could not parse response header, %v", err)
 	}
 
-	if req.Header.CurEntry <= num || req.Header.EndEntry > num {
-		return fmt.Errorf("incomplete psc (num:%d cur:%d end:%d info2:%#x)", num, req.Header.CurEntry, req.Header.EndEntry, b.read(SW_EXITINFO2))
+	if req.Header.CurEntry <= last || req.Header.EndEntry > last {
+		return fmt.Errorf("incomplete psc (%d/%d/%d)", last, req.Header.CurEntry, req.Header.EndEntry)
 	}
 
 	return
