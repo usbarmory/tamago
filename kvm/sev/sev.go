@@ -24,11 +24,8 @@
 package sev
 
 import (
-	"fmt"
-
 	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/bits"
-	"github.com/usbarmory/tamago/internal/reg"
 )
 
 // AMD64 Architecture Programmer’s Manual, Volume 2
@@ -61,7 +58,7 @@ type SVMFeatures struct {
 }
 
 // Features returns the processor AMD Secure Virtual Machine capabilities.
-func Features(cpu *amd64.CPU) (f SVMFeatures) {
+func Features(cpu *amd64.CPU) (f *SVMFeatures) {
 	_, _, ecx, _ := cpu.CPUID(amd64.CPUID_VENDOR, 0)
 
 	if ecx != amd64.CPUID_VENDOR_ECX_AMD {
@@ -69,37 +66,15 @@ func Features(cpu *amd64.CPU) (f SVMFeatures) {
 	}
 
 	status := uint32(cpu.MSR(MSR_AMD_SEV_STATUS))
-
-	f.SEV.SEV = bits.IsSet(&status, SEV_STATUS_SEV)
-	f.SEV.ES = bits.IsSet(&status, SEV_STATUS_SEV_ES)
-	f.SEV.SNP = bits.IsSet(&status, SEV_STATUS_SEV_SNP)
-
 	_, ebx, _, _ := cpu.CPUID(amd64.CPUID_AMD_ENCM, 0)
-	f.EncryptedBit = int(ebx & 0b111111)
 
-	return
-}
-
-// SetEncryptedBit (re)configures the page encryption attribute bit (C-Bit) for
-// a given memory range, an error is raised if the argument range spawns across
-// multiple translation levels or is not page aligned.
-func SetEncryptedBit(cpu *amd64.CPU, start uint64, end uint64, encryptedBit int, private bool) (err error) {
-	startPTE, startLevel, startPage := cpu.FindPTE(start, encryptedBit)
-	endPTE, endLevel, _ := cpu.FindPTE(end, encryptedBit)
-
-	if startLevel != endLevel {
-		return fmt.Errorf("changing C-Bit on multiple translation levels is unsupported")
-	}
-
-	if start != startPage {
-		return fmt.Errorf("start address (%#x) does not match PTE base address (%#x)", start, startPage)
-	}
-
-	cpu.SetWriteProtect(false)
-	defer cpu.SetWriteProtect(true)
-
-	for pte := startPTE; pte < endPTE; pte += 8 {
-		reg.SetTo64(pte, encryptedBit, private)
+	f = &SVMFeatures{
+		SEV: SEVStatus{
+			SEV: bits.IsSet(&status, SEV_STATUS_SEV),
+			ES:  bits.IsSet(&status, SEV_STATUS_SEV_ES),
+			SNP: bits.IsSet(&status, SEV_STATUS_SEV_SNP),
+		},
+		EncryptedBit: int(ebx & 0b111111),
 	}
 
 	return
