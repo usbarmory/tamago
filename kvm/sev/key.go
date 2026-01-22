@@ -41,7 +41,7 @@ const (
 
 // KeyRequest represents an AMD SEV-SNP Key Request Message
 // (SEV Secure Nested Paging Firmware ABI Specification
-// Table 19. MSG_KEY_REQ Message Structure).
+// Table 19: MSG_KEY_REQ Message Structure).
 type KeyRequest struct {
 	KeySelect        uint32
 	_                uint32
@@ -54,15 +54,15 @@ type KeyRequest struct {
 }
 
 // Bytes converts the descriptor structure to byte array format.
-func (m *KeyRequest) Bytes() []byte {
+func (r *KeyRequest) Bytes() []byte {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, m)
+	binary.Write(buf, binary.LittleEndian, r)
 	return buf.Bytes()
 }
 
 // KeyResponse represents an AMD SEV-SNP Key Request Response
 // (SEV Secure Nested Paging Firmware ABI Specification
-// Table 21. MSG_KEY_RSP Message Structure).
+// Table 21: MSG_KEY_RSP Message Structure).
 type KeyResponse struct {
 	Status     uint32
 	_          [28]byte
@@ -74,12 +74,9 @@ func (r *KeyResponse) unmarshal(buf []byte) (err error) {
 	return
 }
 
-// DeriveKey sends an AMD SEV-SNP guest request for key derivation through the
-// Guest-Hypervisor Communication Block.
-//
-// The arguments represent guest provided request parameters, the VM
-// Communication Key (see [SNPSecrets.VMPCK]) payload and index for encrypting
-// the request.
+// DeriveKey sends an AMD SEV-SNP guest request for key derivation. The
+// arguments represent guest provided request parameters, the VM Communication
+// Key (see [SNPSecrets.VMPCK]) payload and index for encrypting the request.
 func (b *GHCB) DeriveKey(req *KeyRequest, key []byte, index int) (dk []byte, err error) {
 	var buf []byte
 
@@ -90,11 +87,11 @@ func (b *GHCB) DeriveKey(req *KeyRequest, key []byte, index int) (dk []byte, err
 	}
 
 	if err = res.unmarshal(buf); err != nil {
-		return nil, fmt.Errorf("could not parse report, %v", err)
+		return nil, fmt.Errorf("could not parse response, %v", err)
 	}
 
 	if res.Status != 0 {
-		return nil, fmt.Errorf("key request error, %#x", res.Status)
+		return nil, fmt.Errorf("request error, %#x", res.Status)
 	}
 
 	return res.DerivedKey[:], nil

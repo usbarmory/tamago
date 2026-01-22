@@ -83,7 +83,7 @@ func Features(cpu *amd64.CPU) (f SVMFeatures) {
 // SetEncryptedBit (re)configures the page encryption attribute bit (C-Bit) for
 // a given memory range, an error is raised if the argument range spawns across
 // multiple translation levels or is not page aligned.
-func SetEncryptedBit(cpu *amd64.CPU, start uint64, end uint64, encryptedBit int, val bool) (err error) {
+func SetEncryptedBit(cpu *amd64.CPU, start uint64, end uint64, encryptedBit int, private bool) (err error) {
 	startPTE, startLevel, startPage := cpu.FindPTE(start, encryptedBit)
 	endPTE, endLevel, _ := cpu.FindPTE(end, encryptedBit)
 
@@ -99,10 +99,8 @@ func SetEncryptedBit(cpu *amd64.CPU, start uint64, end uint64, encryptedBit int,
 	defer cpu.SetWriteProtect(true)
 
 	for pte := startPTE; pte < endPTE; pte += 8 {
-		reg.SetTo64(pte, encryptedBit, val)
+		reg.SetTo64(pte, encryptedBit, private)
 	}
-
-	cpu.FlushTLBs()
 
 	return
 }
