@@ -131,8 +131,8 @@ func (cpu *CPU) initFeatures() {
 }
 
 // Features returns the processor capabilities.
-func (cpu *CPU) Features() Features {
-	return cpu.features
+func (cpu *CPU) Features() *Features {
+	return &cpu.features
 }
 
 // NumCPU returns the number of logical CPUs available on the platform.
