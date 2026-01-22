@@ -47,9 +47,9 @@ const SNP_GUEST_REQUEST = 0x80000011
 // GHCB represents a Guest-Hypervisor Communication Block instance, used to
 // expose register state to an AMD SEV-ES hypervisor.
 type GHCB struct {
-	// GHCBPage is a required unencrypted memory page for shared
+	// Layout is a required unencrypted memory page for shared
 	// guest/hypervisor access of the GHCB Layout.
-	GHCBPage *dma.Region
+	Layout *dma.Region
 
 	// Region is an unencrypted memory region for shared guest/hypervisor
 	// buffers, required for any function issuing [GHCB.GuestRequest].
@@ -93,11 +93,11 @@ func (b *GHCB) read(off uint64) (val uint64) {
 // The argument DMA region must be initialized and have been previously
 // allocated as unencrypted for hypervisor access (e.g. C-bit disabled).
 func (b *GHCB) Init() (err error) {
-	if b.GHCBPage == nil {
+	if b.Layout == nil {
 		return errors.New("invalid instance, no GHCB page")
 	}
 
-	b.addr, b.buf = b.GHCBPage.Reserve(int(b.GHCBPage.Size()), pageSize)
+	b.addr, b.buf = b.Layout.Reserve(int(b.Layout.Size()), pageSize)
 	b.seqNo = 1
 
 	return
@@ -108,17 +108,18 @@ func (b *GHCB) Init() (err error) {
 // state towards the hypervisor, the return values represent hypervisor state
 // towards the guest.
 func (b *GHCB) Exit(code, info1, info2, scratch uint64) (err error) {
-	if b.GHCBPage == nil {
+	if b.Layout == nil {
 		return errors.New("invalid instance, no GHCB page")
 	}
 
 	b.write(SW_EXITCODE, code)
 	b.write(SW_EXITINFO1, info1)
 	b.write(SW_EXITINFO2, info2)
+	b.write(SW_SCRATCH, scratch)
+
 	valid := []uint64{SW_EXITCODE, SW_EXITINFO1, SW_EXITINFO2}
 
 	if scratch > 0 {
-		b.write(SW_SCRATCH, scratch)
 		valid = append(valid, SW_SCRATCH)
 	}
 
@@ -135,8 +136,6 @@ func (b *GHCB) Exit(code, info1, info2, scratch uint64) (err error) {
 	if info1 != 0 || info2 != 0 {
 		return fmt.Errorf("exit error (info1:%#x info2:%#x)", info1, b.read(SW_EXITINFO2))
 	}
-
-	b.seqNo += 1
 
 	return
 }
@@ -193,6 +192,8 @@ func (b *GHCB) GuestRequest(index int, key, req []byte, messageType int) (res []
 	if err = b.Exit(SNP_GUEST_REQUEST, uint64(reqAddr), uint64(resAddr), 0); err != nil {
 		return
 	}
+
+	b.seqNo += 1
 
 	// copy response buffer as soon as possible as GHCB might overwrite it
 	buf := make([]byte, pageSize)
