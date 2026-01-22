@@ -99,7 +99,7 @@ func (b *GHCB) valid(offsets []uint64) {
 	}
 }
 
-func (b *GHCB) read(off uint) (val uint64) {
+func (b *GHCB) read(off uint64) (val uint64) {
 	return binary.LittleEndian.Uint64(b.buf[off : off+8])
 }
 
@@ -168,7 +168,7 @@ func (b *GHCB) Exit(code, info1, info2, scratch uint64) (err error) {
 	info1 = b.read(SW_EXITINFO1)
 	info2 = b.read(SW_EXITINFO2)
 
-	if info1 != 0 {
+	if info1 != 0 || info2 != 0 {
 		return fmt.Errorf("exit error (info1:%#x info2:%#x)", info1, b.read(SW_EXITINFO2))
 	}
 

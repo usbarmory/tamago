@@ -9,10 +9,10 @@
 #include "go_asm.h"
 
 // func pvalidate(addr uint64, size int, validate bool) (ret uint32)
-TEXT ·pvalidate(SB),$16
+TEXT ·pvalidate(SB),$0-32
 	MOVQ	addr+0(FP), AX
 	MOVL	size+8(FP), CX
-	MOVBLZX	validate+16(FP), DX
+	MOVBQZX	validate+16(FP), DX
 
 	// pvalidate
 	BYTE	$0xf2
@@ -20,5 +20,5 @@ TEXT ·pvalidate(SB),$16
 	BYTE	$0x01
 	BYTE	$0xff
 
-	MOVL AX, ret+16(FP)
+	MOVL AX, ret+24(FP)
 	RET

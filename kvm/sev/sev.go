@@ -83,9 +83,6 @@ func Features(cpu *amd64.CPU) (f SVMFeatures) {
 // SetEncryptedBit (re)configures the page encryption attribute bit (C-Bit) for
 // a given memory range, an error is raised if the argument range spawns across
 // multiple translation levels or is not page aligned.
-//
-// After successful configuration [GHCB.PageStateChange] must be invoked to
-// notify the hypervisor of any reconfiguration.
 func SetEncryptedBit(cpu *amd64.CPU, start uint64, end uint64, encryptedBit int, private bool) (err error) {
 	startPTE, startLevel, startPage := cpu.FindPTE(start, encryptedBit)
 	endPTE, endLevel, _ := cpu.FindPTE(end, encryptedBit)

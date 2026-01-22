@@ -66,7 +66,9 @@ func (r *psc) Bytes() []byte {
 // defined in page.s
 func pvalidate(addr uint64, pageSize int, validate bool) (ret uint32)
 
-// PageStateChange requests a page state change to either private or shared.
+// PageStateChange requests a page state change to either private/shared
+// assignment, as pages are validated/invalidated accordingly any C-Bit
+// transition [see SetEncryptedBit] must be performed after/before.
 func (b *GHCB) PageStateChange(start uint64, end uint64, pageSize int, private bool) (err error) {
 	var size uint64
 	var n uint16
@@ -90,9 +92,12 @@ func (b *GHCB) PageStateChange(start uint64, end uint64, pageSize int, private b
 
 		if private {
 			bits.SetN64(&entry, entryOperation, 0b1111, privatePage)
-			pvalidate(gpa, pageSize, false)
 		} else {
 			bits.SetN64(&entry, entryOperation, 0b1111, sharedPage)
+		}
+
+		if ret := pvalidate(gpa, pageSize, private); ret != 0 {
+			return fmt.Errorf("pvalidate error, gpa:%#x %v ret:%d", gpa, private, ret)
 		}
 
 		n += 1

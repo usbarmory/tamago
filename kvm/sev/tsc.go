@@ -35,10 +35,10 @@ func (r *TSCInfo) unmarshal(buf []byte) (err error) {
 	return
 }
 
-// SecureTSC sends an AMD SEV-SNP guest request for TSC information. The
+// TSCInfo sends an AMD SEV-SNP guest request for TSC information. The
 // arguments represent guest provided request parameters, the VM Communication
 // Key (see [SNPSecrets.VMPCK]) payload and index for encrypting the request.
-func (b *GHCB) SecureTSC(key []byte, index int) (res *TSCInfo, err error) {
+func (b *GHCB) TSCInfo(key []byte, index int) (res *TSCInfo, err error) {
 	var buf []byte
 
 	req := make([]byte, 128)
