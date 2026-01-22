@@ -65,7 +65,7 @@ type GVE struct {
 	Info *DeviceDescriptor
 
 	// Region represents the memory region for shared DMA buffers, it is
-	// initialized to the global DMA region if unset at [GVE.Init].
+	// initialized to the global DMA region if unset during [GVE.Init].
 	//
 	// It can be used to override the global DMA region as needed, for
 	// example to specify an unencrypted memory region when running in a
