@@ -14,7 +14,6 @@ import (
 	"fmt"
 
 	"github.com/usbarmory/tamago/dma"
-	"github.com/usbarmory/tamago/internal/reg"
 )
 
 const (
@@ -26,18 +25,11 @@ const (
 // 2.3.1 GHCB MSR Protocol.
 const (
 	MSR_AMD_GHCB = 0xc0010130
-
-	GHCB_MSR_GHCB_REQ = 0x012
-	GHCB_MSR_GHCB_RES = 0x013
-	GHCB_MSR_PSC_REQ  = 0x014
-	GHCB_MSR_PSC_RES  = 0x015
 )
 
 // SEV-ES Guest-Hypervisor Communication Block Standardization
 // 2.6 GHCB Layout.
 const (
-	RAX          = 0x01f8
-	RDX          = 0x0310
 	SW_EXITCODE  = 0x0390
 	SW_EXITINFO1 = 0x0398
 	SW_EXITINFO2 = 0x03a0
@@ -59,8 +51,8 @@ type GHCB struct {
 	// guest/hypervisor access of the GHCB Layout.
 	GHCBPage *dma.Region
 
-	// Region is a required unencrypted memory region for shared
-	// guest/hypervisor buffers for SNP Guest Requests/Responses.
+	// Region is an unencrypted memory region for shared guest/hypervisor
+	// buffers, required for any function issuing [GHCB.GuestRequest].
 	Region *dma.Region
 
 	// DMA buffer
@@ -72,14 +64,6 @@ type GHCB struct {
 
 // defined in sev.s
 func vmgexit()
-
-func (b *GHCB) msr(val uint64, req uint64, res uint64) (valid bool) {
-	// 2.3.1 GHCB MSR Protocol
-	reg.WriteMSR(MSR_AMD_GHCB, val|req)
-	vmgexit()
-
-	return reg.ReadMSR(MSR_AMD_GHCB) == (val | res)
-}
 
 func (b *GHCB) write(off uint, val uint64) {
 	binary.LittleEndian.PutUint64(b.buf[off:off+8], val)
@@ -108,33 +92,13 @@ func (b *GHCB) read(off uint64) (val uint64) {
 //
 // The argument DMA region must be initialized and have been previously
 // allocated as unencrypted for hypervisor access (e.g. C-bit disabled).
-func (b *GHCB) Init(register bool) (err error) {
+func (b *GHCB) Init() (err error) {
 	if b.GHCBPage == nil {
 		return errors.New("invalid instance, no GHCB page")
 	}
 
 	b.addr, b.buf = b.GHCBPage.Reserve(int(b.GHCBPage.Size()), pageSize)
 	b.seqNo = 1
-
-	if !register {
-		return
-	}
-
-	if !b.msr(uint64(b.addr), GHCB_MSR_GHCB_REQ, GHCB_MSR_GHCB_RES) {
-		return errors.New("could not register GHCB GPA")
-	}
-
-	for i := uint(0); i < b.GHCBPage.Size(); i += pageSize {
-		gpa := uint64(b.addr + i)
-
-		if ret := pvalidate(gpa, PAGE_SIZE_4K, false); ret != 0 {
-			return fmt.Errorf("could not rescind page validation (%d)", ret)
-		}
-
-		if !b.msr(gpa|sharedPageOp, GHCB_MSR_PSC_REQ, GHCB_MSR_PSC_RES) {
-			return errors.New("could not change page state")
-		}
-	}
 
 	return
 }
