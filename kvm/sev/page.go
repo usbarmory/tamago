@@ -124,7 +124,7 @@ func (b *GHCB) PageStateChange(start uint64, end uint64, pageSize int, private b
 		}
 	}
 
-	last := uint16(i-1)
+	last := uint16(i - 1)
 	req.Header.EndEntry = last
 
 	buf := req.Bytes()
