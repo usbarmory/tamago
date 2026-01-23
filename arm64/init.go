@@ -18,4 +18,12 @@ import (
 //go:linkname Init runtime.hwinit0
 func Init() {
 	fp_enable()
+
+	// At start all memory is mapped as device memory, causing LDP/STP
+	// instructions to require 8-byte alignment.
+	//
+	// To prevent faults, MMU initialization is done as soon as possible in
+	// hwinit0, rather than in hwinit1.
+	cpu := &CPU{}
+	cpu.InitMMU()
 }
