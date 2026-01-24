@@ -39,6 +39,7 @@ const (
 
 	CPUID_APM         = 0x80000007
 	APM_TSC_INVARIANT = 8
+	APM_HW_PSTATE     = 7
 )
 
 // CPUID function numbers
@@ -47,7 +48,6 @@ const (
 // Volume 3 - Appendix E.4 Extended Feature Function Numbers.
 const (
 	CPUID_AMD_PROC = 0x80000008
-	AMD_PROC_CPPC  = 27
 	AMD_PROC_NC    = 0
 
 	CPUID_AMD_ENCM = 0x8000001f
@@ -81,6 +81,10 @@ const (
 // Features represents the processor capabilities detected through the CPUID
 // instruction.
 type Features struct {
+	// HwPstate indicates whether Hardware P-State control MSRs are
+	// supported.
+	HwPstate bool
+
 	// TSCInvariant indicates whether the Time Stamp Counter is guaranteed
 	// to be at constant rate.
 	TSCInvariant bool
@@ -109,6 +113,7 @@ func (cpu *CPU) MSR(addr uint64) (val uint64) {
 
 func (cpu *CPU) initFeatures() {
 	_, _, _, apmFeatures := cpuid(CPUID_APM, 0)
+	cpu.features.HwPstate = bits.IsSet(&apmFeatures, APM_HW_PSTATE)
 	cpu.features.TSCInvariant = bits.IsSet(&apmFeatures, APM_TSC_INVARIANT)
 
 	_, _, cpuFeatures, _ := cpuid(CPUID_INFO, 0)
