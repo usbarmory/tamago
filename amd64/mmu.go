@@ -9,6 +9,8 @@
 package amd64
 
 import (
+	"fmt"
+
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 )
@@ -93,4 +95,29 @@ func (cpu *CPU) FindPTE(addr uint64, bitLen int) (pte uint64, level int, page ui
 	}
 
 	return 0, 0, 0
+}
+
+// SetEncryptedBit (re)configures the page encryption attribute bit (C-bit) for
+// a given memory range, an error is raised if the argument range spawns across
+// multiple translation levels or is not page aligned.
+func (cpu *CPU) SetEncryptedBit(start uint64, end uint64, cbit int, private bool) (err error) {
+	startPTE, startLevel, startPage := cpu.FindPTE(start, cbit)
+	endPTE, endLevel, _ := cpu.FindPTE(end, cbit)
+
+	if startLevel != endLevel {
+		return fmt.Errorf("changing C-bit on multiple translation levels is unsupported")
+	}
+
+	if start != startPage {
+		return fmt.Errorf("start address (%#x) does not match PTE base address (%#x)", start, startPage)
+	}
+
+	cpu.SetWriteProtect(false)
+	defer cpu.SetWriteProtect(true)
+
+	for pte := startPTE; pte < endPTE; pte += 8 {
+		reg.SetTo64(pte, cbit, private)
+	}
+
+	return
 }

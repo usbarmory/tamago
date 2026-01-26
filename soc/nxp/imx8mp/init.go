@@ -40,9 +40,6 @@ var (
 // setup (e.g. runtime.hwinit1).
 func Init() {
 	ARM64.Init()
-
-	// MMU initialization is required to take advantage of data cache
-	ARM64.InitMMU()
 	ARM64.EnableCache()
 
 	initTimers()

@@ -20,7 +20,12 @@ const (
 	MTU               = 1518
 	minFrameSizeBytes = 42
 	defaultRingSize   = 16
-	bufferAlign       = 64
+
+	// On arm64 Go `copy` built-in  cannot be safely used on device memory
+	// as LDP/STP instructions require 8-byte alignment, for this reason
+	// all `copy` against DMA buffers are forced to 8-byte aligned slices.
+	copyAlign   = 8
+	bufferAlign = 64
 )
 
 // Common buffer descriptor fields
@@ -72,9 +77,16 @@ func (bd *bufferDescriptor) Bytes() []byte {
 }
 
 func (bd *bufferDescriptor) Data() (buf []byte) {
-	buf = make([]byte, bd.Length-4)
+	size := bd.Length - 4
+
+	if r := size % copyAlign; r != 0 {
+		size += copyAlign - r
+	}
+
+	buf = make([]byte, size)
 	copy(buf, bd.data)
-	return
+
+	return buf[0:size]
 }
 
 func (bd *bufferDescriptor) Valid() bool {
@@ -203,6 +215,10 @@ func (ring *bufferDescriptorRing) push(data []byte) {
 
 	bd.desc[2] = byte((bd.Status & 0xff))
 	bd.desc[3] = byte((bd.Status & 0xff00) >> 8)
+
+	if r := len(data) % copyAlign; r != 0 {
+		data = append(data, make([]byte, copyAlign-r)...)
+	}
 
 	copy(bd.data, data)
 
