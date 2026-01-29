@@ -1,4 +1,4 @@
-// 8MPLUSLPD4-EVK support for tamago/arm
+// 8MPLUSLPD4-EVK support for tamago/arm64
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
