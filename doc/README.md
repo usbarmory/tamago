@@ -15,6 +15,7 @@ This package is only used for documentation purposes, applications need to defin
 [![Go Reference](https://pkg.go.dev/badge/github.com/usbarmory/tamago/doc.svg)](https://pkg.go.dev/github.com/usbarmory/tamago/doc)
 
 - [Variables](<#variables>)
+- [func CPUInit\(\)](<#CPUInit>)
 - [func GetRandomData\(b \[\]byte\)](<#GetRandomData>)
 - [func Hwinit0\(\)](<#Hwinit0>)
 - [func Hwinit1\(\)](<#Hwinit1>)
@@ -96,7 +97,7 @@ var RamStart uint
 For an example see package [vnet](<https://github.com/usbarmory/virtio-net/blob/main/runtime.go>).
 
 ```go
-var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr net.Addr) (interface{}, error)
+var SocketFunc func(ctx context.Context, net string, family, sotype int, laddr, raddr net.Addr) (any, error)
 ```
 
 <a name="Task"></a>Task describes the optional [runtime.Task](<https://pkg.go.dev/runtime/#Task>) function, which can be set to provide an implementation for HW/OS threading \(see \`runtime.newosproc\`\).
@@ -109,8 +110,25 @@ For an example see package [amd64 SMP initialization](<https://github.com/usbarm
 var Task func(sp, mp, gp, fn unsafe.Pointer)
 ```
 
+<a name="CPUInit"></a>
+## func [CPUInit](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L51>)
+
+```go
+func CPUInit()
+```
+
+CPUInit, which must be linked as \`cpuinit\`¹ handles immediate startup CPU initialization as it represents the first instruction set executed.
+
+It must be defined using Go's Assembler.
+
+For an example see package [arm64 CPU initialization](<https://github.com/usbarmory/tamago/blob/master/arm64/init.s>).
+
+```
+¹ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
+```
+
 <a name="GetRandomData"></a>
-## func [GetRandomData](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L112>)
+## func [GetRandomData](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L119>)
 
 ```go
 func GetRandomData(b []byte)
@@ -125,7 +143,7 @@ For an example see package [amd64 random number generation](<https://github.com/
 ```
 
 <a name="Hwinit0"></a>
-## func [Hwinit0](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L60>)
+## func [Hwinit0](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L67>)
 
 ```go
 func Hwinit0()
@@ -142,7 +160,7 @@ For an example see package [arm initialization](<https://github.com/usbarmory/ta
 ```
 
 <a name="Hwinit1"></a>
-## func [Hwinit1](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L72>)
+## func [Hwinit1](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L79>)
 
 ```go
 func Hwinit1()
@@ -157,7 +175,7 @@ For an example see package [microvm platform initialization](<https://github.com
 ```
 
 <a name="InitRNG"></a>
-## func [InitRNG](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L100>)
+## func [InitRNG](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L107>)
 
 ```go
 func InitRNG()
@@ -172,7 +190,7 @@ For an example see package [amd64 randon number generation](<https://github.com/
 ```
 
 <a name="Nanotime"></a>
-## func [Nanotime](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L128>)
+## func [Nanotime](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L135>)
 
 ```go
 func Nanotime() int64
@@ -189,7 +207,7 @@ For an example see package [fu540 initialization](<https://github.com/usbarmory/
 ```
 
 <a name="Printk"></a>
-## func [Printk](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L88>)
+## func [Printk](<https://github.com/usbarmory/tamago/blob/master/doc/api_doc_stub.go#L95>)
 
 ```go
 func Printk(c byte)
