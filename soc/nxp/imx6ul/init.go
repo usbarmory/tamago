@@ -28,7 +28,7 @@ const (
 	IMX6ULL = 0x65
 )
 
-//go:linkname ramStackOffset runtime.ramStackOffset
+//go:linkname ramStackOffset runtime/goos.RamStackOffset
 var ramStackOffset uint32 = 0x100
 
 var (

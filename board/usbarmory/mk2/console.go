@@ -25,7 +25,7 @@ import (
 //
 // On model UA-MKII-LAN the console is exposed through test pads.
 
-//go:linkname printk runtime.printk
+//go:linkname printk runtime/goos.Printk
 func printk(c byte) {
 	imx6ul.UART2.Tx(c)
 }

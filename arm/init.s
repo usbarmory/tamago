@@ -11,6 +11,13 @@
 #include "textflag.h"
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
+	MOVW	runtime∕goos·RamStart(SB), R13
+	MOVW	runtime∕goos·RamSize(SB), R1
+	MOVW	runtime∕goos·RamStackOffset(SB), R2
+	ADD	R1, R13
+	SUB	R2, R13
+	MOVW	R13, R3
+
 	// Detect HYP mode and switch to SVC if necessary
 	WORD	$0xe10f0000	// mrs r0, CPSR
 	AND	$0x1f, R0, R0	// get processor mode
@@ -32,5 +39,6 @@ after_eret:
 	// Enter System Mode
 	WORD	$0xe321f0df	// msr CPSR_c, 0xdf
 
+	MOVW	R3, R13
 	B	_rt0_tamago_start(SB)
 

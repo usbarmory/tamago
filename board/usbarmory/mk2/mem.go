@@ -21,5 +21,5 @@ import (
 
 // The standard USB armory Mk II features a single 512MB DDR3 RAM module.
 
-//go:linkname ramSize runtime.ramSize
+//go:linkname ramSize runtime/goos.RamSize
 var ramSize uint32 = 0x20000000 // 512MB

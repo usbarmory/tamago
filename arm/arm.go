@@ -19,7 +19,7 @@ package arm
 
 import (
 	"math"
-	"runtime"
+	"runtime/goos"
 )
 
 // ARM processor modes
@@ -82,8 +82,8 @@ func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
 // exception vector table, L1/L2 page tables and the exception stack
 // (see https://github.com/usbarmory/tamago/wiki/Internals#memory-layout).
 func (cpu *CPU) Init(vbar uint32) {
-	runtime.Exit = exit
-	runtime.Idle = cpu.DefaultIdleGovernor
+	goos.Exit = exit
+	goos.Idle = cpu.DefaultIdleGovernor
 
 	// the application is allowed to override the reserved area
 	if vecTableStart != 0 {
