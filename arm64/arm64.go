@@ -19,7 +19,7 @@ package arm64
 
 import (
 	"math"
-	"runtime"
+	"runtime/goos"
 )
 
 // CPU instance
@@ -43,8 +43,8 @@ func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
 
 // Init performs initialization of an ARM64 core instance.
 func (cpu *CPU) Init() {
-	runtime.Exit = exit
-	runtime.Idle = cpu.DefaultIdleGovernor
+	goos.Exit = exit
+	goos.Idle = cpu.DefaultIdleGovernor
 
 	cpu.initVectorTable()
 }

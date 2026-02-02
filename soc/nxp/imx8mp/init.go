@@ -25,8 +25,8 @@ const (
 	IMX8MPQ = 0x8240
 )
 
-//go:linkname ramStackOffset runtime.ramStackOffset
-var ramStackOffset uint32 = 0x100
+//go:linkname ramStackOffset runtime/goos.RamStackOffset
+var ramStackOffset uint64 = 0x100
 
 var (
 	// Processor family

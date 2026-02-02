@@ -1,4 +1,3 @@
-// NXP i.MX8MP initialization
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -6,13 +5,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-//go:build !linkramstart
+#include "textflag.h"
 
-package imx8mp
-
-import (
-	_ "unsafe"
-)
-
-//go:linkname ramStart runtime/goos.RamStart
-var ramStart uint64 = DDR_BASE
+TEXT ·CPUInit(SB),NOSPLIT|NOFRAME,$0
+	JMP	cpuinit(SB)

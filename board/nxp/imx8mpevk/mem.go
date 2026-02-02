@@ -21,5 +21,5 @@ import (
 
 // The 8MPLUSLPD4-EVK features 6GB LPDDR4 RAM.
 
-//go:linkname ramSize runtime.ramSize
+//go:linkname ramSize runtime/goos.RamSize
 var ramSize uint64 = 0x180000000 // 6GB

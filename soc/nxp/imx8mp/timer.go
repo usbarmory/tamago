@@ -26,7 +26,7 @@ func initTimers() {
 	}
 }
 
-//go:linkname nanotime1 runtime.nanotime1
+//go:linkname nanotime1 runtime/goos.Nanotime
 func nanotime1() int64 {
 	return ARM64.GetTime()
 }
