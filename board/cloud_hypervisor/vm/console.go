@@ -14,7 +14,7 @@ import (
 	_ "unsafe"
 )
 
-//go:linkname printk runtime.printk
+//go:linkname printk runtime/goos.Printk
 func printk(c byte) {
 	UART0.Tx(c)
 

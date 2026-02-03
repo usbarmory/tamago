@@ -65,7 +65,7 @@ func main() {
 can be executed as follows:
 
 ```
-GOOS=tamago GOARCH=amd64 $TAMAGO run -ldflags '-X runtime.testBinary=true' test.go
+GOOS=tamago GOARCH=amd64 $TAMAGO run test.go
 ** I can't get out!    ;-( ** dial tcp 8.8.8.8:53: net.SocketFunc is nil
 ** I can't get out!    ;-( ** open /etc/passwd: No such file or directory
 ```

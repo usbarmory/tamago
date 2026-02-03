@@ -15,7 +15,7 @@
 package microvm
 
 import (
-	"runtime"
+	"runtime/goos"
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/amd64"
@@ -66,7 +66,7 @@ var (
 	}
 )
 
-//go:linkname nanotime1 runtime.nanotime1
+//go:linkname nanotime1 runtime/goos.Nanotime
 func nanotime1() int64 {
 	return AMD64.GetTime()
 }
@@ -74,7 +74,7 @@ func nanotime1() int64 {
 // Init takes care of the lower level initialization triggered early in runtime
 // setup (post World start).
 //
-//go:linkname Init runtime.hwinit1
+//go:linkname Init runtime/goos.Hwinit1
 func Init() {
 	// initialize CPU
 	AMD64.Init()
@@ -84,7 +84,7 @@ func Init() {
 	// initialize serial console
 	UART0.Init()
 
-	runtime.Exit = func(_ int32) {
+	goos.Exit = func(_ int32) {
 		AMD64.Reset()
 	}
 }

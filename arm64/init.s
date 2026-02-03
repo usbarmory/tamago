@@ -12,12 +12,12 @@
 #include "textflag.h"
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
-	// Get current exception level
+	// get current exception level
 	MRS	CurrentEL, R0
 	LSR	$2, R0, R0
 	AND	$0b11, R0, R0
 
-	// Ensure we are running at EL3
+	// ensure we are running at EL3
 	CMP	$3, R0
 	BNE	exit
 
@@ -39,7 +39,7 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	WORD	$0xd51e1100	// msr scr_el3, x0
 	ISB	SY
 
-	// Set stack pointer
+	// set stack pointer
 	MOVD	runtime∕goos·RamStart(SB), R1
 	MOVD	R1, RSP
 	MOVD	runtime∕goos·RamSize(SB), R1

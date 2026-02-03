@@ -20,6 +20,7 @@ package amd64
 import (
 	"math"
 	"runtime"
+	"runtime/goos"
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/amd64/lapic"
@@ -46,7 +47,7 @@ const (
 	ICR_DST_REST = lapic.ICR_DST_REST
 )
 
-//go:linkname ramStackOffset runtime.ramStackOffset
+//go:linkname ramStackOffset runtime/goos.RamStackOffset
 var ramStackOffset uint64 = 0x100000 // 1 MB
 
 // CPU represents the Bootstrap Processor (BSP) instance.
@@ -91,8 +92,8 @@ func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
 // Init performs initialization of an AMD64 bootstrap processor (BSP) instance
 // (see [CPU.InitSMP] for AP initialization).
 func (cpu *CPU) Init() {
-	runtime.Exit = exit
-	runtime.Idle = cpu.DefaultIdleGovernor
+	goos.Exit = exit
+	goos.Idle = cpu.DefaultIdleGovernor
 
 	// Local APIC
 	cpu.LAPIC = &lapic.LAPIC{

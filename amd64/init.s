@@ -170,6 +170,13 @@ add_ext_entries:
 	MOVL	$PML4T, DI
 	MOVL	DI, CR3
 
+	// set stack pointer
+	MOVQ	runtime∕goos·RamStart(SB), SP
+	MOVQ	runtime∕goos·RamSize(SB), AX
+	MOVQ	runtime∕goos·RamStackOffset(SB), BX
+	ADDQ	AX, SP
+	SUBQ	BX, SP
+
 	STI	// required for ·wfi
 	JMP	_rt0_tamago_start(SB)
 

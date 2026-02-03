@@ -14,17 +14,17 @@
 package linux_user
 
 import (
-	"runtime"
+	"runtime/goos"
 	_ "unsafe"
 )
 
-//go:linkname ramStart runtime.ramStart
+//go:linkname ramStart runtime/goos.RamStart
 var ramStart uint64 = 0x80000000
 
-//go:linkname ramSize runtime.ramSize
+//go:linkname ramSize runtime/goos.RamSize
 var ramSize uint64 = 0x20000000 // 512MB
 
-//go:linkname ramStackOffset runtime.ramStackOffset
+//go:linkname ramStackOffset runtime/goos.RamStackOffset
 var ramStackOffset uint64 = 0x100
 
 // defined in syscall_*.s
@@ -33,15 +33,15 @@ func sys_write(c *byte)
 func sys_clock_gettime() (ns int64)
 func sys_getrandom(b []byte, n int)
 
-//go:linkname nanotime1 runtime.nanotime1
+//go:linkname nanotime1 runtime/goos.Nanotime
 func nanotime1() int64 {
 	return sys_clock_gettime()
 }
 
-//go:linkname initRNG runtime.initRNG
+//go:linkname initRNG runtime/goos.InitRNG
 func initRNG() {}
 
-//go:linkname getRandomData runtime.getRandomData
+//go:linkname getRandomData runtime/goos.GetRandomData
 func getRandomData(b []byte) {
 	sys_getrandom(b, len(b))
 }
@@ -49,18 +49,18 @@ func getRandomData(b []byte) {
 // preallocated memory to avoid malloc during panic
 var a [1]byte
 
-//go:linkname printk runtime.printk
+//go:linkname printk runtime/goos.Printk
 func printk(c byte) {
 	a[0] = c
 	sys_write(&a[0])
 }
 
-//go:linkname hwinit0 runtime.hwinit0
+//go:linkname hwinit0 runtime/goos.Hwinit0
 func hwinit0() {
-	runtime.Bloc = uintptr(ramStart)
+	goos.Bloc = uintptr(ramStart)
 }
 
-//go:linkname hwinit1 runtime.hwinit1
+//go:linkname hwinit1 runtime/goos.Hwinit1
 func hwinit1() {
-	runtime.Exit = sys_exit
+	goos.Exit = sys_exit
 }
