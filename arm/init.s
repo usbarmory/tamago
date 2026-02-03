@@ -11,6 +11,7 @@
 #include "textflag.h"
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
+	// Set stack pointer
 	MOVW	runtime∕goos·RamStart(SB), R13
 	MOVW	runtime∕goos·RamSize(SB), R1
 	MOVW	runtime∕goos·RamStackOffset(SB), R2

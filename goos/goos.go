@@ -1,4 +1,4 @@
-// Bare metal Go runtime support
+// Custom GOOS support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -8,7 +8,7 @@
 
 // Package goos describes required, as well as optional, runtime
 // functions/variables for custom GOOS implementations as supported by the
-// GOOSPKG variable.
+// GOOSPKG variable for [runtime/goos] overlay.
 //
 // These hooks act as a "Rosetta Stone" for integration of a freestanding Go
 // runtime within an arbitrary environment, whether bare metal or OS supported.

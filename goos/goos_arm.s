@@ -1,3 +1,4 @@
+// Custom GOOS support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
