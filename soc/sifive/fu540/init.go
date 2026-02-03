@@ -12,7 +12,7 @@ import (
 	_ "unsafe"
 )
 
-//go:linkname ramStackOffset runtime.ramStackOffset
+//go:linkname ramStackOffset runtime/goos.RamStackOffset
 var ramStackOffset uint64 = 0x100
 
 // Init takes care of the lower level initialization triggered early in runtime
@@ -21,7 +21,7 @@ func Init() {
 	RV64.Init()
 }
 
-//go:linkname nanotime1 runtime.nanotime1
+//go:linkname nanotime1 runtime/goos.Nanotime
 func nanotime1() int64 {
 	return CLINT.Nanotime()
 }

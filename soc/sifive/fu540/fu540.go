@@ -20,8 +20,6 @@
 package fu540
 
 import (
-	_ "unsafe"
-
 	"github.com/usbarmory/tamago/riscv64"
 	"github.com/usbarmory/tamago/soc/sifive/clint"
 	"github.com/usbarmory/tamago/soc/sifive/uart"
