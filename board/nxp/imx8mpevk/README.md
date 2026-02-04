@@ -53,8 +53,9 @@ Supported hardware
 Compiling
 =========
 
-Go applications are simply required to import, the relevant board package to
-ensure that hardware initialization and runtime support take place:
+Go applications are required to set `GOOSPKG` to the desired package overlay
+and import the relevant board package to ensure that hardware initialization
+and runtime support take place:
 
 ```golang
 import (
@@ -76,7 +77,8 @@ Go applications can be compiled as usual, using the compiler built in the
 previous step, but with the addition of the following flags/variables:
 
 ```
-GOOS=tamago GOARCH=arm64 ${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main.go
+GOOS=tamago GOOSPKG=github.com/usbarmory/tamago@v1.26.0 GOARCH=arm64 \
+	${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main.go
 ```
 
 An example application, targeting the 8MPLUSLPD4-EVK platform,
@@ -85,8 +87,8 @@ is [available](https://github.com/usbarmory/tamago-example).
 Build tags
 ==========
 
-The following build tags allow application to override the package own definition of
-[external functions required by the runtime](https://pkg.go.dev/github.com/usbarmory/tamago/doc):
+The following build tags allow application to override the package own
+definition for the `runtime/goos` overlay:
 
 * `linkramsize`: exclude `ramSize` from `mem.go`
 * `linkprintk`: exclude `printk` from `console.go`

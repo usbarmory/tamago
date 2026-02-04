@@ -115,10 +115,8 @@ The following table summarizes currently supported RISC-V SoCs and boards
 Userspace targets
 =================
 
-The execution of programs compiled with `GOOS=tamago` can also take place in
-user space by importing any package that implements the required
-[runtime changes](https://pkg.go.dev/github.com/usbarmory/tamago/doc)
-with OS supervision instead of bare metal drivers.
+The execution of programs compiled with `GOOS=tamago` can also take place in                                                                                                                                        user space by importing any package that implements the required `runtime/goos`
+overlay with OS supervision instead of bare metal drivers.
 
 Compiling and running Go programs in user space as `GOOS=tamago` provides the
 benefit of system call isolation as the executable cannot leverage on the Go
@@ -141,8 +139,20 @@ The following table summarizes currently available userspace support:
 Compiling
 =========
 
-Go applications are simply required to import, the relevant board package to
-ensure that hardware initialization and runtime support take place:
+While compiling, the `GOOSPKG` Go environment variable must be set, to enable
+an overlay to support `GOOS=tamago`, to either a package path or local
+directory:
+
+```
+# VCS path example
+export GOOSPKG=github.com/usbarmory/tamago@v1.26.0
+
+# local path example
+export GOOSPKG=workdir/tamago
+```
+
+Additionally Go applications are required to import the relevant board package
+to ensure that hardware initialization and runtime support take place:
 
 ```golang
 import (
@@ -187,8 +197,8 @@ each specific target.
 Build tags
 ==========
 
-The following build tags allow application to override TamaGo own definition of
-functions [required by the runtime](https://pkg.go.dev/github.com/usbarmory/tamago/doc):
+The following build tags allow application to override the package own
+definition for the `runtime/goos` overlay:
 
 * `linkramstart`: override `ramStart`
 * `linkramsize`: override `ramSize`
@@ -239,7 +249,7 @@ Additional resources
 ====================
 
 * [Package API](https://pkg.go.dev/github.com/usbarmory/tamago)
-* [Runtime API](https://pkg.go.dev/github.com/usbarmory/tamago/doc)
+* [Runtime API](https://pkg.go.dev/github.com/usbarmory/tamago-go/runtime/goos)
 * [Compatibility](https://github.com/usbarmory/tamago/wiki/Compatibility)
 * [Internals](https://github.com/usbarmory/tamago/wiki/Internals)
 * [FAQ](https://github.com/usbarmory/tamago/wiki/Frequently-Asked-Questions-(FAQ))
