@@ -21,7 +21,7 @@ The TamaGo framework consists of the following components:
 
  - A modified [Go distribution](https://github.com/usbarmory/tamago-go)
    which extends `GOOS` support to the `tamago` target, allowing bare metal
-   execution.
+   execution through a `runtime/goos` overlay set by `GOOSPKG`.
 
  - Go packages for processor/SoC support.
 
