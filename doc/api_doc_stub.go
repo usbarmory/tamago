@@ -38,16 +38,17 @@ import (
 	"unsafe"
 )
 
-// cpuinit handles pre-runtime CPU initialization.
+// CPUInit, which must be linked as `cpuinit`¹ handles immediate startup CPU
+// initialization as it represents the first instruction set executed.
 //
-// It must be defined using Go's Assembler to retain Go's commitment to
-// backward compatibility, otherwise extreme care must be taken as the lack of
-// World start does not allow memory allocation.
+// It must be defined using Go's Assembler.
 //
-// For an example see package [arm CPU initialization].
+// For an example see package [arm64 CPU initialization].
 //
-// [arm CPU initialization]: https://github.com/usbarmory/tamago/blob/master/arm/init.s
-func cpuinit()
+//	¹ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
+//
+// [arm64 CPU initialization]: https://github.com/usbarmory/tamago/blob/master/arm64/init.s
+func CPUInit()
 
 // Hwinit0, which must be linked as `runtime.hwinit0`¹, takes care of the lower
 // level initialization triggered before runtime setup (pre World start).

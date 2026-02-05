@@ -224,6 +224,7 @@ Applications using TamaGo
 * [armory-ums](https://github.com/usbarmory/armory-ums) - USB Mass Storage firmware
 * [armory-boot](https://github.com/usbarmory/armory-boot) - USB armory boot loader
 * [tamago-example](https://github.com/usbarmory/tamago-example) - TamaGo example application
+* [tamago-sev-example](https://github.com/usbarmory/tamago-sev-example) - Confidential VM (AMD SEV-SNP) example
 
 External drivers using TamaGo
 =============================
@@ -232,6 +233,7 @@ External drivers using TamaGo
 * [imx-usbnet](https://github.com/usbarmory/imx-usbnet) - i.MX Ethernet over USB driver
 * [imx-enet](https://github.com/usbarmory/imx-enet) - i.MX Ethernet driver
 * [virtio-net](https://github.com/usbarmory/virtio-net) - VirtIO Network driver
+* [go-net](https://github.com/usbarmory/go-net) - Generic Network driver
 
 Additional resources
 ====================

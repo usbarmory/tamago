@@ -79,8 +79,10 @@ previous step, but with the addition of the following flags/variables:
 GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 ```
 
-An example application, targeting the QEMU microvm platform,
-is [available](https://github.com/usbarmory/tamago-example).
+Two examples application, targeting the QEMU microvm platform, are available:
+[tamago-example](https://github.com/usbarmory/tamago-example) (plain KVM) and
+[tamago-sev-example](https://github.com/usbarmory/tamago-sev-example)
+(confidential KVM with AMD SEV-SNP).
 
 Build tags
 ==========
