@@ -101,7 +101,7 @@ func (hw *RNGB) Init() {
 	}
 
 	if reg.Get(hw.sr, RNG_SR_ERR, 1) != 0 || reg.Get(hw.sr, RNG_SR_ST_PF, 1) != 0 {
-		panic("rngb: self-test failure\n")
+		panic("rngb self-test failure")
 	}
 
 	// enable auto-reseed
@@ -124,7 +124,7 @@ func (hw *RNGB) GetRandomData(b []byte) {
 
 	for read < need {
 		if reg.Get(hw.sr, RNG_SR_ERR, 1) != 0 {
-			panic("rngb: error\n")
+			panic("rngb error")
 		}
 
 		if reg.Get(hw.sr, RNG_SR_FIFO_LVL, 0b1111) > 0 {
