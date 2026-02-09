@@ -33,8 +33,8 @@ func sys_write(c *byte)
 func sys_clock_gettime() (ns int64)
 func sys_getrandom(b []byte, n int)
 
-//go:linkname nanotime1 runtime/goos.Nanotime
-func nanotime1() int64 {
+//go:linkname nanotime runtime/goos.Nanotime
+func nanotime() int64 {
 	return sys_clock_gettime()
 }
 

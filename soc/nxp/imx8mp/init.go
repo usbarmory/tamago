@@ -37,7 +37,7 @@ var (
 )
 
 // Init takes care of the lower level initialization triggered early in runtime
-// setup (e.g. runtime.hwinit1).
+// setup (e.g. runtime/goos.Hwinit1).
 func Init() {
 	ARM64.Init()
 	ARM64.EnableCache()

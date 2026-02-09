@@ -120,7 +120,7 @@ func Init(cpu *amd64.CPU) {
 		// TSC must be adjusted as it is not reliable through state
 		// changes.
 		//
-		// As nanotime1() cannot malloc we cannot override it, rather
+		// As nanotime() cannot malloc we cannot override it, rather
 		// we adjust asynchronously with kvmclock every TimeInfoUpdate
 		// interval.
 		//

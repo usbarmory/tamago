@@ -16,12 +16,12 @@ import (
 var ramStackOffset uint64 = 0x100
 
 // Init takes care of the lower level initialization triggered early in runtime
-// setup (e.g. runtime.hwinit1).
+// setup (e.g. runtime/goos.Hwinit1).
 func Init() {
 	RV64.Init()
 }
 
-//go:linkname nanotime1 runtime/goos.Nanotime
-func nanotime1() int64 {
+//go:linkname nanotime runtime/goos.Nanotime
+func nanotime() int64 {
 	return CLINT.Nanotime()
 }
