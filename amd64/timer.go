@@ -102,8 +102,8 @@ func (cpu *CPU) detectCoreFrequency() {
 		// Rev 3.03 - July, 2018 - Core::X86::Msr::PStateDef
 		pstate := uint32(reg.ReadMSR(MSR_AMD_PSTATE))
 
-		num := float64(bits.Get(&pstate, 0, 0xff)) * 25
-		den := float64(bits.Get(&pstate, 8, 0b111111)) / 8
+		num := float64(bits.GetN(&pstate, 0, 0xff)) * 25
+		den := float64(bits.GetN(&pstate, 8, 0b111111)) / 8
 
 		if num != 0 && den != 0 {
 			cpu.freq = uint32(num/den) * 1e6

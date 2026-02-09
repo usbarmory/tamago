@@ -138,7 +138,7 @@ func (hw *WDOG) Service(timeout int) {
 	// update timeout
 	reg.SetN16(hw.wcr, WCR_WT, 0xff, uint16(timeout/500-1))
 
-	if reg.Get16(hw.wicr, WICR_WIE, 1) == 1 {
+	if reg.GetN16(hw.wicr, WICR_WIE, 1) == 1 {
 		// clear interrupt status
 		reg.Set16(hw.wicr, WICR_WTIS)
 	}

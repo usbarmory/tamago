@@ -238,7 +238,7 @@ func (hw *USB) Speed() (speed string) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	switch reg.Get(hw.sc, PORTSC_PSPD, 0b11) {
+	switch reg.GetN(hw.sc, PORTSC_PSPD, 0b11) {
 	case 0b00:
 		speed = "full"
 	case 0b01:

@@ -58,7 +58,7 @@ func (io *MMIO) negotiate(driverFeatures uint64) (err error) {
 
 	reg.Set(io.Base+Status, FeaturesOk)
 
-	if !reg.IsSet(io.Base+Status, FeaturesOk) {
+	if !reg.Get(io.Base+Status, FeaturesOk) {
 		return errors.New("could not set features")
 	}
 
@@ -166,8 +166,8 @@ func (io *MMIO) SetQueueSize(index int, n int) {
 func (io *MMIO) InterruptStatus() (buffer bool, config bool) {
 	s := reg.Read(io.Base + InterruptStatus)
 
-	buffer = bits.IsSet(&s, 0)
-	config = bits.IsSet(&s, 1)
+	buffer = bits.Get(&s, 0)
+	config = bits.Get(&s, 1)
 
 	return
 }

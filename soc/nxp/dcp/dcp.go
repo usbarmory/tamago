@@ -221,8 +221,8 @@ func (hw *DCP) cmd(ptr uint, count int) (err error) {
 	chstatus := reg.Read(hw.ch0stat)
 
 	// check for errors
-	if bits.Get(&chstatus, 0, CHxSTAT_ERROR_MASK) != 0 {
-		code := bits.Get(&chstatus, CHxSTAT_ERROR_CODE, 0xff)
+	if bits.GetN(&chstatus, 0, CHxSTAT_ERROR_MASK) != 0 {
+		code := bits.GetN(&chstatus, CHxSTAT_ERROR_CODE, 0xff)
 		sema := reg.Read(hw.ch0sema)
 		return fmt.Errorf("DCP channel 0 error, status:%#x error_code:%#x sema:%#x", chstatus, code, sema)
 	}

@@ -88,11 +88,11 @@ func (cpu *CPU) ReadPMP(i int) (addr uint64, r bool, w bool, x bool, a int, l bo
 	cfg := read_pmpcfg0()
 	off := i * 8
 
-	r = bits.Get64(&cfg, off+PMP_CFG_R, 1) == 1
-	w = bits.Get64(&cfg, off+PMP_CFG_W, 1) == 1
-	x = bits.Get64(&cfg, off+PMP_CFG_X, 1) == 1
-	l = bits.Get64(&cfg, off+PMP_CFG_L, 1) == 1
-	a = int(bits.Get64(&cfg, off+PMP_CFG_A, 0b11))
+	r = bits.GetN64(&cfg, off+PMP_CFG_R, 1) == 1
+	w = bits.GetN64(&cfg, off+PMP_CFG_W, 1) == 1
+	x = bits.GetN64(&cfg, off+PMP_CFG_X, 1) == 1
+	l = bits.GetN64(&cfg, off+PMP_CFG_L, 1) == 1
+	a = int(bits.GetN64(&cfg, off+PMP_CFG_A, 0b11))
 
 	return
 }

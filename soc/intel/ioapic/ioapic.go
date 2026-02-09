@@ -63,7 +63,7 @@ func (io *IOAPIC) Init() {
 // ID returns the IOAPIC identification.
 func (io *IOAPIC) ID() uint32 {
 	reg.Write(io.Base+IOREGSEL, IOAPICID)
-	return reg.Get(io.Base+IOWIN, 24, 0xf)
+	return reg.GetN(io.Base+IOWIN, 24, 0xf)
 }
 
 // Version returns the IOAPIC version register.
@@ -75,7 +75,7 @@ func (io *IOAPIC) Version() uint32 {
 // Entries returns the size of the IOAPIC redirection table.
 func (io *IOAPIC) Entries() int {
 	reg.Write(io.Base+IOREGSEL, IOAPICVER)
-	maxIndex := reg.Get(io.Base+IOWIN, VER_ENTRIES, 0xff)
+	maxIndex := reg.GetN(io.Base+IOWIN, VER_ENTRIES, 0xff)
 	return int(maxIndex) + 1
 }
 

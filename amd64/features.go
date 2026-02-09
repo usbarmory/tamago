@@ -113,11 +113,11 @@ func (cpu *CPU) MSR(addr uint64) (val uint64) {
 
 func (cpu *CPU) initFeatures() {
 	_, _, _, apmFeatures := cpuid(CPUID_APM, 0)
-	cpu.features.HwPstate = bits.IsSet(&apmFeatures, APM_HW_PSTATE)
-	cpu.features.TSCInvariant = bits.IsSet(&apmFeatures, APM_TSC_INVARIANT)
+	cpu.features.HwPstate = bits.Get(&apmFeatures, APM_HW_PSTATE)
+	cpu.features.TSCInvariant = bits.Get(&apmFeatures, APM_TSC_INVARIANT)
 
 	_, _, cpuFeatures, _ := cpuid(CPUID_INFO, 0)
-	cpu.features.TSCDeadline = bits.IsSet(&cpuFeatures, INFO_TSC_DEADLINE)
+	cpu.features.TSCDeadline = bits.Get(&cpuFeatures, INFO_TSC_DEADLINE)
 
 	if _, kvmk, _, _ := cpuid(CPUID_KVM_SIGNATURE, 0); kvmk != KVM_SIGNATURE {
 		return
@@ -126,11 +126,11 @@ func (cpu *CPU) initFeatures() {
 	cpu.features.KVM = true
 	kvmFeatures, _, _, _ := cpuid(CPUID_KVM_FEATURES, 0)
 
-	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE) {
+	if bits.Get(&kvmFeatures, FEATURES_CLOCKSOURCE) {
 		cpu.features.KVMClockMSR = MSR_KVM_SYSTEM_TIME
 	}
 
-	if bits.IsSet(&kvmFeatures, FEATURES_CLOCKSOURCE2) {
+	if bits.Get(&kvmFeatures, FEATURES_CLOCKSOURCE2) {
 		cpu.features.KVMClockMSR = MSR_KVM_SYSTEM_TIME_NEW
 	}
 }
@@ -149,13 +149,13 @@ func NumCPU() (n int) {
 		// AMD64 Architecture Programmer’s Manual
 		// Volume 3 - E4.7
 		_, _, ecx, _ := cpuid(CPUID_AMD_PROC, 0)
-		n = int(bits.Get(&ecx, AMD_PROC_NC, 0xff)) + 1
+		n = int(bits.GetN(&ecx, AMD_PROC_NC, 0xff)) + 1
 	case CPUID_VENDOR_ECX_INTEL:
 		// Intel® Architecture Instruction Set Extensions and Future
 		// Features Programming Reference
 		// 5.1.12 x2APIC Features / Processor Topology (Function 0Bh)
 		_, ebx, _, _ := cpuid(CPUID_INTEL_APIC, 1) // core sublevel
-		n = int(bits.Get(&ebx, INTEL_APIC_LP, 0xffff))
+		n = int(bits.GetN(&ebx, INTEL_APIC_LP, 0xffff))
 	}
 
 	if n == 0 {

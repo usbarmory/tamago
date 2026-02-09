@@ -215,21 +215,21 @@ func (hw *USDHC) voltageValidationSD() bool {
 
 		rsp := hw.rsp(0)
 
-		if bits.Get(&rsp, SD_OCR_BUSY, 1) == 0 {
+		if bits.GetN(&rsp, SD_OCR_BUSY, 1) == 0 {
 			continue
 		}
 
-		if bits.Get(&rsp, SD_OCR_HCS, 1) == 1 {
+		if bits.GetN(&rsp, SD_OCR_HCS, 1) == 1 {
 			hw.card.HC = true
 		}
 
 		// Select the fastest mandatory speed mode, supported by this
 		// driver, according to the card type.
 
-		if bits.Get(&rsp, SD_OCR_S18R, 1) == 1 {
+		if bits.GetN(&rsp, SD_OCR_S18R, 1) == 1 {
 			// UHS-I
 			hw.card.Rate = SDR50_MBPS
-		} else if bits.Get(&rsp, SD_OCR_UHSII, 1) == 1 {
+		} else if bits.GetN(&rsp, SD_OCR_UHSII, 1) == 1 {
 			// UHS-II
 			hw.card.Rate = SDR50_MBPS
 		} else {

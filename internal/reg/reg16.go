@@ -16,19 +16,14 @@ import (
 // As sync/atomic does not provide 16-bit support, note that these functions do
 // not necessarily enforce memory ordering.
 
-func Get16(addr uint32, pos int, mask int) uint16 {
+func Get16(addr uint32, pos int) {
 	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
-	return (*reg >> pos) & uint16(mask)
+	*reg |= (1 << pos)
 }
 
 func Set16(addr uint32, pos int) {
 	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
 	*reg |= (1 << pos)
-}
-
-func Clear16(addr uint32, pos int) {
-	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
-	*reg &= ^(1 << pos)
 }
 
 func SetTo16(addr uint32, pos int, val bool) {
@@ -37,6 +32,16 @@ func SetTo16(addr uint32, pos int, val bool) {
 	} else {
 		Clear16(addr, pos)
 	}
+}
+
+func Clear16(addr uint32, pos int) {
+	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
+	*reg &= ^(1 << pos)
+}
+
+func GetN16(addr uint32, pos int, mask int) uint16 {
+	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
+	return (*reg >> pos) & uint16(mask)
 }
 
 func SetN16(addr uint32, pos int, mask int, val uint16) {
@@ -72,7 +77,7 @@ func Or16(addr uint32, val uint16) {
 // Wait16 waits for a specific register bit to match a value. This function
 // cannot be used before runtime initialization with `GOOS=tamago`.
 func Wait16(addr uint32, pos int, mask int, val uint16) {
-	for Get16(addr, pos, mask) != val {
+	for GetN16(addr, pos, mask) != val {
 		runtime.Gosched()
 	}
 }
@@ -84,7 +89,7 @@ func Wait16(addr uint32, pos int, mask int, val uint16) {
 func WaitFor16(timeout time.Duration, addr uint32, pos int, mask int, val uint16) bool {
 	start := time.Now()
 
-	for Get16(addr, pos, mask) != val {
+	for GetN16(addr, pos, mask) != val {
 		runtime.Gosched()
 
 		if time.Since(start) >= timeout {

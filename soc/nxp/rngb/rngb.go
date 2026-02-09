@@ -96,11 +96,11 @@ func (hw *RNGB) Init() {
 	// perform self-test
 	reg.Set(hw.cmd, RNG_CMD_ST)
 
-	for reg.Get(hw.sr, RNG_SR_STDN, 1) != 1 {
+	for reg.GetN(hw.sr, RNG_SR_STDN, 1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
 
-	if reg.Get(hw.sr, RNG_SR_ERR, 1) != 0 || reg.Get(hw.sr, RNG_SR_ST_PF, 1) != 0 {
+	if reg.GetN(hw.sr, RNG_SR_ERR, 1) != 0 || reg.GetN(hw.sr, RNG_SR_ST_PF, 1) != 0 {
 		panic("rngb self-test failure")
 	}
 
@@ -109,7 +109,7 @@ func (hw *RNGB) Init() {
 	// generate a seed
 	reg.Set(hw.cmd, RNG_CR_GS)
 
-	for reg.Get(hw.sr, RNG_SR_SDN, 1) != 1 {
+	for reg.GetN(hw.sr, RNG_SR_SDN, 1) != 1 {
 		// reg.Wait cannot be used before runtime initialization
 	}
 
@@ -123,11 +123,11 @@ func (hw *RNGB) GetRandomData(b []byte) {
 	need := len(b)
 
 	for read < need {
-		if reg.Get(hw.sr, RNG_SR_ERR, 1) != 0 {
+		if reg.GetN(hw.sr, RNG_SR_ERR, 1) != 0 {
 			panic("rngb error")
 		}
 
-		if reg.Get(hw.sr, RNG_SR_FIFO_LVL, 0b1111) > 0 {
+		if reg.GetN(hw.sr, RNG_SR_FIFO_LVL, 0b1111) > 0 {
 			read = rng.Fill(b, read, reg.Read(hw.out))
 		}
 	}

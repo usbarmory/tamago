@@ -85,7 +85,7 @@ func (d *Device) BaseAddress(n int) uint {
 	bar := d.Read(0, Bar0+uint32(n)*4)
 
 	// decode BAR Type
-	switch bits.Get(&bar, 1, 0b11) {
+	switch bits.GetN(&bar, 1, 0b11) {
 	case 0b00:
 		return uint(bar)
 	case 0b10:

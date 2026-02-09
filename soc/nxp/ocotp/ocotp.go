@@ -172,7 +172,7 @@ func (hw *OCOTP) checkOp() (err error) {
 		return errors.New("operation timeout")
 	}
 
-	if reg.Get(hw.ctrl, CTRL_ERROR, 1) != 0 {
+	if reg.GetN(hw.ctrl, CTRL_ERROR, 1) != 0 {
 		return errors.New("operation error")
 	}
 

@@ -282,7 +282,7 @@ func (hw *UART) Disable() {
 
 // Tx transmits a single character to the serial port.
 func (hw *UART) Tx(c byte) {
-	for reg.Get(hw.uts, UTS_TXFULL, 1) == 1 {
+	for reg.GetN(hw.uts, UTS_TXFULL, 1) == 1 {
 		// wait for TX FIFO to have room for a character
 	}
 
@@ -291,17 +291,17 @@ func (hw *UART) Tx(c byte) {
 
 // Rx receives a single character from the serial port.
 func (hw *UART) Rx() (c byte, valid bool) {
-	if reg.Get(hw.usr2, USR2_RDR, 1) != 1 {
+	if reg.GetN(hw.usr2, USR2_RDR, 1) != 1 {
 		return
 	}
 
 	urxd := reg.Read(hw.urxd)
 
-	if bits.Get(&urxd, URXD_PRERR, 0b11111) != 0 {
+	if bits.GetN(&urxd, URXD_PRERR, 0b11111) != 0 {
 		return
 	}
 
-	return byte(bits.Get(&urxd, URXD_RX_DATA, 0xff)), true
+	return byte(bits.GetN(&urxd, URXD_RX_DATA, 0xff)), true
 }
 
 // Write data from buffer to serial port.

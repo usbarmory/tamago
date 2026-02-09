@@ -115,11 +115,11 @@ func (hw *USDHC) voltageValidationMMC() bool {
 
 		rsp := hw.rsp(0)
 
-		if bits.Get(&rsp, MMC_OCR_BUSY, 1) == 0 {
+		if bits.GetN(&rsp, MMC_OCR_BUSY, 1) == 0 {
 			continue
 		}
 
-		if bits.Get(&rsp, MMC_OCR_ACCESS_MODE, 0b11) == ACCESS_MODE_SECTOR {
+		if bits.GetN(&rsp, MMC_OCR_ACCESS_MODE, 0b11) == ACCESS_MODE_SECTOR {
 			hw.card.HC = true
 		}
 

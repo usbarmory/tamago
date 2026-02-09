@@ -70,9 +70,9 @@ func Features(cpu *amd64.CPU) (f *SVMFeatures) {
 
 	f = &SVMFeatures{
 		SEV: SEVStatus{
-			SEV: bits.IsSet(&status, SEV_STATUS_SEV),
-			ES:  bits.IsSet(&status, SEV_STATUS_SEV_ES),
-			SNP: bits.IsSet(&status, SEV_STATUS_SEV_SNP),
+			SEV: bits.Get(&status, SEV_STATUS_SEV),
+			ES:  bits.Get(&status, SEV_STATUS_SEV_ES),
+			SNP: bits.Get(&status, SEV_STATUS_SEV_SNP),
 		},
 		EncryptedBit: int(ebx & 0b111111),
 	}

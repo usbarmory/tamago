@@ -19,18 +19,11 @@ import (
 	"unsafe"
 )
 
-func IsSet(addr uint32, pos int) bool {
+func Get(addr uint32, pos int) bool {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 	r := atomic.LoadUint32(reg)
 
 	return (int(r)>>pos)&1 == 1
-}
-
-func Get(addr uint32, pos int, mask int) uint32 {
-	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	r := atomic.LoadUint32(reg)
-
-	return uint32((int(r) >> pos) & mask)
 }
 
 func Set(addr uint32, pos int) {
@@ -42,6 +35,14 @@ func Set(addr uint32, pos int) {
 	atomic.StoreUint32(reg, r)
 }
 
+func SetTo(addr uint32, pos int, val bool) {
+	if val {
+		Set(addr, pos)
+	} else {
+		Clear(addr, pos)
+	}
+}
+
 func Clear(addr uint32, pos int) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 
@@ -51,12 +52,11 @@ func Clear(addr uint32, pos int) {
 	atomic.StoreUint32(reg, r)
 }
 
-func SetTo(addr uint32, pos int, val bool) {
-	if val {
-		Set(addr, pos)
-	} else {
-		Clear(addr, pos)
-	}
+func GetN(addr uint32, pos int, mask int) uint32 {
+	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
+	r := atomic.LoadUint32(reg)
+
+	return uint32((int(r) >> pos) & mask)
 }
 
 func SetN(addr uint32, pos int, mask int, val uint32) {
@@ -113,7 +113,7 @@ func Or(addr uint32, val uint32) {
 // Wait waits for a specific register bit to match a value. This function
 // cannot be used before runtime initialization with `GOOS=tamago`.
 func Wait(addr uint32, pos int, mask int, val uint32) {
-	for Get(addr, pos, mask) != val {
+	for GetN(addr, pos, mask) != val {
 		runtime.Gosched()
 	}
 }
@@ -125,7 +125,7 @@ func Wait(addr uint32, pos int, mask int, val uint32) {
 func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) bool {
 	start := time.Now()
 
-	for Get(addr, pos, mask) != val {
+	for GetN(addr, pos, mask) != val {
 		runtime.Gosched()
 
 		if time.Since(start) >= timeout {
@@ -141,7 +141,7 @@ func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) 
 // checked (true) or cancelled (false). This function cannot be used before
 // runtime initialization.
 func WaitSignal(exit chan struct{}, addr uint32, pos int, mask int, val uint32) bool {
-	for Get(addr, pos, mask) != val {
+	for GetN(addr, pos, mask) != val {
 		runtime.Gosched()
 
 		select {

@@ -72,19 +72,19 @@ func (hw *CAAM) RSTA() (cs uint32, err error) {
 	rsta := reg.Read(hw.Base + CAAM_RSTA)
 
 	switch {
-	case bits.Get(&rsta, RSTA_AE, 0xf) != 0:
+	case bits.GetN(&rsta, RSTA_AE, 0xf) != 0:
 		err = errors.New("illegal address")
-	case bits.Get(&rsta, RSTA_MIS, 0xf) != 0:
+	case bits.GetN(&rsta, RSTA_MIS, 0xf) != 0:
 		err = errors.New("memory block corruption")
-	case bits.Get(&rsta, RSTA_HE, 1) != 0:
+	case bits.GetN(&rsta, RSTA_HE, 1) != 0:
 		err = errors.New("hashing error")
-	case bits.Get(&rsta, RSTA_SV, 1) != 0:
+	case bits.GetN(&rsta, RSTA_SV, 1) != 0:
 		err = errors.New("security violation")
-	case bits.Get(&rsta, RSTA_BSY, 1) != 0:
+	case bits.GetN(&rsta, RSTA_BSY, 1) != 0:
 		err = errors.New("RTIC busy")
 	}
 
-	cs = bits.Get(&rsta, RSTA_CS, 0b11)
+	cs = bits.GetN(&rsta, RSTA_CS, 0b11)
 
 	return
 }

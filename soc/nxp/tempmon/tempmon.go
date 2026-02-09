@@ -77,9 +77,9 @@ func (hw *TEMPMON) Init(calibrationData uint32) {
 	hw.sense1 = hw.Base + TEMPMON_TEMPSENSE1
 	hw.sense1_clr = hw.Base + TEMPMON_TEMPSENSE1_CLR
 
-	hw.hotTemp = bits.Get(&calibrationData, 0, 0xff)
-	hw.hotCount = bits.Get(&calibrationData, 8, 0xfff)
-	hw.roomCount = bits.Get(&calibrationData, 20, 0xfff)
+	hw.hotTemp = bits.GetN(&calibrationData, 0, 0xff)
+	hw.hotCount = bits.GetN(&calibrationData, 8, 0xfff)
+	hw.roomCount = bits.GetN(&calibrationData, 20, 0xfff)
 }
 
 // Read performs a single on-die temperature measurement.
@@ -100,7 +100,7 @@ func (hw *TEMPMON) Read() float32 {
 	reg.Set(hw.sense0_set, TEMPSENSE0_MEASURE_TEMP)
 	reg.Wait(hw.sense0, TEMPSENSE0_FINISHED, 1, 1)
 
-	cnt := reg.Get(hw.sense0, TEMPSENSE0_TEMP_CNT, 0xfff)
+	cnt := reg.GetN(hw.sense0, TEMPSENSE0_TEMP_CNT, 0xfff)
 
 	return temp(cnt, hw.hotTemp, hw.hotCount, hw.roomCount)
 }
