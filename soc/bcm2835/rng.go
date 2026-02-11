@@ -38,7 +38,7 @@ type Rng struct {
 	ctrl   uint32
 }
 
-//go:linkname initRNG runtime.initRNG
+//go:linkname initRNG runtime/goos.InitRNG
 func initRNG() {
 	r := &Rng{}
 	r.Init()
