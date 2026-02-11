@@ -50,7 +50,7 @@ Supported hardware
 Build tags
 ==========
 
-The following build tags allow application to override the package own
+The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
 * `linkramstart`: exclude `ramStart` from `mem.go`

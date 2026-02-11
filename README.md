@@ -160,7 +160,7 @@ import (
 Build the [TamaGo compiler](https://github.com/usbarmory/tamago-go)
 (or use the [latest binary release](https://github.com/usbarmory/tamago-go/releases/latest)):
 
-```
+```sh
 wget https://github.com/usbarmory/tamago-go/archive/refs/tags/latest.zip
 unzip latest.zip
 cd tamago-go-latest/src && ./all.bash
@@ -170,7 +170,7 @@ cd ../bin && export TAMAGO=`pwd`/go
 Go applications can be compiled with the compiler built in the previous step,
 with the addition of a few flags/variables:
 
-```
+```sh
 # set this library as `runtime/goos` overlay
 export GOOSPKG=github.com/usbarmory/tamago
 
@@ -196,7 +196,7 @@ each specific target.
 Build tags
 ==========
 
-The following build tags allow application to override the package own
+The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
 * `linkramstart`: override `ramStart`
@@ -217,7 +217,7 @@ execution.
 An emulated run of the [example application](https://github.com/usbarmory/tamago-example)
 can be launched as follows:
 
-```
+```sh
 git clone https://github.com/usbarmory/tamago-example
 cd tamago-example && make qemu
 ```
@@ -248,7 +248,7 @@ Additional resources
 ====================
 
 * [Package API](https://pkg.go.dev/github.com/usbarmory/tamago)
-* [Runtime API](https://github.com/usbarmory/tamago-go/src/runtime/goos/README.md)
+* [Runtime API](https://github.com/usbarmory/tamago-go/blob/latest/src/runtime/goos/README.md)
 * [Compatibility](https://github.com/usbarmory/tamago/wiki/Compatibility)
 * [Internals](https://github.com/usbarmory/tamago/wiki/Internals)
 * [FAQ](https://github.com/usbarmory/tamago/wiki/Frequently-Asked-Questions-(FAQ))

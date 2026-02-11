@@ -113,7 +113,7 @@ generates with `GOARM=6`.  Using `GOARM=5` causes Go to include a software float
 Build tags
 ==========
 
-The following build tags allow application to override the package own
+The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
 * `linkramsize`: exclude `ramSize` from `mem.go`

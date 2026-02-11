@@ -65,7 +65,7 @@ import (
 Build the [TamaGo compiler](https://github.com/usbarmory/tamago-go)
 (or use the [latest binary release](https://github.com/usbarmory/tamago-go/releases/latest)):
 
-```
+```sh
 wget https://github.com/usbarmory/tamago-go/archive/refs/tags/latest.zip
 unzip latest.zip
 cd tamago-go-latest/src && ./all.bash
@@ -75,7 +75,7 @@ cd ../bin && export TAMAGO=`pwd`/go
 Go applications can be compiled as usual, using the compiler built in the
 previous step, but with the addition of the following flags/variables:
 
-```
+```sh
 GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARCH=riscv64 \
 	${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
 ```
@@ -86,7 +86,7 @@ is [available](https://github.com/usbarmory/tamago-example).
 Build tags
 ==========
 
-The following build tags allow application to override the package own
+The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
 * `linkramsize`: exclude `ramSize` from `mem.go`
@@ -104,7 +104,7 @@ QEMU
 
 The target can be executed under emulation as follows:
 
-```
+```sh
 dtc -I dts -O dtb qemu-riscv64-sifive_u.dts -o qemu-riscv54-sifive_u.dtb
 
 qemu-system-riscv64 \
@@ -123,7 +123,7 @@ The emulated target can be debugged with GDB by adding the `-S -s` flags to the
 previous execution command, this will make qemu waiting for a GDB connection
 that can be launched as follows:
 
-```
+```sh
 riscv64-elf-gdb -ex "target remote 127.0.0.1:1234" example
 ```
 
