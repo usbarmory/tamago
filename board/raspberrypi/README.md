@@ -161,13 +161,13 @@ $(CROSS_COMPILE)objcopy -j .text -j .rodata -j .shstrtab -j .typelink \
     -j .itablink -j .gopclntab -j .go.buildinfo -j .noptrdata -j .data \
     -j .bss --set-section-flags .bss=alloc,load,contents \
     -j .noptrbss --set-section-flags .noptrbss=alloc,load,contents\
-    $(APP) -O binary $(APP).o
-${CROSS_COMPILE}gcc -D ENTRY_POINT=`${CROSS_COMPILE}readelf -e $(APP) | grep Entry | sed 's/.*\(0x[a-zA-Z0-9]*\).*/\1/'` -c boot.S -o boot.o
+    main -O binary main.o
+${CROSS_COMPILE}gcc -D ENTRY_POINT=`${CROSS_COMPILE}readelf -e main | grep Entry | sed 's/.*\(0x[a-zA-Z0-9]*\).*/\1/'` -c boot.S -o boot.o
 ${CROSS_COMPILE}objcopy boot.o -O binary stub.o
 # Truncate pads the stub out to correctly align the binary
 # 32768 = 0x10000 (TEXT_START) - 0x8000 (Default kernel load address)
 truncate -s 32768 stub.o
-cat stub.o $(APP).o > $(APP).bin
+cat stub.o main.o > main.bin
 ```
 
 The bootstrap code is something equivalent to this:
@@ -193,7 +193,7 @@ An example config.txt is:
 enable_uart=1
 uart_2ndstage=1
 dtparam=uart0=on
-kernel=example.bin
+kernel=main.bin
 kernel_address=0x8000
 disable_commandline_tags=1
 core_freq=250

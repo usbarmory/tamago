@@ -45,7 +45,7 @@ values: `amd64`, `arm`, `arm64`, `riscv64`.
 Example
 =======
 
-The following example code
+The following example code:
 
 ```go
 package main

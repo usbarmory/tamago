@@ -124,7 +124,7 @@ previous execution command, this will make qemu waiting for a GDB connection
 that can be launched as follows:
 
 ```sh
-riscv64-elf-gdb -ex "target remote 127.0.0.1:1234" example
+riscv64-elf-gdb -ex "target remote 127.0.0.1:1234" main
 ```
 
 Breakpoints can be set in the usual way:

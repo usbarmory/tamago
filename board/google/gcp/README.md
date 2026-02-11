@@ -118,7 +118,7 @@ qemu-system-x86_64 \
 	-m 4G -nographic -monitor none -serial stdio \
 	-device pcie-root-port,port=0x10,chassis=1,id=pci.0,bus=pcie.0,multifunction=on,addr=0x3 \
         -device virtio-net-device,netdev=net0,disable-modern=true -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
-	-kernel example
+	-kernel main
 ```
 
 The paravirtualized target can be debugged with GDB by adding the `-S -s` flags
@@ -126,7 +126,7 @@ to the previous execution command, this will make qemu waiting for a GDB
 connection that can be launched as follows:
 
 ```
-gdb -ex "target remote 127.0.0.1:1234" example
+gdb -ex "target remote 127.0.0.1:1234" main
 ```
 
 Breakpoints can be set in the usual way:

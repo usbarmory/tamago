@@ -103,7 +103,7 @@ which can be executed under paravirtualization with
 [cloud-hypervisor](https://www.cloudhypervisor.org/docs/prologue/quick-start/#firmware-booting):
 
 ```sh
-cloud-hypervisor --kernel example --cpus boot=1 --memory size=4096M --net "tap=tap0" --serial tty --console off
+cloud-hypervisor --kernel main --cpus boot=1 --memory size=4096M --net "tap=tap0" --serial tty --console off
 ```
 
 License
