@@ -111,7 +111,7 @@ qemu-system-aarch64 \
 	-machine imx8mp-evk -m 512M \
 	-nographic -monitor none -serial stdio -serial null \
 	-net nic,model=imx.enet,netdev=net0 -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
-	-kernel example -semihosting
+	-kernel main -semihosting
 ```
 
 The emulated target can be debugged with GDB by adding the `-S -s` flags to the
@@ -119,7 +119,7 @@ previous execution command, this will make qemu waiting for a GDB connection
 that can be launched as follows:
 
 ```sh
-arm-none-eabi-gdb -ex "target remote 127.0.0.1:1234" example
+arm-none-eabi-gdb -ex "target remote 127.0.0.1:1234" main
 ```
 
 Breakpoints can be set in the usual way:
