@@ -70,7 +70,7 @@ type LAPIC struct {
 
 // ID returns the LAPIC identification register.
 func (io *LAPIC) ID() uint32 {
-	return reg.Get(io.Base+LAPIC_ID, ID, 0xf)
+	return reg.GetN(io.Base+LAPIC_ID, ID, 0xf)
 }
 
 // Version returns the LAPIC version register.
@@ -80,7 +80,7 @@ func (io *LAPIC) Version() uint32 {
 
 // Entries returns the size of the LAPIC local vector table.
 func (io *LAPIC) Entries() int {
-	maxIndex := reg.Get(io.Base+LAPIC_VER, VER_ENTRIES, 0xff)
+	maxIndex := reg.GetN(io.Base+LAPIC_VER, VER_ENTRIES, 0xff)
 	return int(maxIndex) + 1
 }
 

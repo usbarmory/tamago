@@ -14,5 +14,5 @@ import (
 	_ "unsafe"
 )
 
-//go:linkname ramStart runtime.ramStart
-var ramStart uint32 = DDR_BASE
+//go:linkname ramStart runtime/goos.RamStart
+var ramStart uint64 = DDR_BASE

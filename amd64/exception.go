@@ -9,7 +9,7 @@
 package amd64
 
 import (
-	"runtime"
+	"runtime/goos"
 
 	"github.com/usbarmory/tamago/internal/exception"
 )
@@ -34,7 +34,7 @@ func currentVectorNumber() (id int) {
 // processor mode before panicking.
 func DefaultExceptionHandler() {
 	if isThrowing {
-		runtime.Exit(1)
+		goos.Exit(1)
 	}
 
 	isThrowing = true

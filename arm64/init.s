@@ -39,6 +39,14 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	WORD	$0xd51e1100	// msr scr_el3, x0
 	ISB	SY
 
+	// set stack pointer
+	MOVD	runtime∕goos·RamStart(SB), R1
+	MOVD	R1, RSP
+	MOVD	runtime∕goos·RamSize(SB), R1
+	MOVD	runtime∕goos·RamStackOffset(SB), R2
+	ADD	R1, RSP
+	SUB	R2, RSP
+
 	B	_rt0_tamago_start(SB)
 
 exit:

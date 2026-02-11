@@ -346,8 +346,8 @@ func (hw *USDHC) executeTuning(index uint32, blocks uint32) error {
 
 		ac12_err_status := reg.Read(hw.ac12_err_status)
 
-		if bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_EXE_TUNE, 1) == 0 &&
-			bits.Get(&ac12_err_status, AUTOCMD12_ERR_STATUS_SMP_CLK_SEL, 1) == 1 {
+		if bits.GetN(&ac12_err_status, AUTOCMD12_ERR_STATUS_EXE_TUNE, 1) == 0 &&
+			bits.GetN(&ac12_err_status, AUTOCMD12_ERR_STATUS_SMP_CLK_SEL, 1) == 1 {
 			return nil
 		}
 	}
@@ -414,7 +414,7 @@ func (hw *USDHC) Detect() (err error) {
 	}
 
 	// check if a card has already been detected and not removed since
-	if reg.Get(hw.int_status, INT_STATUS_CRM, 1) == 0 && (hw.card.MMC || hw.card.SD) {
+	if reg.GetN(hw.int_status, INT_STATUS_CRM, 1) == 0 && (hw.card.MMC || hw.card.SD) {
 		return
 	}
 

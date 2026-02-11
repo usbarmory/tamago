@@ -19,7 +19,7 @@ import (
 // On the MCIMX6ULL-EVK the serial console is UART1, therefore standard
 // output is redirected there.
 
-//go:linkname printk runtime.printk
+//go:linkname printk runtime/goos.Printk
 func printk(c byte) {
 	imx6ul.UART1.Tx(c)
 }

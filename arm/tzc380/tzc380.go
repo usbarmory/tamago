@@ -115,7 +115,7 @@ func (hw *TZASC) Init() {
 
 // Regions returns the number of regions that the TZASC provides.
 func (hw *TZASC) Regions() int {
-	return int(reg.Get(hw.conf, CONF_REGIONS, 0xf)) + 1
+	return int(reg.GetN(hw.conf, CONF_REGIONS, 0xf)) + 1
 }
 
 // EnableSecurityInversion allows configuration of arbitrary security

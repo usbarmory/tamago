@@ -67,7 +67,7 @@ func (hw *UART) Init() {
 
 // Tx transmits a single character to the serial port.
 func (hw *UART) Tx(c byte) {
-	for reg.Get(hw.txdata, TXDATA_FULL, 1) == 1 {
+	for reg.GetN(hw.txdata, TXDATA_FULL, 1) == 1 {
 		// wait for TX FIFO to have room for a character
 	}
 
@@ -78,11 +78,11 @@ func (hw *UART) Tx(c byte) {
 func (hw *UART) Rx() (c byte, valid bool) {
 	rxdata := reg.Read(hw.rxdata)
 
-	if bits.Get(&rxdata, RXDATA_EMPTY, 1) == 1 {
+	if bits.GetN(&rxdata, RXDATA_EMPTY, 1) == 1 {
 		return
 	}
 
-	return byte(bits.Get(&rxdata, RXDATA_DATA, 0xff)), true
+	return byte(bits.GetN(&rxdata, RXDATA_DATA, 0xff)), true
 }
 
 // Write data from buffer to serial port.

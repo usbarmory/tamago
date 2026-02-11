@@ -46,8 +46,8 @@ Supported hardware
 Build tags
 ==========
 
-The following build tags allow application to override the package own definition of
-[external functions required by the runtime](https://pkg.go.dev/github.com/usbarmory/tamago/doc):
+The following build tags allow application to override the package own
+definition for the `runtime/goos` overlay:
 
 * `linkramstart`: exclude `ramStart` from `mem.go`
 * `linkcpuinit`: exclude `cpuinit` imported from `riscv64/init.s`

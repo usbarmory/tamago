@@ -163,10 +163,10 @@ func (hw *SNVS) initDryIce(calibrationData uint32) {
 	hw.dtrr = hw.DryIce + DRYICE_DTRR
 	hw.dmcr = hw.DryIce + DRYICE_DMCR
 
-	reg.SetN(hw.dtmr, DTMR_TEMP_MON_TRIM, 0x3ff, bits.Get(&calibrationData, 0, 0x3ff))
-	reg.SetN(hw.dtmr, DTMR_VOLT_MON_TRIM, 0x3ff, bits.Get(&calibrationData, 10, 0x3ff))
-	reg.SetN(hw.dtmr, DTMR_BGR_TRIM, 0x3f, bits.Get(&calibrationData, 20, 0x3f))
-	reg.SetN(hw.dtmr, DTMR_PROG_TRIM, 0x3f, bits.Get(&calibrationData, 26, 0x3f))
+	reg.SetN(hw.dtmr, DTMR_TEMP_MON_TRIM, 0x3ff, bits.GetN(&calibrationData, 0, 0x3ff))
+	reg.SetN(hw.dtmr, DTMR_VOLT_MON_TRIM, 0x3ff, bits.GetN(&calibrationData, 10, 0x3ff))
+	reg.SetN(hw.dtmr, DTMR_BGR_TRIM, 0x3f, bits.GetN(&calibrationData, 20, 0x3f))
+	reg.SetN(hw.dtmr, DTMR_PROG_TRIM, 0x3f, bits.GetN(&calibrationData, 26, 0x3f))
 }
 
 // Init initializes the SNVS controller, the calibration data is fused
@@ -255,25 +255,25 @@ func (hw *SNVS) SetPolicy(sp SecurityPolicy) {
 // Monitor returns the SNVS tamper System Security Monitor (SSM) state, its
 // configured violation policy and the current High Assurance Counter value.
 func (hw *SNVS) Monitor() (violations SecurityPolicy) {
-	clk := reg.IsSet(hw.lpsr, LPSR_CTD)
-	tmp := reg.IsSet(hw.lpsr, LPSR_TTD)
-	vcc := reg.IsSet(hw.lpsr, LPSR_VTD)
+	clk := reg.Get(hw.lpsr, LPSR_CTD)
+	tmp := reg.Get(hw.lpsr, LPSR_TTD)
+	vcc := reg.Get(hw.lpsr, LPSR_VTD)
 
 	if hw.DryIce > 0 {
-		clk = clk || reg.IsSet(hw.dtrr, DTRR_SNVS_CLK_TAMP_DETECT)
-		tmp = tmp || reg.IsSet(hw.dtrr, DTRR_DRYICE_VOLT_TAMP_DETECT)
-		vcc = vcc || reg.IsSet(hw.dtrr, DTRR_DRYICE_TEMP_DETECT)
+		clk = clk || reg.Get(hw.dtrr, DTRR_SNVS_CLK_TAMP_DETECT)
+		tmp = tmp || reg.Get(hw.dtrr, DTRR_DRYICE_VOLT_TAMP_DETECT)
+		vcc = vcc || reg.Get(hw.dtrr, DTRR_DRYICE_TEMP_DETECT)
 	}
 
 	return SecurityPolicy{
 		Clock:             clk,
 		Temperature:       tmp,
 		Voltage:           vcc,
-		Power:             reg.IsSet(hw.lpsr, LPSR_PGD),
+		Power:             reg.Get(hw.lpsr, LPSR_PGD),
 		SecurityViolation: hw.sp.SecurityViolation,
 		HardFail:          hw.sp.HardFail,
 		HAC:               reg.Read(hw.hphacr),
-		State:             uint8(reg.Get(hw.hpsr, HPSR_SSM_STATE, 0b1111)),
+		State:             uint8(reg.GetN(hw.hpsr, HPSR_SSM_STATE, 0b1111)),
 	}
 }
 
@@ -288,11 +288,11 @@ func (hw *SNVS) Available() bool {
 	hpsr := reg.Read(hw.hpsr)
 
 	// ensure that the OTPMK has been correctly programmed
-	if bits.Get(&hpsr, HPSR_OTPMK_ZERO, 1) != 0 || bits.Get(&hpsr, HPSR_OTPMK_SYNDROME, 0x1ff) != 0 {
+	if bits.GetN(&hpsr, HPSR_OTPMK_ZERO, 1) != 0 || bits.GetN(&hpsr, HPSR_OTPMK_SYNDROME, 0x1ff) != 0 {
 		return false
 	}
 
-	switch bits.Get(&hpsr, HPSR_SSM_STATE, 0b1111) {
+	switch bits.GetN(&hpsr, HPSR_SSM_STATE, 0b1111) {
 	case SSM_STATE_TRUSTED, SSM_STATE_SECURE:
 		return true
 	default:

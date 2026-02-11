@@ -66,7 +66,7 @@ func (hw *CAAM) GetRandomData(b []byte) {
 
 	for read < need {
 		if hw.rtenta == hw.rtent0 {
-			for reg.Get(hw.rtmctl, RTMCTL_ENT_VAL, 1) == 0 {
+			for reg.GetN(hw.rtmctl, RTMCTL_ENT_VAL, 1) == 0 {
 				// wait for valid entropy
 			}
 		}

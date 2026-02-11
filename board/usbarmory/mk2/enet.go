@@ -209,7 +209,7 @@ func configurePHYPads() {
 func EnablePHY(eth *enet.ENET) error {
 	configurePHYPads()
 
-	// Software reset
+	// software reset
 	eth.WritePHYRegister(PHY_ADDR, DP_CTRL, (1 << CTRL_RESET))
 	// 100 Mbps, Auto-Negotiation, Full-duplex
 	eth.WritePHYRegister(PHY_ADDR, DP_CTRL, (1<<CTRL_SPEED)|(1<<CTRL_ANEG)|(1<<CTRL_DUPLEX))

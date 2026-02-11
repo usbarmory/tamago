@@ -19,7 +19,7 @@ package riscv64
 
 import (
 	"math"
-	"runtime"
+	"runtime/goos"
 	"sync"
 )
 
@@ -44,8 +44,8 @@ func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
 
 // Init performs initialization of an RV64 core instance in machine mode.
 func (cpu *CPU) Init() {
-	runtime.Exit = exit
-	runtime.Idle = cpu.DefaultIdleGovernor
+	goos.Exit = exit
+	goos.Idle = cpu.DefaultIdleGovernor
 
 	cpu.SetExceptionHandler(DefaultExceptionHandler)
 }

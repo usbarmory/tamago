@@ -15,5 +15,5 @@ import (
 // Init takes care of the lower level initialization triggered before runtime
 // setup (pre World start).
 //
-//go:linkname Init runtime.hwinit0
+//go:linkname Init runtime/goos.Hwinit0
 func Init() {}

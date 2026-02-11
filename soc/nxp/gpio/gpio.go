@@ -94,5 +94,5 @@ func (gpio *Pin) Low() {
 
 // Value returns the GPIO signal level.
 func (gpio *Pin) Value() (high bool) {
-	return reg.Get(gpio.data, gpio.num, 1) == 1
+	return reg.GetN(gpio.data, gpio.num, 1) == 1
 }

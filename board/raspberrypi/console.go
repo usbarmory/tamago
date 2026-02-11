@@ -16,7 +16,7 @@ import (
 	"github.com/usbarmory/tamago/soc/bcm2835"
 )
 
-//go:linkname printk runtime.printk
+//go:linkname printk runtime/goos.Printk
 func printk(c byte) {
 	bcm2835.MiniUART.Tx(c)
 }

@@ -27,7 +27,7 @@ func GetRandomData(b []byte) {
 	}
 }
 
-//go:linkname initRNG runtime.initRNG
+//go:linkname initRNG runtime/goos.InitRNG
 func initRNG() {
 	rng.GetRandomDataFn = GetRandomData
 }

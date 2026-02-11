@@ -127,13 +127,13 @@ const (
 // ARMCoreDiv returns the ARM core divider value
 // (p665, 18.6.5 CCM Arm Clock Root Register, IMX6ULLRM).
 func ARMCoreDiv() (div float32) {
-	return float32(reg.Get(CCM_CACRR, CACRR_ARM_PODF, 0b111) + 1)
+	return float32(reg.GetN(CCM_CACRR, CACRR_ARM_PODF, 0b111) + 1)
 }
 
 // ARMPLLDiv returns the ARM PLL divider value
 // (p714, 18.7.1 Analog ARM PLL control Register, IMX6ULLRM).
 func ARMPLLDiv() (div float32) {
-	return float32(reg.Get(CCM_ANALOG_PLL_ARM, PLL_DIV_SELECT, 0b1111111)) / 2
+	return float32(reg.GetN(CCM_ANALOG_PLL_ARM, PLL_DIV_SELECT, 0b1111111)) / 2
 }
 
 // ARMFreq returns the ARM core frequency.
@@ -146,7 +146,7 @@ func setOperatingPoint(uV uint32) {
 	var reg0Targ uint32
 	var reg2Targ uint32
 
-	curTarg := reg.Get(PMU_REG_CORE, CORE_REG0_TARG, 0b11111)
+	curTarg := reg.GetN(PMU_REG_CORE, CORE_REG0_TARG, 0b11111)
 
 	// p2456, 39.6.4 Digital Regulator Core Register, IMX6ULLRM
 	if uV < 725000 {
@@ -252,7 +252,7 @@ func SetARMFreq(mhz uint32) (err error) {
 // (p629, Figure 18-2. Clock Tree - Part 1, IMX6ULLRM).
 func GetPeripheralClock() uint32 {
 	// IPG_CLK_ROOT derived from AHB_CLK_ROOT which is 132 MHz
-	ipg_podf := reg.Get(CCM_CBCDR, CBCDR_IPG_PODF, 0b11)
+	ipg_podf := reg.GetN(CCM_CBCDR, CBCDR_IPG_PODF, 0b11)
 	return AHB_FREQ / (ipg_podf + 1)
 }
 
@@ -261,13 +261,13 @@ func GetPeripheralClock() uint32 {
 func GetHighFrequencyClock() uint32 {
 	var freq uint32
 
-	if reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_SEL, 1) == 1 {
+	if reg.GetN(CCM_CSCMR1, CSCMR1_PERCLK_SEL, 1) == 1 {
 		freq = OSC_FREQ
 	} else {
 		freq = GetPeripheralClock()
 	}
 
-	podf := reg.Get(CCM_CSCMR1, CSCMR1_PERCLK_PODF, 0x3f)
+	podf := reg.GetN(CCM_CSCMR1, CSCMR1_PERCLK_PODF, 0x3f)
 
 	return freq / (podf + 1)
 }
@@ -309,13 +309,13 @@ func GetPFD(pll int, pfd int) (div uint32, hz uint32) {
 		return
 	}
 
-	if reg.Get(register, gate_pos, 1) == 1 {
+	if reg.GetN(register, gate_pos, 1) == 1 {
 		return
 	}
 
 	// Output frequency has a static multiplicator of 18
 	// p646, 18.5.1.4 Phase Fractional Dividers (PFD)
-	div = reg.Get(register, div_pos, 0b111111)
+	div = reg.GetN(register, div_pos, 0b111111)
 	hz = uint32((freq * 18) / float64(div))
 
 	return
@@ -366,14 +366,14 @@ func SetPFD(pll uint32, pfd uint32, div uint32) error {
 func GetUARTClock() uint32 {
 	var freq uint32
 
-	if reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, 1) == 1 {
+	if reg.GetN(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, 1) == 1 {
 		freq = OSC_FREQ
 	} else {
 		// match /6 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
 		freq = PLL3_FREQ / 6
 	}
 
-	podf := reg.Get(CCM_CSCDR1, CSCDR1_UART_CLK_PODF, 0b111111)
+	podf := reg.GetN(CCM_CSCDR1, CSCDR1_UART_CLK_PODF, 0b111111)
 
 	return freq / (podf + 1)
 }
@@ -397,8 +397,8 @@ func GetUSDHCClock(index int) (podf uint32, clksel uint32, clock uint32) {
 		return
 	}
 
-	podf = reg.Get(CCM_CSCDR1, podf_pos, 0b111)
-	clksel = reg.Get(CCM_CSCMR1, clksel_pos, 1)
+	podf = reg.GetN(CCM_CSCDR1, podf_pos, 0b111)
+	clksel = reg.GetN(CCM_CSCMR1, clksel_pos, 1)
 
 	if clksel == 1 {
 		_, freq = GetPFD(2, 0)

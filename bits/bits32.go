@@ -9,27 +9,15 @@
 // registers.
 package bits
 
-// IsSet returns whether a specific bit position is set at the pointed value.
-func IsSet(addr *uint32, pos int) bool {
+// Get returns whether a specific bit position is set at the pointed value.
+func Get(addr *uint32, pos int) bool {
 	return (int(*addr)>>pos)&1 == 1
-}
-
-// Get returns the pointed value at a specific bit position and with a bitmask
-// applied.
-func Get(addr *uint32, pos int, mask int) uint32 {
-	return uint32((int(*addr) >> pos) & mask)
 }
 
 // Set modifies the pointed value by setting an individual bit at the position
 // argument.
 func Set(addr *uint32, pos int) {
 	*addr |= (1 << pos)
-}
-
-// Clear modifies the pointed value by clearing an individual bit at the
-// position argument.
-func Clear(addr *uint32, pos int) {
-	*addr &= ^(1 << pos)
 }
 
 // SetTo modifies the pointed value by setting an individual bit at the
@@ -40,6 +28,18 @@ func SetTo(addr *uint32, pos int, val bool) {
 	} else {
 		Clear(addr, pos)
 	}
+}
+
+// Clear modifies the pointed value by clearing an individual bit at the
+// position argument.
+func Clear(addr *uint32, pos int) {
+	*addr &= ^(1 << pos)
+}
+
+// GetN returns the pointed value at a specific bit position and with a bitmask
+// applied.
+func GetN(addr *uint32, pos int, mask int) uint32 {
+	return uint32((int(*addr) >> pos) & mask)
 }
 
 // SetN modifies the pointed value by setting a value at a specific bit

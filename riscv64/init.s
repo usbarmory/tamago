@@ -21,15 +21,22 @@
 #define CSRW(RS,CSR) WORD $(0x1073 + RS<<15 + CSR<<20)
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
-	// Disable interrupts
+	// disable interrupts
 	MOV	$0, T0
 	CSRW	(t0, sie)
 	CSRW	(t0, mie)
 	MOV	$0x7FFF, T0
 	CSRC	(t0, mstatus)
 
-	// Enable FPU
+	// enable FPU
 	MOV	$(1<<13), T0
 	CSRS	(t0, mstatus)
+
+	// set stack pointer
+	MOV	runtime∕goos·RamStart(SB), X2
+	MOV	runtime∕goos·RamSize(SB), T1
+	MOV	runtime∕goos·RamStackOffset(SB), T2
+	ADD	T1, X2
+	SUB	T2, X2
 
 	JMP	_rt0_tamago_start(SB)

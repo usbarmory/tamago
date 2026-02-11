@@ -63,7 +63,7 @@ func (hw *USB) Start(dev *Device) {
 
 	for {
 		// check for bus reset
-		if reg.Get(hw.sts, USBSTS_URI, 1) == 1 {
+		if reg.GetN(hw.sts, USBSTS_URI, 1) == 1 {
 			// set inactive configuration
 			hw.Device.ConfigurationValue = 0
 
@@ -100,7 +100,7 @@ func (hw *USB) ServiceInterrupts() {
 	}
 
 	// check for bus reset
-	if reg.Get(hw.sts, USBSTS_URI, 1) == 1 {
+	if reg.GetN(hw.sts, USBSTS_URI, 1) == 1 {
 		// set inactive configuration
 		hw.Device.ConfigurationValue = 0
 

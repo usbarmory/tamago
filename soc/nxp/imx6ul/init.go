@@ -28,7 +28,7 @@ const (
 	IMX6ULL = 0x65
 )
 
-//go:linkname ramStackOffset runtime.ramStackOffset
+//go:linkname ramStackOffset runtime/goos.RamStackOffset
 var ramStackOffset uint32 = 0x100
 
 var (
@@ -45,7 +45,7 @@ var (
 )
 
 // Init takes care of the lower level initialization triggered early in runtime
-// setup (e.g. runtime.hwinit1).
+// setup (e.g. runtime/goos.Hwinit1).
 func Init() {
 	if ARM.Mode() != arm.SYS_MODE {
 		// initialization required only when in PL1
@@ -87,7 +87,7 @@ func init() {
 			cfg3, _ := OCOTP.Read(0, 4)
 
 			// BEE_UNAVAILABLE
-			if bits.Get(&cfg3, 25, 1) == 0 {
+			if bits.GetN(&cfg3, 25, 1) == 0 {
 				// Bus Encryption Engine
 				BEE = &bee.BEE{
 					Base: BEE_BASE,
@@ -157,8 +157,8 @@ func init() {
 	// through Serial Download Mode over USB is to check whether the USB
 	// OTG1 controller was running in device mode prior to our own
 	// initialization.
-	if reg.Get(USB1_BASE+usb.USB_UOGx_USBMODE, usb.USBMODE_CM, 0b11) == usb.USBMODE_CM_DEVICE &&
-		reg.Get(USB1_BASE+usb.USB_UOGx_USBCMD, usb.USBCMD_RS, 1) != 0 {
+	if reg.GetN(USB1_BASE+usb.USB_UOGx_USBMODE, usb.USBMODE_CM, 0b11) == usb.USBMODE_CM_DEVICE &&
+		reg.GetN(USB1_BASE+usb.USB_UOGx_USBCMD, usb.USBCMD_RS, 1) != 0 {
 		SDP = true
 	}
 }

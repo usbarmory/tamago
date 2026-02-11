@@ -13,7 +13,7 @@ import (
 
 var GetRandomDataFn func([]byte)
 
-//go:linkname getRandomData runtime.getRandomData
+//go:linkname getRandomData runtime/goos.GetRandomData
 func getRandomData(b []byte) {
 	GetRandomDataFn(b)
 }

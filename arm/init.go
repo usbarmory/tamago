@@ -15,7 +15,7 @@ import (
 // Init takes care of the lower level initialization triggered before runtime
 // setup (pre World start).
 //
-//go:linkname Init runtime.hwinit0
+//go:linkname Init runtime/goos.Hwinit0
 func Init() {
 	if int(read_cpsr()&0x1f) != SYS_MODE {
 		// initialization required only when in PL1

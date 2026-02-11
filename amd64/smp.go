@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"runtime"
+	"runtime/goos"
 	"time"
 	"unsafe"
 
@@ -110,8 +111,8 @@ func (cpu *CPU) procresize() {
 		return
 	}
 
-	runtime.ProcID = cpu.ID
-	runtime.Task = cpu.Task
+	goos.ProcID = cpu.ID
+	goos.Task = cpu.Task
 
 	runtime.GOMAXPROCS(n)
 }

@@ -13,31 +13,31 @@
 TEXT ·set_exc_stack(SB),NOSPLIT,$0-4
 	MOVW addr+0(FP), R0
 
-	// Set FIQ mode SP
+	// set FIQ mode SP
 	WORD	$0xe321f0d1	// msr CPSR_c, 0xd1
 	MOVW R0, R13
 
-	// Set IRQ mode SP
+	// set IRQ mode SP
 	WORD	$0xe321f0d2	// msr CPSR_c, 0xd2
 	MOVW R0, R13
 
-	// Set Supervisor mode SP
+	// set Supervisor mode SP
 	WORD	$0xe321f0d3	// msr CPSR_c, 0xd3
 	MOVW R0, R13
 
-	// Set Monitor mode SP
+	// set Monitor mode SP
 	WORD	$0xe321f0d6	// msr CPSR_c, 0xd6
 	MOVW R0, R13
 
-	// Set Abort mode SP
+	// set Abort mode SP
 	WORD	$0xe321f0d7	// msr CPSR_c, 0xd7
 	MOVW R0, R13
 
-	// Set Undefined mode SP
+	// set Undefined mode SP
 	WORD	$0xe321f0db	// msr CPSR_c, 0xdb
 	MOVW R0, R13
 
-	// Return to System mode
+	// return to System mode
 	WORD	$0xe321f0df	// msr CPSR_c, 0xdf
 
 	RET

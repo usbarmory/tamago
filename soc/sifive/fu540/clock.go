@@ -46,7 +46,7 @@ func init() {
 
 // Freq returns the RISC-V core frequency.
 func Freq() (hz uint32) {
-	if reg.Get(PRCI_CORECLKSEL, 0, 1) == 1 {
+	if reg.GetN(PRCI_CORECLKSEL, 0, 1) == 1 {
 		return COREPLL
 	}
 
@@ -54,9 +54,9 @@ func Freq() (hz uint32) {
 
 	c := reg.Read(PRCI_COREPLLCFG)
 
-	divr := bits.Get(&c, COREPLL_DIVR, 0x3f)
-	divf := bits.Get(&c, COREPLL_DIVF, 0x1ff)
-	divq := bits.Get(&c, COREPLL_DIVQ, 0b111)
+	divr := bits.GetN(&c, COREPLL_DIVR, 0x3f)
+	divf := bits.GetN(&c, COREPLL_DIVF, 0x1ff)
+	divq := bits.GetN(&c, COREPLL_DIVQ, 0b111)
 
 	return (COREPLL * 2 * (divf + 1)) / ((divr + 1) * 1 << divq)
 }

@@ -21,7 +21,8 @@ The TamaGo framework consists of the following components:
 
  - A modified [Go distribution](https://github.com/usbarmory/tamago-go)
    which extends `GOOS` support to the `tamago` target, allowing bare metal
-   execution.
+   execution through a [runtime/goos](https://github.com/usbarmory/tamago-go/tree/latest/src/runtime/goos)
+   overlay set by `GOOSPKG`.
 
  - Go packages for processor/SoC support.
 
@@ -115,10 +116,8 @@ The following table summarizes currently supported RISC-V SoCs and boards
 Userspace targets
 =================
 
-The execution of programs compiled with `GOOS=tamago` can also take place in
-user space by importing any package that implements the required
-[runtime changes](https://pkg.go.dev/github.com/usbarmory/tamago/doc)
-with OS supervision instead of bare metal drivers.
+The execution of programs compiled with `GOOS=tamago` can also take place in                                                                                                                                        user space by importing any package that implements the required `runtime/goos`
+overlay with OS supervision instead of bare metal drivers.
 
 Compiling and running Go programs in user space as `GOOS=tamago` provides the
 benefit of system call isolation as the executable cannot leverage on the Go
@@ -130,19 +129,26 @@ runtime to directly access OS resources, this results in:
 
 The following table summarizes currently available userspace support:
 
-| Operating System                             | `GOARCH`                | Runtime packages                                                                             |
-|----------------------------------------------|-------------------------|----------------------------------------------------------------------------------------------|
-| [Linux](https://www.kernel.org/)             | amd64,arm,arm64,riscv64 | [linux](https://github.com/usbarmory/tamago/tree/master/user/linux)                          |
-| [Linux](https://www.kernel.org/)             | amd64,arm,arm64,riscv64 | [testing](https://github.com/usbarmory/tamago-go/blob/latest/src/testing/testing_tamago.go)¹ |
-| [GoTEE](https://github.com/usbarmory/GoTEE/) |             arm,riscv64 | [applet](https://pkg.go.dev/github.com/usbarmory/GoTEE/applet)                               |
+| Operating System                             | `GOARCH`                | Runtime packages                                                                     |
+|----------------------------------------------|-------------------------|--------------------------------------------------------------------------------------|
+| [Linux](https://www.kernel.org/)             | amd64,arm,arm64,riscv64 | [runtime/goos](https://github.com/usbarmory/tamago-go/blob/latest/src/runtime/goos)¹ |
+| [Linux](https://www.kernel.org/)             | amd64,arm,arm64,riscv64 | [linux](https://github.com/usbarmory/tamago/tree/master/user/linux)                  |
+| [GoTEE](https://github.com/usbarmory/GoTEE/) |             arm,riscv64 | [applet](https://pkg.go.dev/github.com/usbarmory/GoTEE/applet)                       |
 
 ¹ Used to run [standard distribution tests](https://github.com/usbarmory/tamago/wiki/Compatibility) and `go test -tags user_linux`
 
 Compiling
 =========
 
-Go applications are simply required to import, the relevant board package to
-ensure that hardware initialization and runtime support take place:
+While compiling, the `GOOSPKG` Go environment variable must be set to enable
+this library as overlay to support `GOOS=tamago`.
+
+```
+export GOOSPKG=github.com/usbarmory/tamago
+```
+
+Additionally Go applications are required to import the relevant board package
+to ensure that hardware initialization and runtime support take place:
 
 ```golang
 import (
@@ -165,6 +171,9 @@ Go applications can be compiled with the compiler built in the previous step,
 with the addition of a few flags/variables:
 
 ```
+# set this library as `runtime/goos` overlay
+export GOOSPKG=github.com/usbarmory/tamago
+
 # Example for Cloud Hypervisory, QEMU and Firecracker KVMs
 GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 
@@ -187,8 +196,8 @@ each specific target.
 Build tags
 ==========
 
-The following build tags allow application to override TamaGo own definition of
-functions [required by the runtime](https://pkg.go.dev/github.com/usbarmory/tamago/doc):
+The following build tags allow application to override the package own
+definition for the `runtime/goos` overlay:
 
 * `linkramstart`: override `ramStart`
 * `linkramsize`: override `ramSize`
@@ -239,7 +248,7 @@ Additional resources
 ====================
 
 * [Package API](https://pkg.go.dev/github.com/usbarmory/tamago)
-* [Runtime API](https://pkg.go.dev/github.com/usbarmory/tamago/doc)
+* [Runtime API](https://github.com/usbarmory/tamago-go/src/runtime/goos/README.md)
 * [Compatibility](https://github.com/usbarmory/tamago/wiki/Compatibility)
 * [Internals](https://github.com/usbarmory/tamago/wiki/Internals)
 * [FAQ](https://github.com/usbarmory/tamago/wiki/Frequently-Asked-Questions-(FAQ))

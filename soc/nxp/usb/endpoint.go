@@ -170,7 +170,7 @@ func (hw *USB) enable(n int, dir int, transferType int) {
 		bits.SetN(&c, ENDPTCTRL_TXT, 0b11, uint32(transferType))
 		bits.Clear(&c, ENDPTCTRL_TXS)
 
-		if reg.Get(ctrl, ENDPTCTRL_RXE, 1) == 0 {
+		if reg.GetN(ctrl, ENDPTCTRL_RXE, 1) == 0 {
 			// see note at p3879 of IMX6ULLRM
 			bits.SetN(&c, ENDPTCTRL_RXT, 0b11, BULK)
 		}
@@ -180,7 +180,7 @@ func (hw *USB) enable(n int, dir int, transferType int) {
 		bits.SetN(&c, ENDPTCTRL_RXT, 0b11, uint32(transferType))
 		bits.Clear(&c, ENDPTCTRL_RXS)
 
-		if reg.Get(ctrl, ENDPTCTRL_TXE, 1) == 0 {
+		if reg.GetN(ctrl, ENDPTCTRL_TXE, 1) == 0 {
 			// see note at p3879 of IMX6ULLRM
 			bits.SetN(&c, ENDPTCTRL_TXT, 0b11, BULK)
 		}
@@ -325,7 +325,7 @@ func (hw *USB) transfer(n int, dir int, buf []byte) (out []byte, err error) {
 		} else {
 			// treat dtd.next as a register within the dtd DMA buffer
 			reg.Write(prev._dtd+DTD_NEXT, dtd._dtd)
-			prime = reg.Get(hw.prime, pos, 1) == 0 && reg.Get(hw.stat, pos, 1) == 0
+			prime = reg.GetN(hw.prime, pos, 1) == 0 && reg.GetN(hw.stat, pos, 1) == 0
 		}
 
 		if prime {
@@ -348,7 +348,7 @@ func (hw *USB) transfer(n int, dir int, buf []byte) (out []byte, err error) {
 
 	// wait for completion
 	if hw.event != nil && n != 0 {
-		for reg.Get(hw.complete, pos, 1) != 1 {
+		for reg.GetN(hw.complete, pos, 1) != 1 {
 			hw.event.L.Lock()
 			hw.event.Wait()
 			hw.event.L.Unlock()

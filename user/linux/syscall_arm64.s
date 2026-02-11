@@ -18,14 +18,22 @@
 #define SYS_getrandom		278
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
-	MOVD	runtime·ramStart(SB), R0
-	MOVD	runtime·ramSize(SB), R1
+	MOVD	runtime∕goos·RamStart(SB), R0
+	MOVD	runtime∕goos·RamSize(SB), R1
 	MOVW	$0x3, R2	// PROT_READ | PROT_WRITE
 	MOVW	$0x22, R3	// MAP_PRIVATE | MAP_ANONYMOUS
 	MOVW	$0xffffffff, R4
 	MOVW	$0, R5
 	MOVW	$SYS_mmap, R8
 	SVC
+
+	// set stack pointer
+	MOVD	runtime∕goos·RamStart(SB), R1
+	MOVD	R1, RSP
+	MOVD	runtime∕goos·RamSize(SB), R1
+	MOVD	runtime∕goos·RamStackOffset(SB), R2
+	ADD	R1, RSP
+	SUB	R2, RSP
 
 	B	_rt0_tamago_start(SB)
 

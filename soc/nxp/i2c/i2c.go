@@ -264,7 +264,7 @@ func (hw *I2C) tx(buf []byte) (err error) {
 			return errors.New("timeout on byte transmission")
 		}
 
-		if reg.Get16(hw.i2sr, I2SR_RXAK, 1) == 1 {
+		if reg.GetN16(hw.i2sr, I2SR_RXAK, 1) == 1 {
 			return errors.New("no acknowledgement received")
 		}
 	}

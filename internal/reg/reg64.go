@@ -12,18 +12,11 @@ import (
 	"unsafe"
 )
 
-func IsSet64(addr uint64, pos int) bool {
+func Get64(addr uint64, pos int) bool {
 	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
 	r := atomic.LoadUint64(reg)
 
 	return (int(r)>>pos)&1 == 1
-}
-
-func Get64(addr uint64, pos int, mask int) uint64 {
-	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
-	r := atomic.LoadUint64(reg)
-
-	return uint64((int(r) >> pos) & mask)
 }
 
 func Set64(addr uint64, pos int) {
@@ -35,6 +28,14 @@ func Set64(addr uint64, pos int) {
 	atomic.StoreUint64(reg, r)
 }
 
+func SetTo64(addr uint64, pos int, val bool) {
+	if val {
+		Set64(addr, pos)
+	} else {
+		Clear64(addr, pos)
+	}
+}
+
 func Clear64(addr uint64, pos int) {
 	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
 
@@ -44,12 +45,11 @@ func Clear64(addr uint64, pos int) {
 	atomic.StoreUint64(reg, r)
 }
 
-func SetTo64(addr uint64, pos int, val bool) {
-	if val {
-		Set64(addr, pos)
-	} else {
-		Clear64(addr, pos)
-	}
+func GetN64(addr uint64, pos int, mask int) uint64 {
+	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
+	r := atomic.LoadUint64(reg)
+
+	return uint64((int(r) >> pos) & mask)
 }
 
 func Read64(addr uint64) uint64 {

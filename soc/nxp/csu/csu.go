@@ -63,7 +63,7 @@ func (hw *CSU) GetAccess(id int) (secure bool, lock bool, err error) {
 		return false, false, errors.New("index out of range")
 	}
 
-	val := reg.Get(hw.sa, id*2, 0b11)
+	val := reg.GetN(hw.sa, id*2, 0b11)
 
 	if val&0b01 == 0 {
 		secure = true

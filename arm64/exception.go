@@ -9,7 +9,7 @@
 package arm64
 
 import (
-	"runtime"
+	"runtime/goos"
 	"unsafe"
 
 	"github.com/usbarmory/tamago/internal/exception"
@@ -41,7 +41,7 @@ func vector(fn ExceptionHandler) uint64 {
 // processor mode before panicking.
 func DefaultExceptionHandler(pc uintptr) {
 	if isThrowing {
-		runtime.Exit(1)
+		goos.Exit(1)
 	}
 
 	isThrowing = true

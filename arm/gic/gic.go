@@ -85,7 +85,7 @@ func (hw *GIC) Init(secure bool, fiqen bool) {
 	hw.gicc = hw.Base + GICC_OFF
 
 	// Get the maximum number of external interrupt lines
-	itLinesNum := reg.Get(hw.gicd+GICD_TYPER, TYPER_ITLINES, 0x1f)
+	itLinesNum := reg.GetN(hw.gicd+GICD_TYPER, TYPER_ITLINES, 0x1f)
 
 	// Add a line for the 32 internal interrupts
 	itLinesNum += 1
@@ -169,9 +169,9 @@ func (hw *GIC) GetInterrupt(secure bool) (id int) {
 	var m uint32
 
 	if secure {
-		m = reg.Get(hw.gicc+GICC_IAR, IAR_ID, 0x3ff)
+		m = reg.GetN(hw.gicc+GICC_IAR, IAR_ID, 0x3ff)
 	} else {
-		m = reg.Get(hw.gicc+GICC_AIAR, AIAR_ID, 0x3ff)
+		m = reg.GetN(hw.gicc+GICC_AIAR, AIAR_ID, 0x3ff)
 	}
 
 	if m < 1020 {

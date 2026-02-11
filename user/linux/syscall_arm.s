@@ -9,8 +9,6 @@
 #include "go_asm.h"
 #include "textflag.h"
 
-#define CLOCK_REALTIME 0
-
 // for EABI, as we don't support OABI
 #define SYS_BASE 0x0
 
@@ -20,15 +18,24 @@
 #define SYS_clock_gettime	(SYS_BASE + 263)
 #define SYS_getrandom		(SYS_BASE + 384)
 
+#define CLOCK_REALTIME 0
+
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
-	MOVW	runtime·ramStart(SB), R0
-	MOVW	runtime·ramSize(SB), R1
+	MOVW	runtime∕goos·RamStart(SB), R0
+	MOVW	runtime∕goos·RamSize(SB), R1
 	MOVW	$0x3, R2	// PROT_READ | PROT_WRITE
 	MOVW	$0x22, R3	// MAP_PRIVATE | MAP_ANONYMOUS
 	MOVW	$0xffffffff, R4
 	MOVW	$0, R5
 	MOVW	$SYS_mmap2, R7
 	SWI	$0
+
+	// set stack pointer
+	MOVW	runtime∕goos·RamStart(SB), R13
+	MOVW	runtime∕goos·RamSize(SB), R1
+	MOVW	runtime∕goos·RamStackOffset(SB), R2
+	ADD	R1, R13
+	SUB	R2, R13
 
 	B	_rt0_tamago_start(SB)
 

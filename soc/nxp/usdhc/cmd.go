@@ -134,7 +134,7 @@ func (hw *USDHC) cmd(index uint32, arg uint32, blocks uint32, timeout time.Durat
 	// clear interrupts status
 	reg.Write(hw.int_status, 0xffffffff)
 
-	if params.dtd == WRITE && reg.Get(hw.pres_state, PRES_STATE_WPSPL, 1) == 0 {
+	if params.dtd == WRITE && reg.GetN(hw.pres_state, PRES_STATE_WPSPL, 1) == 0 {
 		// The uSDHC merely reports on WP, it doesn't really act on it
 		// despite IMX6ULLRM suggesting otherwise (e.g. p4017).
 		return fmt.Errorf("card is write protected")
@@ -233,7 +233,7 @@ func (hw *USDHC) cmd(index uint32, arg uint32, blocks uint32, timeout time.Durat
 	if (status >> 16) > 0 {
 		msg := fmt.Sprintf("pres_state:%#x int_status:%#x", reg.Read(hw.pres_state), status)
 
-		if bits.Get(&status, INT_STATUS_AC12E, 1) == 1 {
+		if bits.GetN(&status, INT_STATUS_AC12E, 1) == 1 {
 			msg += fmt.Sprintf(" AC12:%#x", reg.Read(hw.ac12_err_status))
 		}
 

@@ -14,8 +14,6 @@ import (
 	_ "unsafe"
 )
 
-//go:linkname ramSize runtime.ramSize
-
 // the following models have 256MB RAM:
 // - model A  (all)
 // - model A+ (before 10th August 2016)
@@ -26,4 +24,6 @@ import (
 // - model A+ (after 10th August 2016)
 // - model B  (after 15th October 2012)
 // - model B+ (all)
+
+//go:linkname ramSize runtime/goos.RamSize
 var ramSize uint32 = 0x20000000 - 0x04000000 // 512MB - 64MB GPU (VideoCore)

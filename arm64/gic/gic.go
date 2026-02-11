@@ -97,7 +97,7 @@ func (hw *GIC) Init() {
 	}
 
 	// Get the maximum number of external interrupt lines
-	itLinesNum := reg.Get(hw.GICD+GICD_TYPER, TYPER_ITLINES, 0x1f)
+	itLinesNum := reg.GetN(hw.GICD+GICD_TYPER, TYPER_ITLINES, 0x1f)
 
 	// Add a line for the 32 internal interrupts
 	itLinesNum += 1
