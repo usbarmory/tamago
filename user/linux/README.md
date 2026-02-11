@@ -69,7 +69,7 @@ func main() {
 
 can be executed as follows:
 
-```
+```sh
 # GOOSPKG can be omitted to use Go compiler default overlay
 GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARCH=amd64 \
 	$TAMAGO run test.go

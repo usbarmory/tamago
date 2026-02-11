@@ -64,7 +64,7 @@ import (
 Build the [TamaGo compiler](https://github.com/usbarmory/tamago-go)
 (or use the [latest binary release](https://github.com/usbarmory/tamago-go/releases/latest)):
 
-```
+```sh
 wget https://github.com/usbarmory/tamago-go/archive/refs/tags/latest.zip
 unzip latest.zip
 cd tamago-go-latest/src && ./all.bash
@@ -74,7 +74,7 @@ cd ../bin && export TAMAGO=`pwd`/go
 Go applications can be compiled as usual, using the compiler built in the
 previous step, but with the addition of the following flags/variables:
 
-```
+```sh
 GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARM=7 GOARCH=arm \
 	${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
 ```
@@ -85,7 +85,7 @@ is [available](https://github.com/usbarmory/tamago-example).
 Build tags
 ==========
 
-The following build tags allow application to override the package own
+The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
 * `linkramsize`: exclude `ramSize` from `mem.go`
@@ -109,7 +109,7 @@ Native hardware: imx image on microSD
 
 Copy the built `imx` image to a microSD as follows:
 
-```
+```sh
 sudo dd if=<path to imx file> of=/dev/sdX bs=1M conv=fsync
 ```
 *IMPORTANT*: /dev/sdX must be replaced with your microSD device (not eventual
@@ -132,7 +132,7 @@ Standard output
 The standard output can be accessed through the debug console found
 on micro USB connector J1901 and the following `picocom` configuration:
 
-```
+```sh
 picocom -b 115200 -eb /dev/ttyUSB0 --imap lfcrlf
 ```
 
@@ -150,7 +150,7 @@ set remote hardware-watchpoint-limit 4
 
 Example:
 
-```
+```sh
 # start openocd daemon
 openocd -f interface/ftdi/jtagkey.cfg -f target/imx6ul.cfg -c "adapter speed 1000"
 
@@ -173,7 +173,7 @@ QEMU
 
 The target can be executed under emulation as follows:
 
-```
+```sh
 qemu-system-arm \
 	-machine mcimx6ul-evk -cpu cortex-a7 -m 512M \
 	-nographic -monitor none -serial null -serial stdio \
@@ -185,7 +185,7 @@ The emulated target can be debugged with GDB by adding the `-S -s` flags to the
 previous execution command, this will make qemu waiting for a GDB connection
 that can be launched as follows:
 
-```
+```sh
 arm-none-eabi-gdb -ex "target remote 127.0.0.1:1234" example
 ```
 

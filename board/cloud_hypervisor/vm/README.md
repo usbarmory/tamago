@@ -67,7 +67,7 @@ import (
 Build the [TamaGo compiler](https://github.com/usbarmory/tamago-go)
 (or use the [latest binary release](https://github.com/usbarmory/tamago-go/releases/latest)):
 
-```
+```sh
 wget https://github.com/usbarmory/tamago-go/archive/refs/tags/latest.zip
 unzip latest.zip
 cd tamago-go-latest/src && ./all.bash
@@ -77,7 +77,7 @@ cd ../bin && export TAMAGO=`pwd`/go
 Go applications can be compiled as usual, using the compiler built in the
 previous step, but with the addition of the following flags/variables:
 
-```
+```sh
 GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARCH=amd64 \
 	${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 ```
@@ -88,7 +88,7 @@ An example application, targeting the Cloud Hypervisor platform, is
 Build tags
 ==========
 
-The following build tags allow application to override the package own
+The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
 * `linkramsize`: exclude `ramSize` from `mem.go`
@@ -102,7 +102,7 @@ reference usage and a Makefile target for automatic creation of an ELF image
 which can be executed under paravirtualization with
 [cloud-hypervisor](https://www.cloudhypervisor.org/docs/prologue/quick-start/#firmware-booting):
 
-```
+```sh
 cloud-hypervisor --kernel example --cpus boot=1 --memory size=4096M --net "tap=tap0" --serial tty --console off
 ```
 
