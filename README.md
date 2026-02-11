@@ -21,7 +21,8 @@ The TamaGo framework consists of the following components:
 
  - A modified [Go distribution](https://github.com/usbarmory/tamago-go)
    which extends `GOOS` support to the `tamago` target, allowing bare metal
-   execution through a `runtime/goos` overlay set by `GOOSPKG`.
+   execution through a [runtime/goos](https://github.com/usbarmory/tamago-go/tree/latest/src/runtime/goos)
+   overlay set by `GOOSPKG`.
 
  - Go packages for processor/SoC support.
 
@@ -139,16 +140,11 @@ The following table summarizes currently available userspace support:
 Compiling
 =========
 
-While compiling, the `GOOSPKG` Go environment variable must be set, to enable
-an overlay to support `GOOS=tamago`, to either a package path or local
-directory:
+While compiling, the `GOOSPKG` Go environment variable must be set to enable
+this library as overlay to support `GOOS=tamago`:
 
 ```
-# VCS path example
-export GOOSPKG=github.com/usbarmory/tamago@v1.26.0
-
-# local path example
-export GOOSPKG=workdir/tamago
+export GOOSPKG=github.com/usbarmory/tamago
 ```
 
 Additionally Go applications are required to import the relevant board package

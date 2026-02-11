@@ -53,9 +53,10 @@ Supported hardware
 Compiling
 =========
 
-Go applications are required to set `GOOSPKG` to the desired package overlay
-and import the relevant board package to ensure that hardware initialization
-and runtime support take place:
+Go applications are required to set `GOOSPKG` to the desired
+[runtime/goos](https://github.com/usbarmory/tamago-go/tree/latest/src/runtime/goos)
+overlay and import the relevant board package to ensure that hardware
+initialization and runtime support take place:
 
 ```golang
 import (
@@ -77,7 +78,7 @@ Go applications can be compiled as usual, using the compiler built in the
 previous step, but with the addition of the following flags/variables:
 
 ```
-GOOS=tamago GOOSPKG=github.com/usbarmory/tamago@v1.26.0 GOARCH=amd64 \
+GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARCH=amd64 \
 	${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 ```
 
