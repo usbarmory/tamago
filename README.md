@@ -141,7 +141,7 @@ Compiling
 =========
 
 While compiling, the `GOOSPKG` Go environment variable must be set to enable
-this library as overlay to support `GOOS=tamago`:
+this library as overlay to support `GOOS=tamago`.
 
 ```
 export GOOSPKG=github.com/usbarmory/tamago
@@ -171,6 +171,9 @@ Go applications can be compiled with the compiler built in the previous step,
 with the addition of a few flags/variables:
 
 ```
+# set this library as `runtime/goos` overlay
+export GOOSPKG=github.com/usbarmory/tamago
+
 # Example for Cloud Hypervisory, QEMU and Firecracker KVMs
 GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 
