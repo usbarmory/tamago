@@ -56,12 +56,12 @@ func (hw *PhysicalFilter) ReadPMP(i int) (addr uint64, r bool, w bool, a bool, l
 
 	pmp := reg.Read64(uint64(hw.Base) + uint64(8*i))
 
-	addr = bits.Get64(&pmp, PMP_ADDR_HI, 0x1ffffff) << 4
+	addr = bits.GetN64(&pmp, PMP_ADDR_HI, 0x1ffffff) << 4
 
-	r = bits.Get64(&pmp, PMP_R, 1) == 1
-	w = bits.Get64(&pmp, PMP_W, 1) == 1
-	a = bits.Get64(&pmp, PMP_A, 1) == 1
-	l = bits.Get64(&pmp, PMP_L, 1) == 1
+	r = bits.GetN64(&pmp, PMP_R, 1) == 1
+	w = bits.GetN64(&pmp, PMP_W, 1) == 1
+	a = bits.GetN64(&pmp, PMP_A, 1) == 1
+	l = bits.GetN64(&pmp, PMP_L, 1) == 1
 
 	return
 }
