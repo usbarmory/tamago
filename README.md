@@ -116,7 +116,8 @@ The following table summarizes currently supported RISC-V SoCs and boards
 Userspace targets
 =================
 
-The execution of programs compiled with `GOOS=tamago` can also take place in                                                                                                                                        user space by importing any package that implements the required `runtime/goos`
+The execution of programs compiled with `GOOS=tamago` can also take place in
+user space by importing any package that implements the required `runtime/goos`
 overlay with OS supervision instead of bare metal drivers.
 
 Compiling and running Go programs in user space as `GOOS=tamago` provides the
