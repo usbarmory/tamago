@@ -117,7 +117,7 @@ func Probe(bus int, vendor uint16, device uint16) *Device {
 		Bus: uint32(bus),
 	}
 
-	for slot := uint32(0); slot < maxDevices; slot++ {
+	for slot := range uint32(maxDevices) {
 		d.Slot = slot
 
 		if d.probe() && d.Vendor == vendor && d.Device == device {
@@ -130,7 +130,7 @@ func Probe(bus int, vendor uint16, device uint16) *Device {
 
 // Devices returns all found PCI devices on a given bus.
 func Devices(bus int) (devices []*Device) {
-	for slot := uint32(0); slot < maxDevices; slot++ {
+	for slot := range uint32(maxDevices) {
 		d := &Device{
 			Bus:  uint32(bus),
 			Slot: slot,

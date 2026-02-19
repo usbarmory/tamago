@@ -136,7 +136,7 @@ func (hw *CAAM) EnableRTIC(blocks []MemoryBlock) (err error) {
 	reg.Write(hw.Base+CAAM_RWDOG+0x4, uint32(RTICWatchdog))
 
 	// set memory blocks for hash once and run-time check operations
-	for i := 0; i < len(blocks); i++ {
+	for i := range blocks {
 		reg.Set(hw.Base+CAAM_RCTL, RCTL_HOME+i)
 		reg.Set(hw.Base+CAAM_RCTL, RCTL_RTME+i)
 	}

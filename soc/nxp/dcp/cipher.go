@@ -129,7 +129,7 @@ func (hw *DCP) CipherChain(buf []byte, ivs []byte, count int, size int, index in
 	// use key RAM slot
 	pkt.Control1 |= (uint32(index) & 0xff) << DCP_CTRL1_KEY_SELECT
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		pkt.SourceBufferAddress = uint32(src) + uint32(i*size)
 		pkt.DestinationBufferAddress = pkt.SourceBufferAddress
 		pkt.PayloadPointer = uint32(payloads) + uint32(i*aes.BlockSize)

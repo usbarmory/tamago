@@ -74,7 +74,7 @@ func (cpu *CPU) FindPTE(addr uint64, bitLen int) (pte uint64, level int, page ui
 	pml4 := read_cr3()
 	tableAddr := pml4 & mask
 
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		level = 4 - i
 		off := tableAddr + indices[i]*8
 		entry := reg.Read64(off)

@@ -70,7 +70,7 @@ func (b *GHCB) write(off uint, val uint64) {
 }
 
 func (b *GHCB) valid(offsets []uint64) {
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		b.buf[VALID_BITMAP+i] = 0x00
 	}
 
