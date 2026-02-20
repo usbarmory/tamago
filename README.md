@@ -141,6 +141,43 @@ The following table summarizes currently available userspace support:
 Compiling
 =========
 
+Go distribution supporting `GOOS=tamago`
+---------------------------------------
+
+The [tamago]((https://github.com/usbarmory/tamago/tree/latest/cmd/tamago)
+command downloads, compiles, and runs the `go` command from the
+[TamaGo distribution](https://github.com/usbarmory/tamago-go) matching the
+tamago module version from the application `go.mod`.
+
+Applications can add `github.com/usbarmory/tamago` to `go.mod`, and then
+replace the `go` command with:
+
+
+```sh
+go run github.com/usbarmory/tamago/cmd/tamago
+```
+
+or add the following line to `go.mod` go use `go tool tamago` as go command:
+
+```
+tool github.com/usbarmory/tamago/cmd/tamago
+```
+
+Alternatively the
+[latest TamaGo distribution](https://github.com/usbarmory/tamago-go/tree/latest) can be
+manually built or the
+[latest binary release](https://github.com/usbarmory/tamago-go/releases/latest) can be used:
+
+```sh
+wget https://github.com/usbarmory/tamago-go/archive/refs/tags/latest.zip
+unzip latest.zip
+cd tamago-go-latest/src && ./all.bash
+cd ../bin && export TAMAGO=`pwd`/go
+```
+
+Building applications
+---------------------
+
 While compiling, the `GOOSPKG` Go environment variable must be set to enable
 this library as overlay to support `GOOS=tamago`.
 
@@ -148,24 +185,14 @@ this library as overlay to support `GOOS=tamago`.
 export GOOSPKG=github.com/usbarmory/tamago
 ```
 
-Additionally Go applications are required to import the relevant board package
-to ensure that hardware initialization and runtime support take place:
+Go applications are required to import the relevant board package to ensure
+that hardware initialization and runtime support take place:
 
 ```golang
 import (
 	// Example for USB armory Mk II
 	_ "github.com/usbarmory/tamago/board/usbarmory/mk2"
 )
-```
-
-Build the [TamaGo compiler](https://github.com/usbarmory/tamago-go)
-(or use the [latest binary release](https://github.com/usbarmory/tamago-go/releases/latest)):
-
-```sh
-wget https://github.com/usbarmory/tamago-go/archive/refs/tags/latest.zip
-unzip latest.zip
-cd tamago-go-latest/src && ./all.bash
-cd ../bin && export TAMAGO=`pwd`/go
 ```
 
 Go applications can be compiled with the compiler built in the previous step,
