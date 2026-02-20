@@ -67,7 +67,7 @@ replace the `go` command with:
 go run github.com/usbarmory/tamago/cmd/tamago
 ```
 
-or add the following line to `go.mod` go use `go tool tamago` as go command:
+or add the following line to `go.mod` to use `go tool tamago` as go command:
 
 ```
 tool github.com/usbarmory/tamago/cmd/tamago
