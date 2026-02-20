@@ -400,7 +400,7 @@ func (d *Device) SetLanguageCodes(codes []uint16) (err error) {
 		return fmt.Errorf("only a single language is currently supported")
 	}
 
-	for i := 0; i < len(codes); i++ {
+	for i := range codes {
 		b := make([]byte, 2)
 		binary.LittleEndian.PutUint16(b, codes[i])
 		buf = append(buf, b...)
@@ -423,7 +423,7 @@ func (d *Device) AddString(s string) (uint8, error) {
 	r := []rune(s)
 	u := utf16.Encode([]rune(r))
 
-	for i := 0; i < len(u); i++ {
+	for i := range u {
 		buf = append(buf, byte(u[i]&0xff))
 		buf = append(buf, byte(u[i]>>8))
 	}

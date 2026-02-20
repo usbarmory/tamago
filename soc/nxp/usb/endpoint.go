@@ -241,7 +241,7 @@ func buildDTD(n int, dir int, addr uint32, size int) (dtd *dTD) {
 	dtd._buf = addr
 	dtd._size = uint32(size)
 
-	for n := 0; n < DTD_PAGES; n++ {
+	for n := range DTD_PAGES {
 		dtd.Buffer[n] = dtd._buf + DTD_PAGE_SIZE*uint32(n)
 	}
 

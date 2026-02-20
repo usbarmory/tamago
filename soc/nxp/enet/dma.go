@@ -136,7 +136,7 @@ func (ring *bufferDescriptorRing) init(rx bool, n int, s *Stats) uint32 {
 	dataSize := MTU + (bufferAlign - (MTU % bufferAlign))
 	addr, data := dma.Reserve(n*dataSize, bufferAlign)
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		off := dataSize * i
 
 		bd := &bufferDescriptor{

@@ -340,7 +340,7 @@ func (hw *USDHC) executeTuning(index uint32, blocks uint32) error {
 
 	tuning_block := make([]byte, blocks)
 
-	for i := 0; i < TUNING_MAX_LOOP_COUNT; i++ {
+	for range TUNING_MAX_LOOP_COUNT {
 		// send tuning block command, ignore responses
 		hw.transfer(index, READ, 0, 1, blocks, tuning_block)
 
