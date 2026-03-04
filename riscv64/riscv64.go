@@ -29,6 +29,9 @@ const XLEN = 64
 // CPU instance
 type CPU struct {
 	sync.Mutex
+
+	// features
+	features Features
 }
 
 // defined in riscv64.s
@@ -48,6 +51,7 @@ func (cpu *CPU) Init() {
 	goos.Idle = cpu.DefaultIdleGovernor
 
 	cpu.SetExceptionHandler(DefaultExceptionHandler)
+	cpu.initFeatures()
 }
 
 // InitSupervisor performs initialization of an RV64 core instance in
