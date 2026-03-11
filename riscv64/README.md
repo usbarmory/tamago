@@ -41,7 +41,7 @@ Supported hardware
 
 | CPU      | Related platform packages                                                       | Core drivers |
 |----------|---------------------------------------------------------------------------------|--------------|
-| RV64IMAC | [sifive_u](https://github.com/usbarmory/tamago/blob/master/board/qemu/sifive_u) | PMP          |
+| rv64gc   | [sifive_u](https://github.com/usbarmory/tamago/blob/master/board/qemu/sifive_u) | PMP          |
 
 Build tags
 ==========
