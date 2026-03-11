@@ -280,8 +280,8 @@ Additional resources
 * [Compatibility](https://github.com/usbarmory/tamago/wiki/Compatibility)
 * [Internals](https://github.com/usbarmory/tamago/wiki/Internals)
 * [FAQ](https://github.com/usbarmory/tamago/wiki/Frequently-Asked-Questions-(FAQ))
-* [TamaGo presentation](https://github.com/abarisani/abarisani.github.io/tree/master/research/tamago)
-* [ArmoredWitness presentation](https://github.com/abarisani/abarisani.github.io/tree/master/research/witness)
+* Presentations: [TamaGo](https://github.com/abarisani/abarisani.github.io/tree/master/research/tamago), [ArmoredWitness](https://github.com/abarisani/abarisani.github.io/tree/master/research/witness)
+* Experiments: [kotama](https://github.com/usbarmory/kotama)
 
 Maintainers
 ===========
