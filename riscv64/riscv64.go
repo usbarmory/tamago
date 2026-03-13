@@ -30,6 +30,15 @@ const XLEN = 64
 type CPU struct {
 	sync.Mutex
 
+	// Counter represents the function to obtain the system counter for
+	// operation of [CPU.GetTime] and [CPU.SetTime].
+	Counter func() uint64
+
+	// Timer multiplier
+	TimerMultiplier float64
+	// Timer offset in nanoseconds
+	TimerOffset int64
+
 	// features
 	features Features
 }
@@ -52,6 +61,10 @@ func (cpu *CPU) Init() {
 
 	cpu.SetExceptionHandler(DefaultExceptionHandler)
 	cpu.initFeatures()
+
+	if cpu.Counter == nil {
+		cpu.Counter = func() uint64 { return 0 }
+	}
 }
 
 // InitSupervisor performs initialization of an RV64 core instance in
