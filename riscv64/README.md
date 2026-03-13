@@ -42,6 +42,7 @@ Supported hardware
 | CPU      | Related platform packages                                                       | Core drivers |
 |----------|---------------------------------------------------------------------------------|--------------|
 | rv64gc   | [sifive_u](https://github.com/usbarmory/tamago/blob/master/board/qemu/sifive_u) | PMP          |
+| rv64imfc | [kotama](https://github.com/usbarmory/kotama) (sifive_u w/ restricted ram/cpu)  | PMP          |
 
 Build tags
 ==========
