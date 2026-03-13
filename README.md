@@ -231,6 +231,7 @@ definition for the `runtime/goos` overlay:
 * `linkramsize`: override `ramSize`
 * `linkprintk`: override `printk`
 * `linkcpuinit`: override `cpuinit`
+* `tiny`: reduce heap allocation requirements
 
 Executing and debugging
 =======================

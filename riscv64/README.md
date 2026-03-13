@@ -52,6 +52,7 @@ definition for the `runtime/goos` overlay:
 
 * `linkramstart`: exclude `ramStart` from `mem.go`
 * `linkcpuinit`: exclude `cpuinit` from `init.s`
+* `tiny`: reduce heap allocation requirements
 
 License
 =======
