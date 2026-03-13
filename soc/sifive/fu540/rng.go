@@ -27,10 +27,10 @@ func initRNG() {
 // SetRNG allows to override the internal random number generator function used
 // by TamaGo on the FU540 SoC.
 //
-// At runtime initialization the fu540 package selects a timer seeded with the
-// CPU timer as the FU540 lacks an entropy source. This is unsuitable for
-// secure random number generation and must therefore be overridden to ensure
-// safe operation of Go `crypto/rand`.
+// At runtime initialization the fu540 package seeds a DRBG with the CPU timer
+// as the FU540 lacks an entropy source. This is unsuitable for secure random
+// number generation and must therefore be overridden to ensure secure operation
+// of Go crypto.
 func SetRNG(getRandomData func([]byte)) {
 	rng.GetRandomDataFn = getRandomData
 }
