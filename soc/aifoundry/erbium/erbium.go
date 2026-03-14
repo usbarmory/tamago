@@ -14,9 +14,9 @@
 // specifications:
 //   - Erbium Minion Isotope TRM - 2025/12/03
 //
-// This package is only meant to be used with `GOOS=tamago GOARCH=riscv64` as
-// supported by the TamaGo framework for bare metal Go on RISC-V SoCs, see
-// https://github.com/usbarmory/tamago.
+// This package is only meant to be used with `GOOS=tamago GOARCH=riscv64
+// GOSOFT=1` as supported by the TamaGo framework for bare metal Go on RISC-V
+// SoCs, see https://github.com/usbarmory/tamago.
 package erbium
 
 import (

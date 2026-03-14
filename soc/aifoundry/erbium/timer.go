@@ -1,4 +1,4 @@
-// RISC-V 64-bit processor support
+// AI Foundry Erbium initialization
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.

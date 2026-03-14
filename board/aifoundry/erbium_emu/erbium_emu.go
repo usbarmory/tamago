@@ -10,9 +10,9 @@
 // import, for the AI Foundry Erbium emulator machine configured with a single
 // core.
 //
-// This package is only meant to be used with `GOOS=tamago GOARCH=riscv64` as
-// supported by the TamaGo framework for bare metal Go on RISC-V SoCs, see
-// https://github.com/usbarmory/tamago.
+// This package is only meant to be used with `GOOS=tamago GOARCH=riscv64
+// GOSOFT=1` as supported by the TamaGo framework for bare metal Go on RISC-V
+// SoCs, see https://github.com/usbarmory/tamago.
 package erbium_emu
 
 import (
