@@ -32,16 +32,9 @@ type CLINT struct {
 	Base uint64
 	// CPU real time clock
 	RTCCLK uint64
-	// Timer offset in nanoseconds
-	TimerOffset int64
 }
 
 // Mtime returns the number of cycles counted from the RTCCLK input.
 func (hw *CLINT) Mtime() uint64 {
 	return reg.Read64(hw.Base + MTIME)
-}
-
-// SetTimer sets the timer to the argument nanoseconds value.
-func (hw *CLINT) SetTimer(ns int64) {
-	hw.TimerOffset = ns - hw.Nanotime()
 }

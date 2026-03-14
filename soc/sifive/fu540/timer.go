@@ -12,11 +12,12 @@ import (
 	_ "unsafe"
 )
 
-//go:linkname ramStackOffset runtime/goos.RamStackOffset
-var ramStackOffset uint64 = 0x100
+// Counter returns the number of nanoseconds counted from the RTCCLK input.
+func Counter() uint64 {
+	return uint64(CLINT.Nanotime())
+}
 
-// Init takes care of the lower level initialization triggered early in runtime
-// setup (e.g. runtime/goos.Hwinit1).
-func Init() {
-	RV64.Init()
+//go:linkname nanotime runtime/goos.Nanotime
+func nanotime() int64 {
+	return RV64.GetTime()
 }

@@ -39,7 +39,12 @@ const (
 // Peripheral instances
 var (
 	// RISC-V core
-	RV64 = &riscv64.CPU{}
+	RV64 = &riscv64.CPU{
+		Counter:         Counter,
+		TimerMultiplier: 1,
+		// required before Init()
+		TimerOffset: 1,
+	}
 
 	// Core-Local Interruptor
 	CLINT = &clint.CLINT{
