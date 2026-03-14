@@ -6,8 +6,8 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package uart implements a driver for AI Foundry UART controllers adopting the
-// following reference specifications:
+// Package uart implements a driver for UART controllers adopting the following
+// reference specifications:
 //   - Shakti SoC Device Register Manual - 2021/06/24
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=riscv64` as

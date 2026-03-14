@@ -1,5 +1,5 @@
-TamaGo - bare metal Go - RISC-V 64-bit support
-==============================================
+TamaGo - bare metal Go - Erbium support
+=======================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -22,8 +22,9 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal processors.
 
-The [riscv64](https://github.com/usbarmory/tamago/tree/master/riscv64) package
-provides support for RISC-V 64-bit CPUs.
+The [erbium](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/erbium)
+package provides support for AI Foundry [Erbium](https://github.com/aifoundry-org/erbium)
+processor.
 
 Documentation
 =============
@@ -39,10 +40,23 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| CPU      | Related platform packages                                                                | Core drivers |
-|----------|------------------------------------------------------------------------------------------|--------------|
-| rv64gc   | [sifive_u](https://github.com/usbarmory/tamago/blob/master/board/qemu/sifive_u)          | PMP          |
-| rv64imfc | [erbium_emu](https://github.com/usbarmory/tamago/blob/master/board/aifoundry/erbium_emu) | PMP          |
+| SoC               | Related board packages                                                                   | Peripheral drivers                                                    |
+|-------------------|------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| AI Foundru Erbium | [erbium_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/erbium_emu) | [UART](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry) |
+
+Soft float requirement
+======================
+
+This target requires a specific `GOOS=tamago` compiler branch to support the
+following:
+
+  * `GOSOFT=1`: compiler build time variable to enable soft float for `riscv64`, removing
+    requirement for `ad` extensions and forcing single-threaded operation.
+
+  * `tiny`: build tag to support considerable reduction of RAM allocation requirements.
+
+The [kotama repository](https://github.com/usbarmory/kotama) provides
+instructions and a reference implementation for this target.
 
 Build tags
 ==========
@@ -51,7 +65,7 @@ The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
 * `linkramstart`: exclude `ramStart` from `mem.go`
-* `linkcpuinit`: exclude `cpuinit` from `init.s`
+* `linkcpuinit`: exclude `cpuinit` imported from `riscv64/init.s`
 * `tiny`: reduce heap allocation requirements
 
 License
