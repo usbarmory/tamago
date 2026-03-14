@@ -39,9 +39,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC          | Related board packages                                                               | Peripheral drivers                                                                          |
-|--------------|--------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| SiFive FU540 | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u) | [CLINT, PhysicalFilter, UART](https://github.com/usbarmory/tamago/tree/master/soc/sifive_u) |
+| SoC          | Related board packages                                                               | Peripheral drivers                                                                        |
+|--------------|--------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| SiFive FU540 | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u) | [CLINT, PhysicalFilter, UART](https://github.com/usbarmory/tamago/tree/master/soc/sifive) |
 
 Build tags
 ==========
