@@ -10,18 +10,16 @@ package erbium
 
 import (
 	"encoding/binary"
+	"time"
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/internal/rng"
 )
 
-// FIXME
-const seed uint64 = 0x1234567890abcdef
-
 //go:linkname initRNG runtime/goos.InitRNG
 func initRNG() {
 	drbg := &rng.DRBG{}
-	binary.LittleEndian.PutUint64(drbg.Seed[:], seed)
+	binary.LittleEndian.PutUint64(drbg.Seed[:], uint64(time.Now().UnixNano()))
 	rng.GetRandomDataFn = drbg.GetRandomData
 }
 
