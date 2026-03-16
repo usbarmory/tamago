@@ -58,7 +58,9 @@ func (hw *UART) Init() {
 	hw.rxdata = hw.Base + UART_RX
 	hw.status = hw.Base + UART_STATUS
 
-	reg.Set(hw.System, CONFIG_UART_ENABLE)
+	if hw.System != 0 {
+		reg.Set(hw.System, CONFIG_UART_ENABLE)
+	}
 }
 
 // Tx transmits a single character to the serial port.
