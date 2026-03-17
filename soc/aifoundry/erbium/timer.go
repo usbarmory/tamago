@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	CoreFreq        = 2e9 // 200 MHz
+	CoreFreq        = 200e6 // 200 MHz
 	TimerMultiplier = 50000
 )
 
