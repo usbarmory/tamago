@@ -22,12 +22,16 @@ package erbium
 import (
 	_ "unsafe"
 
+	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/riscv64"
 	"github.com/usbarmory/tamago/soc/aifoundry/uart"
 )
 
 // Peripheral registers
 const (
+	// System register
+	SYSREG_BASE = 0x02000000
+
 	// System configuration
 	SYSTEM_CONFIG = 0x02000008
 
@@ -37,8 +41,6 @@ const (
 	// Serial ports
 	UART0_BASE = 0x02004000
 )
-
-const TimerMultiplier = 50000
 
 // Peripheral instances
 var (
@@ -58,7 +60,7 @@ var (
 	}
 )
 
-// Model returns the processor name.
-func Model() string {
-	return "Erbium"
+// Model returns the processor name and version.
+func Model() (name string, version uint32) {
+	return "Erbium", reg.Read(SYSREG_BASE)
 }

@@ -14,6 +14,11 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
+const (
+	CoreFreq        = 2e9 // 200 MHz
+	TimerMultiplier = 50000
+)
+
 // Counter returns the CPU Machine Timer Register.
 func Counter() uint64 {
 	return reg.Read64(ESR_MTIME)
