@@ -81,16 +81,14 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	SUBQ	$(const_callSize), AX
 	MOVQ	AX, ·isr(SB)
 
-	MOVQ	·irqHandlerG(SB), AX
-	CMPQ	AX, $0
-	JE	done
-
 	MOVB	$1, ·irqHandling(SB)
 	MOVB	$1, ·irqLock(SB)
 
-	CALL	runtime·WakeG(SB)
-	CMPQ	AX, $0
-	JNE	done
+	SUBQ	$8, SP
+	MOVQ	·irqSignal(SB), AX
+	MOVQ	AX, (SP)
+	CALL	os∕signal·Relay(SB)
+	ADDQ	$8, SP
 
 	// wake idle APs
 	MOVL	$(const_LAPIC_ICRL), AX

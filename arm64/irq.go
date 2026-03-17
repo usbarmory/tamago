@@ -9,13 +9,12 @@
 package arm64
 
 import (
-	"math"
-	"runtime"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
-// IRQ handling goroutine
-var irqHandlerG uint
+var irqSignal = syscall.SIGTRAP
 
 // defined in irq.s
 func irq_enable()
@@ -41,21 +40,18 @@ func (cpu *CPU) WaitInterrupt() {
 // resumed when an IRQ exception is received, an argument function can be set
 // to service signaled interrupts (see gic package).
 func ServiceInterrupts(isr func()) {
-	irqHandlerG, _ = runtime.GetG()
-
 	if isr == nil {
 		isr = func() { return }
 	}
 
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, irqSignal)
+
 	for {
 		// To avoid losing interrupts, re-enabling must happen only after we
-		// are sleeping.
+		// are waiting.
 		go irq_enable()
-
-		// Sleep indefinitely until woken up by runtime.WakeG
-		// (see ·handleInterrupt in irq.s).
-		time.Sleep(math.MaxInt64)
-
+		<-c
 		isr()
 	}
 }
