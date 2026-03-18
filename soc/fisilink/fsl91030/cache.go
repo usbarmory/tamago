@@ -26,11 +26,13 @@ const (
 // CSR_MCACHE_CTL register (0x7CA) using the CSRRS instruction.
 //
 // Based on freeloader.S cache enable sequence:
-//   li t0, CSR_CACHE_ENABLE
-//   csrs CSR_MCACHE_CTL, t0
 //
-// Note: If TamaGo is loaded by the boot loader, cache is already enabled.
-// This function is only needed if TamaGo runs as first-stage boot loader.
+//	li t0, CSR_CACHE_ENABLE
+//	csrs CSR_MCACHE_CTL, t0
+//
+// In the standard boot flow, flashboot.s enables the cache before the Go
+// runtime starts. This function is available for explicit cache control,
+// for example to re-enable cache after a DisableCache call.
 func EnableCache() {
 	enableCache()
 }
@@ -44,11 +46,12 @@ func enableCache()
 // CSR_MCACHE_CTL register (0x7CA) using the CSRRC instruction.
 //
 // Based on freeloader.S cache disable sequence:
-//   li t0, CSR_CACHE_ENABLE
-//   csrc CSR_MCACHE_CTL, t0
 //
-// Note: Cache disable may be needed for DMA operations or memory-mapped I/O
-// regions that require uncached access.
+//	li t0, CSR_CACHE_ENABLE
+//	csrc CSR_MCACHE_CTL, t0
+//
+// Cache must be disabled before DDR controller reconfiguration and may be
+// needed for DMA-coherency-sensitive MMIO regions.
 func DisableCache() {
 	disableCache()
 }

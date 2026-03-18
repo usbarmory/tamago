@@ -1,4 +1,4 @@
-// Fisilink FSL91030 first-stage boot initialization
+// Fisilink FSL91030 hardware boot initialization (linkcpuinit)
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -6,13 +6,20 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 //
-// This file overrides the default riscv64 cpuinit when built with
-// the 'linkcpuinit' build tag. It performs full hardware initialization
-// required when TamaGo runs as the first-stage boot loader directly from
-// SPI flash:
+// This file overrides the default riscv64 cpuinit when built with the
+// 'linkcpuinit' build tag. It performs hardware initialization (DDR,
+// cache, QSPI clock, FPU, stack) that is normally handled by the
+// flashboot assembly stub (tools/flashboot.s). With linkcpuinit, TamaGo
+// performs this initialization itself, which is useful for XIP boot or
+// for testing without the flashboot stub.
 //
-//   1. Disable Nuclei UX600 I/D cache (CSR_MCACHE_CTL)
-//   2. Initialize DDR SDRAM controller (ported from freeloader.S)
+// In the standard vega-baremetal build (make build-hw), linkcpuinit is
+// NOT used. flashboot.s handles DDR init and copies the binary to DRAM
+// before jumping to TamaGo. This file is an alternative path only.
+//
+// Initialization sequence:
+//   1. Disable Nuclei UX600 I/D cache (CSR_MCACHE_CTL 0x7CA)
+//   2. Initialize DDR SDRAM controller (register values from freeloader.S)
 //   3. Configure QSPI0 clock divider
 //   4. Enable I/D cache
 //   5. Disable interrupts, enable FPU (standard riscv64 setup)
