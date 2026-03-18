@@ -43,7 +43,7 @@ const (
 	excStackSize   = 0x4000     // 16 kB
 )
 
-// defined in exception.s
+// defined in exception.s or exception_v5.s (see build constraints)
 func set_exc_stack(addr uint32)
 func set_vbar(addr uint32)
 func set_mvbar(addr uint32)
