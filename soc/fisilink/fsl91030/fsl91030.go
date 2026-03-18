@@ -29,9 +29,9 @@ package fsl91030
 import (
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/riscv64"
 	"github.com/usbarmory/tamago/soc/sifive/clint"
+	"github.com/usbarmory/tamago/soc/sifive/gpio"
 	"github.com/usbarmory/tamago/soc/sifive/uart"
 )
 
@@ -52,7 +52,9 @@ const (
 	DDR_BASE = 0x10001000
 
 	// GPIO (SiFive-compatible, used for UART/SPI pinmux)
-	GPIO_BASE = 0x10012000
+	// Address confirmed by nuclei_ux600fd.dts (gpio@10011000) and OpenSBI.
+	// NOTE: 0x10012000 is UART1, not GPIO.
+	GPIO_BASE = 0x10011000
 
 	// Serial ports (SiFive UART0 compatible)
 	// UART0: console, IRQ 2; UART1: secondary, IRQ 3
@@ -133,10 +135,21 @@ var (
 		Base:  UART1_BASE,
 	}
 
-	// TODO: GPIO support (SiFive-compatible at 0x10012000)
-	// Requires soc/sifive/gpio driver or new implementation.
-	// GPIO IOF (I/O Function) configuration is required for UART0 to work;
-	// see InitUARTPinmux() for the current pinmux-only implementation.
+	// GPIO0 (SiFive-compatible at 0x10011000, Nuclei UX600 IOF offsets)
+	GPIO = &gpio.GPIO{
+		Base:         GPIO_BASE,
+		IOFENOffset:  gpio.GPIO_IOF_EN_NUCLEI,
+		IOFSELOffset: gpio.GPIO_IOF_SEL_NUCLEI,
+	}
+
+	// Watchdog timer (Andes ATCWDT200 at 0x68000000, IRQ 8)
+	Watchdog = &WDT{Base: WDT_BASE}
+
+	// System Clock and Reset Control
+	SystemControl = &SysCtl{
+		ClockBase: SYSCLK_CTRL_BASE,
+		ResetBase: SYSRST_CTRL_BASE,
+	}
 
 	// TODO: QSPI0/QSPI1 support (SiFive SPI0 compatible)
 	// QSPI0 (0x10014000): NOR Flash controller (Infineon S25HL512T, 64 MB).
@@ -144,42 +157,33 @@ var (
 
 	// TODO: I2C0 support (OpenCores I2C compatible at 0x10018000)
 
-	// TODO: Ethernet MAC support (FSL-specific xy1000_eth at 0x67800000)
-	// Register layout:
-	//   - DMA registers: base + 0x0 (RX/TX control, interrupts)
-	//   - MAC registers: base + 0x400 (MAC control, PHY, statistics)
-	// Interrupts: PLIC 10 (RX_END), 11 (RX_REQ), 12 (TX_END)
-	// DMA buffers: 4 MB RX + 4 MB TX
-
-	// TODO: Watchdog support (FSL-specific at 0x68000000)
-
-	// TODO: System Clock Control (0xE084C000) and System Reset Control (0xE084E000)
-	// Both are used for Ethernet peripheral clock and reset management.
+	// TODO: Ethernet MAC SoC-level instance (xy1000_eth at 0x67800000).
+	// The driver is implemented in vega-baremetal/pkg/hal/eth/.
 )
 
-// GPIO IOF (I/O Function) registers for UART pinmux
+// GPIO pin assignments for UART0.
+//
+// UART0 TX is on GPIO pin 16 and RX on GPIO pin 17 (IOF0 function).
+// The Nuclei UX600 variant of the SiFive GPIO block places the IOF registers
+// at offsets 0x44 (IOF_EN) and 0x48 (IOF_SEL), which differ from the SiFive
+// FE310/FU540 standard offsets 0x38/0x3C. The GPIO instance above is
+// configured with the Nuclei offsets; see soc/sifive/gpio for details.
 const (
-	GPIO_IOF_SEL = 0x3C // IOF select register offset
-	GPIO_IOF_EN  = 0x38 // IOF enable register offset
+	GPIO_UART0_TX = 16 // GPIO pin for UART0 TX (IOF0)
+	GPIO_UART0_RX = 17 // GPIO pin for UART0 RX (IOF0)
 
-	// UART0 uses GPIO pins 16-17
-	GPIO_UART0_MASK = 0x00030000
+	// LED shift-register chain (74HC164): GPIO 12 = CLK, GPIO 14 = DATA
+	GPIO_LED_CLK  = 12 // GPIO pin for LED shift-register clock
+	GPIO_LED_DATA = 14 // GPIO pin for LED shift-register data
 )
 
-// InitUARTPinmux configures the GPIO I/O Function (IOF) registers to route
-// UART0 signals to the physical pins. The IOF_SEL register selects IOF0 for
-// the UART0 GPIO bits and IOF_EN activates the function, overriding GPIO mode.
-// This must be called during board initialization before UART0 can be used.
+// InitUARTPinmux configures the GPIO IOF registers to route UART0 signals to
+// physical pins 16 (TX) and 17 (RX). IOF0 is selected for both pins (UART0
+// is the IOF0 function on these pins) and the IOF override is enabled.
+// Must be called during board initialization before UART0 can be used.
 func InitUARTPinmux() {
-	// GPIO IOF_SEL: Clear UART0 bits (select IOF0)
-	iofSel := reg.Read(GPIO_BASE + GPIO_IOF_SEL)
-	iofSel &= ^uint32(GPIO_UART0_MASK)
-	reg.Write(GPIO_BASE+GPIO_IOF_SEL, iofSel)
-
-	// GPIO IOF_EN: Set UART0 bits (enable IOF)
-	iofEn := reg.Read(GPIO_BASE + GPIO_IOF_EN)
-	iofEn |= GPIO_UART0_MASK
-	reg.Write(GPIO_BASE+GPIO_IOF_EN, iofEn)
+	GPIO.SetIOF(GPIO_UART0_TX, 0) // pin 16 → IOF0 (UART0 TX)
+	GPIO.SetIOF(GPIO_UART0_RX, 0) // pin 17 → IOF0 (UART0 RX)
 }
 
 // Model returns the SoC model name.
