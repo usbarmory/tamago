@@ -10,10 +10,12 @@ package fsl91030
 
 // DDR controller registers (base address: 0x10001000)
 //
-// Register offsets extracted from vega-loader-entire/freeloader.S
-// The boot loader performs a complex initialization sequence to configure
-// the DDR SDRAM controller with timing parameters, mode registers, and
-// refresh settings.
+// Register offsets derived from the vendor's freeloader.S (vega-loader-entire),
+// which was used as a reference for register addresses and timing values.
+// The initialization sequence is implemented in:
+//   - tools/flashboot.s: standalone assembly stub (standard boot path)
+//   - boot_riscv64.s: Go assembly cpuinit override (linkcpuinit build tag)
+//   - InitDDR() below: Go-callable function (available post-runtime-start)
 const (
 	DDR_STATUS  = 0x14  // Status register (offset 20)
 	DDR_MODE    = 0x200 // DDR mode register (offset 512)
@@ -54,29 +56,24 @@ const (
 
 // InitDDR initializes the DDR SDRAM controller.
 //
-// This function implements the complete DDR initialization sequence from
-// freeloader.S (lines 29-101), including:
-//   1. Wait for DDR_STATUS ready bit
-//   2. Configure DDR_MODE with SDRAM mode parameters
-//   3. Set DDR_TIMING0 through DDR_TIMINGD with timing values
-//   4. Configure DDR_REG0 through DDR_REG7 with controller parameters
-//   5. Set DDR_CTRL to start initialization
-//   6. Wait for DDR_CTRL_INIT_DONE bit (bit 8)
+// The complete initialization sequence (derived from the vendor's freeloader.S):
 //
-// WARNING: The timing parameters are hardware-specific and must match
-// the DDR chip datasheet and PCB design. These values are from the
-// freeloader.S boot loader and may need adjustment for different hardware
-// configurations. Incorrect values may cause memory corruption or boot failure.
+//  1. Wait for DDR_STATUS bit 1 (controller ready)
+//  2. Configure DDR_MODE (0x080002FD) and clear DDR_CTRL
+//  3. Write DDR_TIMING0 through DDR_TIMINGD (14 timing registers)
+//  4. Write DDR_REG0 through DDR_REG7 (8 configuration registers)
+//  5. Set DDR_CTRL = 1 to trigger initialization
+//  6. Wait for DDR_CTRL bit 8 (initialization complete)
 //
-// Register values written (from freeloader.S):
-//   - DDR_MODE (0x200): 0x080002FD
-//   - DDR_CTRL (0x204): 0x00000000, then 0x00000001 to trigger init
-//   - DDR_TIMING0-D: Various timing parameters
-//   - DDR_REG0-7: Configuration registers
+// WARNING: Timing parameters are hardware-specific (MilkV Vega board SDRAM).
+// Incorrect values will cause memory corruption or a hung boot. The values
+// match those in the vendor's freeloader.S and in tools/flashboot.s.
 //
-// Note: If TamaGo is loaded by the boot loader, DDR is already initialized
-// and this function is not needed. This is only required if TamaGo runs as
-// the first-stage boot loader.
+// In the standard boot flow, flashboot.s initializes DDR before the Go
+// runtime starts, so this function is not called during normal boot. It is
+// available for DDR reconfiguration at runtime. If called at runtime, the
+// caller must disable the cache first (DisableCache) and re-enable it after
+// (EnableCache), and must ensure no outstanding DMA is in flight.
 func InitDDR() {
 	initDDR()
 }
