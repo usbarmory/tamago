@@ -6,12 +6,13 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package fu530 provides support to Go bare metal unikernels written using the
-// TamaGo framework.
+// Package fu540 provides support to Go bare metal unikernels, written using
+// the TamaGo framework, on the SiFive FU540 System-on-Chip (SoC) application
+// processor.
 //
 // The package implements initialization and drivers for specific SiFive FU540
-// System-on-Chip (SoC) peripherals, adopting, where indicated, the following
-// reference specifications:
+// System-on-Chip (SoC) peripherals adopting, the following reference
+// specifications:
 //   - FU540C00RM - SiFive FU540-C000 Manual - v1p4 2021/03/25
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=riscv64` as
@@ -38,7 +39,12 @@ const (
 // Peripheral instances
 var (
 	// RISC-V core
-	RV64 = &riscv64.CPU{}
+	RV64 = &riscv64.CPU{
+		Counter:         Counter,
+		TimerMultiplier: 1,
+		// required before Init()
+		TimerOffset: 1,
+	}
 
 	// Core-Local Interruptor
 	CLINT = &clint.CLINT{

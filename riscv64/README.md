@@ -23,7 +23,7 @@ TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal processors.
 
 The [riscv64](https://github.com/usbarmory/tamago/tree/master/riscv64) package
-provides support for RISC-v 64-bit CPUs.
+provides support for RISC-V 64-bit CPUs.
 
 Documentation
 =============
@@ -39,9 +39,10 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| CPU      | Related platform packages                                                       | Core drivers |
-|----------|---------------------------------------------------------------------------------|--------------|
-| rv64gc   | [sifive_u](https://github.com/usbarmory/tamago/blob/master/board/qemu/sifive_u) | PMP          |
+| CPU      | Related platform packages                                                                | Core drivers |
+|----------|------------------------------------------------------------------------------------------|--------------|
+| rv64gc   | [sifive_u](https://github.com/usbarmory/tamago/blob/master/board/qemu/sifive_u)          | PMP          |
+| rv64imfc | [erbium_emu](https://github.com/usbarmory/tamago/blob/master/board/aifoundry/erbium_emu) | PMP          |
 
 Build tags
 ==========
@@ -51,6 +52,7 @@ definition for the `runtime/goos` overlay:
 
 * `linkramstart`: exclude `ramStart` from `mem.go`
 * `linkcpuinit`: exclude `cpuinit` from `init.s`
+* `tiny`: reduce heap allocation requirements
 
 License
 =======

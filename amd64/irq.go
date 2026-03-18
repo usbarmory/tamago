@@ -11,9 +11,9 @@ package amd64
 import (
 	"bytes"
 	"encoding/binary"
-	"math"
-	"runtime"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/usbarmory/tamago/amd64/lapic"
 	"github.com/usbarmory/tamago/dma"
@@ -39,12 +39,13 @@ const (
 )
 
 var (
+	irqSignal = syscall.SIGTRAP
+
 	// IRQ handling jump table variables
 	idtAddr        uintptr
 	irqHandlerAddr uintptr
 
 	// IRQ handling goroutine and state
-	irqHandlerG uint
 	irqHandling bool
 	irqLock     bool
 )
@@ -128,7 +129,7 @@ func (cpu *CPU) ClearInterrupt() {
 	}
 
 	// ensure time.Sleep has been reached by parent
-	for !runtime.Asleep(irqHandlerG) {
+	for !signal.Waiting() {
 		// stay on this M
 	}
 
@@ -151,8 +152,6 @@ func (cpu *CPU) WaitInterrupt() {
 // resumed when a user defined interrupt is received, an argument function can
 // be set for servicing.
 func (cpu *CPU) ServiceInterrupts(isr func(int)) {
-	irqHandlerG, _ = runtime.GetG()
-
 	if isr == nil {
 		isr = func(_ int) { return }
 	}
@@ -160,15 +159,14 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	// user defined interrupts
 	setIDT(32, 255)
 
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, irqSignal)
+
 	for {
 		// To avoid losing interrupts, service completion must happen
 		// only after we are sleeping.
 		go cpu.ClearInterrupt()
-
-		// Sleep indefinitely until woken up by runtime.WakeG
-		// (see ·handleInterrupt in irq.s).
-		time.Sleep(math.MaxInt64)
-
+		<-c
 		isr(currentVectorNumber())
 	}
 }

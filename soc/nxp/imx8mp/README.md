@@ -54,7 +54,7 @@ The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
 * `linkramstart`: exclude `ramStart` from `mem.go`
-* `linkcpuinit`: exclude `cpuinit` imported from `arm/init.s`
+* `linkcpuinit`: exclude `cpuinit` imported from `arm64/init.s`
 
 License
 =======

@@ -109,9 +109,10 @@ Supported RISC-V targets
 The following table summarizes currently supported RISC-V SoCs and boards
 (`GOOS=tamago GOARCH=riscv64`).
 
-| SoC          | Board                                                                        | SoC package                                                               | Board package                                                                        |
-|--------------|------------------------------------------------------------------------------|---------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
-| SiFive FU540 | [QEMU sifive_u](https://www.qemu.org/docs/master/system/riscv/sifive_u.html) | [fu540](https://github.com/usbarmory/tamago/tree/master/soc/sifive/fu540) | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u) |
+| SoC               | Board                                                                        | SoC package                                                                    | Board package                                                                            |
+|-------------------|------------------------------------------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| SiFive FU540      | [QEMU sifive_u](https://www.qemu.org/docs/master/system/riscv/sifive_u.html) | [fu540](https://github.com/usbarmory/tamago/tree/master/soc/sifive/fu540)      | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u)     |
+| AI Foundry Erbium | [erbium_emu](https://github.com/aifoundry-org/et-platform)                   | [erbium](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/erbium) | [erbium_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/erbium_emu) |
 
 Userspace targets
 =================
@@ -205,14 +206,17 @@ export GOOSPKG=github.com/usbarmory/tamago
 # Example for Cloud Hypervisory, QEMU and Firecracker KVMs
 GOOS=tamago GOARCH=amd64 ${TAMAGO} build -ldflags "-T 0x10010000 -R 0x1000" main.go
 
-# Example for USB armory Mk II
+# Example for NXP i.MX6UL
 GOOS=tamago GOARM=7 GOARCH=arm ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
 
-# Example for 8MPLUSLPD4-EVK
+# Example for NXP 8MPLUSLPD4-EVK
 GOOS=tamago GOARCH=arm64 ${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main.go
 
-# Example for QEMU RISC-V sifive_u
+# Example for SiFive FU540
 GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
+
+# Example for AI Foundry Erbium
+GOOS=tamago GOARCH=riscv64 GOSOFT=1 ${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main.go
 
 # Example for Linux userspace
 GOOS=tamago ${TAMAGO} build main.go
@@ -231,6 +235,7 @@ definition for the `runtime/goos` overlay:
 * `linkramsize`: override `ramSize`
 * `linkprintk`: override `printk`
 * `linkcpuinit`: override `cpuinit`
+* `tiny`: reduce heap allocation requirements
 
 Executing and debugging
 =======================
@@ -262,6 +267,7 @@ Applications using TamaGo
 * [armory-boot](https://github.com/usbarmory/armory-boot) - USB armory boot loader
 * [tamago-example](https://github.com/usbarmory/tamago-example) - TamaGo example application
 * [tamago-sev-example](https://github.com/usbarmory/tamago-sev-example) - Confidential VM (AMD SEV-SNP) example
+* [kotama](https://github.com/usbarmory/kotama) - Tiny RISC-V target demonstrator
 
 External drivers using TamaGo
 =============================
@@ -281,7 +287,6 @@ Additional resources
 * [Internals](https://github.com/usbarmory/tamago/wiki/Internals)
 * [FAQ](https://github.com/usbarmory/tamago/wiki/Frequently-Asked-Questions-(FAQ))
 * Presentations: [TamaGo](https://github.com/abarisani/abarisani.github.io/tree/master/research/tamago), [ArmoredWitness](https://github.com/abarisani/abarisani.github.io/tree/master/research/witness)
-* Experiments: [kotama](https://github.com/usbarmory/kotama)
 
 Maintainers
 ===========

@@ -73,11 +73,11 @@ TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
 	// save caller registers
 	MOVM.DB.W	[R0-R12, R14], (R13)	// push {r0-r12, r14}
 
-	// wake up IRQ handling goroutine
-	MOVW	·irqHandlerG(SB), R0
-	CMP	$0, R0
-	B.EQ	done
-	CALL	runtime·WakeG(SB)
+	SUB	$8, R13, R13
+	MOVW	·irqSignal(SB), R0
+	MOVW	R0, 4(R13)
+	CALL	os∕signal·Relay(SB)
+	ADD	$8, R13, R13
 
 	// the IRQ handling goroutine is expected to unmask IRQs
 	WORD	$0xe14f0000			// mrs r0, SPSR

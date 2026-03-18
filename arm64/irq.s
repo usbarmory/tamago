@@ -44,11 +44,11 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	MOVD	NZCV, R0
 	MOVD	R0, -(16*16)(RSP)
 
-	// wake up IRQ handling goroutine
-	MOVD	·irqHandlerG(SB), R0
-	CMP	$0, R0
-	BEQ	done
-	CALL	runtime·WakeG(SB)
+	SUB	$(17*16), RSP
+	MOVD	·irqSignal(SB), R0
+	MOVD	R0, 8(RSP)
+	CALL	os∕signal·Relay(SB)
+	ADD	$(17*16), RSP
 
 	// the IRQ handling goroutine is expected to unmask IRQs
 	WORD	$0xd53e4000	// mrs x0, SPSR_EL3
