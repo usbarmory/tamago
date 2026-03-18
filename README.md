@@ -99,9 +99,10 @@ Supported ARM64 targets
 The following table summarizes currently supported ARM64 SoCs and boards
 (`GOOS=tamago GOARCH=arm64`).
 
-| SoC                   | Board                                                                                                                                                                                | SoC package                                                              | Board package                                                                    |
-|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| NXP i.MX8M Plus       | [8MPLUSLPD4-EVK](https://www.nxp.com/design/design-center/development-boards-and-designs/8MPLUSLPD4-EVK)                                                                             | [imx8mp](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx8mp) | [imx8mpevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/imx8mpevk) |
+| SoC               | Board                                                                                                    | SoC package                                                                      | Board package                                                                            |
+|-------------------|----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| NXP i.MX8M Plus   | [8MPLUSLPD4-EVK](https://www.nxp.com/design/design-center/development-boards-and-designs/8MPLUSLPD4-EVK) | [imx8mp](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx8mp)         | [imx8mpevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/imx8mpevk)         |
+| Microchip LAN969x | [EVB-LAN9696-24port](https://www.microchip.com/en-us/development-tool/ev23x71a)                          | [lan969x](https://github.com/usbarmory/tamago/tree/master/soc/microchip/lan969x) | [lan9696evb](https://github.com/usbarmory/tamago/tree/master/board/microchip/lan9696evb) |
 
 Supported RISC-V targets
 ========================
