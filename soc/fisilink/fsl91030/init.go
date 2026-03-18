@@ -21,8 +21,3 @@ func Init() {
 	RV64.Init()
 	InitUARTPinmux()
 }
-
-//go:linkname nanotime runtime/goos.Nanotime
-func nanotime() int64 {
-	return CLINT.Nanotime()
-}

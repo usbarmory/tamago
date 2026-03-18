@@ -46,8 +46,9 @@ The FSL91030 is a RISC-V 64-bit processor based on the Nuclei UX600 core:
 * **MMU**: sv39 (39-bit virtual addressing)
 * **CPU Clock**: 400 MHz (nominal, measured dynamically)
 * **HF Clock**: 200 MHz (hfclk), 100 MHz (hfclk2)
-* **Timer Clock**: 32768 Hz (CLINT-compatible timer)
+* **Timer Clock**: 32768 Hz (CLINT-compatible timer at 0x2001000)
 * **DRAM**: 240 MB at 0x41000000
+* **NOR Flash**: Single 64 MB NOR flash (Infineon S25HL512T) at 0x20000000 XIP
 
 Supported hardware
 ==================
@@ -59,20 +60,21 @@ Supported hardware
 Memory Map
 ==========
 
-The FSL91030 memory map (from OpenSBI, U-Boot, and device trees):
+The FSL91030 memory map:
 
 | Address       | Size    | Description                          | Interrupt(s) |
 |---------------|---------|--------------------------------------|--------------|
-| 0x2000000     | -       | Nuclei Timer (base address)          | -            |
-| 0x3000000     | -       | CLINT-compatible timer (Nuclei timer + 0x1000) | -  |
+| 0x2000000     | -       | Nuclei Timer base (mtime raw read)   | -            |
+| 0x2001000     | -       | CLINT-compatible timer (Nuclei timer 0x2000000 + 0x1000); mtime at 0x200CFF8 | - |
 | 0x8000000     | 64 MB   | PLIC (Platform-Level Interrupt Controller, 53 sources) | - |
 | 0x10001000    | -       | DDR Controller                       | -            |
 | 0x10012000    | 4 KB    | GPIO (SiFive-compatible, UART/QSPI pinmux) | -      |
 | 0x10013000    | 4 KB    | UART0 (SiFive UART0, console)        | 2            |
-| 0x10014000    | 4 KB    | QSPI0 (SiFive SPI0, NOR Flash)       | 5            |
+| 0x10014000    | 4 KB    | QSPI0 (SiFive SPI0, NOR Flash ctrl)  | 5            |
 | 0x10016000    | 4 KB    | QSPI1 (SiFive SPI0, NAND Flash/MMC)  | 36           |
 | 0x10018000    | -       | I2C0 (OpenCores I2C)                 | -            |
 | 0x10023000    | 4 KB    | UART1 (SiFive UART0, secondary)      | 3            |
+| 0x20000000    | 64 MB   | NOR Flash XIP (Infineon S25HL512T)           | -    |
 | 0x41000000    | 240 MB  | DRAM (0xF000000)                     | -            |
 | 0x60000000    | -       | Local Bus Base                       | -            |
 | 0x67800000    | 4 KB    | Ethernet MAC (FSL xy1000_eth)        | 10, 11, 12   |
@@ -80,15 +82,34 @@ The FSL91030 memory map (from OpenSBI, U-Boot, and device trees):
 | 0xE084C000    | -       | System Clock Control (SYSCLK)        | -            |
 | 0xE084E000    | -       | System Reset Control (SYSRST)        | -            |
 
+Flash Layout (Reworked Board)
+=============================
+
+The reworked MilkV Vega board has a **single 64 MB NOR flash** (Infineon
+S25HL512T, replacing the original dual-flash design). The single flash is
+accessible at:
+
+* **XIP window**: 0x20000000 (execute-in-place)
+* **Controller**: QSPI0 at 0x10014000
+
+Boot layout suggestion for single 64 MB flash:
+
+```
+0x20000000  Offset 0x000000  Bootloader / TamaGo image (XIP or copied to DRAM)
+0x20000000  Offset 0x040000  Optional: redundant image / filesystem
+```
+
+For TamaGo bare-metal testing, load the ELF directly to DRAM at 0x41010000
+via JTAG or the bootloader. See also: board package mem.go.
+
 Peripheral Support
 ==================
 
 ### Fully Implemented
 
-* **CLINT Timer**: CLINT-compatible timer at 0x3000000 (Nuclei timer + 0x1000 offset)
+* **CLINT Timer**: CLINT-compatible timer at 0x2001000 (Nuclei timer base 0x2000000 + 0x1000 offset); mtime at 0x200CFF8
   * Timer frequency: 32768 Hz
-  * Provides `nanotime1()` for Go runtime
-  * Based on OpenSBI platform.c implementation
+  * Provides `nanotime()` for the Go runtime via unified `riscv64.CPU.GetTime()`
 * **UART0/UART1**: Uses `soc/sifive/uart` driver (SiFive UART0 compatible)
   * UART0: 0x10013000 (console)
   * UART1: 0x10023000 (secondary)
@@ -109,10 +130,9 @@ Peripheral Support
   * QSPI1 (0x10016000): NAND Flash/MMC for SD card boot, requires GPIO pinmux
 * **I2C**: OpenCores I2C-compatible at 0x10018000
 * **Ethernet MAC** (0x67800000): FSL xy1000_eth driver
-  * Register structure: DMA at base+0x0, MAC at base+0x400
-  * Interrupts: 10 (RX_END), 11 (RX_REQ), 12 (TX_END)
-  * Requires 8MB DMA buffers (4MB RX + 4MB TX)
-  * Reference: vega-u-boot/drivers/net/xy1000_eth.{c,h}
+  * Register layout: DMA registers at base+0x0, MAC registers at base+0x400
+  * Interrupts: PLIC 10 (RX_END), 11 (RX_REQ), 12 (TX_END)
+  * Requires 8 MB DMA buffers (4 MB RX + 4 MB TX)
 * **Watchdog**: FSL-specific at 0x68000000
 * **System Control**:
   * SYSCLK (0xE084C000): Clock control for peripherals
@@ -127,10 +147,16 @@ Compilation Example
 export TAMAGO=/path/to/tamago-go/bin/go
 
 # Compile for FSL91030 (text segment at DRAM start + 64KB)
-GOOS=tamago GOARCH=riscv64 ${TAMAGO} build \
+# The -T flag sets the text segment base, but the actual entry point
+# (_rt0_tamago_start) is at e_entry in the ELF, which is HIGHER than -T.
+# When loading via QEMU or bootloader, jump to e_entry, not to -T.
+GOOS=tamago GOARCH=riscv64 GOOSPKG=github.com/usbarmory/tamago ${TAMAGO} build \
     -ldflags "-T 0x41010000 -R 0x1000" \
     -o example \
     main.go
+
+# Get the actual entry point (not the text segment base):
+riscv64-linux-gnu-readelf -h example | grep "Entry point"
 ```
 
 ### Linker Flags
@@ -138,7 +164,11 @@ GOOS=tamago GOARCH=riscv64 ${TAMAGO} build \
 * `-T 0x41010000`: Text segment address (DRAM base + 64 KB)
 * `-R 0x1000`: Read-only segment alignment (4 KB)
 
-Adjust text segment address based on boot loader requirements.
+**CRITICAL**: The ELF `e_entry` (the address of `_rt0_tamago_start`) is NOT
+equal to the `-T` text segment base. The text segment base contains Go linker
+metadata headers. Always extract `e_entry` from the ELF and use that as the
+CPU jump target. Jumping to the text segment base (`0x41010000`) will result
+in an illegal instruction trap.
 
 Boot Sequence
 =============
@@ -146,19 +176,61 @@ Boot Sequence
 The FSL91030 typically boots through the following sequence:
 
 1. **BootROM**: Initial ROM code (vendor-specific)
-2. **First-stage loader**: `freeloader.S` (vega-loader-entire)
-   * Disables I/D cache
-   * Sets exception vector
-   * Initializes DDR controller
-   * Configures QSPI flash
-   * Enables I/D cache
-   * Loads payloads (OpenSBI, U-Boot, kernel)
-3. **OpenSBI**: Provides SBI firmware
+2. **First-stage loader**: Disables I/D cache, sets the exception vector,
+   initializes the DDR controller, configures QSPI flash, re-enables cache,
+   then loads secondary payloads.
+3. **SBI firmware**: Provides the Supervisor Binary Interface layer.
 4. **TamaGo application**: Bare metal Go runtime
 
 If using TamaGo, the application can be loaded:
-* **By boot loader**: DDR and cache already initialized
-* **As boot loader replacement**: Must implement DDR/cache initialization
+* **By boot loader**: DDR and cache already initialized; jump to ELF `e_entry`
+* **As boot loader replacement**: Must implement DDR/cache initialization via `linkcpuinit` build tag
+
+QEMU Testing
+============
+
+Use the Nuclei QEMU (nuclei/9.0 fork) with the `nuclei_evalsoc` machine:
+
+```bash
+# Build
+GOOS=tamago GOARCH=riscv64 GOOSPKG=github.com/usbarmory/tamago ${TAMAGO} build \
+    -ldflags "-T 0x41010000 -R 0x1000" \
+    -o main.elf ./cmd/...
+
+# Extract actual entry point
+ENTRY=$(riscv64-linux-gnu-readelf -h main.elf | awk '/Entry point/{print $4}')
+
+# Generate soc-cfg with correct startaddr = e_entry (NOT text base!)
+cat > fsl91030.json << EOF
+{
+    "general_config": {
+        "ddr":    { "base": "0x41000000", "size": "200M" },
+        "norflash": { "base": "0x20000000", "size": "64M" },
+        "uart0":  { "base": "0x10013000", "irq": "33" },
+        "uart1":  { "base": "0x10023000", "irq": "34" },
+        "iregion": { "base": "0x4000000" },
+        "cpu_freq": "400000000",
+        "timer_freq": "32768",
+        "irqmax": "64"
+    },
+    "download": { "ddr": { "startaddr": "$ENTRY" } }
+}
+EOF
+
+# Run (use -bios not -kernel for PLIC mode)
+qemu-system-riscv64 \
+    -M nuclei_evalsoc,download=ddr,soc-cfg=/abs/path/fsl91030.json \
+    -cpu nuclei-ux600fd \
+    -m 200M -smp 1 -nodefaults -nographic \
+    -serial stdio \
+    -bios main.elf
+```
+
+**Important notes**:
+- Use `-bios` (not `-kernel`) to select PLIC+CLINT interrupt mode
+- `iregion` at `0x4000000` places PLIC at `0x8000000` (matching FSL91030)
+- RAM limited to 200 MB to avoid overlap with PLIC region (240 MB would extend to 0x50000000, overlapping PLIC at ~0x4F000000)
+- `startaddr` must be the ELF `e_entry`, not the `-T` text segment address
 
 Build Tags
 ==========
@@ -176,9 +248,9 @@ Limitations
 
 This is an **experimental** implementation with the following status:
 
-### Working (Based on OpenSBI Reference)
+### Working
 
-1. **CLINT Timer**: Fully implemented at 0x3000000, frequency 32768 Hz
+1. **CLINT Timer**: Fully implemented at 0x2001000, frequency 32768 Hz
 2. **UART Support**: Both UART0 and UART1 with correct addresses
 3. **GPIO Pinmux**: UART0 pins automatically configured
 4. **Memory Layout**: Correct DRAM base (0x41000000) and size (240 MB)
@@ -190,48 +262,8 @@ This is an **experimental** implementation with the following status:
 3. **No hardware testing**: Implementation based on OpenSBI, device tree, and boot loader analysis
 4. **Peripheral drivers incomplete**: Only UART and timer fully working
 
-### Implementation Sources
-
-All register addresses and initialization sequences are derived from:
-* **OpenSBI**: `vega-opensbi/platform/nuclei/ux600/platform.c` (primary reference for timer, UART, GPIO)
-* **U-Boot**: `vega-u-boot/arch/riscv/dts/nuclei-ux608.dts` and driver source (ethernet, QSPI details)
-* **Device trees**:
-  * `vega-buildroot-sdk/conf/nuclei_ux600fd.dts`
-  * `vega-u-boot/arch/riscv/dts/nuclei-ux608.dts`
-* **Boot loader**: `vega-loader-entire/freeloader.S` (DDR initialization, cache control)
-* **Ethernet driver**: `vega-u-boot/drivers/net/xy1000_eth.{c,h}` (MAC register structure, system control)
-
-The implementation follows OpenSBI's tested patterns, particularly for:
-* Timer address (0x3000000) and frequency (32768 Hz)
-* UART addresses (0x10013000, 0x10023000) and pinmux configuration
-* GPIO IOF register configuration for UART0
-* Early initialization sequence
-
 References
 ==========
-
-### Primary Implementation Sources
-
-* **OpenSBI**: `vega-opensbi/platform/nuclei/ux600/platform.c` (timer, UART, GPIO initialization)
-* **U-Boot**: `vega-u-boot/` (device tree, board code, ethernet driver)
-  * Device tree: `arch/riscv/dts/nuclei-ux608.dts`
-  * Board file: `board/nuclei/ux608/ux608.c`
-  * Ethernet: `drivers/net/xy1000_eth.{c,h}`
-* **Device tree**: `vega-buildroot-sdk/conf/nuclei_ux600fd.dts`
-* **Boot loader**: `vega-loader-entire/freeloader.S` (DDR init, cache control)
-
-### Datasheets and Documentation
-
-* **FSL91030 Datasheets**: `vega-docs/development-documentation/`
-  * FSL91030M芯片数据手册-G版本.pdf (Datasheet)
-  * FSL91030M寄存器说明书-D.pdf (Register Manual)
-  * FSL91030(M)芯片SoC使用说明书_V10.pdf (SoC User Manual)
-  * FSL91030(M)芯片原理文档_V12.pdf (Architecture Document)
-* **Hardware Schematics**: `vega-docs/hardware/`
-  * vega_schematic_v1.1.pdf (Board schematic)
-  * vega-mechanical-drawing.pdf (Mechanical drawing)
-
-### External References
 
 * [Nuclei UX600 Documentation](https://doc.nucleisys.com/)
 * [SiFive FU540 Manual](https://sifive.cdn.prismic.io/sifive/b5e7a29c-d3c2-44ea-85fb-acc1df282e21_FU540-C000-v1.4.pdf) (for compatible peripherals)

@@ -14,8 +14,7 @@ import (
 	_ "unsafe"
 )
 
-// FSL91030 DRAM starts at 0x41000000 (240 MB available)
-// From device tree: nuclei_ux600fd.dts
+// FSL91030 DRAM is at 0x41000000 (240 MB).
 
 //go:linkname ramStart runtime/goos.RamStart
 var ramStart uint64 = 0x41000000

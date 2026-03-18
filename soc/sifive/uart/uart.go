@@ -34,8 +34,10 @@ const (
 	RXDATA_EMPTY = 31
 	RXDATA_DATA  = 0
 
-	UARTx_TXCTRL = 0x0008
-	UARTx_RXCTRL = 0x000c
+	UARTx_TXCTRL  = 0x0008
+	TXCTRL_TXEN   = 0 // TX enable (bit 0)
+	UARTx_RXCTRL  = 0x000c
+	RXCTRL_RXEN   = 0 // RX enable (bit 0)
 )
 
 // UART represents a serial port instance.
@@ -52,8 +54,7 @@ type UART struct {
 	rxctrl uint32
 }
 
-// Init initializes and enables the UART for RS-232 mode,
-// p3605, 55.13.1 Programming the UART in RS-232 mode, IMX6ULLRM.
+// Init initializes and enables the UART for transmit/receive.
 func (hw *UART) Init() {
 	if hw.Base == 0 {
 		panic("invalid UART controller instance")
@@ -63,6 +64,10 @@ func (hw *UART) Init() {
 	hw.rxdata = hw.Base + UARTx_RXDATA
 	hw.txctrl = hw.Base + UARTx_TXCTRL
 	hw.rxctrl = hw.Base + UARTx_RXCTRL
+
+	// Enable transmitter and receiver (required by spec and QEMU emulation)
+	reg.Set(hw.txctrl, TXCTRL_TXEN)
+	reg.Set(hw.rxctrl, RXCTRL_RXEN)
 }
 
 // Tx transmits a single character to the serial port.
