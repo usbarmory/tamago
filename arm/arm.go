@@ -11,6 +11,7 @@
 //
 // The following architectures/cores are supported/tested:
 //   - ARMv7-A / Cortex-A7 (single-core)
+//   - ARMv5TEJ / ARM926EJ-S (single-core, no VFP)
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go, see
@@ -60,6 +61,33 @@ type CPU struct {
 	gicd uint32
 	// GIC CPU interface base address
 	gicc uint32
+
+	// NoVBAR disables writing to the VBAR/MVBAR registers during
+	// initVectorTable. Set to true on cores that lack VBAR (e.g.
+	// ARM926EJ-S / ARMv5TEJ) where exception vectors are always at
+	// address 0x00000000.
+	NoVBAR bool
+
+	// IRQEnableOverride, if non-nil, replaces the default ARMv6+
+	// CPSIE/CPSID assembly for enabling IRQs.  Set this on cores
+	// that lack the CPS instruction (e.g. ARM926EJ-S / ARMv5TEJ).
+	IRQEnableOverride func(spsr bool)
+
+	// IRQDisableOverride, if non-nil, replaces the default ARMv6+
+	// CPSID assembly for disabling IRQs.
+	IRQDisableOverride func(spsr bool)
+
+	// FIQEnableOverride, if non-nil, replaces the default ARMv6+
+	// CPSIE assembly for enabling FIQs.
+	FIQEnableOverride func(spsr bool)
+
+	// FIQDisableOverride, if non-nil, replaces the default ARMv6+
+	// CPSID assembly for disabling FIQs.
+	FIQDisableOverride func(spsr bool)
+
+	// WFIOverride, if non-nil, replaces the default ARMv7 WFI
+	// instruction with a core-specific wait-for-interrupt mechanism.
+	WFIOverride func()
 
 	// vector base address register
 	vbar uint32

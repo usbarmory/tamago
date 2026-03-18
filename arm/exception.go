@@ -29,6 +29,14 @@ const (
 // set by application or, if not previously defined, by cpu.Init()
 var vecTableStart uint32
 
+// excStack holds the exception-mode stack pointer value set by
+// set_exc_stack during initVectorTable.  It is read by the ARMv5
+// exception handlers (exception_v5.s) to restore the exception SP
+// at handler entry, since ARMv5 lacks the MRS <reg>, <banked_reg>
+// instruction that the ARMv6+ handlers use to atomically load the
+// user SP on every exception entry.
+var excStack uint32
+
 const (
 	vecTableJump   = 0xe59ff018 // ldr pc, [pc, #24]
 	excStackOffset = 0x8000     // 32 kB
@@ -149,15 +157,19 @@ func (cpu *CPU) initVectorTable(vbar uint32) {
 	cpu.SetVectorTable(SystemVectorTable())
 
 	// set vector base address register
-	set_vbar(cpu.vbar)
+	// ARM926EJ-S (ARMv5TEJ) does not have VBAR; vectors are fixed at
+	// 0x00000000. Skip the register write on such cores via NoVBAR.
+	if !cpu.NoVBAR {
+		set_vbar(cpu.vbar)
 
-	if cpu.Secure() {
-		// set monitor vector base address register
-		set_mvbar(cpu.vbar)
+		if cpu.Secure() {
+			// set monitor vector base address register
+			set_mvbar(cpu.vbar)
+		}
 	}
 
 	// Set the stack pointer for exception modes to provide a stack when
 	// summoned by exception vectors.
-	excStackStart := cpu.vbar + excStackOffset
-	set_exc_stack(excStackStart + excStackSize)
+	excStack = cpu.vbar + excStackOffset + excStackSize
+	set_exc_stack(excStack)
 }

@@ -26,29 +26,49 @@ func wfi()
 // EnableInterrupts unmasks IRQ interrupts in the current or saved program
 // status.
 func (cpu *CPU) EnableInterrupts(saved bool) {
+	if cpu.IRQEnableOverride != nil {
+		cpu.IRQEnableOverride(saved)
+		return
+	}
 	irq_enable(saved)
 }
 
 // DisableInterrupts masks IRQ interrupts in the current or saved program
 // status.
 func (cpu *CPU) DisableInterrupts(saved bool) {
+	if cpu.IRQDisableOverride != nil {
+		cpu.IRQDisableOverride(saved)
+		return
+	}
 	irq_disable(saved)
 }
 
 // EnableFastInterrupts unmasks FIQ interrupts in the current or saved program
 // status.
 func (cpu *CPU) EnableFastInterrupts(saved bool) {
+	if cpu.FIQEnableOverride != nil {
+		cpu.FIQEnableOverride(saved)
+		return
+	}
 	fiq_enable(saved)
 }
 
 // DisableFastInterrupts masks FIQ interrupts in the current or saved program
 // status.
 func (cpu *CPU) DisableFastInterrupts(saved bool) {
+	if cpu.FIQDisableOverride != nil {
+		cpu.FIQDisableOverride(saved)
+		return
+	}
 	fiq_disable(saved)
 }
 
 // WaitInterrupt suspends execution until an interrupt is received.
 func (cpu *CPU) WaitInterrupt() {
+	if cpu.WFIOverride != nil {
+		cpu.WFIOverride()
+		return
+	}
 	wfi()
 }
 
