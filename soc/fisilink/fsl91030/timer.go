@@ -8,16 +8,9 @@
 
 package fsl91030
 
-import (
-	_ "unsafe"
-)
-
 // Counter returns the number of nanoseconds counted from the RTCCLK input.
+// It reads the hardware CLINT mtime register and is always available
+// regardless of the linknanotime build tag.
 func Counter() uint64 {
 	return uint64(CLINT.Nanotime())
-}
-
-//go:linkname nanotime runtime/goos.Nanotime
-func nanotime() int64 {
-	return RV64.GetTime()
 }
