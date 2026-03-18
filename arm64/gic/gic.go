@@ -76,7 +76,7 @@ type GIC struct {
 }
 
 // defined in gic.s
-func write_icc_sre_el3(val uint64)
+func write_icc_sre_el1(val uint64)
 func write_icc_igrpen0_el1(val uint64)
 func write_icc_pmr_el1(val uint64)
 func read_icc_iar0() uint64
@@ -113,7 +113,7 @@ func (hw *GIC) Init() {
 	}
 
 	// Enable system register interface
-	write_icc_sre_el3(1)
+	write_icc_sre_el1(1)
 
 	// Unmask all interrupt priorities
 	write_icc_pmr_el1(0xff)

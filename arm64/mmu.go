@@ -55,35 +55,38 @@ const (
 	deviceAttributeIndex = 0
 	memoryAttributeIndex = 1
 
-	deviceAttributes = 1<<TTE_AF | TTE_OUTER_SH | TTE_AP_001<<TTE_AP | deviceAttributeIndex<<TTE_ATTR
-	memoryAttributes = 1<<TTE_AF | TTE_INNER_SH | TTE_AP_001<<TTE_AP | memoryAttributeIndex<<TTE_ATTR
+	deviceAttributes = 1<<TTE_AF | TTE_OUTER_SH | TTE_AP_00<<TTE_AP | deviceAttributeIndex<<TTE_ATTR
+	memoryAttributes = 1<<TTE_AF | TTE_INNER_SH | TTE_AP_00<<TTE_AP | memoryAttributeIndex<<TTE_ATTR
 )
 
 // MMU access permissions
 //
 // ARM Architecture Reference Manual ARMv8,for ARMv8-A architecture profile
-// Table G5-9, ARM Architecture Reference Manual ARMv8.
+// Table D5-25, Data access permissions for stage 1 translations.
 const (
-	// PL1: no access   Unprivileged: no access
-	TTE_AP_000 uint64 = 0b000
-	// PL1: read/write  Unprivileged: no access
-	TTE_AP_001 uint64 = 0b001
+	// EL1 or above: read/write, EL0: none
+	TTE_AP_00 = 0b00
+	// EL1 or above: read/write, EL0: read/write
+	TTE_AP_01 = 0b01
+	// EL1 or above: read-only, EL0: none
+	TTE_AP_10 = 0b10
+	// EL1 or above: read-only, EL0: read-only
+	TTE_AP_11 = 0b11
 )
 
 // ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
-// D12.2.105 TCR_EL3, Translation Control Register (EL3).
+// D12.2.103 TCR_EL1, Translation Control Register (EL1).
 const (
+	TCR_IPS   = 32
 	TCR_TBID  = 29
-	TCR_PS    = 16
 	TCR_TG0   = 14
 	TCR_SH0   = 12
 	TCR_ORGN0 = 10
 	TCR_IRGN0 = 8
 	TCR_T0SZ  = 0
 
-	tcr uint64 = 0b0<<TCR_TBID |
-		// 48-bit physical address size
-		0b101<<TCR_PS |
+	// 32-bit or 40-bit intermediate physical address size
+	tcr uint64 = 0b010<<TCR_IPS |
 		// 4KB granule
 		0b00<<TCR_TG0 |
 		// inner shareable
@@ -98,9 +101,9 @@ const (
 
 // defined in mmu.s
 func flush_tlb()
-func write_mair_el3(val uint64)
-func write_tcr_el3(val uint64)
-func set_ttbr0_el3(addr uint64)
+func write_mair_el1(val uint64)
+func write_tcr_el1(val uint64)
+func set_ttbr0_el1(addr uint64)
 
 // ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 // D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats.
@@ -233,13 +236,13 @@ func (cpu *CPU) InitMMU() {
 	// set memory region attributes
 	//   * attr0: device
 	//   * attr1: memory
-	write_mair_el3(
+	write_mair_el1(
 		MemoryRegion<<(8*memoryAttributeIndex) |
 			DeviceRegion<<(8*deviceAttributeIndex))
 
 	// set translation control register
-	write_tcr_el3(tcr)
+	write_tcr_el1(tcr)
 
 	// enable MMU
-	set_ttbr0_el3(l1pageTableStart)
+	set_ttbr0_el1(l1pageTableStart)
 }

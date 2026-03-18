@@ -12,31 +12,57 @@
 #include "textflag.h"
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
-	// get current exception level
 	MRS	CurrentEL, R0
 	LSR	$2, R0, R0
 	AND	$0b11, R0, R0
 
-	// ensure we are running at EL3
-	CMP	$3, R0
-	BNE	exit
+	// already at EL1
+	CMP	$1, R0
+	BEQ	init
+
+	// While tamago has been tested in Secure EL3, we drop to Non-secure
+	// EL1 to ease chain loading from TF-A or bootloaders, as on AArch64
+	// the OS is expected to run at this level.
+	//
+	// Future tamago unikernels for TF-A replacement or Secure monitors can
+	// branch here to remain in EL3 provided that _EL1 register access is
+	// replaced with _EL3.
 
 	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture
 	// profile.
 
-	// D12.2.102 SCTLR_EL3, System Control Register (EL3)
-	WORD	$0xd53e1000	// mrs x0, sctlr_el3
+	// D12.2.99 SCR_EL3, Secure Configuration Register
+	MOVD	$0, R0
+	ORR	$1<<10, R0	// set lower levels as AArch64
+	ORR	$1<<5, R0	// set reserved bit
+	ORR	$1<<4, R0	// set reserved bit
+	ORR	$1<<0, R0	// set Non-secure state
+	WORD	$0xd51e1100	// msr scr_el3, x0
+
+	// D12.2.44 HCR_EL2, Hypervisor Configuration Register
+	MOVD	$1<<31, R0	// set EL1 level as AArch64
+	WORD	$0xd51c1100	// msr HCR_EL2, x0
+
+	// C5.2.19 SPSR_EL3, Saved Program Status Register (EL3)
+	MOVD	$0, R0
+	ORR	$0b1111<<6, R0	// mask exceptions/interrupts
+	ORR	$0b0101<<0, R0	// set EL1h
+	WORD	$0xd51e4000	// msr SPSR_EL3, x0
+
+	// drop to EL1
+	MOVD	$·cpuinit_el1(SB), R0
+	WORD	$0xd51e4020	// msr ELR_EL3, x0
+	ISB	SY
+	ERET
+init:
+	B	·cpuinit_el1(SB)
+
+TEXT ·cpuinit_el1(SB),NOSPLIT|NOFRAME,$0
+	// D12.2.100 SCTLR_EL1, System Control Register (EL1)
+	MRS	SCTLR_EL1, R0
 	BIC	$1<<1, R0	// clear A bit
 	BIC	$1<<0, R0	// clear M bit
-	WORD	$0xd51e1000	// msr sctlr_el3, x0
-	ISB	SY
-
-	// D12.2.99 SCR_EL3, Secure Configuration Register
-	WORD	$0xd53e1100	// mrs x0, scr_el3
-	ORR	$1<<3, R0	// set EA bit
-	ORR	$1<<2, R0	// set FIQ bit
-	ORR	$1<<1, R0	// set IRQ bit
-	WORD	$0xd51e1100	// msr scr_el3, x0
+	MSR	R0, SCTLR_EL1
 	ISB	SY
 
 	// set stack pointer
@@ -48,6 +74,3 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	SUB	R2, RSP
 
 	B	_rt0_tamago_start(SB)
-
-exit:
-	JMP	·exit(SB)
