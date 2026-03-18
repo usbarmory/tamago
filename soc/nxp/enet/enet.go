@@ -45,12 +45,6 @@ const (
 	ECR_RESET   = 0
 
 	ENETx_MMFR = 0x0040
-	MMFR_ST    = 30
-	MMFR_OP    = 28
-	MMFR_PA    = 23
-	MMFR_RA    = 18
-	MMFR_TA    = 16
-	MMFR_DATA  = 0
 
 	ENETx_MSCR     = 0x0044
 	MSCR_HOLDTIME  = 8

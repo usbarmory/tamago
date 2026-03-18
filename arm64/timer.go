@@ -38,7 +38,6 @@ const TIMER_IRQ = 30
 
 // defined in timer.s
 func read_cntfrq() uint32
-func write_cntfrq(freq uint32)
 func write_cntkctl(val uint32)
 func read_cntpct() uint64
 func write_cntptval(val uint32, enable bool)
@@ -46,9 +45,6 @@ func write_cntptval(val uint32, enable bool)
 // InitGenericTimers initializes ARMv8 Generic Timers.
 func (cpu *CPU) InitGenericTimers(base uint32, freq uint32) {
 	if freq != 0 {
-		// set base frequency
-		write_cntfrq(freq)
-
 		if base != 0 {
 			reg.Write(base+CNTFID0, freq)
 

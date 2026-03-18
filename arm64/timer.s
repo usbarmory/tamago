@@ -18,16 +18,6 @@ TEXT ·read_cntfrq(SB),$0-4
 
 	RET
 
-// func write_cntfrq(freq uint32)
-TEXT ·write_cntfrq(SB),$0-4
-	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
-	// D12.8.1 CNTFRQ_EL0, Counter-timer Frequency register
-	MOVW	freq+0(FP), R0
-	ISB	SY
-	MSR	R0, CNTFRQ_EL0
-
-	RET
-
 // func write_cntkctl(val uint32)
 TEXT ·write_cntkctl(SB),$0-4
 	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile

@@ -8,12 +8,12 @@
 
 #include "../arm64.h"
 
-// func write_icc_sre_el3(val uint64)
-TEXT ·write_icc_sre_el3(SB),$0-8
+// func write_icc_sre_el1(val uint64)
+TEXT ·write_icc_sre_el1(SB),$0-8
 	// ARM IHI 0069G
-	// 12.2.24 ICC_SRE_EL3, Interrupt Controller System Register Enable register (EL3)
+	// 12.2.22 ICC_SRE_EL1, Interrupt Controller System Register Enable register (EL1)
 	MOVD	val+0(FP), R0
-	WORD	$0xd51ecca0	// msr icc_sre_el3, x0
+	MSR	R0, ICC_SRE_EL1
 	ISB	SY
 
 	RET

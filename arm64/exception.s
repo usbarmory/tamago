@@ -28,7 +28,7 @@
 	WORD	$0xd503201f
 
 TEXT ·handleException(SB),NOSPLIT|NOFRAME,$0
-	WORD	$0xd53e4020	// mrs x0, elr_el3
+	MRS	ELR_EL1, R0
 	MOVD	R0, 8(RSP)	// arg
 	JMP	·systemException(SB)
 
@@ -50,7 +50,7 @@ TEXT ·vectorTable(SB),NOSPLIT|NOFRAME,$0
 // func set_vbar()
 TEXT ·set_vbar(SB),NOSPLIT,$0
 	MOVD	$·vectorTable(SB), R0
-	WORD	$0xd51ec000	// msr vbar_el3, x0
+	MSR	R0, VBAR_EL1
 	RET
 
 // func read_el() uint64

@@ -1,0 +1,71 @@
+From 458960e206f402aade1aadb8ce63e350596adeef Mon Sep 17 00:00:00 2001
+From: Andrej Rosano <andrej.rosano@reversec.com>
+Date: Tue, 10 Feb 2026 15:23:36 +0100
+Subject: [PATCH 2/2] Allow loading TamaGo as BL33
+
+Allow TRNG access from Non-Secure world.
+---
+ Makefile                                                 | 6 ++++++
+ .../lan969x/common/lan969x_bl2_mem_params_desc.c         | 9 +++++++++
+ plat/microchip/lan969x/common/lan969x_tz.c               | 3 +++
+ 3 files changed, 18 insertions(+)
+
+diff --git a/Makefile b/Makefile
+index f31d8eb2f..48e0c7674 100644
+--- a/Makefile
++++ b/Makefile
+@@ -658,6 +658,12 @@ BL2_CPPFLAGS += -DTAMAGO_ENTRY_POINT=${TAMAGO_ENTRY_POINT}
+ BL2_CPPFLAGS += -DTAMAGO_TEXT_START=${TAMAGO_TEXT_START}
+ endif
+ 
++ifeq (${TAMAGO_BL33},1)
++BL2_CPPFLAGS += -DTAMAGO_BL33
++BL2_CPPFLAGS += -DTAMAGO_ENTRY_POINT=${TAMAGO_ENTRY_POINT}
++BL2_CPPFLAGS += -DTAMAGO_TEXT_START=${TAMAGO_TEXT_START}
++endif
++
+ ifeq (${ARCH},aarch64)
+ BL2U_CPPFLAGS += -DIMAGE_AT_EL1
+ BL31_CPPFLAGS += -DIMAGE_AT_EL3
+diff --git a/plat/microchip/lan969x/common/lan969x_bl2_mem_params_desc.c b/plat/microchip/lan969x/common/lan969x_bl2_mem_params_desc.c
+index d3ffcc7f1..93c038f6e 100644
+--- a/plat/microchip/lan969x/common/lan969x_bl2_mem_params_desc.c
++++ b/plat/microchip/lan969x/common/lan969x_bl2_mem_params_desc.c
+@@ -65,11 +65,20 @@ static bl_mem_params_node_t bl2_mem_params_descs[] = {
+ 		SET_STATIC_PARAM_HEAD(image_info, PARAM_EP,
+ 				      VERSION_2, image_info_t, IMAGE_ATTRIB_SKIP_LOADING),
+ #else
++
++#if (defined(TAMAGO_BL33))
++		.ep_info.pc = TAMAGO_ENTRY_POINT,
++#else
+ 		.ep_info.pc = PLAT_LAN969X_NS_IMAGE_BASE,
++#endif
+ 
+ 		SET_STATIC_PARAM_HEAD(image_info, PARAM_EP,
+ 				      VERSION_2, image_info_t, 0),
++#if (defined(TAMAGO_BL33))
++		.image_info.image_base = TAMAGO_TEXT_START,
++#else
+ 		.image_info.image_base = PLAT_LAN969X_NS_IMAGE_BASE,
++#endif
+ 		.image_info.image_max_size = PLAT_LAN969X_NS_IMAGE_SIZE,
+ #endif /* PRELOADED_BL33_BASE */
+                 .ep_info.spsr = SPSR_64(MODE_EL1, MODE_SP_ELX, DISABLE_ALL_EXCEPTIONS),
+diff --git a/plat/microchip/lan969x/common/lan969x_tz.c b/plat/microchip/lan969x/common/lan969x_tz.c
+index 840ee6ee9..884ff2a91 100644
+--- a/plat/microchip/lan969x/common/lan969x_tz.c
++++ b/plat/microchip/lan969x/common/lan969x_tz.c
+@@ -146,6 +146,9 @@ void lan969x_tz_finish(void)
+ 			TZPM_TZPCTL1_FLEXCOM0(1) |
+ 			TZPM_TZPCTL1_FLEXCOM1(1) |
+ 			TZPM_TZPCTL1_FLEXCOM2(1) |
++#if (defined(TAMAGO_BL33))
++			TZPM_TZPCTL1_TRNG(1) |
++#endif
+ 			TZPM_TZPCTL1_FLEXCOM3(1));
+ 	mmio_setbits_32(TZPM_TZPCTL2(tzpm),
+ 			TZPM_TZPCTL2_PKE(1));
+-- 
+2.53.0
+

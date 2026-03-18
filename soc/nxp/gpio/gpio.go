@@ -92,7 +92,7 @@ func (gpio *Pin) Low() {
 	reg.Clear(gpio.data, gpio.num)
 }
 
-// Value returns the GPIO signal level.
+// Value returns a GPIO signal level.
 func (gpio *Pin) Value() (high bool) {
 	return reg.GetN(gpio.data, gpio.num, 1) == 1
 }

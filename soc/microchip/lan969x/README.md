@@ -1,5 +1,5 @@
-TamaGo - bare metal Go - ARM 64-bit support
-===========================================
+TamaGo - bare metal Go - LAN969x support
+========================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -22,8 +22,9 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal processors.
 
-The [arm](https://github.com/usbarmory/tamago/tree/master/arm) package provides
-support for ARM 64-bit CPUs.
+The [lan969x](https://github.com/usbarmory/tamago/tree/master/soc/microchip/lan969x)
+package provides support for the Microchip LAN969x series of System-on-Chip
+(SoCs) parts.
 
 Documentation
 =============
@@ -39,10 +40,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| CPU                     | Related platform packages                                                                          | Core drivers                                                     |
-|-------------------------|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
-| ARM Cortex-A53 (ARMv8A) | [nxp/imx8mpevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/imx8mpevk)               | [GIC](https://github.com/usbarmory/tamago/tree/master/arm64/gic) |
-| ARM Cortex-A53 (ARMv8A) | [microchip/lan9696evb](https://github.com/usbarmory/tamago/tree/master/board/microchip/lan9696evb) | [GIC](https://github.com/usbarmory/tamago/tree/master/arm64/gic) |
+| SoC               | Related board packages                                                                             | Peripheral drivers                                                                                                                                                                                                                                                                 |
+|-------------------|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Microchip LAN969x | [microchip/lan9696evb](https://github.com/usbarmory/tamago/tree/master/board/microchip/lan9696evb) | [ANA, DEVCPU, FLEXCOM, MIIM, OTPC, TRNG](https://github.com/usbarmory/tamago/tree/master/soc/microchip), [GIC](https://github.com/usbarmory/tamago/tree/master/arm64/gic) |
 
 Build tags
 ==========
@@ -51,7 +51,7 @@ The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
 * `linkramstart`: exclude `ramStart` from `mem.go`
-* `linkcpuinit`: exclude `cpuinit` from `init.s`
+* `linkcpuinit`: exclude `cpuinit` imported from `arm/init.s`
 
 License
 =======
