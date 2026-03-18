@@ -8,12 +8,10 @@
 
 // This file provides exception handlers for ARMv5TEJ cores (e.g. ARM926EJ-S)
 // that lack the ARMv6+ MRS <reg>, <banked_reg> instruction used in
-// exception.s.  It replaces exception.s when the linkexception build tag
-// is active.
-//
-// Build the NUC980 target with: -tags "linkhwinit0 linkexception"
+// exception.s.  It is selected automatically when GOARM=5 (the arm.6
+// feature build tag is not set) and replaces exception.s.
 
-//go:build linkexception
+//go:build !arm.6
 
 #include "go_asm.h"
 #include "textflag.h"

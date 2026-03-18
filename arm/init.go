@@ -6,7 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-//go:build !linkhwinit0
+//go:build arm.6
 
 package arm
 
