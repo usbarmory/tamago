@@ -21,7 +21,6 @@ func initRNG() {
 	drbg := &rng.DRBG{}
 	binary.LittleEndian.PutUint64(drbg.Seed[:], uint64(time.Now().UnixNano()))
 	rng.GetRandomDataFn = drbg.GetRandomData
-
 }
 
 // SetRNG allows to override the internal random number generator function used
