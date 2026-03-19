@@ -28,7 +28,16 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
-// SiFive GPIO register offsets (relative to base address).
+// GPIO register offsets for the Nuclei UX600/UX608 variant (FSL91030).
+//
+// This layout is confirmed by the FSL91030M Register Specification (Section 6.1)
+// and the Linux gpio-sifive.c driver from the Vega buildroot SDK. It differs
+// from the standard SiFive FE310/FU540 layout: the Nuclei variant inserts three
+// extra registers (PDE, OPEN_DRAIN, PUP) between DS and RISE_IE, shifting all
+// interrupt registers and later registers down by 0x0C.
+//
+// Standard SiFive FE310/FU540 has:  RISE_IE=0x18, IOF_EN=0x38, OUT_XOR=0x40
+// Nuclei UX600/UX608 (FSL91030) has: RISE_IE=0x24, IOF_EN=0x44, OUT_XOR=0x58
 const (
 	GPIO_INPUT_VAL  = 0x00 // Input value (read pin state)
 	GPIO_INPUT_EN   = 0x04 // Input enable
@@ -36,24 +45,32 @@ const (
 	GPIO_OUTPUT_VAL = 0x0C // Output value
 	GPIO_PUE        = 0x10 // Pull-up enable
 	GPIO_DS         = 0x14 // Drive strength
-	GPIO_RISE_IE    = 0x18 // Rise interrupt enable
-	GPIO_RISE_IP    = 0x1C // Rise interrupt pending
-	GPIO_FALL_IE    = 0x20 // Fall interrupt enable
-	GPIO_FALL_IP    = 0x24 // Fall interrupt pending
-	GPIO_HIGH_IE    = 0x28 // High-level interrupt enable
-	GPIO_HIGH_IP    = 0x2C // High-level interrupt pending
-	GPIO_LOW_IE     = 0x30 // Low-level interrupt enable
-	GPIO_LOW_IP     = 0x34 // Low-level interrupt pending
-	GPIO_OUTPUT_XOR = 0x40 // Output XOR (invert output)
+	GPIO_PDE        = 0x18 // Pull-down enable (Nuclei UX600 addition)
+	GPIO_OPEN_DRAIN = 0x1C // Open-drain enable (Nuclei UX600 addition)
+	GPIO_PUP        = 0x20 // Push-pull enable (Nuclei UX600 addition)
+	GPIO_RISE_IE    = 0x24 // Rise interrupt enable
+	GPIO_RISE_IP    = 0x28 // Rise interrupt pending (write-1-to-clear)
+	GPIO_FALL_IE    = 0x2C // Fall interrupt enable
+	GPIO_FALL_IP    = 0x30 // Fall interrupt pending (write-1-to-clear)
+	GPIO_HIGH_IE    = 0x34 // High-level interrupt enable
+	GPIO_HIGH_IP    = 0x38 // High-level interrupt pending
+	GPIO_LOW_IE     = 0x3C // Low-level interrupt enable
+	GPIO_LOW_IP     = 0x40 // Low-level interrupt pending
 
-	// IOF (I/O Function) registers: offsets vary by SoC variant.
-	// Standard SiFive (FE310/FU540): IOF_EN=0x38, IOF_SEL=0x3C
-	// Nuclei UX600 (FSL91030):       IOF_EN=0x44, IOF_SEL=0x48
+	// IOF (I/O Function) registers.
+	// Nuclei UX600/UX608 (FSL91030): IOF_EN=0x44, IOF_SEL0=0x48, IOF_SEL1=0x4C
+	// Standard SiFive FE310/FU540:   IOF_EN=0x38, IOF_SEL=0x3C (no SEL1)
 	// Set IOFENOffset / IOFSELOffset on the GPIO struct to select.
 	GPIO_IOF_EN_SIFIVE  = 0x38 // IOF enable (SiFive FE310/FU540)
 	GPIO_IOF_SEL_SIFIVE = 0x3C // IOF select (SiFive FE310/FU540)
-	GPIO_IOF_EN_NUCLEI  = 0x44 // IOF enable (Nuclei UX600 / FSL91030)
-	GPIO_IOF_SEL_NUCLEI = 0x48 // IOF select (Nuclei UX600 / FSL91030)
+	GPIO_IOF_EN_NUCLEI  = 0x44 // IOF enable (Nuclei UX600/UX608 / FSL91030)
+	GPIO_IOF_SEL_NUCLEI = 0x48 // IOF function select 0 (Nuclei UX600/UX608)
+	GPIO_IOF_SEL1       = 0x4C // IOF function select 1 (Nuclei UX600/UX608 only)
+
+	GPIO_EVENT_RISE_EN = 0x50 // Rising-edge event enable (Nuclei UX600 addition)
+	GPIO_EVENT_FALL_EN = 0x54 // Falling-edge event enable (Nuclei UX600 addition)
+	GPIO_OUTPUT_XOR    = 0x58 // Output XOR (invert output)
+	GPIO_SW_FILTER_EN  = 0x5C // Schmitt-trigger input filter enable (Nuclei UX600)
 
 	// GPIO_MAX_PINS is the maximum number of pins per GPIO block.
 	GPIO_MAX_PINS = 32

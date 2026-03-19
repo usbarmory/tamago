@@ -96,11 +96,16 @@ func (w *WDT) Revision() uint32 {
 // period codes (WDT_TO_* constants). A timeout first fires the interrupt
 // (if INTEN is set) and then resets the system.
 //
-// The sequence:
+// The sequence follows the Linux fsl_wdt_start order: write RESTART key
+// first (resets counter to zero), then write CTRL (enables the watchdog).
+// This ensures the counter starts from a known-zero state the moment the
+// watchdog is enabled, avoiding a brief window where a stale counter value
+// could cause an unexpectedly early timeout.
+//
 //  1. Stop any running watchdog
-//  2. Build the CTRL value with ENABLE, RSTEN, INTEN, and the timeout codes
-//  3. Unlock and write CTRL
-//  4. Unlock and write RESTART_KEY to start the counter
+//  2. Build CTRL value with ENABLE, RSTEN, INTEN, and the timeout codes
+//  3. Unlock and write RESTART_KEY (reset the counter)
+//  4. Unlock and write CTRL (enable the watchdog)
 func (w *WDT) Start(intTimeout, rstTimeout int) {
 	w.Stop()
 
@@ -111,10 +116,10 @@ func (w *WDT) Start(intTimeout, rstTimeout int) {
 		uint32((rstTimeout&WDT_CTRL_RSTTIME_MASK)<<WDT_CTRL_RSTTIME)
 
 	w.unlock()
-	reg.Write(w.Base+WDT_CTRL, ctrl)
+	reg.Write(w.Base+WDT_RESTART, WDT_RESTART_KEY)
 
 	w.unlock()
-	reg.Write(w.Base+WDT_RESTART, WDT_RESTART_KEY)
+	reg.Write(w.Base+WDT_CTRL, ctrl)
 }
 
 // Stop disables the watchdog by clearing the ENABLE bit in WDT_CTRL.

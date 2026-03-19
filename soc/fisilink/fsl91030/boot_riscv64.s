@@ -86,7 +86,7 @@ ddr_wait_ready:
 	AND	$2, X15, X15
 	BEQ	X15, X0, ddr_wait_ready
 
-	// DDR_MODE (offset 512): 134258688 + (-765) = 0x80097D03 as 32-bit
+	// DDR_MODE (offset 512): 134258688 + (-765) = 0x08009D03
 	MOV	$134258688, X15
 	ADDW	$-765, X15, X15
 	MOVW	X15, 512(X14)

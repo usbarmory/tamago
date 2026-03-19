@@ -43,7 +43,7 @@ ddr_wait_ready:
 	AND	$2, X15, X15
 	BEQ	X15, X0, ddr_wait_ready
 
-	// DDR_MODE (offset 512 = 0x200): 134258688 + (-765) = 0x080002FD
+	// DDR_MODE (offset 512 = 0x200): 134258688 + (-765) = 0x08009D03
 	MOV	$134258688, X15
 	ADDW	$-765, X15, X15
 	MOVW	X15, 512(X14)
@@ -51,7 +51,7 @@ ddr_wait_ready:
 	// DDR_CTRL (offset 516 = 0x204): 0 (clear before triggering init)
 	MOVW	X0, 516(X14)
 
-	// DDR_TIMING0 (offset 520 = 0x208): 270336 + (-912) = 0x40FA0
+	// DDR_TIMING0 (offset 520 = 0x208): 270336 + (-912) = 0x041C70
 	MOV	$270336, X15
 	ADDW	$-912, X15, X15
 	MOVW	X15, 520(X14)
@@ -65,12 +65,12 @@ ddr_wait_ready:
 	ADDW	$84, X15, X15
 	MOVW	X15, 528(X14)
 
-	// DDR_TIMING3 (offset 532 = 0x214): 520556544 + (-1529) = 0x1F027A07
+	// DDR_TIMING3 (offset 532 = 0x214): 520556544 + (-1529) = 0x1F070A07
 	MOV	$520556544, X15
 	ADDW	$-1529, X15, X15
 	MOVW	X15, 532(X14)
 
-	// DDR_TIMING4 (offset 536 = 0x218): 289738752 + 530 = 0x114A0212
+	// DDR_TIMING4 (offset 536 = 0x218): 289738752 + 530 = 0x11451212
 	// Also initialise X12 = 8192 (reused for TIMING5 and REG2)
 	MOV	$289738752, X15
 	MOV	$8192, X12
@@ -93,7 +93,7 @@ ddr_wait_ready:
 	ADDW	$-1639, X13, X13
 	MOVW	X13, 548(X14)
 
-	// DDR_TIMING8 (offset 552 = 0x228): 4096 + (-839) = 0xCC9
+	// DDR_TIMING8 (offset 552 = 0x228): 4096 + (-839) = 0xCB9
 	MOV	$4096, X11
 	ADDW	$-839, X11, X11
 	MOVW	X11, 552(X14)
@@ -106,7 +106,7 @@ ddr_wait_ready:
 	ADDW	$4, X11, X11
 	MOVW	X11, 560(X14)
 
-	// DDR_TIMINGB (offset 564 = 0x234): 50528256 + 771 = 0x30330303
+	// DDR_TIMINGB (offset 564 = 0x234): 50528256 + 771 = 0x03030303
 	MOV	$50528256, X11
 	ADDW	$771, X11, X11
 	MOVW	X11, 564(X14)
