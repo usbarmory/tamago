@@ -8,10 +8,7 @@
 
 package dma
 
-import (
-	"reflect"
-	"unsafe"
-)
+import "unsafe"
 
 type block struct {
 	// pointer address
@@ -42,10 +39,10 @@ func (b *block) write(off uint, buf []byte) {
 }
 
 func (b *block) slice() (buf []byte) {
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&buf))
-	hdr.Data = uintptr(unsafe.Pointer(uintptr(b.addr)))
-	hdr.Len = int(b.size)
-	hdr.Cap = hdr.Len
+	var ptr unsafe.Pointer
+
+	ptr = unsafe.Add(ptr, b.addr)
+	buf = unsafe.Slice((*byte)(ptr), len(buf))
 
 	return
 }
