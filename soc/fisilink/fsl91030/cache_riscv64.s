@@ -1,10 +1,16 @@
-// Fisilink FSL91030 cache control (Nuclei UX600)
+// Fisilink FSL91030 cache control
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
 //
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
+//
+// Cache control uses the Nuclei UX600 custom CSR_MCACHE_CTL (0x7CA), which
+// is a Nuclei-specific extension not part of the standard RISC-V spec. This
+// file lives under the FSL91030 SoC package because it is currently the only
+// in-tree SoC using Nuclei IP; it could be moved to a shared Nuclei package
+// if additional Nuclei-based SoCs are added.
 
 #include "textflag.h"
 

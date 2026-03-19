@@ -29,7 +29,7 @@
 //   X12 (A2): 8192 = 0x2000, DDR_TIMING5 base and REG2 accumulator
 //   X13 (A3): derived timing value, saved for DDR_REG3
 //   X11 (A1): miscellaneous timing/config values
-TEXT ·initDDR(SB),NOSPLIT|NOFRAME,$0
+TEXT ·InitDDR(SB),NOSPLIT|NOFRAME,$0
 
 	// Set DDR base address: 0x10001000
 	MOV	$0x10001000, X14

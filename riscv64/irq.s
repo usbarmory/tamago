@@ -18,9 +18,6 @@
 #define MSTATUS_MIE 8     // mstatus bit 3: global machine-mode interrupt enable
 #define MIE_MEIE    2048  // mie bit 11: machine external interrupt enable
 
-// Register number for T0 = X5 (used as scratch in CSR operations)
-#define t0_reg 5
-
 // MRET: return from machine-mode trap (opcode 0x30200073)
 #define MRET WORD $0x30200073
 
@@ -30,44 +27,38 @@
 //   mstatus.MIE (bit 3) = 1  — globally enables machine-mode interrupts
 TEXT ·irq_enable(SB),NOSPLIT,$0-0
 	MOV	$MIE_MEIE, T0
-	CSRS(t0_reg, mie_csr)     // mie |= MEIE
+	CSRS(t0, mie_csr)     // mie |= MEIE
 	MOV	$MSTATUS_MIE, T0
-	CSRS(t0_reg, mstatus_csr) // mstatus.MIE = 1
+	CSRS(t0, mstatus_csr) // mstatus.MIE = 1
 	RET
 
 // func irq_disable()
 // Disables machine-mode external interrupts by clearing mie.MEIE.
-// Does not affect the global mstatus.MIE or timer/software interrupts.
 TEXT ·irq_disable(SB),NOSPLIT,$0-0
 	MOV	$MIE_MEIE, T0
-	CSRC(t0_reg, mie_csr)     // mie &= ~MEIE
+	CSRC(t0, mie_csr)     // mie &= ~MEIE
 	RET
 
 // func wfi()
-// Executes a single WFI (Wait For Interrupt) instruction and returns.
-// The CPU is suspended until the next interrupt is received.
 TEXT ·wfi(SB),NOSPLIT,$0-0
 	WORD	$0x10500073 // wfi
 	RET
 
-// trapHandler is the unified machine-mode trap handler installed at mtvec by
-// riscv64.CPU.ServiceInterrupts. It handles both synchronous exceptions and
-// asynchronous interrupts from a single direct-mode entry point.
+// trapHandler is the unified machine-mode trap handler installed at mtvec.
 //
 // Synchronous exceptions (mcause bit 63 = 0): restores registers and
-// tail-calls DefaultExceptionHandler, which panics.
-// Asynchronous machine external interrupt (cause code 11): calls
-// runtime.WakeG to wake the IRQ handler goroutine, then returns via MRET.
-// Other asynchronous interrupts (timer, software): returns via MRET unchanged.
+// tail-calls DefaultExceptionHandler (panics).
+// Machine external interrupt (cause 11): calls os/signal.Relay to wake
+// the goroutine waiting in ServiceInterrupts, then returns via MRET.
+// Other asynchronous interrupts: returns via MRET unchanged.
 //
 // Saves and restores all caller-saved integer registers (RA, T0-T6, A0-A7)
-// in a 144-byte 16-byte-aligned frame. WakeG on RISC-V receives the G
-// pointer in T0 rather than A0.
+// in a 144-byte frame. For TEE/world-switch contexts additional callee-saved
+// registers would need to be saved (see GoTEE monitor/exec_riscv64.s).
 //
 //go:nosplit
 TEXT ·trapHandler(SB),NOSPLIT|NOFRAME,$0-0
-	// Save RA at the top of the incoming frame, then allocate the frame.
-	// After SUB, 0(SP) holds the saved RA.
+	// Save RA and all caller-saved registers.
 	MOV	X1,  -144(X2)
 	SUB	$144, X2
 	MOV	X5,  8(X2)
@@ -86,17 +77,12 @@ TEXT ·trapHandler(SB),NOSPLIT|NOFRAME,$0-0
 	MOV	X16, 112(X2)
 	MOV	X17, 120(X2)
 
-	// Read mcause CSR into T0 (X5).
-	CSRR(mcause_csr, t0_reg)
-
-	// Check bit 63 (interrupt flag). BLT treats registers as signed 64-bit
-	// integers, so a negative T0 means bit 63 is set → asynchronous interrupt.
+	// Read mcause. BLT treats it as signed: bit 63 set = asynchronous interrupt.
+	CSRR(mcause_csr, t0)
 	BLT	T0, ZERO, interrupt_path
 
 exception_path:
-	// Synchronous exception. Restore all caller-saved registers and SP,
-	// then tail-call DefaultExceptionHandler. That function re-reads mcause
-	// from the CSR and panics — it never returns, so no MRET is needed.
+	// Restore all registers and tail-call DefaultExceptionHandler (no return).
 	MOV	0(X2),   X1
 	MOV	8(X2),   X5
 	MOV	16(X2),  X6
@@ -117,20 +103,22 @@ exception_path:
 	JMP	·DefaultExceptionHandler(SB)
 
 interrupt_path:
-	// Asynchronous interrupt. Mask T0 to the 6-bit cause code (bits 5:0).
-	// Machine external interrupt = code 11 (M-mode PLIC delivery).
+	// Only signal for machine external interrupt (cause code 11 = PLIC).
 	AND	$63, T0, T0
 	MOV	$11, T1
-	BNE	T0, T1, done   // not M-mode external interrupt → skip WakeG
+	BNE	T0, T1, done
 
-	// Machine external interrupt. Wake the IRQ handler goroutine.
-	// WakeG on RISC-V requires the G pointer in T0 (not A0).
-	MOV	·irqHandlerG(SB), T0
-	BEQ	T0, ZERO, done  // irqHandlerG not yet set → skip
-	CALL	runtime·WakeG(SB)
+	// Deliver irqSignal to the goroutine waiting in ServiceInterrupts.
+	// Allocate a mini-frame matching arm64's 17*16 for the Relay call, then
+	// pass irqSignal as the first argument (X10 = A0 in RISC-V register ABI).
+	SUB	$272, X2
+	MOV	·irqSignal(SB), X10
+	MOV	X10, 8(X2)
+	CALL	os∕signal·Relay(SB)
+	ADD	$272, X2
 
 done:
-	// Restore all caller-saved registers (including RA clobbered by CALL above).
+	// Restore all caller-saved registers.
 	MOV	0(X2),   X1
 	MOV	8(X2),   X5
 	MOV	16(X2),  X6
@@ -150,6 +138,4 @@ done:
 	ADD	$144, X2
 
 	// Return from machine-mode trap.
-	// MRET restores mstatus.MIE from mstatus.MPIE (re-enables interrupts
-	// if they were enabled before the trap), and returns to mepc.
 	MRET

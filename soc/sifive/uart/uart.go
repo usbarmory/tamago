@@ -34,10 +34,11 @@ const (
 	RXDATA_EMPTY = 31
 	RXDATA_DATA  = 0
 
-	UARTx_TXCTRL  = 0x0008
-	TXCTRL_TXEN   = 0 // TX enable (bit 0)
-	UARTx_RXCTRL  = 0x000c
-	RXCTRL_RXEN   = 0 // RX enable (bit 0)
+	UARTx_TXCTRL = 0x0008
+	TXCTRL_TXEN  = 0 // TX enable (bit 0)
+
+	UARTx_RXCTRL = 0x000c
+	RXCTRL_RXEN  = 0 // RX enable (bit 0)
 )
 
 // UART represents a serial port instance.

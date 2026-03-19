@@ -54,29 +54,11 @@ const (
 	DDR_STATUS_READY = 1 // Bit 1: Controller ready status
 )
 
-// InitDDR initializes the DDR SDRAM controller.
+// InitDDR initializes the DDR SDRAM controller (MilkV Vega board SDRAM timing).
 //
-// The complete initialization sequence (derived from the vendor's freeloader.S):
+// In the standard boot flow, flashboot.s runs DDR init before the Go runtime
+// starts. This function is available for reconfiguration at runtime; callers
+// must call DisableCache before and EnableCache after.
 //
-//  1. Wait for DDR_STATUS bit 1 (controller ready)
-//  2. Configure DDR_MODE (0x080002FD) and clear DDR_CTRL
-//  3. Write DDR_TIMING0 through DDR_TIMINGD (14 timing registers)
-//  4. Write DDR_REG0 through DDR_REG7 (8 configuration registers)
-//  5. Set DDR_CTRL = 1 to trigger initialization
-//  6. Wait for DDR_CTRL bit 8 (initialization complete)
-//
-// WARNING: Timing parameters are hardware-specific (MilkV Vega board SDRAM).
-// Incorrect values will cause memory corruption or a hung boot. The values
-// match those in the vendor's freeloader.S and in tools/flashboot.s.
-//
-// In the standard boot flow, flashboot.s initializes DDR before the Go
-// runtime starts, so this function is not called during normal boot. It is
-// available for DDR reconfiguration at runtime. If called at runtime, the
-// caller must disable the cache first (DisableCache) and re-enable it after
-// (EnableCache), and must ensure no outstanding DMA is in flight.
-func InitDDR() {
-	initDDR()
-}
-
 //go:nosplit
-func initDDR()
+func InitDDR()
