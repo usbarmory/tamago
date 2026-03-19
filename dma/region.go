@@ -264,7 +264,7 @@ func (r *Region) alloc(size uint, align uint) *block {
 	var freeBlock *block
 	var pad uint
 
-	if align == 0 {
+	if align == 0 || align & (align-1) != 0 {
 		align = DefaultAlignment
 	}
 
