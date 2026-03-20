@@ -42,7 +42,7 @@ func (b *block) slice() (buf []byte) {
 	var ptr unsafe.Pointer
 
 	ptr = unsafe.Add(ptr, b.addr)
-	buf = unsafe.Slice((*byte)(ptr), len(buf))
+	buf = unsafe.Slice((*byte)(ptr), b.size)
 
 	return
 }
