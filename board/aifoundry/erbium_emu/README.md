@@ -23,8 +23,8 @@ TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal processors.
 
 The [erbium_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/erbium_emu)
-package provides support for AI Foundry [Erbium](https://github.com/aifoundry-org/erbium) processor
-[erbium_emu emulator](https://github.com/aifoundry-org/et-platform) configured with a single rv64imfc core.
+package provides support for AI Foundry [Erbium](https://github.com/aifoundry-org/erbium) processor, running on the
+[erbium_emu emulator](https://github.com/aifoundry-org/et-platform) as a single ET-Minion (rv64imfc) core.
 
 Documentation
 =============

@@ -42,7 +42,7 @@ Supported hardware
 
 | SoC               | Related board packages                                                                   | Peripheral drivers                                                    |
 |-------------------|------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| AI Foundru Erbium | [erbium_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/erbium_emu) | [UART](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry) |
+| AI Foundry Erbium | [erbium_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/erbium_emu) | [UART](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry) |
 
 Soft float requirement
 ======================
