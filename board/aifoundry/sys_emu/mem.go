@@ -1,0 +1,23 @@
+// AI Foundry ET-SoC-1 emulator support for tamago/riscv64
+// https://github.com/usbarmory/tamago
+//
+// Copyright (c) The TamaGo Authors. All Rights Reserved.
+//
+// Use of this source code is governed by the license
+// that can be found in the LICENSE file.
+
+//go:build !linkramsize
+
+package sys_emu
+
+import (
+	_ "unsafe"
+)
+
+// Applications can override ramSize with the `linkramsize` build tag.
+//
+// This is useful when large DMA descriptors are required to re-initialize
+// tamago `dma` package in external RAM.
+
+//go:linkname ramSize runtime/goos.RamSize
+var ramSize uint64 = 0x4_0000_0000 // 16GB

@@ -35,16 +35,13 @@ const (
 	// System configuration
 	SYSTEM_CONFIG = 0x02000008
 
-	// Machine Timer
-	ESR_MTIME = 0x80f40200
-
 	// Serial ports
 	UART0_BASE = 0x02004000
 )
 
 // Peripheral instances
 var (
-	// RISC-V core
+	// ET-Minion RISC-V core
 	RV64 = &riscv64.CPU{
 		Counter:         Counter,
 		TimerMultiplier: TimerMultiplier,
@@ -52,9 +49,8 @@ var (
 		TimerOffset: 1,
 	}
 
-	// Serial port 1
-	UART0 = &uart.UART{
-		Index:  1,
+	// Serial port
+	UART0 = &uart.Shakti{
 		Base:   UART0_BASE,
 		System: SYSTEM_CONFIG,
 	}
