@@ -38,9 +38,6 @@ type CPU struct {
 	TimerMultiplier float64
 	// Timer offset in nanoseconds
 	TimerOffset int64
-
-	// features
-	features Features
 }
 
 // defined in riscv64.s
@@ -60,7 +57,6 @@ func (cpu *CPU) Init() {
 	goos.Idle = cpu.DefaultIdleGovernor
 
 	cpu.SetExceptionHandler(DefaultExceptionHandler)
-	cpu.initFeatures()
 
 	if cpu.Counter == nil {
 		cpu.Counter = func() uint64 { return 0 }
