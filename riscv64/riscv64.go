@@ -43,11 +43,13 @@ type CPU struct {
 // defined in riscv64.s
 func exit(int32)
 
-// DefaultIdleGovernor is the default CPU idle time management function
+// DefaultIdleGovernor is the default CPU idle time management function.
+// When the scheduler has no work remaining (pollUntil == math.MaxInt64) it
+// executes WFI (Wait For Interrupt) to suspend the core until the next
+// interrupt. Interrupts must be enabled for WFI to return.
 func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
-	// we have nothing to do forever
 	if pollUntil == math.MaxInt64 {
-		exit(0)
+		wfi()
 	}
 }
 
