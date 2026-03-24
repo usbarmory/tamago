@@ -1,4 +1,4 @@
-// Shakti Universal Asynchronous Receiver/Transmitter (UART) driver
+// CORE-ET Silicom Platform Universal Asynchronous Receiver/Transmitter (UART) drivers
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The kotama Authors. All Rights Reserved.
@@ -6,20 +6,13 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package uart implements a driver for UART controllers adopting the following
-// reference specifications:
-//   - Shakti SoC Device Register Manual - 2021/06/24
-//
-// This package is only meant to be used with `GOOS=tamago GOARCH=riscv64` as
-// supported by the TamaGo framework for bare metal Go on RISC-V SoCs, see
-// https://github.com/usbarmory/tamago.
 package uart
 
 import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
-// UART registers
+// Shakti UART registers
 const (
 	CONFIG_UART_ENABLE = 6
 
@@ -33,8 +26,8 @@ const (
 	STATUS_TX_EMPTY = 0
 )
 
-// UART represents a serial port instance.
-type UART struct {
+// Shakti represents a Shakti serial port instance.
+type Shakti struct {
 	// Controller index
 	Index int
 	// Base register
@@ -49,7 +42,7 @@ type UART struct {
 }
 
 // Init initializes a serial port instance.
-func (hw *UART) Init() {
+func (hw *Shakti) Init() {
 	if hw.Base == 0 {
 		panic("invalid UART controller instance")
 	}
@@ -64,7 +57,7 @@ func (hw *UART) Init() {
 }
 
 // Tx transmits a single character to the serial port.
-func (hw *UART) Tx(c byte) {
+func (hw *Shakti) Tx(c byte) {
 	for reg.Get(hw.status, STATUS_TX_FULL) {
 		// wait for TX FIFO to have room for a character
 	}
@@ -73,7 +66,7 @@ func (hw *UART) Tx(c byte) {
 }
 
 // Rx receives a single character from the serial port.
-func (hw *UART) Rx() (c byte, valid bool) {
+func (hw *Shakti) Rx() (c byte, valid bool) {
 	if !reg.Get(hw.status, STATUS_RX_READY) {
 		return
 	}
@@ -82,7 +75,7 @@ func (hw *UART) Rx() (c byte, valid bool) {
 }
 
 // Write data from buffer to serial port.
-func (hw *UART) Write(buf []byte) (n int, _ error) {
+func (hw *Shakti) Write(buf []byte) (n int, _ error) {
 	for n = range buf {
 		hw.Tx(buf[n])
 	}
@@ -91,7 +84,7 @@ func (hw *UART) Write(buf []byte) (n int, _ error) {
 }
 
 // Read available data to buffer from serial port.
-func (hw *UART) Read(buf []byte) (n int, _ error) {
+func (hw *Shakti) Read(buf []byte) (n int, _ error) {
 	var valid bool
 
 	for n = range buf {

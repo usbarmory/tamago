@@ -1,4 +1,4 @@
-// AI Foundry Erbium initialization
+// AI Foundry ET-SoC-1 Minion initialization
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -6,7 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package erbium
+package minion
 
 import (
 	_ "unsafe"
@@ -21,7 +21,7 @@ const (
 )
 
 // Machine Timer
-const ESR_MTIME = 0x80f40200
+const ESR_MTIME = 0x01_ff80_0000
 
 // Counter returns the CPU Machine Timer Register.
 func Counter() uint64 {

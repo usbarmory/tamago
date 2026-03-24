@@ -1,5 +1,5 @@
-TamaGo - bare metal Go - AI Foundry erbium_emu support
-======================================================
+TamaGo - bare metal Go - AI Foundry sys_emu support
+===================================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -22,9 +22,9 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal processors.
 
-The [erbium_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/erbium_emu)
-package provides support for AI Foundry [Erbium](https://github.com/aifoundry-org/erbium) processor, running on the
-[erbium_emu emulator](https://github.com/aifoundry-org/et-platform) as a single ET-Minion (rv64imfc) core.
+The [sys_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/sys_emu)
+package provides support for AI Foundry [ET-Soc-1](https://github.com/aifoundry-org/et-man) processor, running on the
+[sys_emu emulator](https://github.com/aifoundry-org/et-platform/tree/master/sw-sysemu) on a single ET-Minion (rv64imfc) core.
 
 Documentation
 =============
@@ -36,7 +36,7 @@ For more information about TamaGo see its
 [project wiki](https://github.com/usbarmory/tamago/wiki).
 
 For the underlying driver support for this board see package
-[erbium](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/erbium).
+[etsoc1](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/etsoc1).
 
 The package API documentation can be found on
 [pkg.go.dev](https://pkg.go.dev/github.com/usbarmory/tamago).
@@ -44,9 +44,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC               | Board                                                      | SoC package                                                                    | Board package                                                                            |
-|-------------------|------------------------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
-| AI Foundry Erbium | [erbium_emu](https://github.com/aifoundry-org/et-platform) | [erbium](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/erbium) | [erbium_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/erbium_emu) |
+| Processor         | Board                                                                         | SoC package                                                                    | Processor package                                                                            | Board package                                                                      |
+|-------------------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| AI Foundry Minion | [sys_emu](https://github.com/aifoundry-org/et-platform/tree/master/sw-sysemu) | [etsoc1](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/etsoc1) | [etsoc1/minion](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/etsoc1/minion) | [sys_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/sys_emu) |
 
 Compiling
 =========
@@ -75,7 +75,7 @@ initialization and runtime support take place:
 
 ```golang
 import (
-	_ "github.com/usbarmory/tamago/board/aifoundry/erbium_emu"
+	_ "github.com/usbarmory/tamago/board/aifoundry/sys_emu"
 )
 ```
 
@@ -84,10 +84,10 @@ previous step, but with the addition of the following flags/variables:
 
 ```sh
 GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARCH=riscv64 GOSOFT=1 \
-	${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main.go
+	${TAMAGO} build -ldflags "-T 0x8000010000 -R 0x1000" main.go
 ```
 
-An example application, targeting AI Foundry erbium_emu,
+An example application, targeting AI Foundry sys_emu,
 is [available](https://github.com/usbarmory/kotama).
 
 Build tags
@@ -107,13 +107,13 @@ The [kotama repository](https://github.com/usbarmory/kotama) provides reference
 usage and a script for automatic creation of an ELF image for emulated
 execution.
 
-erbium_emu
-----------
+sys_emu
+-------
 
 The target can be executed under emulation as follows:
 
 ```sh
-/opt/et/bin/erbium_emu \
+/opt/et/bin/sys_emu \
 	-reset_pc $(nm main|grep _rt0_riscv64_tamago | cut -d' ' -f1) \
 	-max_cycles -1 -single_thread \
 	-elf_load main

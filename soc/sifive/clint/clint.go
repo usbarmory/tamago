@@ -6,8 +6,8 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package clint implements a driver for SiFive Core-Local Interruptor (CLINT)
-// block adopting the following reference specifications:
+// Package clint implements a driver for Core-Local Interruptor (CLINT)
+// blocks adopting the following reference specifications:
 //   - FU540C00RM - SiFive FU540-C000 Manual - v1p4 2021/03/25
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=riscv64` as

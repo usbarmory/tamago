@@ -1,5 +1,5 @@
-TamaGo - bare metal Go - Erbium support
-=======================================
+TamaGo - bare metal Go - ET-SoC-1 support
+=========================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -22,8 +22,8 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal processors.
 
-The [erbium](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/erbium)
-package provides support for AI Foundry [Erbium](https://github.com/aifoundry-org/erbium)
+The [etsoc1](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/etsoc1)
+package provides support for AI Foundry [ET-SoC-1](https://github.com/aifoundry-org/et-man)
 processor.
 
 Documentation
@@ -40,9 +40,15 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC               | Related board packages                                                                   | Peripheral drivers                                                    |
-|-------------------|------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| AI Foundry Erbium | [erbium_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/erbium_emu) | [UART](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry) |
+| Processor                    | Related board packages                                                             | Processor package                                                                            | Peripheral drivers                                                    |
+|------------------------------|------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| AI Foundry Minion            | [sys_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/sys_emu) | [etsoc1/minion](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/etsoc1/minion) | [UART](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry) |
+
+> [!TIP]
+> The ET-Soc-1 mixes RISC-V cores with different ISA and access levels
+> (`rv64gc` cores: 4x ET-Maxion, `rv64imfc` cores: 1088x Minion), for this
+> reason the SoC package has sub-packages for importing processor specific
+> support.
 
 Soft float requirement
 ======================

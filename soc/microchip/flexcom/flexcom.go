@@ -157,7 +157,7 @@ func (hw *FLEXCOM) Rx() (c byte, valid bool) {
 
 // Write data from buffer to serial port.
 func (hw *FLEXCOM) Write(buf []byte) (n int, _ error) {
-	for n = 0; n < len(buf); n++ {
+	for n = range buf {
 		hw.Tx(buf[n])
 	}
 
@@ -168,7 +168,7 @@ func (hw *FLEXCOM) Write(buf []byte) (n int, _ error) {
 func (hw *FLEXCOM) Read(buf []byte) (n int, _ error) {
 	var valid bool
 
-	for n = 0; n < len(buf); n++ {
+	for n = range buf {
 		buf[n], valid = hw.Rx()
 
 		if !valid {

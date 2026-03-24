@@ -41,11 +41,8 @@ type Features struct {
 	Extensions Extensions
 }
 
-func (cpu *CPU) initFeatures() {
-	cpu.features.Extensions = Extensions(read_misa())
-}
-
 // Features returns the processor capabilities.
-func (cpu *CPU) Features() *Features {
-	return &cpu.features
+func (cpu *CPU) Features() (features Features) {
+	features.Extensions = Extensions(read_misa())
+	return
 }

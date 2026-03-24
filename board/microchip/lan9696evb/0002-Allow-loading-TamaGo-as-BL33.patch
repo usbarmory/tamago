@@ -1,4 +1,4 @@
-From 458960e206f402aade1aadb8ce63e350596adeef Mon Sep 17 00:00:00 2001
+From c7573f7e2fa533af07a1a83cae635f339ddb62cb Mon Sep 17 00:00:00 2001
 From: Andrej Rosano <andrej.rosano@reversec.com>
 Date: Tue, 10 Feb 2026 15:23:36 +0100
 Subject: [PATCH 2/2] Allow loading TamaGo as BL33
@@ -7,8 +7,8 @@ Allow TRNG access from Non-Secure world.
 ---
  Makefile                                                 | 6 ++++++
  .../lan969x/common/lan969x_bl2_mem_params_desc.c         | 9 +++++++++
- plat/microchip/lan969x/common/lan969x_tz.c               | 3 +++
- 3 files changed, 18 insertions(+)
+ plat/microchip/lan969x/common/lan969x_tz.c               | 1 +
+ 3 files changed, 16 insertions(+)
 
 diff --git a/Makefile b/Makefile
 index f31d8eb2f..48e0c7674 100644
@@ -53,16 +53,14 @@ index d3ffcc7f1..93c038f6e 100644
  #endif /* PRELOADED_BL33_BASE */
                  .ep_info.spsr = SPSR_64(MODE_EL1, MODE_SP_ELX, DISABLE_ALL_EXCEPTIONS),
 diff --git a/plat/microchip/lan969x/common/lan969x_tz.c b/plat/microchip/lan969x/common/lan969x_tz.c
-index 840ee6ee9..884ff2a91 100644
+index 840ee6ee9..1bdc8068d 100644
 --- a/plat/microchip/lan969x/common/lan969x_tz.c
 +++ b/plat/microchip/lan969x/common/lan969x_tz.c
-@@ -146,6 +146,9 @@ void lan969x_tz_finish(void)
+@@ -146,6 +146,7 @@ void lan969x_tz_finish(void)
  			TZPM_TZPCTL1_FLEXCOM0(1) |
  			TZPM_TZPCTL1_FLEXCOM1(1) |
  			TZPM_TZPCTL1_FLEXCOM2(1) |
-+#if (defined(TAMAGO_BL33))
 +			TZPM_TZPCTL1_TRNG(1) |
-+#endif
  			TZPM_TZPCTL1_FLEXCOM3(1));
  	mmio_setbits_32(TZPM_TZPCTL2(tzpm),
  			TZPM_TZPCTL2_PKE(1));
