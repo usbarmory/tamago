@@ -24,7 +24,7 @@ TEXT ·write_pmpcfg0(SB),$0-8
 	// Volume II: RISC-V Privileged Architectures V20211203
 	// 3.7.1 Physical Memory Protection CSRs
 	MOV	cfg+0(FP), T0
-	CSRRW	T0, PMPCFG0, T0
+	CSRRW	ZERO, PMPCFG0, T0
 
 	RET
 
@@ -79,47 +79,47 @@ TEXT ·read_pmpaddr7(SB),$0-8
 // func write_pmpaddr0(uint64)
 TEXT ·write_pmpaddr0(SB),$0-8
 	MOV	addr+0(FP), T0
-	CSRRW	T0, PMPADDR0, T0
+	CSRRW	ZERO, PMPADDR0, T0
 	RET
 
 // func write_pmpaddr1(uint64)
 TEXT ·write_pmpaddr1(SB),$0-8
 	MOV	addr+0(FP), T0
-	CSRRW	T0, PMPADDR1, T0
+	CSRRW	ZERO, PMPADDR1, T0
 	RET
 
 // func write_pmpaddr2(uint64)
 TEXT ·write_pmpaddr2(SB),$0-8
 	MOV	addr+0(FP), T0
-	CSRRW	T0, PMPADDR2, T0
+	CSRRW	ZERO, PMPADDR2, T0
 	RET
 
 // func write_pmpaddr3(uint64)
 TEXT ·write_pmpaddr3(SB),$0-8
 	MOV	addr+0(FP), T0
-	CSRRW	T0, PMPADDR3, T0
+	CSRRW	ZERO, PMPADDR3, T0
 	RET
 
 // func write_pmpaddr4(uint64)
 TEXT ·write_pmpaddr4(SB),$0-8
 	MOV	addr+0(FP), T0
-	CSRRW	T0, PMPADDR4, T0
+	CSRRW	ZERO, PMPADDR4, T0
 	RET
 
 // func write_pmpaddr5(uint64)
 TEXT ·write_pmpaddr5(SB),$0-8
 	MOV	addr+0(FP), T0
-	CSRRW	T0, PMPADDR5, T0
+	CSRRW	ZERO, PMPADDR5, T0
 	RET
 
 // func write_pmpaddr6(uint64)
 TEXT ·write_pmpaddr6(SB),$0-8
 	MOV	addr+0(FP), T0
-	CSRRW	T0, PMPADDR6, T0
+	CSRRW	ZERO, PMPADDR6, T0
 	RET
 
 // func write_pmpaddr7(uint64)
 TEXT ·write_pmpaddr7(SB),$0-8
 	MOV	addr+0(FP), T0
-	CSRRW	T0, PMPADDR7, T0
+	CSRRW	ZERO, PMPADDR7, T0
 	RET
