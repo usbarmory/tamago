@@ -11,7 +11,7 @@
 // func set_stvec(addr uint64)
 TEXT ·set_stvec(SB),NOSPLIT,$0-8
 	MOV	addr+0(FP), T0
-	CSRRW	ZERO, STVEC, T0
+	CSRRW	T0, STVEC, ZERO
 	RET
 
 // func read_sepc() uint64
@@ -29,7 +29,7 @@ TEXT ·read_scause(SB),NOSPLIT,$0-8
 // func set_mtvec(addr uint64)
 TEXT ·set_mtvec(SB),NOSPLIT,$0-8
 	MOV	addr+0(FP), T0
-	CSRRW	ZERO, MTVEC, T0
+	CSRRW	T0, MTVEC, ZERO
 	RET
 
 // func read_mepc() uint64
