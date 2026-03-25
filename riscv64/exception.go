@@ -73,14 +73,19 @@ func DefaultSupervisorExceptionHandler() {
 	panic("unhandled exception")
 }
 
-// SetExceptionHandler updates the CPU machine trap vector vector with the
-// address of the argument function.
+// SetExceptionHandler updates the CPU machine trap vector with the address of
+// the argument function.
 func (cpu *CPU) SetExceptionHandler(fn ExceptionHandler) {
 	set_mtvec(vector(fn))
 }
 
-// SetSupervisorExceptionHandler updates the CPU supervisor trap vector vector
-// with the address of the argument function.
+// SetExceptionHandlerAddress updates the CPU machine trap vector address.
+func (cpu *CPU) SetExceptionHandlerAddress(addr uint64) {
+	set_mtvec(addr)
+}
+
+// SetSupervisorExceptionHandler updates the CPU supervisor trap vector with
+// the address of the argument function.
 func (cpu *CPU) SetSupervisorExceptionHandler(fn ExceptionHandler) {
 	set_stvec(vector(fn))
 }

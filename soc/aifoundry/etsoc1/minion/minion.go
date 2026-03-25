@@ -32,7 +32,6 @@ var (
 		// required before Init()
 		TimerOffset: 1,
 	}
-
 )
 
 // Model returns the processor name.
