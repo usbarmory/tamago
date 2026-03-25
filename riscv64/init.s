@@ -10,27 +10,17 @@
 
 #include "textflag.h"
 
-#define t0 5
-
-#define sie     0x104
-#define mstatus 0x300
-#define mie     0x304
-
-#define CSRC(RS,CSR) WORD $(0x3073 + RS<<15 + CSR<<20)
-#define CSRS(RS,CSR) WORD $(0x2073 + RS<<15 + CSR<<20)
-#define CSRW(RS,CSR) WORD $(0x1073 + RS<<15 + CSR<<20)
-
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	// disable interrupts
 	MOV	$0, T0
-	CSRW	(t0, sie)
-	CSRW	(t0, mie)
+	CSRRW	ZERO, SIE, T0
+	CSRRW	ZERO, MIE, T0
 	MOV	$0x7FFF, T0
-	CSRC	(t0, mstatus)
+	CSRRC	ZERO, MSTATUS, T0
 
 	// enable FPU
 	MOV	$(1<<13), T0
-	CSRS	(t0, mstatus)
+	CSRRS	ZERO, MSTATUS, T0
 
 	// set stack pointer
 	MOV	runtime∕goos·RamStart(SB), X2
