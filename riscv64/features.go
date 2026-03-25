@@ -17,6 +17,7 @@ import (
 const extensions = "abcdefghijklmnopqrstuvwxyz"
 
 // defined in features.s
+func read_mhartid() uint64
 func read_misa() uint64
 
 type Extensions uint64
@@ -37,12 +38,15 @@ func (e Extensions) String() string {
 
 // Features represents the processor capabilities.
 type Features struct {
+	// HartID returns the Hart ID
+	HartID uint64
 	// Extensions fields as reported by the Machine ISA Register.
 	Extensions Extensions
 }
 
 // Features returns the processor capabilities.
 func (cpu *CPU) Features() (features Features) {
+	features.HartID = read_mhartid()
 	features.Extensions = Extensions(read_misa())
 	return
 }
