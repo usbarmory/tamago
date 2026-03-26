@@ -25,5 +25,5 @@ func IPI(hart int) {
 
 // ClearIPI clears an Inter-Processor Interrupt (IPI).
 func ClearIPI(hart int) {
-	reg.Clear64(IPI_TRIGGER_CLEAR, hart)
+	reg.Set64(IPI_TRIGGER_CLEAR, hart)
 }
