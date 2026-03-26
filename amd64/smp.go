@@ -127,6 +127,7 @@ func (cpu *CPU) procresize() {
 // verify SMP use by the runtime.
 func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	if n == 0 || n == 1 {
+		goos.Task = nil
 		return
 	}
 
