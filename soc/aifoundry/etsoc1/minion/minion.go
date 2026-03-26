@@ -1,4 +1,4 @@
-// AI Foundry ET-SoC-1 Minion initialization
+// AI Foundry ET-SoC-1 Minion configuration and support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.

@@ -1,4 +1,4 @@
-// AI Foundry Erbium initialization
+// AI Foundry Erbium support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.

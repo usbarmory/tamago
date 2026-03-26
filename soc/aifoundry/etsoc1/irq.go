@@ -1,4 +1,4 @@
-// AI Foundry ET-SoC-1 RNG initialization
+// AI Foundry ET-SoC-1 support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
