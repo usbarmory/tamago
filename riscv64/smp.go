@@ -9,7 +9,6 @@
 package riscv64
 
 // ID returns the processor hardware thread (hart) identifier.
-func (cpu *CPU) ID() uint64 {
+func (cpu *CPU) ID() (hart uint64) {
 	return read_mhartid()
 }
-

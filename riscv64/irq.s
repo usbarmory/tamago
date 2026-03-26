@@ -35,7 +35,7 @@ TEXT ·irq_disable(SB),NOSPLIT|NOFRAME,$0
 // func wfi()
 TEXT ·wfi(SB),NOSPLIT|NOFRAME,$0
 	// wait until an interrupt is received in low-power state
-	WORD $0x10500073 // wfi
+	WORD	$0x10500073 // wfi
 	RET
 
 TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
@@ -78,7 +78,7 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	ADD	$(32*8), SP
 
 	// the IRQ handling goroutine is expected to unmask IRQs
-	CALL ·irq_disable(SB)
+	CALL	·irq_disable(SB)
 done:
 	// restore caller registers
 	MOV	-2*8(SP), X1
