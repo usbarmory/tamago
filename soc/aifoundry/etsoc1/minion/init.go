@@ -10,8 +10,6 @@ package minion
 
 import (
 	_ "unsafe"
-
-	"github.com/usbarmory/tamago/riscv64"
 )
 
 //go:linkname ramStackOffset runtime/goos.RamStackOffset
@@ -22,6 +20,6 @@ var ramStackOffset uint64 = 0x100
 func Init() {
 	RV64.Init()
 
-	// Override riscv64 handler as on ET-Minion mtvec must be 4 KB aligned.
-	SetAlignedExceptionHandler(riscv64.DefaultExceptionHandler)
+	// ET-Minion mtvec must be 4 KB aligned
+	alignExceptionHandler()
 }

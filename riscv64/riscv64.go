@@ -56,7 +56,7 @@ func (cpu *CPU) Init() {
 	goos.Exit = exit
 	goos.Idle = cpu.DefaultIdleGovernor
 
-	cpu.SetExceptionHandler(DefaultExceptionHandler)
+	set_mtvec(vector(trapHandler))
 
 	if cpu.Counter == nil {
 		cpu.Counter = func() uint64 { return 0 }
