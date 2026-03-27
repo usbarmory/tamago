@@ -23,6 +23,7 @@ import (
 
 // CLINT registers
 const (
+	MSIP  = 0x0000
 	MTIME = 0xbff8
 )
 

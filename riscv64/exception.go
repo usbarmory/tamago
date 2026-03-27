@@ -40,6 +40,7 @@ func read_mepc() uint64
 func read_sepc() uint64
 func read_mcause() uint64
 func read_scause() uint64
+func trapHandler()
 
 type ExceptionHandler func()
 
@@ -73,14 +74,25 @@ func DefaultSupervisorExceptionHandler() {
 	panic("unhandled exception")
 }
 
-// SetExceptionHandler updates the CPU machine trap vector vector with the
-// address of the argument function.
-func (cpu *CPU) SetExceptionHandler(fn ExceptionHandler) {
-	set_mtvec(vector(fn))
+// SystemExceptionHandler allows to override the default exception handler.
+var SystemExceptionHandler = DefaultExceptionHandler
+
+func systemException() {
+	SystemExceptionHandler()
 }
 
-// SetSupervisorExceptionHandler updates the CPU supervisor trap vector vector
-// with the address of the argument function.
+// GetExceptionHandlerAddress returns the CPU machine trap vector address.
+func (cpu *CPU) GetExceptionHandlerAddress() uint64 {
+	return vector(trapHandler)
+}
+
+// SetExceptionHandlerAddress updates the CPU machine trap vector address.
+func (cpu *CPU) SetExceptionHandlerAddress(addr uint64) {
+	set_mtvec(addr)
+}
+
+// SetSupervisorExceptionHandler updates the CPU supervisor trap vector with
+// the address of the argument function.
 func (cpu *CPU) SetSupervisorExceptionHandler(fn ExceptionHandler) {
 	set_stvec(vector(fn))
 }

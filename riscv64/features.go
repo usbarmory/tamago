@@ -17,6 +17,7 @@ import (
 const extensions = "abcdefghijklmnopqrstuvwxyz"
 
 // defined in features.s
+func read_mhartid() uint64
 func read_misa() uint64
 
 type Extensions uint64

@@ -18,6 +18,8 @@
 package uart
 
 import (
+	"runtime"
+
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -38,7 +40,7 @@ const (
 	LCR_DLS  = 0
 
 	USR      = 0x7c
-	USR_RFNE = 8
+	USR_RFNE = 3
 	USR_TFNF = 1
 
 	SRR    = 0x88
@@ -95,20 +97,14 @@ func (hw *Synopsys) Init() {
 
 // Tx transmits a single character to the serial port.
 func (hw *Synopsys) Tx(c byte) {
-	for reg.Get(hw.status, USR_TFNF) {
-		// wait for TX FIFO to have room for a character
-	}
-
 	reg.Write(hw.fifo, uint32(c))
 }
 
 // Rx receives a single character from the serial port.
 func (hw *Synopsys) Rx() (c byte, valid bool) {
-	if reg.Get(hw.status, USR_RFNE) {
-		return
-	}
-
-	return byte(reg.Read(hw.fifo)), true
+	c = byte(reg.Read(hw.fifo))
+	valid = c != 0
+	return
 }
 
 // Write data from buffer to serial port.
@@ -128,6 +124,10 @@ func (hw *Synopsys) Read(buf []byte) (n int, _ error) {
 		buf[n], valid = hw.Rx()
 
 		if !valid {
+			if n == 0 {
+				runtime.Gosched()
+			}
+
 			break
 		}
 	}

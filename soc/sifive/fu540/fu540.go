@@ -29,7 +29,7 @@ import (
 // Peripheral registers
 const (
 	// Core-Local Interruptor
-	CLINT_BASE = 0x2000000
+	CLINT_BASE = 0x02000000
 
 	// Serial ports
 	UART0_BASE = 0x10010000

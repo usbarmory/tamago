@@ -18,6 +18,7 @@ import (
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/soc/aifoundry/etsoc1"
+	"github.com/usbarmory/tamago/soc/aifoundry/etsoc1/minion"
 )
 
 // Peripheral instances
@@ -30,8 +31,8 @@ var (
 //
 //go:linkname Init runtime/goos.Hwinit1
 func Init() {
-	// initialize SoC
-	etsoc1.Init()
+	// initialize ET-Minion core
+	minion.Init()
 
 	// initialize serial console
 	etsoc1.UART0.Init()
