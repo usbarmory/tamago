@@ -12,6 +12,10 @@
 #include "textflag.h"
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
+	MOV	$·ncpu(SB), A0
+	MOV	$1, A2
+	WORD	$0x02c5373b // AMOADDG.D a4,a2,(a0)
+
 	// park additional harts
 	CSRRS	ZERO, MHARTID, T0
 	MOV	$0, T1

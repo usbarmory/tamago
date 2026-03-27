@@ -21,7 +21,10 @@ package minion
 
 import (
 	"github.com/usbarmory/tamago/riscv64"
+	"github.com/usbarmory/tamago/soc/aifoundry/etsoc1"
 )
+
+const IPI_TRIGGER_CLEAR = etsoc1.IPI_TRIGGER_CLEAR
 
 // Peripheral instances
 var (
