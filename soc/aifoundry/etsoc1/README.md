@@ -71,7 +71,8 @@ The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
 * `linkramstart`: exclude `ramStart` from `mem.go`
-* `linkcpuinit`: exclude `cpuinit` imported from `riscv64/init.s`
+* `linkcpuinit`: override `cpuinit` imported from `riscv64/init.s` to park
+                 additional harts (required on multi-hart instances).
 * `tiny`: reduce heap allocation requirements
 
 License

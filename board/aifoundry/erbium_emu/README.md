@@ -98,6 +98,8 @@ definition for the `runtime/goos` overlay:
 
 * `linkramsize`: exclude `ramSize` from `mem.go`
 * `linkprintk`: exclude `printk` from `console.go`
+* `linkcpuinit`: override `cpuinit` imported from `riscv64/init.s` to park
+                 additional harts (required on multi-hart instances).
 * `tiny`: reduce heap allocation requirements
 
 Executing and debugging
