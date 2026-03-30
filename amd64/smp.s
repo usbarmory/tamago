@@ -162,12 +162,10 @@ wait:
 	JE	wait
 
 	MOVQ	task_sp(AX), SP
-	MOVQ	task_mp(AX), R13
 	MOVQ	task_gp(AX), g
 
 	// clear task
 	MOVQ	$0, task_sp(AX)
-	MOVQ	$0, task_mp(AX)
 	MOVQ	$0, task_gp(AX)
 	MOVQ	$0, task_pc(AX)
 

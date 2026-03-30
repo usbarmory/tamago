@@ -32,6 +32,10 @@ const (
 )
 
 const (
+	// IRQ_SIGNAL represents the `os/signal` used to signal and service
+	// interrupts.
+	IRQ_SIGNAL = syscall.SIGTRAP
+
 	// IRQ_WAKEUP represents the interrupt vector raised by [CPU.SetAlarm],
 	// it cannot be serviced by [CPU.ServiceInterrupt] as the IRQ is
 	// handled internally to resume halted processors.
@@ -39,8 +43,6 @@ const (
 )
 
 var (
-	irqSignal = syscall.SIGTRAP
-
 	// IRQ handling jump table variables
 	idtAddr        uintptr
 	irqHandlerAddr uintptr
@@ -160,7 +162,7 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	setIDT(32, 255)
 
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, irqSignal)
+	signal.Notify(c, IRQ_SIGNAL)
 
 	for {
 		// To avoid losing interrupts, service completion must happen

@@ -42,12 +42,11 @@ func apinit_reloc(init uintptr, start uintptr)
 // task represents a CPU task
 type task struct {
 	sp uint64 // stack pointer
-	mp uint64 // M
 	gp uint64 // G
 	pc uint64 // fn
 }
 
-// / Write writes the task structure to memory
+// Write writes the task structure to memory
 func (t *task) Write(addr uint) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, t)
@@ -70,10 +69,9 @@ func (t *task) Write(addr uint) {
 //
 // On `GOOS=tamago` Go scheduler M's are never dropped, therefore the function
 // is invoked only once per AP (i.e. GOMAXPROCS-1).
-func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
+func (cpu *CPU) Task(sp, _, gp, fn unsafe.Pointer) {
 	t := &task{
 		sp: uint64(uintptr(sp)),
-		mp: uint64(uintptr(mp)),
 		gp: uint64(uintptr(gp)),
 		pc: uint64(uintptr(fn)),
 	}
@@ -82,7 +80,7 @@ func (cpu *CPU) Task(sp, mp, gp, fn unsafe.Pointer) {
 		panic("Task exceeds available resources")
 	}
 
-	if t.sp == 0 || t.mp == 0 || t.gp == 0 {
+	if t.sp == 0 || t.gp == 0 {
 		panic("Task empty")
 	}
 
