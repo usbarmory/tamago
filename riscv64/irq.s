@@ -6,6 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+#include "go_asm.h"
 #include "textflag.h"
 
 // func irq_enable()
@@ -72,7 +73,7 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	MOV	X31, -31*8(SP)
 
 	SUB	$(32*8), SP
-	MOV	·irqSignal(SB), T0
+	MOV	$(const_IRQ_SIGNAL), T0
 	MOV	T0, 8(SP)
 	CALL	os∕signal·Relay(SB)
 	ADD	$(32*8), SP

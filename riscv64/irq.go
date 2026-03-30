@@ -14,7 +14,18 @@ import (
 	"syscall"
 )
 
-var irqSignal = syscall.SIGTRAP
+// IRQ_SIGNAL represents the `os/signal` used to signal and service interrupts.
+const IRQ_SIGNAL = syscall.SIGTRAP
+
+var (
+	// IPI defines the function to send an Inter-Processor Interrupt (IPI),
+	// it is required for [cpu.Task] operation.
+	IPI func(hart int)
+
+	// ClearIPI defines the function to clear an Inter-Processor Interrupt
+	// (IPI), it is required for [cpu.Task] operation.
+	ClearIPI func(hart int)
+)
 
 // defined in irq.s
 func irq_enable()
@@ -45,7 +56,7 @@ func (cpu *CPU) ServiceInterrupts(isr func()) {
 	}
 
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, irqSignal)
+	signal.Notify(c, IRQ_SIGNAL)
 
 	for {
 		// To avoid losing interrupts, re-enabling must happen only after we
