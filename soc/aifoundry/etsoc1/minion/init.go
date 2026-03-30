@@ -10,6 +10,9 @@ package minion
 
 import (
 	_ "unsafe"
+
+	"github.com/usbarmory/tamago/riscv64"
+	"github.com/usbarmory/tamago/soc/aifoundry/etsoc1"
 )
 
 //go:linkname ramStackOffset runtime/goos.RamStackOffset
@@ -22,4 +25,7 @@ func Init() {
 
 	// ET-Minion mtvec must be 4 KB aligned
 	alignExceptionHandler()
+
+	riscv64.IPI = etsoc1.IPI
+	riscv64.ClearIPI = etsoc1.ClearIPI
 }

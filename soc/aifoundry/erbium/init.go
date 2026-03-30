@@ -10,6 +10,8 @@ package erbium
 
 import (
 	_ "unsafe"
+
+	"github.com/usbarmory/tamago/riscv64"
 )
 
 //go:linkname ramStackOffset runtime/goos.RamStackOffset
@@ -19,4 +21,7 @@ var ramStackOffset uint64 = 0x100
 // setup (e.g. runtime/goos.Hwinit1).
 func Init() {
 	RV64.Init()
+
+	riscv64.IPI = IPI
+	riscv64.ClearIPI = ClearIPI
 }
