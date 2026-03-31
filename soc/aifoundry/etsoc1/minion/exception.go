@@ -9,11 +9,11 @@
 package minion
 
 import (
+	"runtime/goos"
 	"unsafe"
 
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/riscv64"
-	"github.com/usbarmory/tamago/soc/aifoundry/etsoc1"
 )
 
 func vector(fn riscv64.ExceptionHandler) uint64 {
@@ -35,7 +35,8 @@ func encodeLongJump(ptr, pc uint64) uint64 {
 }
 
 func alignExceptionHandler() {
-	src := uint64(etsoc1.DRAM_BASE)
+	// RamStart is naturally aligned to 0x1000
+	src := uint64(goos.RamStart)
 	dst := RV64.GetExceptionHandlerAddress()
 
 	reg.Write64(src, encodeLongJump(dst, src))
