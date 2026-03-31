@@ -11,7 +11,7 @@ package erbium
 // hart initialization counter
 var ncpu int
 
-// Minions returns the number of available ET-Minion cores.
-func Minions() (n int) {
+// NumCPU returns the number of logical CPUs initialized on the platform.
+func NumCPU() (n int) {
 	return ncpu
 }
