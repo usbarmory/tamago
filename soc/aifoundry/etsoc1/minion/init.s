@@ -16,28 +16,11 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	MOV	$1, A2
 	WORD	$0x02c5373b // AMOADDG.D a4,a2,(a0)
 
-	// park additional harts
+	// start additional hart
 	CSRRS	ZERO, MHARTID, T0
 	MOV	$0, T1
-	BGT	T0, T1, wait
+	BGT	T0, T1, apstart
 
 	JMP	github·com∕usbarmory∕tamago∕riscv64·Init(SB)
-wait:
-	// enable machine level software interrupts
-	MOV	$(1<<3), T0	// set MIE.MSIE
-	CSRRS	T0, MIE, ZERO
-wfi:
-	// wait until an interrupt is received in low-power state
-	WORD	$0x10500073	// wfi
-
-	// get hartid bit position
-	CSRRS	ZERO, MHARTID, T1
-	MOV	$1, T2
-	SLL	T1, T2, T2
-	OR	T2, T2
-
-	// clear IPI
-	MOV	$(const_IPI_TRIGGER_CLEAR), T0
-	MOV	T2, (T0)
-
-	JMP	wfi
+apstart:
+	JMP	·apstart(SB)

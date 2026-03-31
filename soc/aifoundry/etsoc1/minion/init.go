@@ -16,7 +16,7 @@ import (
 )
 
 //go:linkname ramStackOffset runtime/goos.RamStackOffset
-var ramStackOffset uint64 = 0x100
+var ramStackOffset uint64 = 0x10000 // give room to tasks stack (see smp.go)
 
 // Init takes care of the lower level initialization triggered early in runtime
 // setup (e.g. runtime/goos.Hwinit1).
