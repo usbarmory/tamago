@@ -18,9 +18,8 @@ import (
 
 // Descriptor Flags
 const (
-	Next     = 1
-	Write    = 2
-	Indirect = 3
+	Next  = 1
+	Write = 2
 )
 
 // Descriptor represents a VirtIO virtual queue descriptor.
@@ -310,10 +309,10 @@ func (d *VirtualQueue) Pop() (buf []byte) {
 
 	d.Descriptors[avail.Index].Read(buf)
 
-	d.Available.index += 1
 	d.Available.SetRingIndex(d.Available.index%d.size, uint16(avail.Index))
-
+	d.Available.index += 1
 	d.Available.SetIndex(d.Available.index)
+
 	d.Used.last += 1
 
 	return
@@ -325,20 +324,9 @@ func (d *VirtualQueue) Push(buf []byte) {
 	defer d.Unlock()
 
 	index := d.Available.Ring(d.Available.index % d.size)
-	used := d.Used.Index() - d.Used.last
-
-	off := 8 + index*16
-	binary.LittleEndian.PutUint32(d.buf[off:], uint32(len(buf)))
-
 	d.Descriptors[index].Write(buf)
-	d.Available.SetIndex(d.Available.index + 1)
+	d.Available.SetRingIndex(d.Available.index%d.size, index)
 
-	for i := used; i > 0; i-- {
-		n := d.Available.index % d.size
-		avail := d.Used.Ring(i - 1)
-
-		d.Available.SetRingIndex(n, uint16(avail.Index))
-	}
-
-	d.Used.last += used
+	d.Available.index++
+	d.Available.SetIndex(d.Available.index)
 }
