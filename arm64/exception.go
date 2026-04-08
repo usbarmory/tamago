@@ -10,7 +10,6 @@ package arm64
 
 import (
 	"runtime/goos"
-	"unsafe"
 
 	"github.com/usbarmory/tamago/internal/exception"
 )
@@ -30,12 +29,6 @@ const (
 // defined in exception.s
 func set_vbar()
 func read_el() uint64
-
-type ExceptionHandler func()
-
-func vector(fn ExceptionHandler) uint64 {
-	return **((**uint64)(unsafe.Pointer(&fn)))
-}
 
 // DefaultExceptionHandler handles an exception by printing its vector and
 // processor mode before panicking.

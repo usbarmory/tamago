@@ -2,7 +2,14 @@
   "boot-source": {
     "kernel_image_path": "example"
   },
-  "drives": [],
+  "drives": [
+    {
+        "drive_id": "dummy",
+        "path_on_host": "/dev/null",
+        "is_root_device": false,
+        "is_read_only": false
+    }
+  ],
   "network-interfaces": [
     {
       "iface_id": "net1",

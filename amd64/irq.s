@@ -85,7 +85,7 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	MOVB	$1, ·irqLock(SB)
 
 	SUBQ	$8, SP
-	MOVQ	·irqSignal(SB), AX
+	MOVQ	$(const_IRQ_SIGNAL), AX
 	MOVQ	AX, (SP)
 	CALL	os∕signal·Relay(SB)
 	ADDQ	$8, SP

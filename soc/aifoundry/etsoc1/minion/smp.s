@@ -1,4 +1,4 @@
-// AI Foundry Erbium initialization
+// AI Foundry Minion initialization
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -6,30 +6,36 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-//go:build linkcpuinit
-
 #include "go_asm.h"
 #include "textflag.h"
 
-TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
-	MOV	$·ncpu(SB), A0
-	MOV	$1, A2
-	WORD	$0x02c5373b // AMOADDG.D a4,a2,(a0)
+TEXT ·apstart(SB),NOSPLIT|NOFRAME,$0
+	// enable FPU
+	MOV	$(1<<13), T0
+	CSRRS	T0, MSTATUS, ZERO
 
-	// park additional harts
-	CSRRS	ZERO, MHARTID, T0
-	MOV	$0, T1
-	BGT	T0, T1, wait
-
-	JMP	github·com∕usbarmory∕tamago∕riscv64·Init(SB)
-wait:
 	// enable machine level software interrupts
 	MOV	$(1<<3), T0	// set MIE.MSIE
 	CSRRS	T0, MIE, ZERO
 wfi:
-	// wait until an interrupt is received in low-power state
+	// wait IPI from [schedule]
 	WORD	$0x10500073	// wfi
 
+	// compute taskAddress
+	CSRRS	ZERO, MHARTID, T0
+	MOV	$(task__size), T1
+	MUL	T0, T1, T0
+	MOV	·taskBase(SB), T1
+	ADD	T0, T1, T0
+
+	MOV	task_sp(T0), SP
+	MOV	task_gp(T0), g
+	MOV	task_pc(T0), T1
+	BEQ	T1, ZERO, done
+
+	// call task target
+	CALL	T1
+done:
 	// get hartid bit position
 	CSRRS	ZERO, MHARTID, T1
 	MOV	$1, T2

@@ -14,7 +14,9 @@ import (
 	"syscall"
 )
 
-var irqSignal = syscall.SIGTRAP
+// IRQ_SIGNAL represents the `os/signal` used to signal and service
+// interrupts.
+const IRQ_SIGNAL = syscall.SIGTRAP
 
 // defined in irq.s
 func irq_enable()
@@ -45,7 +47,7 @@ func ServiceInterrupts(isr func()) {
 	}
 
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, irqSignal)
+	signal.Notify(c, IRQ_SIGNAL)
 
 	for {
 		// To avoid losing interrupts, re-enabling must happen only after we
