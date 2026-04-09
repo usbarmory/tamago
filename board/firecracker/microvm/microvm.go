@@ -23,6 +23,8 @@ import (
 	"github.com/usbarmory/tamago/kvm/pvclock"
 	"github.com/usbarmory/tamago/soc/intel/ioapic"
 	"github.com/usbarmory/tamago/soc/intel/uart"
+
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 const (
@@ -32,6 +34,8 @@ const (
 
 // Peripheral registers
 const (
+	PIC_DATA = 0x21
+
 	// Communication port
 	COM1 = 0x3f8
 
@@ -43,7 +47,7 @@ const (
 
 	// VirtIO Networking
 	VIRTIO_NET0_BASE = VIRTIO_MMIO_BASE + 0x2000
-	VIRTIO_NET0_IRQ  = 7
+	VIRTIO_NET0_IRQ  = 6
 )
 
 // Peripheral instances
@@ -81,6 +85,10 @@ func Init() {
 
 	// initialize I/O APIC
 	IOAPIC0.Init()
+
+	// disable PIC interrupts
+	reg.Out8(PIC_DATA, 0xff)
+
 	// initialize serial console
 	UART0.Init()
 
