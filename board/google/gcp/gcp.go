@@ -54,9 +54,7 @@ var (
 
 	// I/O APIC - GSI 0-23
 	IOAPIC0 = &ioapic.IOAPIC{
-		Index:   0,
-		Base:    IOAPIC0_BASE,
-		GSIBase: 0,
+		Base: IOAPIC0_BASE,
 	}
 
 	// Real-Time Clock
