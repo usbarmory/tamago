@@ -81,6 +81,12 @@ func systemException() {
 	SystemExceptionHandler()
 }
 
+// SetExceptionHandler updates the CPU machine trap vector with the address of
+// the argument function.
+func (cpu *CPU) SetExceptionHandler(fn ExceptionHandler) {
+	set_mtvec(vector(fn))
+}
+
 // GetExceptionHandlerAddress returns the CPU machine trap vector address.
 func (cpu *CPU) GetExceptionHandlerAddress() uint64 {
 	return vector(trapHandler)
