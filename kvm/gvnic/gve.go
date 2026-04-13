@@ -79,6 +79,7 @@ type GVE struct {
 
 	aq *adminQueue
 	rx *rxQueue
+	tx *txQueue
 }
 
 func (hw *GVE) set(off uint32, val any) {
@@ -128,6 +129,10 @@ func (hw *GVE) Init() (err error) {
 
 	if err = hw.initRxQueue(0); err != nil {
 		return fmt.Errorf("failed to initialize rx queue, %v", err)
+	}
+
+	if err = hw.initTxQueue(1); err != nil {
+		return fmt.Errorf("failed to initialize tx queue, %v", err)
 	}
 
 	return

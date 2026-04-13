@@ -97,7 +97,7 @@ func (aq *adminQueue) Push(opcode uint32, cmd any) (err error) {
 	}
 
 	if status := binary.BigEndian.Uint32(aq.buf[low+4 : low+8]); status != COMMAND_PASSED {
-		return fmt.Errorf("admin command error, status:%#x", status)
+		return fmt.Errorf("admin command error, opcode:%#x status:%#x", opcode, status)
 	}
 
 	return
