@@ -52,15 +52,17 @@ type rxDesc struct {
 }
 
 type rxQueue struct {
+	// control registers
+	Doorbell uint32
+
+	// Resources cache
 	Resources *queueResources
+	res       []byte // DMA buffer
 
 	// DMA buffers
-	res  []byte
 	desc []byte
 	data []byte
-
-	qplAddr uint
-	qpl     []byte
+	qpl  []byte
 }
 
 type createRxQueueCommand struct {
@@ -86,16 +88,14 @@ type txDesc struct {
 	DescCnt   uint8
 	Len       uint16
 	SegLen    uint16
-	SeqAddr   uint64 
+	SeqAddr   uint64
 }
 
 type txQueue struct {
 	// DMA buffers
 	res  []byte
 	desc []byte
-
-	qplAddr uint
-	qpl     []byte
+	qpl  []byte
 }
 
 type createTxQueueCommand struct {
@@ -145,7 +145,7 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 	hw.rx = &rxQueue{}
 	size := int(hw.Info.RxPagesPerQpl)
 
-	if hw.rx.qplAddr, hw.rx.qpl, err = hw.registerPageList(id, size); err != nil {
+	if _, hw.rx.qpl, err = hw.registerPageList(id, size); err != nil {
 		return
 	}
 
@@ -174,6 +174,7 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 	addr, hw.rx.data = hw.Region.Reserve(n, 0)
 	cmd.DataRingAddr = uint64(addr)
 
+	// fill data ring slots
 	for i := uint64(0); i < uint64(cmd.RingSize); i++ {
 		binary.BigEndian.PutUint64(hw.rx.data[i*8:], i*pageSize)
 	}
@@ -182,12 +183,15 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 		return
 	}
 
+	// get queue resources
 	binary.Decode(hw.rx.res, binary.BigEndian, hw.rx.Resources)
 
-	off := hw.rx.Resources.DBIndex * 4
-	cnt := bits.ReverseBytes32(uint32(hw.Info.RxQueueEntries))
+	// get doorbell
+	hw.rx.Doorbell = hw.doorbells + hw.rx.Resources.DBIndex*4
 
-	reg.Write(hw.doorbells + off, cnt)
+	// notify ring size
+	cnt := bits.ReverseBytes32(uint32(hw.Info.RxQueueEntries))
+	reg.Write(hw.rx.Doorbell, cnt)
 
 	return
 }
@@ -198,15 +202,15 @@ func (hw *GVE) initTxQueue(id int) (err error) {
 	hw.tx = &txQueue{}
 	size := int(hw.Info.TxPagesPerQpl)
 
-	if hw.tx.qplAddr, hw.tx.qpl, err = hw.registerPageList(id, size); err != nil {
+	if _, hw.tx.qpl, err = hw.registerPageList(id, size); err != nil {
 		return
 	}
 
 	cmd := &createTxQueueCommand{
-		QueueID:          uint32(hw.Index),
-		NtfyID:           uint32(id),
-		QueuePageListID:  uint32(id),
-		RingSize:         hw.Info.TxQueueEntries,
+		QueueID:         uint32(hw.Index),
+		NtfyID:          uint32(id),
+		QueuePageListID: uint32(id),
+		RingSize:        hw.Info.TxQueueEntries,
 	}
 
 	// allocate queue resources
