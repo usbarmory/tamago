@@ -11,6 +11,7 @@ package virtio
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"sync"
 
 	"github.com/usbarmory/tamago/dma"
@@ -296,7 +297,7 @@ func (d *VirtualQueue) Address() (desc uint, driver uint, device uint) {
 }
 
 // Pop receives a single used buffer from the virtual queue,
-func (d *VirtualQueue) Pop() (buf []byte) {
+func (d *VirtualQueue) Pop(buf []byte) (n int, err error) {
 	d.Lock()
 	defer d.Unlock()
 
@@ -305,7 +306,11 @@ func (d *VirtualQueue) Pop() (buf []byte) {
 	}
 
 	avail := d.Used.Ring(d.Used.last % d.size)
-	buf = make([]byte, avail.Length)
+	n = int(avail.Length)
+
+	if len(buf) < n {
+		return 0, fmt.Errorf("buffer too small (%d < %d)", len(buf), n)
+	}
 
 	d.Descriptors[avail.Index].Read(buf)
 
@@ -324,6 +329,11 @@ func (d *VirtualQueue) Push(buf []byte) {
 	defer d.Unlock()
 
 	index := d.Available.Ring(d.Available.index % d.size)
+
+	// update Descriptor length
+	off := 8 + index*16
+	binary.LittleEndian.PutUint32(d.buf[off:], uint32(len(buf)))
+
 	d.Descriptors[index].Write(buf)
 	d.Available.SetRingIndex(d.Available.index%d.size, index)
 
