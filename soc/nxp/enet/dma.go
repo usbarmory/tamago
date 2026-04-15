@@ -98,6 +98,18 @@ func (bd *bufferDescriptor) Read(buf []byte) (n int, err error) {
 	return n + r, nil
 }
 
+func (bd *bufferDescriptor) Write(buf []byte) {
+	n := len(buf)
+	r := n % copyAlign
+	n -= r
+
+	copy(bd.data, buf[:n])
+
+	for i := range r {
+		bd.data[n+i] = buf[n+i]
+	}
+}
+
 func (bd *bufferDescriptor) Valid() bool {
 	s := uint32(bd.Status)
 
@@ -209,14 +221,14 @@ func (ring *bufferDescriptorRing) pop(buf []byte) (n int, err error) {
 	return
 }
 
-func (ring *bufferDescriptorRing) push(data []byte) (err error) {
+func (ring *bufferDescriptorRing) push(buf []byte) (err error) {
 	bd := ring.bds[ring.index]
 
 	if uint16(bd.desc[3]<<8)&(1<<BD_TX_ST_R) != 0 {
 		return errors.New("frame not sent")
 	}
 
-	bd.Length = uint16(len(data))
+	bd.Length = uint16(len(buf))
 	bd.Status = (1 << BD_ST_L) | (1 << BD_TX_ST_TC)
 
 	bd.desc[0] = byte(bd.Length & 0xff)
@@ -225,14 +237,7 @@ func (ring *bufferDescriptorRing) push(data []byte) (err error) {
 	bd.desc[2] = byte((bd.Status & 0xff))
 	bd.desc[3] = byte((bd.Status & 0xff00) >> 8)
 
-	n := len(data)
-	copy(bd.data, data)
-
-	if r := n % copyAlign; r != 0 {
-		for i := range copyAlign - r {
-			bd.data[n+i] = 0
-		}
-	}
+	bd.Write(buf)
 
 	if ring.next() {
 		bd.desc[3] |= (1 << BD_ST_W) >> 8
