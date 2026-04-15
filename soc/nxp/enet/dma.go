@@ -87,20 +87,15 @@ func (bd *bufferDescriptor) Read(buf []byte) (n int, err error) {
 	}
 
 	r := n % copyAlign
-
-	if r != 0 {
-		n -= r
-	}
+	n -= r
 
 	copy(buf[:n], bd.data[:n])
 
-	if r != 0 {
-		for i := range r {
-			buf[n+i] = bd.data[n+i]
-		}
+	for i := range r {
+		buf[n+i] = bd.data[n+i]
 	}
 
-	return
+	return n + r, nil
 }
 
 func (bd *bufferDescriptor) Valid() bool {
@@ -230,11 +225,14 @@ func (ring *bufferDescriptorRing) push(data []byte) (err error) {
 	bd.desc[2] = byte((bd.Status & 0xff))
 	bd.desc[3] = byte((bd.Status & 0xff00) >> 8)
 
-	if r := len(data) % copyAlign; r != 0 {
-		data = append(data, make([]byte, copyAlign-r)...)
-	}
-
+	n := len(data)
 	copy(bd.data, data)
+
+	if r := n % copyAlign; r != 0 {
+		for i := range copyAlign - r {
+			bd.data[n+i] = 0
+		}
+	}
 
 	if ring.next() {
 		bd.desc[3] |= (1 << BD_ST_W) >> 8
