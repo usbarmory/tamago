@@ -18,8 +18,8 @@ package enet
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"errors"
 	"net"
-	"runtime"
 	"sync"
 
 	"github.com/usbarmory/tamago/internal/reg"
@@ -132,8 +132,6 @@ type ENET struct {
 	RMII bool
 	// MAC address (use SetMAC() for post Init() changes)
 	MAC net.HardwareAddr
-	// Incoming packet handler
-	RxHandler func([]byte)
 	// Descriptor ring size
 	RingSize int
 
@@ -169,11 +167,12 @@ type ENET struct {
 
 // Init initializes and enables the Ethernet MAC controller for 100 Mbps full
 // duplex operation with Auto-Negotiation enabled.
-func (hw *ENET) Init() {
+func (hw *ENET) Init() (err error) {
 	hw.Lock()
+	defer hw.Unlock()
 
 	if hw.Base == 0 || hw.Clock == nil {
-		panic("invalid ENET controller instance")
+		return errors.New("invalid ENET controller instance")
 	}
 
 	if hw.MAC == nil {
@@ -183,7 +182,7 @@ func (hw *ENET) Init() {
 		hw.MAC[0] &= 0xfe
 		hw.MAC[0] |= 0x02
 	} else if len(hw.MAC) != 6 {
-		panic("invalid MAC")
+		return errors.New("invalid MAC")
 	}
 
 	if hw.RingSize == 0 {
@@ -210,7 +209,7 @@ func (hw *ENET) Init() {
 
 	hw.setup()
 
-	hw.Unlock()
+	return
 }
 
 func (hw *ENET) setup() {
@@ -240,10 +239,10 @@ func (hw *ENET) setup() {
 	reg.Clear(hw.ecr, ECR_EN1588)
 
 	// set receive buffer size and maximum frame length
-	size := MTU + (bufferAlign - (MTU % bufferAlign))
+	size := maxFrameSize + (bufferAlign - (maxFrameSize % bufferAlign))
 	reg.Write(hw.mrbr, uint32(size))
-	reg.Write(hw.ftrl, MTU)
-	reg.SetN(hw.rcr, RCR_MAX_FL, 0x3fff, MTU)
+	reg.Write(hw.ftrl, maxFrameSize)
+	reg.SetN(hw.rcr, RCR_MAX_FL, 0x3fff, maxFrameSize)
 
 	if hw.DiscardErrors {
 		reg.Set(hw.racc, RACC_LINEDIS)
@@ -285,29 +284,13 @@ func (hw *ENET) SetMAC(mac net.HardwareAddr) {
 	reg.Write(hw.paur, uint32(upper)<<16)
 }
 
-// Start begins processing of incoming packets. When the argument is true the
-// function waits and handles received packets (see [ENET.Rx]) through
-// [ENET.RxHandler] (when set), it should never return.
-func (hw *ENET) Start(rx bool) {
-	var buf []byte
-
+// Start begins processing of incoming packets.
+func (hw *ENET) Start() {
 	// set receive and transmit descriptors
 	reg.Write(hw.rdsr, hw.rx.init(true, hw.RingSize, &hw.Stats))
 	reg.Write(hw.tdsr, hw.tx.init(false, hw.RingSize, &hw.Stats))
 
 	reg.Set(hw.rdar, RDAR_ACTIVE)
-
-	if !rx || hw.RxHandler == nil {
-		return
-	}
-
-	for {
-		runtime.Gosched()
-
-		if buf = hw.Rx(); buf != nil {
-			hw.RxHandler(buf)
-		}
-	}
 }
 
 // EnableInterrupt enables interrupt generation for a specific event.
