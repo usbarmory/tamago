@@ -274,11 +274,10 @@ Applications using TamaGo
 External drivers using TamaGo
 =============================
 
-* [imx-usbserial](https://github.com/usbarmory/imx-usbserial) - i.MX Serial over USB driver
-* [imx-usbnet](https://github.com/usbarmory/imx-usbnet) - i.MX Ethernet over USB driver
-* [imx-enet](https://github.com/usbarmory/imx-enet) - i.MX Ethernet driver
-* [virtio-net](https://github.com/usbarmory/virtio-net) - VirtIO Network driver
 * [go-net](https://github.com/usbarmory/go-net) - Generic Network driver
+* [go-net/imx-usb](https://github.com/usbarmory/go-net/tree/main/imx-usb) - i.MX Ethernet over USB driver
+* [go-net/virtio](https://github.com/usbarmory/go-net/tree/main/virtio) - VirtIO Network driver
+* [imx-usbserial](https://github.com/usbarmory/imx-usbserial) - i.MX Serial over USB driver
 
 Additional resources
 ====================
