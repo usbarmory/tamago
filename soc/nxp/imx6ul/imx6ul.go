@@ -189,7 +189,6 @@ var (
 		Base:  ECSPI1_BASE,
 		CCGR:  CCM_CCGR1,
 		CG:    CCGRx_CG0,
-		Clock: GetECSPIClock,
 	}
 
 	// ECSPI controller 2
@@ -198,7 +197,6 @@ var (
 		Base:  ECSPI2_BASE,
 		CCGR:  CCM_CCGR1,
 		CG:    CCGRx_CG1,
-		Clock: GetECSPIClock,
 	}
 
 	// ECSPI controller 3
@@ -207,7 +205,6 @@ var (
 		Base:  ECSPI3_BASE,
 		CCGR:  CCM_CCGR1,
 		CG:    CCGRx_CG2,
-		Clock: GetECSPIClock,
 	}
 
 	// ECSP4 controller 4
@@ -216,7 +213,6 @@ var (
 		Base:  ECSPI4_BASE,
 		CCGR:  CCM_CCGR1,
 		CG:    CCGRx_CG3,
-		Clock: GetECSPIClock,
 	}
 
 	// Generic Interrupt Controller
