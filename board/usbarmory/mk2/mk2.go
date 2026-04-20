@@ -34,6 +34,8 @@ const (
 
 // Peripheral instances
 var (
+	ECSPI1 = imx6ul.ECSPI1
+
 	ENET2 = imx6ul.ENET2
 
 	I2C1 = imx6ul.I2C1

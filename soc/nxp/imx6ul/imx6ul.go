@@ -44,6 +44,7 @@ import (
 	"github.com/usbarmory/tamago/soc/nxp/ocotp"
 	"github.com/usbarmory/tamago/soc/nxp/rngb"
 	"github.com/usbarmory/tamago/soc/nxp/snvs"
+	"github.com/usbarmory/tamago/soc/nxp/spi"
 	"github.com/usbarmory/tamago/soc/nxp/tempmon"
 	"github.com/usbarmory/tamago/soc/nxp/uart"
 	"github.com/usbarmory/tamago/soc/nxp/usb"
@@ -86,6 +87,12 @@ const (
 
 	// Data Co-Processor (ULL/ULZ only)
 	DCP_BASE = 0x02280000
+
+	// Enhanced Configurable SPI
+	ECSPI1_BASE = 0x02008000
+	ECSPI2_BASE = 0x0200c000
+	ECSPI3_BASE = 0x02010000
+	ECSPI4_BASE = 0x02018000
 
 	// General Interrupt Controller
 	GIC_BASE = 0x00a00000
@@ -175,6 +182,42 @@ var (
 
 	// Data Co-Processor (ULL/ULZ only)
 	DCP *dcp.DCP
+
+	// ECSPI controller 1
+	ECSPI1 = &spi.ECSPI{
+		Index: 1,
+		Base:  ECSPI1_BASE,
+		CCGR:  CCM_CCGR1,
+		CG:    CCGRx_CG0,
+		Clock: GetECSPIClock,
+	}
+
+	// ECSPI controller 2
+	ECSPI2 = &spi.ECSPI{
+		Index: 2,
+		Base:  ECSPI2_BASE,
+		CCGR:  CCM_CCGR1,
+		CG:    CCGRx_CG1,
+		Clock: GetECSPIClock,
+	}
+
+	// ECSPI controller 3
+	ECSPI3 = &spi.ECSPI{
+		Index: 3,
+		Base:  ECSPI3_BASE,
+		CCGR:  CCM_CCGR1,
+		CG:    CCGRx_CG2,
+		Clock: GetECSPIClock,
+	}
+
+	// ECSP4 controller 4
+	ECSPI4 = &spi.ECSPI{
+		Index: 4,
+		Base:  ECSPI4_BASE,
+		CCGR:  CCM_CCGR1,
+		CG:    CCGRx_CG3,
+		Clock: GetECSPIClock,
+	}
 
 	// Generic Interrupt Controller
 	GIC = &gic.GIC{
