@@ -11,9 +11,8 @@
 //   - IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
 //   - IMX6FG    - i.MX 6 Series Firmware Guide                      - Rev 0 2012/11
 //
-// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go, see
-// https://github.com/usbarmory/tamago.
+// This package is only meant to be used with `GOOS=tamago` as supported by the
+// TamaGo framework for bare metal Go, see https://github.com/usbarmory/tamago.
 package i2c
 
 import (
@@ -51,11 +50,8 @@ const (
 	I2Cx_I2DR = 0x0010
 )
 
-// Configuration constants
-const (
-	// Timeout is the default timeout for I2C operations.
-	Timeout = 100 * time.Millisecond
-)
+// Timeout is the default timeout for I2C operations.
+const Timeout = 100 * time.Millisecond
 
 // I2C represents an I2C port instance.
 type I2C struct {
@@ -83,8 +79,7 @@ type I2C struct {
 	i2dr uint32
 }
 
-// Init initializes the I2C controller instance. At this time only master mode
-// is supported by this driver.
+// Init initializes an I2C controller instance in master mode.
 func (hw *I2C) Init() {
 	hw.Lock()
 	defer hw.Unlock()
@@ -112,9 +107,10 @@ func (hw *I2C) Init() {
 	// enable clock
 	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
 
-	// Set SCL frequency
+	// set SCL frequency
 	reg.Write16(hw.ifdr, hw.Div)
 
+	// out of reset
 	reg.Set16(hw.i2cr, I2CR_IEN)
 }
 

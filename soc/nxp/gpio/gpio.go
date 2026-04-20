@@ -8,9 +8,8 @@
 
 // Package gpio implements helpers for GPIO configuration on NXP SoCs.
 //
-// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go, see
-// https://github.com/usbarmory/tamago.
+// This package is only meant to be used with `GOOS=tamago` as supported by the
+// TamaGo framework for bare metal Go, see https://github.com/usbarmory/tamago.
 package gpio
 
 import (
