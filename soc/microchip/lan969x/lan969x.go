@@ -81,7 +81,7 @@ const (
 	GCB_BASE = 0xe2010000
 
 	// General Interrupt Controller
-	GIC_BASE = 0xe8c11000
+	GIC_BASE = 0xe8c10000
 
 	// General Purpose I/O Control
 	GPIO_BASE = 0xe20100d4
