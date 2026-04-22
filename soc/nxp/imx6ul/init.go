@@ -9,7 +9,6 @@
 package imx6ul
 
 import (
-	"runtime"
 	_ "unsafe"
 
 	"github.com/usbarmory/tamago/arm"
@@ -52,9 +51,7 @@ func Init() {
 		return
 	}
 
-	ramStart, _ := runtime.MemRegion()
-	ARM.Init(ramStart)
-
+	ARM.Init()
 	// required when booting in SDP mode
 	ARM.EnableSMP()
 

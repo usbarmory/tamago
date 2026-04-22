@@ -50,7 +50,7 @@ func nanotime() int64 {
 func Init(base uint32) {
 	peripheralBase = base
 
-	ARM.Init(ramStart)
+	ARM.Init()
 	ARM.EnableVFP()
 
 	// required when booting in SDP mode
