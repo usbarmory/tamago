@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	vecTableLoad = 0x5800005b // ldr x27, #8
-	vecTableJump = 0xd61f0360 // br x27
+	vecTableLoad = 0x58000052 // ldr x18, #8
+	vecTableJump = 0xd61f0240 // br x18
 )
 
 // defined in exception.s
@@ -80,6 +80,7 @@ func addJumps(addr uint64) {
 
 //go:nosplit
 func (cpu *CPU) initVectorTable() {
+	// 2048-bytes alignment is required
 	vectorTable := uint64(goos.RamStart)
 
 	// initialize jump tables
@@ -88,7 +89,7 @@ func (cpu *CPU) initVectorTable() {
 	// EL0
 	addJumps(vectorTable)
 	// ELx, x>0
-	addJumps(vectorTable+0x200)
+	addJumps(vectorTable + 0x200)
 
 	// set vector base address register
 	set_vbar(vectorTable)
