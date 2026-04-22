@@ -27,7 +27,7 @@ const (
 	FIQ            = 0x1c
 )
 
-// set by application or, if not previously defined, by cpu.Init()
+// linknamed by application as needed
 var vecTableStart uint32
 
 const (
