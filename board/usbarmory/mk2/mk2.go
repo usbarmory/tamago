@@ -16,6 +16,7 @@ package mk2
 
 import (
 	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
+	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 
 	_ "unsafe"
 )
@@ -90,4 +91,17 @@ func Init() {
 
 	// initialize serial console
 	imx6ul.UART2.Init()
+}
+
+func configurePad(mux uint32, pad uint32, daisy uint32, mode uint32, ctl uint32) (p *iomuxc.Pad) {
+	p = &iomuxc.Pad{
+		Mux:   mux,
+		Pad:   pad,
+		Daisy: daisy,
+	}
+
+	p.Mode(mode)
+	p.Ctl(ctl)
+
+	return
 }
