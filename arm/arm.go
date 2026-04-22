@@ -85,15 +85,8 @@ func (cpu *CPU) Init() {
 	goos.Exit = exit
 	goos.Idle = cpu.DefaultIdleGovernor
 
-	vbar := uint32(goos.RamStart)
-
-	// the application is allowed to override the reserved area
-	if vecTableStart != 0 {
-		vbar = vecTableStart
-	}
-
 	cpu.initFeatures()
-	cpu.initVectorTable(vbar)
+	cpu.initVectorTable()
 }
 
 // Mode returns the processor mode.

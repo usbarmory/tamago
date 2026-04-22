@@ -9,6 +9,7 @@
 package arm
 
 import (
+	"runtime/goos"
 	"unsafe"
 
 	"github.com/usbarmory/tamago/internal/reg"
@@ -136,8 +137,14 @@ func (cpu *CPU) SetVectorTable(t VectorTable) {
 }
 
 //go:nosplit
-func (cpu *CPU) initVectorTable(vbar uint32) {
-	cpu.vbar = vbar
+func (cpu *CPU) initVectorTable() {
+	// 32-bytes alignment is required
+	cpu.vbar = uint32(goos.RamStart)
+
+	// the application is allowed to override the reserved area
+	if vecTableStart != 0 {
+		cpu.vbar = vecTableStart
+	}
 
 	// initialize jump table
 	// Table 11-1 ARM® Cortex™ -A Series Programmer’s Guide
