@@ -11,12 +11,12 @@
 
 // func irq_enable()
 TEXT ·irq_enable(SB),$0
-	MSR	$0b1111, DAIFClr
+	MSR	$0b0011, DAIFClr
 	RET
 
 // func irq_disable()
 TEXT ·irq_disable(SB),$0
-	MSR	$0b1111, DAIFSet
+	MSR	$0b0011, DAIFSet
 	RET
 
 // func wfi()
@@ -53,7 +53,7 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 
 	// the IRQ handling goroutine is expected to unmask IRQs
 	MRS	SPSR_EL1, R0
-	ORR	$1<<6, R0	// mask FIQs
+	ORR	$(1<<7|1<<6), R0	// mask IF
 	MSR	R0, SPSR_EL1
 done:
 	// restore caller registers

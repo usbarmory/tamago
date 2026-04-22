@@ -10,25 +10,30 @@ package arm64
 
 import (
 	"runtime/goos"
+	"unsafe"
 
 	"github.com/usbarmory/tamago/internal/exception"
-)
-
-var (
-	// set by application or, if not previously defined, by cpu.Init()
-	vecTableStart uint64
-	isThrowing    bool
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 const (
-	vecTableJump   = 0xe59ff018 // ldr pc, [pc, #24]
-	excStackOffset = 0x8000     // 32 kB
-	excStackSize   = 0x4000     // 16 kB
+	vecTableLoad = 0x5800005b // ldr x27, #8
+	vecTableJump = 0xd61f0360 // br x27
 )
 
 // defined in exception.s
-func set_vbar()
+func set_vbar(addr uint64)
 func read_el() uint64
+func handleException()
+func handleInterrupt()
+
+type exceptionHandler func()
+
+func (fn exceptionHandler) vector() uint64 {
+	return **((**uint64)(unsafe.Pointer(&fn)))
+}
+
+var isThrowing bool
 
 // DefaultExceptionHandler handles an exception by printing its vector and
 // processor mode before panicking.
@@ -50,8 +55,41 @@ func systemException(pc uintptr) {
 	SystemExceptionHandler(pc)
 }
 
+func addJump(addr uint64, fn exceptionHandler) {
+	reg.Write64(addr, vecTableLoad)
+	reg.Write64(addr+4, vecTableJump)
+	reg.Write64(addr+8, fn.vector())
+}
+
+func addJumps(addr uint64) {
+	// Synchronous Exception
+	addJump(addr, handleException)
+
+	// IRQ or vIRQ
+	addr += 0x80
+	addJump(addr, handleInterrupt)
+
+	// FIQ or vFIQ
+	addr += 0x80
+	addJump(addr, handleInterrupt)
+
+	// SError or vSError
+	addr += 0x80
+	addJump(addr, handleException)
+}
+
 //go:nosplit
 func (cpu *CPU) initVectorTable() {
+	vectorTable := uint64(goos.RamStart)
+
+	// initialize jump tables
+	// Table D1-7 ARM Architecture Reference Manual ARMv8
+
+	// EL0
+	addJumps(vectorTable)
+	// ELx, x>0
+	addJumps(vectorTable+0x200)
+
 	// set vector base address register
-	set_vbar()
+	set_vbar(vectorTable)
 }
