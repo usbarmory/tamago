@@ -76,7 +76,7 @@ type GIC struct {
 }
 
 // InitGIC initializes an ARM Generic Interrupt Controller (GICv2) instance.
-func (hw *GIC) Init(secure bool, fiqen bool) {
+func (hw *GIC) Init() {
 	if hw.Base == 0 {
 		panic("invalid GIC instance")
 	}
@@ -99,17 +99,16 @@ func (hw *GIC) Init(secure bool, fiqen bool) {
 		addr = hw.gicd + GICD_ICPENDR + 4*n
 		reg.Write(addr, 0xffffffff)
 
-		if !secure {
-			addr = hw.gicd + GICD_IGROUPR + 4*n
-			reg.Write(addr, 0xffffffff)
-		}
+		// Group 0 (Secure)
+		addr = hw.gicd + GICD_IGROUPR + 4*n
+		reg.Write(addr, 0x00000000)
 	}
 
 	// Set priority mask to allow Non-Secure world to use the lower half
 	// of the priority range.
 	reg.Write(hw.gicc+GICC_PMR, 0x80)
 
-	reg.SetTo(hw.gicc+GICC_CTLR, CTLR_FIQEN, fiqen)
+	reg.Clear(hw.gicc+GICC_CTLR, CTLR_FIQEN)
 
 	reg.Set(hw.gicc+GICC_CTLR, CTLR_ENABLEGRP1)
 	reg.Set(hw.gicc+GICC_CTLR, CTLR_ENABLEGRP0)
@@ -121,25 +120,16 @@ func (hw *GIC) Init(secure bool, fiqen bool) {
 // FIQEn controls whether Group 0 (Secure) interrupts should be signalled as
 // IRQ or FIQ requests.
 func (hw *GIC) FIQEn(fiq bool) {
-	if hw.gicc == 0 {
-		return
-	}
-
 	reg.SetTo(hw.gicc+GICC_CTLR, CTLR_FIQEN, fiq)
 }
 
-func (hw *GIC) irq(m int, secure bool, enable bool) {
-	if hw.gicd == 0 {
-		return
-	}
-
+func (hw *GIC) irq(m int, enable bool) {
 	addr := hw.gicd
 
 	n := uint32(m / 32)
 	i := m % 32
 
 	if enable {
-		reg.SetTo(hw.gicd+GICD_IGROUPR+4*n, i, !secure)
 		addr += GICD_ISENABLER
 	} else {
 		addr += GICD_ICENABLER
@@ -150,37 +140,67 @@ func (hw *GIC) irq(m int, secure bool, enable bool) {
 
 // EnableInterrupt enables forwarding of the corresponding interrupt to the CPU
 // and configures its group status (Secure: Group 0, Non-Secure: Group 1).
-func (hw *GIC) EnableInterrupt(id int, secure bool) {
-	hw.irq(id, secure, true)
+func (hw *GIC) EnableInterrupt(id int) {
+	hw.irq(id, true)
 }
 
 // DisableInterrupt disables forwarding of the corresponding interrupt to the
 // CPU.
 func (hw *GIC) DisableInterrupt(id int) {
-	hw.irq(id, false, false)
+	hw.irq(id, false)
 }
 
 // GetInterrupt obtains and acknowledges a signaled interrupt.
-func (hw *GIC) GetInterrupt(secure bool) (id int) {
-	if hw.gicc == 0 {
-		return
-	}
-
-	var m uint32
-
-	if secure {
-		m = reg.GetN(hw.gicc+GICC_IAR, IAR_ID, 0x3ff)
-	} else {
-		m = reg.GetN(hw.gicc+GICC_AIAR, AIAR_ID, 0x3ff)
-	}
+func (hw *GIC) GetInterrupt() (id int) {
+	m := reg.GetN(hw.gicc+GICC_IAR, IAR_ID, 0x3ff)
 
 	if m < 1020 {
-		if secure {
-			reg.SetN(hw.gicc+GICC_EOIR, EOIR_ID, 0x3ff, m)
-		} else {
-			reg.SetN(hw.gicc+GICC_AEOIR, AEOIR_ID, 0x3ff, m)
-		}
+		reg.Write(hw.gicc+GICC_EOIR, (m&0x3ff)<<EOIR_ID)
 	}
 
 	return int(m)
+}
+
+// GetInterrupt obtains and acknowledges a signaled Non-Secure interrupt from
+// Secure access.
+func (hw *GIC) GetNonSecureInterrupt() (id int) {
+	m := reg.GetN(hw.gicc+GICC_AIAR, AIAR_ID, 0x3ff)
+
+	if m < 1020 {
+		reg.Write(hw.gicc+GICC_AEOIR, (m&0x3ff)<<AEOIR_ID)
+	}
+
+	return int(m)
+}
+
+// SetInterruptGroup assigns the corresponding interrupt to either Group 0
+// (Secure, false) or 1 (Non-Secure, true).
+func (hw *GIC) SetInterruptGroup(id int, status bool) {
+	n := uint32(id / 32)
+	i := id % 32
+
+	reg.SetTo(hw.gicd+GICD_IGROUPR+4*n, i, status)
+}
+
+// SetInterruptsGroup assigns all interrupts to either Group 0 (Secure, false)
+// or 1 (Non-Secure, true).
+func (hw *GIC) SetInterruptsGroup(status bool) {
+	// Group 0 (Secure)
+	mask := uint32(0x00000000)
+
+	// Get the maximum number of external interrupt lines
+	itLinesNum := reg.GetN(hw.gicd+GICD_TYPER, TYPER_ITLINES, 0x1f)
+
+	// Add a line for the 32 internal interrupts
+	itLinesNum += 1
+
+	if status {
+		// Group 1 (Non-Secure)
+		mask = 0xffffffff
+	}
+
+	for n := uint32(0); n < itLinesNum; n++ {
+		addr := hw.gicd + GICD_IGROUPR + 4*n
+		reg.Write(addr, mask)
+	}
 }
