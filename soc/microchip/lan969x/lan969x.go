@@ -39,6 +39,12 @@ const (
 	// CPU Device Queue System
 	XTR_READY_IRQ = 42
 	INJ_READY_IRQ = 43
+
+	// Serial ports
+	FLEXCOM0_IRQ = 78
+	FLEXCOM1_IRQ = 79
+	FLEXCOM2_IRQ = 80
+	FLEXCOM3_IRQ = 81
 )
 
 // Peripheral registers
@@ -142,6 +148,28 @@ var (
 	FLEXCOM0 = &flexcom.FLEXCOM{
 		Index: 1,
 		Base:  FLEXCOM0_BASE,
+		IRQ:   FLEXCOM0_IRQ,
+	}
+
+	// Serial port 2
+	FLEXCOM1 = &flexcom.FLEXCOM{
+		Index: 2,
+		Base:  FLEXCOM1_BASE,
+		IRQ:   FLEXCOM1_IRQ,
+	}
+
+	// Serial port 3
+	FLEXCOM2 = &flexcom.FLEXCOM{
+		Index: 3,
+		Base:  FLEXCOM2_BASE,
+		IRQ:   FLEXCOM2_IRQ,
+	}
+
+	// Serial port 4
+	FLEXCOM3 = &flexcom.FLEXCOM{
+		Index: 4,
+		Base:  FLEXCOM3_BASE,
+		IRQ:   FLEXCOM3_IRQ,
 	}
 
 	// Generic Interrupt Controller
@@ -167,7 +195,7 @@ var (
 	// One Time Programmable Controller
 	OTPC = &otpc.OTPC{
 		Base: OTPC_BASE,
-		Size: 16*1024,
+		Size: 16 * 1024,
 	}
 
 	// True Random Number Generator

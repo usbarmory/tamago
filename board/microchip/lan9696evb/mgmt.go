@@ -24,6 +24,7 @@ const MAC_FID = 1
 // CPU port 0 (D30) is used for injection and extraction of frames.
 var ManagementPort = &devcpu.Port{
 	Index:    29,
+	IRQ:      lan969x.XTR_READY_IRQ,
 	Queue:    lan969x.DEVCPU_QS,
 	Analyzer: lan969x.ANA,
 	Enable:   enablePort,
