@@ -12,9 +12,8 @@
 //   - IMX7DSSRM - i.MX7DS Security Reference Manual - Rev 0 03/2017
 //   - IMX8MPSRM - i.MX8MP Security Reference Manual - Rev A 06/2020
 //
-// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go, see
-// https://github.com/usbarmory/tamago.
+// This package is only meant to be used with `GOOS=tamago` as supported by the
+// TamaGo framework for bare metal Go, see https://github.com/usbarmory/tamago.
 package caam
 
 import (

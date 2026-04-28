@@ -30,6 +30,10 @@ const (
 	CSCDR1_UART_CLK_SEL  = 6
 	CSCDR1_UART_CLK_PODF = 0
 
+	CCM_CSCDR2            = 0x020c4038
+	CSCDR2_ECSPI_CLK_PODF = 19
+	CSCDR2_ECSPI_CLK_SEL  = 18
+
 	CCM_CSCMR1            = 0x020c401c
 	CSCMR1_USDHC2_CLK_SEL = 17
 	CSCMR1_USDHC1_CLK_SEL = 16
@@ -361,21 +365,31 @@ func SetPFD(pll uint32, pfd uint32, div uint32) error {
 	return nil
 }
 
-// GetUARTClock returns the UART_CLK_ROOT frequency,
+// GetSystemClock returns a system clock frequency,
 // (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM).
-func GetUARTClock() uint32 {
+func GetSystemClock(divider uint32, clksel_pos int, podf_pos int) uint32 {
 	var freq uint32
 
-	if reg.GetN(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, 1) == 1 {
+	if reg.GetN(divider, clksel_pos, 1) == 1 {
 		freq = OSC_FREQ
 	} else {
 		// match /6 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
 		freq = PLL3_FREQ / 6
 	}
 
-	podf := reg.GetN(CCM_CSCDR1, CSCDR1_UART_CLK_PODF, 0b111111)
+	podf := reg.GetN(divider, podf_pos, 0x3f)
 
 	return freq / (podf + 1)
+}
+
+// GetUECSPIClock returns the ECSPI_CLK_ROOT frequency.
+func GetECSPIClock() uint32 {
+	return GetSystemClock(CCM_CSCDR2, CSCDR2_ECSPI_CLK_SEL, CSCDR2_ECSPI_CLK_PODF)
+}
+
+// GetUARTClock returns the UART_CLK_ROOT frequency.
+func GetUARTClock() uint32 {
+	return GetSystemClock(CCM_CSCDR1, CSCDR1_UART_CLK_SEL, CSCDR1_UART_CLK_PODF)
 }
 
 // GetUSDHCClock returns the USDHCx_CLK_ROOT clock by reading CSCMR1[USDHCx_CLK_SEL]
