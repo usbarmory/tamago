@@ -52,7 +52,7 @@ var (
 		TimerMultiplier: 1,
 	}
 
-	// I/O APIC - GSI 0-23
+	// I/O APIC
 	IOAPIC0 = &ioapic.IOAPIC{
 		Base: IOAPIC0_BASE,
 	}
