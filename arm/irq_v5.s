@@ -1,4 +1,4 @@
-// ARM processor support
+// ARM processor support — ARMv5 IRQ/FIQ helpers
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -6,18 +6,19 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-//go:build arm.6
+//go:build !arm.6
 
 #include "go_asm.h"
 #include "textflag.h"
 
 // func irq_enable(spsr bool)
 TEXT ·irq_enable(SB),$0-1
-	MOVB	spsr+0(FP), R0
 	CMP	$1, R0
 	B.EQ	spsr
 
-	WORD	$0xf1080080 // cpsie i
+	WORD	$0xe10f0000 // mrs r0, CPSR
+	BIC	$1<<7, R0   // unmask IRQs
+	WORD	$0xe121f000 // msr CPSR_c, r0
 	RET
 spsr:
 	WORD	$0xe14f0000 // mrs r0, SPSR
@@ -27,11 +28,12 @@ spsr:
 
 // func irq_disable(spsr bool)
 TEXT ·irq_disable(SB),$0-1
-	MOVB	spsr+0(FP), R0
 	CMP	$1, R0
 	B.EQ	spsr
 
-	WORD	$0xf10c0080 // cpsid i
+	WORD	$0xe10f0000 // mrs r0, CPSR
+	ORR	$1<<7, R0   // mask IRQs
+	WORD	$0xe121f000 // msr CPSR_c, r0
 	RET
 spsr:
 	WORD	$0xe14f0000 // mrs r0, SPSR
@@ -41,11 +43,12 @@ spsr:
 
 // func fiq_enable(spsr bool)
 TEXT ·fiq_enable(SB),$0-1
-	MOVB	spsr+0(FP), R0
 	CMP	$1, R0
 	B.EQ	spsr
 
-	WORD	$0xf1080040 // cpsie f
+	WORD	$0xe10f0000 // mrs r0, CPSR
+	BIC	$1<<6, R0   // unmask FIQs
+	WORD	$0xe121f000 // msr CPSR_c, r0
 	RET
 spsr:
 	WORD	$0xe14f0000 // mrs r0, SPSR
@@ -55,11 +58,12 @@ spsr:
 
 // func fiq_disable(spsr bool)
 TEXT ·fiq_disable(SB),$0-1
-	MOVB	spsr+0(FP), R0
 	CMP	$1, R0
 	B.EQ	spsr
 
-	WORD	$0xf10c0040 // cpsid f
+	WORD	$0xe10f0000 // mrs r0, CPSR
+	ORR	$1<<6, R0   // mask FIQs
+	WORD	$0xe121f000 // msr CPSR_c, r0
 	RET
 spsr:
 	WORD	$0xe14f0000 // mrs r0, SPSR
@@ -70,7 +74,7 @@ spsr:
 // func wfi()
 TEXT ·wfi(SB),$0
 	// wait until an interrupt is received in low-power state
-	WORD	$0xe320f003 // wfi
+	MCR	15, 0, R0, C7, C0, 4
 	RET
 
 TEXT ·irqHandler(SB),NOSPLIT|NOFRAME,$0
