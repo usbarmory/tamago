@@ -44,9 +44,9 @@ const (
 	CONREG_XCH            = 2
 	CONREG_EN             = 0
 
-	ECSPIx_CONFIGREG = 0x0c
-	CONFIGREG_SS_POL = 12
-	CONFIGREG_SS_CTL = 8
+	ECSPIx_CONFIGREG   = 0x0c
+	CONFIGREG_SCLK_POL = 4
+	CONFIGREG_SCLK_PHA = 0
 
 	ECSPIx_STATREG = 0x18
 	STATREG_TC     = 7
@@ -71,22 +71,28 @@ type ECSPI struct {
 	CCGR uint32
 	// Clock gate
 	CG int
+	// Clock retrieval function
+	Clock func() uint32
 
 	// PreDiv sets the 1st stage SPI frequency divider
 	PreDiv int
 	// PostDiv sets the 2nd stage SPI frequency divider
 	PostDiv int
-	// Timeout for I2C operations
+	// Timeout for SPI operations
 	Timeout time.Duration
 
 	// Channel defines the Chip Select assertion on [Transfer]
 	Channel int
 
+	// Mode defines the clock polarization mode
+	Mode int
+
 	// control registers
-	rxdata  uint32
-	txdata  uint32
-	conreg  uint32
-	statreg uint32
+	rxdata    uint32
+	txdata    uint32
+	conreg    uint32
+	configreg uint32
+	statreg   uint32
 }
 
 // Init initializes an ECSPI controller instance in master mode 0 (CPOL=0
@@ -106,6 +112,7 @@ func (hw *ECSPI) Init() {
 	hw.rxdata = hw.Base + ECSPIx_RXDATA
 	hw.txdata = hw.Base + ECSPIx_TXDATA
 	hw.conreg = hw.Base + ECSPIx_CONREG
+	hw.configreg = hw.Base + ECSPIx_CONFIGREG
 	hw.statreg = hw.Base + ECSPIx_STATREG
 
 	// p804, 20.5 Initialization, IMX6ULLRM
@@ -135,6 +142,16 @@ func (hw *ECSPI) Init() {
 	reg.Set(hw.conreg, CONREG_EN)
 }
 
+// GetFreq returns the frequency of SCLK line.
+func (hw *ECSPI) GetFreq() (freq uint32) {
+
+	pre := reg.GetN(hw.conreg, CONREG_PRE_DIVIDER, 0xf)
+	post := reg.GetN(hw.conreg, CONREG_POST_DIVIDER, 0xf)
+	freq = (hw.Clock() / (pre + 1)) >> post
+
+	return
+}
+
 // Transfer performs a full-duplex SPI exchange in-place. On return, buf
 // contains the received bytes.
 func (hw *ECSPI) Transfer(buf []byte) (err error) {
@@ -148,6 +165,21 @@ func (hw *ECSPI) Transfer(buf []byte) (err error) {
 	reg.SetN(hw.conreg, CONREG_CHANNEL_SELECT, 0b11, uint32(hw.Channel))
 	reg.SetN(hw.conreg, CONREG_BURST_LENGTH, 0xfff, uint32(len(buf)*8)-1)
 
+	switch hw.Mode {
+	case 0:
+		reg.ClearN(hw.configreg, CONFIGREG_SCLK_POL, 1<<hw.Channel)
+		reg.ClearN(hw.configreg, CONFIGREG_SCLK_PHA, 1<<hw.Channel)
+	case 1:
+		reg.ClearN(hw.configreg, CONFIGREG_SCLK_POL, 1<<hw.Channel)
+		reg.SetN(hw.configreg, CONFIGREG_SCLK_PHA, 1<<hw.Channel, 1)
+	case 2:
+		reg.SetN(hw.configreg, CONFIGREG_SCLK_POL, 1<<hw.Channel, 1)
+		reg.ClearN(hw.configreg, CONFIGREG_SCLK_PHA, 1<<hw.Channel)
+	case 3:
+		reg.SetN(hw.configreg, CONFIGREG_SCLK_POL, 1<<hw.Channel, 1)
+		reg.SetN(hw.configreg, CONFIGREG_SCLK_PHA, 1<<hw.Channel, 1)
+	}
+
 	var b []byte
 
 	for i := 0; i < len(buf); i += 4 {
@@ -157,8 +189,9 @@ func (hw *ECSPI) Transfer(buf []byte) (err error) {
 
 		b = buf[i:]
 
-		if n := len(b); n < 4 {
+		if n := len(b) % 4; n != 0 {
 			b = append(make([]byte, 4-n), b...)
+			i -= 4 - n
 		}
 
 		reg.Write(hw.txdata, binary.BigEndian.Uint32(b))
@@ -185,10 +218,11 @@ func (hw *ECSPI) Transfer(buf []byte) (err error) {
 
 		b = buf[i:]
 
-		if n := len(b); n < 4 {
+		if n := len(b) % 4; n != 0 {
 			r := make([]byte, 4)
 			binary.BigEndian.PutUint32(r, reg.Read(hw.rxdata))
 			copy(b, r)
+			i -= 4 - n
 		} else {
 			binary.BigEndian.PutUint32(b, reg.Read(hw.rxdata))
 		}
