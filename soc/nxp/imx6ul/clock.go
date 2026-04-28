@@ -373,8 +373,13 @@ func GetSystemClock(divider uint32, clksel_pos int, podf_pos int) uint32 {
 	if reg.GetN(divider, clksel_pos, 1) == 1 {
 		freq = OSC_FREQ
 	} else {
-		// match /6 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
-		freq = PLL3_FREQ / 6
+		if divider == CCM_CSCDR2 {
+			// match /8 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
+			freq = PLL3_FREQ / 8
+		} else {
+			// match /6 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
+			freq = PLL3_FREQ / 6
+		}
 	}
 
 	podf := reg.GetN(divider, podf_pos, 0x3f)
@@ -382,7 +387,7 @@ func GetSystemClock(divider uint32, clksel_pos int, podf_pos int) uint32 {
 	return freq / (podf + 1)
 }
 
-// GetUECSPIClock returns the ECSPI_CLK_ROOT frequency.
+// GetECSPIClock returns the ECSPI_CLK_ROOT frequency.
 func GetECSPIClock() uint32 {
 	return GetSystemClock(CCM_CSCDR2, CSCDR2_ECSPI_CLK_SEL, CSCDR2_ECSPI_CLK_PODF)
 }
