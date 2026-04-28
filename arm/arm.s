@@ -18,5 +18,7 @@ TEXT ·read_cpsr(SB),$0-4
 // func exit(int32)
 TEXT ·exit(SB),$0-4
 	// wait forever in low-power state
-	WORD	$0xf10c0080 // cpsid i
+	WORD	$0xe10f0000 // mrs r0, CPSR
+	ORR	$1<<7, R0   // mask IRQs
+	WORD	$0xe121f000 // msr CPSR_c, r0
 	WORD	$0xe320f003 // wfi
