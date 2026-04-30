@@ -202,3 +202,9 @@ func (io *MMIO) QueueNotify(index int) {
 func (io *MMIO) ConfigVersion() uint32 {
 	return reg.Read(io.Base + ConfigGeneration)
 }
+
+// EnableInterrupt is not currently implemented for MMIO, it is defined only to
+// implement the [VirtIO] interface and always returns an error.
+func (io *MMIO) EnableInterrupt(_ int, _ int) (err error) {
+	return errors.New("unimplemented")
+}
