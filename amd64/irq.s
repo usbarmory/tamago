@@ -9,19 +9,44 @@
 #include "go_asm.h"
 #include "textflag.h"
 
-// Interrupt Descriptor Table
-GLOBL	·idt<>(SB),RODATA,$(const_vectors*16)
+TEXT ·ret<>(SB),NOSPLIT|NOFRAME,$0
+	RET
 
-DATA	·idtptr+0x00(SB)/2, $(const_vectors*16-1)	// IDT Limit
-DATA	·idtptr+0x02(SB)/8, $·idt<>(SB)			// IDT Base Address
-GLOBL	·idtptr(SB),RODATA,$(2+8)
+TEXT ·reload_gdt<>(SB),NOSPLIT|NOFRAME,$0
+	MOVQ    $·gdtptr(SB), AX
+	LGDT    (AX)
+
+	// reload segment registers
+	MOVW	$0x10, AX
+	MOVW	AX, DS
+	MOVW	AX, ES
+	MOVW	AX, GS
+	MOVW	AX, SS
+
+	// reload code segment
+	MOVQ	$·ret<>(SB), AX
+	PUSHQ	$0x08
+	PUSHQ	AX
+	RETFQ
 
 // func load_idt() (idt uintptr, irqHandler uintptr)
 TEXT ·load_idt(SB),$0-16
+	MOVQ	$·gdt(SB), BX
+
+	SUBQ	$16, SP
+	SGDT	(SP)
+	MOVQ	2(SP), AX
+	ADDQ	$16, SP
+
+	// ensure that an eventual cpuinit override did load our GDT
+	CMPQ	AX, BX
+	JE	load
+	CALL	·reload_gdt<>(SB)
+load:
 	MOVQ	$·idtptr(SB), AX
 	LIDT	(AX)
 
-	MOVQ	$·idt<>(SB), AX
+	MOVQ	$·idt(SB), AX
 	MOVQ	AX, ret+0(FP)
 
 	// return irqHandler.abi0 pointer
