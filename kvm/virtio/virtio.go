@@ -48,7 +48,7 @@ const (
 // VirtIO represents a VirtIO device.
 type VirtIO interface {
 	// Init initializes a VirtIO device instance.
-	Init(features uint64) (err error)
+	Init(features uint64) error
 	// Config returns the device configuration layout.
 	Config(size int) []byte
 	// DeviceID returns the VirtIO subsystem device ID
@@ -77,6 +77,9 @@ type VirtIO interface {
 	QueueNotify(index int)
 	// ConfigVersion returns the device configuration (see Config field) version.
 	ConfigVersion() uint32
+	// EnableInterrupt enables interrupt vector routing to a LAPIC instance
+	// for the indexed virtual queue.
+	EnableInterrupt(id int, index int) error
 }
 
 func negotiate(deviceFeatures, driverFeatures uint64) (features uint64) {

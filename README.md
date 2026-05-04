@@ -270,6 +270,7 @@ Applications using TamaGo
 * [tamago-example](https://github.com/usbarmory/tamago-example) - TamaGo example application
 * [tamago-sev-example](https://github.com/usbarmory/tamago-sev-example) - Confidential VM (AMD SEV-SNP) example
 * [kotama](https://github.com/usbarmory/kotama) - Tiny RISC-V target demonstrator
+* [kanzashi](https://github.com/abarisani/kanzashi) - Bare Metal Agent
 
 External drivers using TamaGo
 =============================

@@ -52,6 +52,10 @@ const (
 	US_MR_SYNC   = 8
 	US_MR_CHRL   = 6
 
+	FLEX_US_IER  = 0x08
+	IER_TXRDY_IE = 1
+	IER_RXRDY_IE = 0
+
 	FLEX_US_CSR  = 0x14
 	US_CSR_TXRDY = 1
 	US_CSR_RXRDY = 0
@@ -71,6 +75,8 @@ type FLEXCOM struct {
 	Base uint32
 	// Baud rate
 	Baudrate uint32
+	// Interrupt ID
+	IRQ int
 
 	// flexcom control register
 	mr uint32
@@ -78,10 +84,13 @@ type FLEXCOM struct {
 	// usart control registers
 	us_cr   uint32
 	us_mr   uint32
+	us_ier  uint32
 	us_csr  uint32
 	us_rhr  uint32
 	us_thr  uint32
 	us_brgr uint32
+
+	rx chan bool
 }
 
 // Init initializes and enables an FLEXCOM controller instance in USART mode.
@@ -97,6 +106,7 @@ func (hw *FLEXCOM) Init() {
 	hw.mr = hw.Base + FLEX_MR
 	hw.us_cr = hw.Base + FLEX_USART_OFFSET + FLEX_US_CR
 	hw.us_mr = hw.Base + FLEX_USART_OFFSET + FLEX_US_MR
+	hw.us_ier = hw.Base + FLEX_USART_OFFSET + FLEX_US_IER
 	hw.us_csr = hw.Base + FLEX_USART_OFFSET + FLEX_US_CSR
 	hw.us_rhr = hw.Base + FLEX_USART_OFFSET + FLEX_US_RHR
 	hw.us_thr = hw.Base + FLEX_USART_OFFSET + FLEX_US_THR
@@ -137,6 +147,14 @@ func (hw *FLEXCOM) setup() {
 	reg.SetN(hw.us_cr, US_CR_TXEN, 1, 1)
 }
 
+// EnableInterrupt enables interrupt generation for receive FIFOs. Once enabled
+// [FLEXCOM.Read] and [FLEXCOM.Rx] block, as required, on the argument channel
+// rather than polling for valid data.
+func (hw *FLEXCOM) EnableInterrupt(rx chan bool) {
+	reg.SetTo(hw.us_ier, IER_RXRDY_IE, rx != nil)
+	hw.rx = rx
+}
+
 // Tx transmits a single character to the serial port.
 func (hw *FLEXCOM) Tx(c byte) {
 	for reg.GetN(hw.us_csr, US_CSR_TXRDY, 1) == 0 {
@@ -146,9 +164,30 @@ func (hw *FLEXCOM) Tx(c byte) {
 	reg.Write(hw.us_thr, uint32(c))
 }
 
-// Rx receives a single character from the serial port.
-func (hw *FLEXCOM) Rx() (c byte, valid bool) {
+// Rx receives a single character from the serial port, waiting for data to
+// become available if the argument is true.
+func (hw *FLEXCOM) Rx(block bool) (c byte, valid bool) {
+	if hw.rx != nil {
+		if block {
+			<-hw.rx
+		} else {
+			select {
+			case <-hw.rx:
+			default:
+				return
+			}
+		}
+	}
+
 	if reg.GetN(hw.us_csr, US_CSR_RXRDY, 1) == 1 {
+		return byte(reg.Read(hw.us_rhr)), true
+	}
+
+	if block && hw.rx == nil {
+		for reg.GetN(hw.us_csr, US_CSR_RXRDY, 1) == 0 {
+			runtime.Gosched()
+		}
+
 		return byte(reg.Read(hw.us_rhr)), true
 	}
 
@@ -166,18 +205,22 @@ func (hw *FLEXCOM) Write(buf []byte) (n int, _ error) {
 
 // Read available data to buffer from serial port.
 func (hw *FLEXCOM) Read(buf []byte) (n int, _ error) {
-	var valid bool
+	if len(buf) == 0 {
+		return
+	}
 
-	for n = range buf {
-		buf[n], valid = hw.Rx()
+	buf[0], _ = hw.Rx(true)
+	n = 1
+
+	for n < len(buf) {
+		c, valid := hw.Rx(false)
 
 		if !valid {
-			if n == 0 {
-				runtime.Gosched()
-			}
-
 			break
 		}
+
+		buf[n] = c
+		n++
 	}
 
 	return

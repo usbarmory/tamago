@@ -54,8 +54,6 @@ var (
 
 // defined in irq.s
 func load_idt() (idt uintptr, irqHandler uintptr)
-func irq_enable()
-func irq_disable()
 func wfi()
 
 //go:nosplit
