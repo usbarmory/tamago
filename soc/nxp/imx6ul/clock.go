@@ -374,10 +374,8 @@ func GetSystemClock(divider uint32, clksel_pos int, podf_pos int) uint32 {
 		freq = OSC_FREQ
 	} else {
 		if divider == CCM_CSCDR2 {
-			// match /8 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
 			freq = PLL3_FREQ / 8
 		} else {
-			// match /6 static divider (p630, Figure 18-3. Clock Tree - Part 2, IMX6ULLRM)
 			freq = PLL3_FREQ / 6
 		}
 	}

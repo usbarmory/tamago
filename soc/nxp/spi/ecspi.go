@@ -165,20 +165,25 @@ func (hw *ECSPI) Transfer(buf []byte) (err error) {
 	reg.SetN(hw.conreg, CONREG_CHANNEL_SELECT, 0b11, uint32(hw.Channel))
 	reg.SetN(hw.conreg, CONREG_BURST_LENGTH, 0xfff, uint32(len(buf)*8)-1)
 
+	var sclk_pol, sclk_pha uint32
+
 	switch hw.Mode {
 	case 0:
-		reg.ClearN(hw.configreg, CONFIGREG_SCLK_POL, 1<<hw.Channel)
-		reg.ClearN(hw.configreg, CONFIGREG_SCLK_PHA, 1<<hw.Channel)
+		sclk_pol = 0
+		sclk_pha = 0
 	case 1:
-		reg.ClearN(hw.configreg, CONFIGREG_SCLK_POL, 1<<hw.Channel)
-		reg.SetN(hw.configreg, CONFIGREG_SCLK_PHA, 1<<hw.Channel, 1)
+		sclk_pol = 0
+		sclk_pha = 1
 	case 2:
-		reg.SetN(hw.configreg, CONFIGREG_SCLK_POL, 1<<hw.Channel, 1)
-		reg.ClearN(hw.configreg, CONFIGREG_SCLK_PHA, 1<<hw.Channel)
+		sclk_pol = 1
+		sclk_pha = 0
 	case 3:
-		reg.SetN(hw.configreg, CONFIGREG_SCLK_POL, 1<<hw.Channel, 1)
-		reg.SetN(hw.configreg, CONFIGREG_SCLK_PHA, 1<<hw.Channel, 1)
+		sclk_pol = 1
+		sclk_pha = 1
 	}
+
+	reg.SetN(hw.configreg, CONFIGREG_SCLK_POL, 1<<hw.Channel, sclk_pol)
+	reg.SetN(hw.configreg, CONFIGREG_SCLK_PHA, 1<<hw.Channel, sclk_pha)
 
 	var b []byte
 
