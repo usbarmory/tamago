@@ -34,6 +34,9 @@ const (
 
 	// AP task address
 	taskAddress = 0x6020
+
+	// CR3 value address
+	cr3Address = 0x6028
 )
 
 // defined in smp.s
@@ -144,6 +147,9 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	// create AP GDT Descriptor (GDTR)
 	reg.Write16(gdtrAddress+0x00, 3*8-1)      // GTD Limit
 	reg.Write32(gdtrAddress+0x02, gdtAddress) // GDT Base Address
+
+	// read fresh CR3 as a cpuinit override might have overridden ours
+	reg.Write(cr3Address, uint32(read_cr3()))
 
 	for i := 1; i < NumCPU(); i++ {
 		if i == n {

@@ -11,7 +11,7 @@
 #include "textflag.h"
 
 // NOTE: this offset needs adjustment in case of any changes to ·apinit
-#define doneOffset 0x68
+#define doneOffset 0x6c
 #define doneMarker 0xcccccccccccccccc
 
 // func apinit_reloc(init uintptr, start uintptr)
@@ -52,9 +52,16 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	// The function is copied by `apinit_reloc` to a 16-bit address to be
 	// called, for this reason RIP/EIP-relative addressing must be avoided.
 
-	// we might not have a valid stack pointer for CALLs
+	// apply fresh CR3 as a cpuinit override might have overridden ours
 	DATA32
-	MOVL	$PML4T, SP
+	MOVL	$(const_cr3Address), AX
+
+	// we might not have a valid stack pointer for CALLs
+	DATA32; ADDR32
+	MOVL	(AX), SP
+
+	//DATA32; ADDR32;
+	//MOVL	$0x7fc01000, SP
 
 	// apply BSP paging setup (see init.s)
 	MOVL	SP, CR3
@@ -67,14 +74,14 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 
 	MOVL	CR4, AX
 	DATA32
-	MOVL	$(1<<7 | 1<<5), AX		// set CR4.(PGE|PAE)
+	ORL	$(1<<7 | 1<<5), AX		// set CR4.(PGE|PAE)
 	MOVL	AX, CR4
 
 	DATA32
 	MOVL	$MSR_EFER, CX
 	RDMSR
 	DATA32
-	ORL	$(1<<8), AX			// set MSR_EFER.LME
+	ORL	$(1<<8|1<<11), AX		// set MSR_EFER.(LME|NXE)
 	WRMSR
 
 	MOVL	CR0, AX
