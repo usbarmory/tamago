@@ -81,14 +81,14 @@ func (hw *MIIM) mdio(phyad, regad, wrdata, op uint32) (rddata uint16) {
 	bits.SetN(&cmd, CMD_WRDATA, 0xffff, wrdata)
 	bits.SetN(&cmd, CMD_OPR, 0b11, op)
 
-	reg.WaitFor(Timeout, hw.Base+MII_STATUS, STATUS_PENDING_OP, 1, 0)
+	reg.WaitFor(hw.Timeout, hw.Base+MII_STATUS, STATUS_PENDING_OP, 1, 0)
 	reg.Write(hw.Base+MII_CMD, cmd)
 
 	if op == mdio.OP_WRITE {
 		return
 	}
 
-	reg.WaitFor(Timeout, hw.Base+MII_STATUS, STATUS_BUSY, 1, 0)
+	reg.WaitFor(hw.Timeout, hw.Base+MII_STATUS, STATUS_BUSY, 1, 0)
 	data := reg.GetN(hw.Base+MII_DATA, DATA_RDDATA, 0xffff)
 
 	return uint16(data)
