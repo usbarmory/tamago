@@ -42,6 +42,7 @@ TEXT ·load_idt(SB),$0-16
 	CMPQ	AX, BX
 	JE	load
 	CALL	·reload_gdt<>(SB)
+	STI
 load:
 	MOVQ	$·idtptr(SB), AX
 	LIDT	(AX)
