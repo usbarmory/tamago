@@ -13,9 +13,6 @@ TEXT ·ret<>(SB),NOSPLIT|NOFRAME,$0
 	RET
 
 TEXT ·reload_gdt<>(SB),NOSPLIT|NOFRAME,$0
-	MOVQ    $·gdtptr(SB), AX
-	LGDT    (AX)
-
 	// reload segment registers
 	MOVW	$0x10, AX
 	MOVW	AX, DS
@@ -30,7 +27,7 @@ TEXT ·reload_gdt<>(SB),NOSPLIT|NOFRAME,$0
 	RETFQ
 
 // func load_idt() (idt uintptr, irqHandler uintptr)
-TEXT ·load_idt(SB),$0-16
+TEXT ·load_idt(SB),NOSPLIT|NOFRAME,$0-16
 	MOVQ	$·gdt(SB), BX
 
 	SUBQ	$16, SP
@@ -38,22 +35,50 @@ TEXT ·load_idt(SB),$0-16
 	MOVQ	2(SP), AX
 	ADDQ	$16, SP
 
-	// ensure that an eventual cpuinit override did load our GDT
+	// re-use GDT and IDT if cpuinit override is detected
 	CMPQ	AX, BX
-	JE	load
-	CALL	·reload_gdt<>(SB)
-	STI
+	JE	reload
 load:
+	// copy code descriptor
+	MOVQ	8(BX), CX
+	MOVQ	CX, 8(AX)
+
+	// copy data descriptor
+	MOVQ	16(BX), CX
+	MOVQ	CX, 16(AX)
+
+	CALL	·reload_gdt<>(SB)
+
+	// load IDT register
+	SUBQ	$16, SP
+	SIDT	(SP)
+
+	// save IDT register for APs
+	MOVQ	$·idtptr(SB), AX
+
+	// save size
+	MOVQ	0(SP), CX
+	MOVQ	CX, 0(AX)
+
+	// save offset
+	MOVQ	2(SP), CX
+	MOVQ	CX, 2(AX)
+
+	ADDQ	$16, SP
+	MOVQ	CX, ret+0(FP)
+	JMP	done
+reload:
 	MOVQ	$·idtptr(SB), AX
 	LIDT	(AX)
 
 	MOVQ	$·idt(SB), AX
 	MOVQ	AX, ret+0(FP)
-
+done:
 	// return irqHandler.abi0 pointer
 	MOVQ	$·irqHandler(SB), AX
 	MOVQ	AX, ret+8(FP)
 
+	STI
 	RET
 
 // func wfi()
