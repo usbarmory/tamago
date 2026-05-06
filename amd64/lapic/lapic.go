@@ -86,7 +86,11 @@ func (io *LAPIC) Entries() int {
 
 // Enable enables the Local APIC.
 func (io *LAPIC) Enable() {
-	reg.Set(io.Base+LAPIC_SVR, SVR_ENABLE)
+	svr := reg.Read(io.Base+LAPIC_SVR)
+	bits.Set(&svr, SVR_ENABLE)
+
+	// no reg.Set as we do not emulate atomic MMIO ops under SEV-SNP
+	reg.Write(io.Base+LAPIC_SVR, svr)
 }
 
 // Disable disables the Local APIC.
@@ -101,7 +105,11 @@ func (io *LAPIC) ClearInterrupt() {
 
 // IPI sends an Inter-Processor Interrupt (IPI).
 func (io *LAPIC) IPI(apicid int, id int, flags int) {
-	reg.SetN(io.Base+LAPIC_ICRH, ID, 0xff, uint32(apicid))
+	icrh := reg.Read(io.Base+LAPIC_ICRH)
+	bits.SetN(&icrh, ID, 0xff, uint32(apicid))
+
+	// no reg.Set as we do not emulate atomic MMIO ops under SEV-SNP
+	reg.Write(io.Base+LAPIC_ICRH, icrh)
 	reg.Write(io.Base+LAPIC_ICRL, uint32(flags&0xffffff00)|uint32(id&0xff))
 	reg.Wait(io.Base+LAPIC_ICRL, ICR_DLV_STATUS, 1, 0)
 }
