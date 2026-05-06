@@ -60,9 +60,6 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	DATA32; ADDR32
 	MOVL	(AX), SP
 
-	//DATA32; ADDR32;
-	//MOVL	$0x7fc01000, SP
-
 	// apply BSP paging setup (see init.s)
 	MOVL	SP, CR3
 
