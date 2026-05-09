@@ -10,6 +10,9 @@ package gvnic
 
 import (
 	"encoding/binary"
+	"math/bits"
+
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 const ADMINQ_CONFIGURE_DEVICE_RESOURCES = 0x2
@@ -39,6 +42,7 @@ func (hw *GVE) configureDeviceResources() (err error) {
 	// allocate counter array
 	counterArrayAddr, counterBuf := hw.Region.Reserve(counterSize, pageSize)
 	clear(counterBuf)
+	hw.state.counterArray = counterBuf
 
 	// allocate IRQ doorbell array
 	doorbells := 2 // rx+tx
@@ -49,6 +53,13 @@ func (hw *GVE) configureDeviceResources() (err error) {
 	}
 	irqDBAddr, irqDBBuf := hw.Region.Reserve(irqDBBytes, pageSize)
 	clear(irqDBBuf)
+
+	// Stash the IRQ DB array + count so unmaskAllIRQs() (called after
+	// queue creation) can read the device-written ntfy_block doorbell
+	// indices and write BE32 0 to each, unmasking notifications. Without
+	// the stash + the unmask the firmware holds inbound traffic.
+	hw.state.irqDBArray = irqDBBuf
+	hw.state.numIRQDBs = uint32(doorbells)
 
 	cmd := &deviceResourcesCommand{
 		CounterArray:         uint64(counterArrayAddr),
@@ -61,4 +72,22 @@ func (hw *GVE) configureDeviceResources() (err error) {
 	}
 
 	return hw.aq.Push(ADMINQ_CONFIGURE_DEVICE_RESOURCES, cmd)
+}
+
+// unmaskAllIRQs writes BE32 0 to each notification block's doorbell slot
+// in BAR2, unmasking notifications (Linux gve_turnup). Without this the
+// firmware holds inbound traffic even when the driver is polling.
+//
+// The IRQ DB array layout: numIRQDBs entries, each irqDBStride bytes,
+// where bytes [0:4] of each entry hold the device-written ntfy_block
+// doorbell index (BE32). The doorbell write target is BAR2 + dbIdx*4.
+func (hw *GVE) unmaskAllIRQs() {
+	for i := 0; i < int(hw.state.numIRQDBs); i++ {
+		off := i * irqDBStride
+		if off+4 > len(hw.state.irqDBArray) {
+			break
+		}
+		dbIdx := binary.BigEndian.Uint32(hw.state.irqDBArray[off : off+4])
+		reg.Write(hw.doorbells+dbIdx*4, bits.ReverseBytes32(0))
+	}
 }

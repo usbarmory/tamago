@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"math/bits"
 	"sync"
+	"unsafe"
 
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
@@ -24,6 +25,12 @@ import (
 const (
 	PCI_VENDOR = 0x1ae0 // Google, Inc.
 	PCI_DEVICE = 0x0042 // Compute Engine Virtual Ethernet [gVNIC]
+)
+
+const (
+	registersBAR = 0
+	msixTableBAR = 1
+	doorbellsBAR = 2
 )
 
 // gVNIC configuration registers (Bar0)
@@ -40,13 +47,14 @@ const (
 	MAX_RX_QUEUES        = 0x0c
 	ADMINQ_DOORBELL      = 0x14
 	ADMINQ_EVENT_COUNTER = 0x18
+	DRIVER_VERSION       = 0x1f
 
 	// PCI Revision 00
 	ADMINQ_PFN = 0x10
 
 	// PCI Revision 01
-	ADMINQ_BASE_ADDRESS_LOW  = 0x20
-	ADMINQ_BASE_ADDRESS_HIGH = 0x24
+	ADMINQ_BASE_ADDRESS_HIGH = 0x20
+	ADMINQ_BASE_ADDRESS_LOW  = 0x24
 	ADMINQ_LENGTH            = 0x28
 )
 
@@ -80,6 +88,15 @@ type GVE struct {
 	aq *adminQueue
 	rx *rxQueue
 	tx *txQueue
+
+	state driverState
+}
+
+func (hw *GVE) writeDriverVersion(v string) {
+	for i := 0; i < len(v); i++ {
+		*(*uint8)(unsafe.Pointer(uintptr(hw.registers + DRIVER_VERSION))) = v[i]
+	}
+	*(*uint8)(unsafe.Pointer(uintptr(hw.registers + DRIVER_VERSION))) = '\n'
 }
 
 func (hw *GVE) set(off uint32, val any) {
@@ -104,13 +121,15 @@ func (hw *GVE) Init() (err error) {
 		hw.Region = dma.Default()
 	}
 
-	hw.registers = uint32(hw.Device.BaseAddress(0))
-	hw.doorbells = uint32(hw.Device.BaseAddress(1))
+	hw.registers = uint32(hw.Device.BaseAddress(registersBAR))
+	hw.msixTable = uint32(hw.Device.BaseAddress(msixTableBAR))
+	hw.doorbells = uint32(hw.Device.BaseAddress(doorbellsBAR))
 
-	if hw.registers&1 != 0 || hw.doorbells&1 != 0 {
+	if hw.registers&1 != 0 || hw.msixTable&1 != 0 || hw.doorbells&1 != 0 {
 		return errors.New("unexpected PCI BAR type, expected memory")
 	}
 
+	hw.writeDriverVersion(driverVersion)
 	hw.set(DEVICE_STATUS, uint32(DEVICE_STATUS_RESET))
 
 	if err := hw.initAdminQueue(); err != nil {
@@ -127,13 +146,22 @@ func (hw *GVE) Init() (err error) {
 		return fmt.Errorf("failed to configure device resources, %v", err)
 	}
 
-	if err = hw.initRxQueue(0); err != nil {
+	// Create TX queue before RX, matching Linux gve_main.c.
+	if err = hw.initTxQueue(int(txQPLID)); err != nil {
+		return fmt.Errorf("failed to initialize tx queue, %v", err)
+	}
+
+	if err = hw.initRxQueue(int(rxQPLID)); err != nil {
 		return fmt.Errorf("failed to initialize rx queue, %v", err)
 	}
 
-	if err = hw.initTxQueue(1); err != nil {
-		return fmt.Errorf("failed to initialize tx queue, %v", err)
-	}
+	hw.setupState()
+	hw.fillRxRing()
+
+	// Unmask all notification-block doorbells. Linux gve_turnup writes
+	// BE32 0 to each ntfy_block's doorbell in BAR2 after queue creation;
+	// without this the firmware holds inbound traffic in polling mode.
+	hw.unmaskAllIRQs()
 
 	return
 }

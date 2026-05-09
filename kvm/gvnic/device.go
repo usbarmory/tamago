@@ -58,7 +58,15 @@ func (hw *GVE) describeDevice() (err error) {
 		return
 	}
 
-	_, err = binary.Decode(buf, binary.BigEndian, hw.Info)
+	if _, err = binary.Decode(buf, binary.BigEndian, hw.Info); err != nil {
+		return
+	}
+
+	// parse device options following the 40-byte descriptor
+	if hw.Info.NumDeviceOptions > 0 && hw.Info.TotalLength > 40 {
+		optBuf := buf[40:hw.Info.TotalLength]
+		hw.state.options = parseDeviceOptions(optBuf, int(hw.Info.NumDeviceOptions))
+	}
 
 	return
 }

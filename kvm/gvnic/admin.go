@@ -48,8 +48,13 @@ const (
 	hdrSize        = 8
 	cmdSize        = 64
 
-	adminQueueSlots = adminQueueSize / cmdSize
-	adminQueueMask  = adminQueueSlots - 1
+	// adminQueueSlots is the number of command slots in the AdminQ ring.
+	adminQueueSlots = adminQueueSize / cmdSize // = 64
+	// adminQueueMask is used to derive the ring slot index from the
+	// cumulative producer counter via `cnt & adminQueueMask`.
+	adminQueueMask = adminQueueSlots - 1 // = 63
+
+	driverVersion = "GVE-1.4.9"
 )
 
 type adminCommandHeader struct {
@@ -70,7 +75,15 @@ type adminQueue struct {
 	buf  []byte
 }
 
+// Push writes a command to the AdminQ ring, kicks the doorbell, and waits
+// for the device's event counter to catch up. aq.cnt is a cumulative monotonic
+// uint32 matching Linux gve_adminq_kick_cmd; the ring slot index is derived
+// via aq.cnt & adminQueueMask.
 func (aq *adminQueue) Push(opcode uint32, cmd any) (err error) {
+	if aq.buf == nil {
+		return fmt.Errorf("admin queue not initialized")
+	}
+
 	ac := &adminCommandHeader{
 		Opcode: opcode,
 	}
@@ -102,11 +115,11 @@ func (aq *adminQueue) Push(opcode uint32, cmd any) (err error) {
 	reg.Write(aq.Doorbell, cnt)
 
 	if !reg.WaitFor(CommandTimeout, aq.Counter, 0, 0xffffffff, cnt) {
-		return fmt.Errorf("admin queue timeout")
+		return fmt.Errorf("admin queue timeout (opcode:%#x cnt=%d)", opcode, aq.cnt)
 	}
 
 	if status := binary.BigEndian.Uint32(aq.buf[low+4 : low+8]); status != COMMAND_PASSED {
-		return fmt.Errorf("admin command error, opcode:%#x status:%#x", opcode, status)
+		return fmt.Errorf("admin command error, opcode:%#x status:%#x (%s)", opcode, status, statusString(status))
 	}
 
 	return
@@ -119,14 +132,16 @@ func (hw *GVE) initAdminQueue() (err error) {
 	}
 
 	hw.aq.addr, hw.aq.buf = hw.Region.Reserve(adminQueueSize, 0)
+	clear(hw.aq.buf)
 
 	if hw.Device.Revision < 1 {
 		// set admin queue based address to region page frame number
 		hw.set(ADMINQ_PFN, uint32(hw.aq.addr/pageSize))
 	} else {
-		// set admin queue based address and size
-		hw.set(ADMINQ_LENGTH, uint16(adminQueueSize))
+		// set admin queue base address and length in pages
+		hw.set(ADMINQ_BASE_ADDRESS_HIGH, uint32(uint64(hw.aq.addr)>>32))
 		hw.set(ADMINQ_BASE_ADDRESS_LOW, uint32(hw.aq.addr))
+		hw.set(ADMINQ_LENGTH, uint16(adminQueueSize/pageSize))
 	}
 
 	return
