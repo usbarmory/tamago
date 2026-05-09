@@ -36,7 +36,7 @@ type registerPageListCommand struct {
 	PageListID          uint32
 	NumPages            uint32
 	PageAddressListAddr uint64
-	_                   [16]byte
+	PageSize            uint64
 }
 
 type rxDesc struct {
@@ -60,9 +60,11 @@ type rxQueue struct {
 	res       []byte // DMA buffer
 
 	// DMA buffers
-	desc []byte
-	data []byte
-	qpl  []byte
+	desc        []byte
+	data        []byte
+	qpl         []byte
+	qplPageList []byte
+	qplListAddr uint
 }
 
 type createRxQueueCommand struct {
@@ -92,10 +94,15 @@ type txDesc struct {
 }
 
 type txQueue struct {
+	// Resources cache
+	Resources *queueResources
+
 	// DMA buffers
-	res  []byte
-	desc []byte
-	qpl  []byte
+	res         []byte
+	desc        []byte
+	qpl         []byte
+	qplPageList []byte
+	qplListAddr uint
 }
 
 type createTxQueueCommand struct {
@@ -111,21 +118,23 @@ type createTxQueueCommand struct {
 	_                  [4]byte
 }
 
-func (hw *GVE) registerPageList(id int, size int) (addr uint, buf []byte, err error) {
+func (hw *GVE) registerPageList(id int, size int) (addr uint, buf []byte, plAddr uint, pageList []byte, err error) {
 	cmd := &registerPageListCommand{
 		PageListID: uint32(id),
 		NumPages:   uint32(size),
+		PageSize:   pageSize,
 	}
 
 	// allocate queue pair list
 	n := pageSize * int(cmd.NumPages)
 	addr, buf = hw.Region.Reserve(n, pageSize)
+	clear(buf)
 
 	// allocate page list
 	n = 8 * int(cmd.NumPages)
-	plAddr, pageList := hw.Region.Reserve(n, pageSize)
+	plAddr, pageList = hw.Region.Reserve(n, pageSize)
+	clear(pageList)
 	cmd.PageAddressListAddr = uint64(plAddr)
-	defer hw.Region.Release(plAddr)
 
 	for i := uint64(0); i < uint64(cmd.NumPages); i++ {
 		pga := uint64(addr) + i*pageSize
@@ -133,9 +142,13 @@ func (hw *GVE) registerPageList(id int, size int) (addr uint, buf []byte, err er
 	}
 
 	if err = hw.aq.Push(ADMINQ_REGISTER_PAGE_LIST, cmd); err != nil {
-		return 0, nil, err
+		hw.Region.Release(plAddr)
+		hw.Region.Release(addr)
+		return 0, nil, 0, nil, err
 	}
 
+	// Keep the page-address list reserved until UNREGISTER_PAGE_LIST —
+	// some firmware paths consult it while the QPL is active.
 	return
 }
 
@@ -143,40 +156,49 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 	var addr uint
 
 	hw.rx = &rxQueue{}
-	size := int(hw.Info.RxPagesPerQpl)
-
-	if _, hw.rx.qpl, err = hw.registerPageList(id, size); err != nil {
-		return
-	}
 
 	cmd := &createRxQueueCommand{
-		QueueID:          uint32(hw.Index),
-		Index:            uint32(hw.Index),
-		NtfyID:           uint32(id),
+		QueueID: uint32(hw.Index),
+		Index:   uint32(hw.Index),
+		// NtfyID for RX queue 0 must equal num_tx_queues + 0 = 1 per
+		// Linux gve_rx_idx_to_ntfy; ntfy_id 0 collides with TX queue 0
+		// and the firmware silently drops inbound traffic on GCE N2D.
+		NtfyID:           1,
 		QueuePageListID:  uint32(id),
 		RingSize:         hw.Info.RxQueueEntries,
 		PacketBufferSize: pageSize / 2,
 	}
 
-	// allocate queue resources
+	// Allocate descriptor/data rings before QPL registration, matching
+	// Linux gve_alloc_queue_page_list ordering.
 	hw.rx.Resources = &queueResources{}
 	n := binary.Size(hw.rx.Resources)
-	addr, hw.rx.res = hw.Region.Reserve(n, 64)
+	addr, hw.rx.res = hw.Region.Reserve(n, pageSize)
+	clear(hw.rx.res)
 	cmd.QueueResourcesAddr = uint64(addr)
 
 	// allocate descriptor ring
 	n = binary.Size(rxDesc{}) * int(cmd.RingSize)
-	addr, hw.rx.desc = hw.Region.Reserve(n, 0)
+	addr, hw.rx.desc = hw.Region.Reserve(n, pageSize)
+	clear(hw.rx.desc)
 	cmd.DescRingAddr = uint64(addr)
 
 	// allocate data ring
 	n = 8 * int(cmd.RingSize)
-	addr, hw.rx.data = hw.Region.Reserve(n, 0)
+	addr, hw.rx.data = hw.Region.Reserve(n, pageSize)
+	clear(hw.rx.data)
 	cmd.DataRingAddr = uint64(addr)
 
 	// fill data ring slots
 	for i := uint64(0); i < uint64(cmd.RingSize); i++ {
 		binary.BigEndian.PutUint64(hw.rx.data[i*8:], i*pageSize)
+	}
+
+	// register page list LAST (allocates the QPL pool + page-address list
+	// internally and pushes the ADMINQ_REGISTER_PAGE_LIST command)
+	size := int(hw.Info.RxPagesPerQpl)
+	if _, hw.rx.qpl, hw.rx.qplListAddr, hw.rx.qplPageList, err = hw.registerPageList(id, size); err != nil {
+		return
 	}
 
 	if err = hw.aq.Push(ADMINQ_CREATE_RX_QUEUE, cmd); err != nil {
@@ -199,29 +221,38 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 func (hw *GVE) initTxQueue(id int) (err error) {
 	var addr uint
 
-	hw.tx = &txQueue{}
-	size := int(hw.Info.TxPagesPerQpl)
-
-	if _, hw.tx.qpl, err = hw.registerPageList(id, size); err != nil {
-		return
+	hw.tx = &txQueue{
+		Resources: &queueResources{},
 	}
 
 	cmd := &createTxQueueCommand{
-		QueueID:         uint32(hw.Index),
-		NtfyID:          uint32(id),
+		QueueID: uint32(hw.Index),
+		// NtfyID for TX queue 0 is 0 per Linux gve_tx_idx_to_ntfy.
+		NtfyID:          0,
 		QueuePageListID: uint32(id),
 		RingSize:        hw.Info.TxQueueEntries,
 	}
 
-	// allocate queue resources
+	// Allocate queue resources and descriptor ring before QPL registration.
 	n := binary.Size(queueResources{})
-	addr, hw.tx.res = hw.Region.Reserve(n, 64)
+	addr, hw.tx.res = hw.Region.Reserve(n, pageSize)
+	clear(hw.tx.res)
 	cmd.QueueResourcesAddr = uint64(addr)
 
-	// allocate descriptor ring
 	n = binary.Size(txDesc{}) * int(cmd.RingSize)
-	addr, hw.tx.desc = hw.Region.Reserve(n, 0)
+	addr, hw.tx.desc = hw.Region.Reserve(n, pageSize)
+	clear(hw.tx.desc)
 	cmd.DescRingAddr = uint64(addr)
 
-	return hw.aq.Push(ADMINQ_CREATE_TX_QUEUE, cmd)
+	size := int(hw.Info.TxPagesPerQpl)
+	if _, hw.tx.qpl, hw.tx.qplListAddr, hw.tx.qplPageList, err = hw.registerPageList(id, size); err != nil {
+		return
+	}
+
+	if err = hw.aq.Push(ADMINQ_CREATE_TX_QUEUE, cmd); err != nil {
+		return
+	}
+
+	_, err = binary.Decode(hw.tx.res, binary.BigEndian, hw.tx.Resources)
+	return
 }
