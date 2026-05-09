@@ -32,14 +32,23 @@ type irqDoorbell struct {
 
 func (hw *GVE) configureDeviceResources() (err error) {
 	counterSize := int(hw.Info.Counters) * 4
+	if counterSize < pageSize {
+		counterSize = pageSize
+	}
 
 	// allocate counter array
-	counterArrayAddr, _ := hw.Region.Reserve(counterSize, pageSize)
+	counterArrayAddr, counterBuf := hw.Region.Reserve(counterSize, pageSize)
+	clear(counterBuf)
 
 	// allocate IRQ doorbell array
 	doorbells := 2 // rx+tx
 	irqDoorbellSize := binary.Size(irqDoorbell{})
-	irqDBAddr, _ := hw.Region.Reserve(irqDoorbellSize*doorbells, 64)
+	irqDBBytes := irqDoorbellSize * doorbells
+	if irqDBBytes < pageSize {
+		irqDBBytes = pageSize
+	}
+	irqDBAddr, irqDBBuf := hw.Region.Reserve(irqDBBytes, pageSize)
+	clear(irqDBBuf)
 
 	cmd := &deviceResourcesCommand{
 		CounterArray:         uint64(counterArrayAddr),
