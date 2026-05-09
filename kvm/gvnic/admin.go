@@ -47,6 +47,9 @@ const (
 	adminQueueSize = pageSize
 	hdrSize        = 8
 	cmdSize        = 64
+
+	adminQueueSlots = adminQueueSize / cmdSize
+	adminQueueMask  = adminQueueSlots - 1
 )
 
 type adminCommandHeader struct {
@@ -72,23 +75,29 @@ func (aq *adminQueue) Push(opcode uint32, cmd any) (err error) {
 		Opcode: opcode,
 	}
 
-	low := aq.cnt * cmdSize
+	slot := aq.cnt & adminQueueMask
+	low := slot * cmdSize
 	high := low + cmdSize
 
 	if _, err = binary.Encode(aq.buf[low:high], binary.BigEndian, ac); err != nil {
 		return
 	}
 
-	if _, err = binary.Encode(aq.buf[low+hdrSize:high], binary.BigEndian, cmd); err != nil {
-		return
+	if cmd != nil {
+		if _, err = binary.Encode(aq.buf[low+hdrSize:high], binary.BigEndian, cmd); err != nil {
+			return
+		}
+
+		// zero out remaining buffer past the encoded command body
+		pad := cmdSize - hdrSize - binary.Size(cmd)
+		clear(aq.buf[high-uint32(pad) : high])
+	} else {
+		// zero out command body when there is no payload
+		clear(aq.buf[low+hdrSize : high])
 	}
 
-	// zero out remaining buffer
-	pad := cmdSize - hdrSize - binary.Size(cmd)
-	copy(aq.buf[high-uint32(pad):high], make([]byte, pad))
-
-	// bump counter and ring door bell
-	aq.cnt = (aq.cnt + 1) % (adminQueueSize / cmdSize)
+	// bump cumulative counter and ring doorbell with the cumulative value
+	aq.cnt++
 	cnt := bits.ReverseBytes32(aq.cnt)
 	reg.Write(aq.Doorbell, cnt)
 
