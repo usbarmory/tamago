@@ -55,4 +55,7 @@ func (cpu *CPU) EnableExceptions() {
 	// Handle processor exceptions, stop before VMM Communication to
 	// preserve original handler if present (e.g. under UEFI+SEV-SNP).
 	setIDT(0, 28)
+
+	// user defined interrupts
+	setIDT(32, 255)
 }

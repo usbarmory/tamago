@@ -156,9 +156,6 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 		isr = func(_ int) { return }
 	}
 
-	// user defined interrupts
-	setIDT(32, 255)
-
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, IRQ_SIGNAL)
 

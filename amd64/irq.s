@@ -82,7 +82,7 @@ done:
 	RET
 
 // func wfi()
-TEXT ·wfi(SB),$0
+TEXT ·wfi(SB),NOSPLIT|NOFRAME,$0
 	// disable interrupts to avoid races while checking state
 	CLI
 
