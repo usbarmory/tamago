@@ -114,6 +114,7 @@ func (cpu *CPU) procresize() {
 
 	goos.ProcID = cpu.ID
 	goos.Task = cpu.Task
+	goos.Wake = cpu.Wake
 
 	runtime.GOMAXPROCS(n)
 }
@@ -180,4 +181,9 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	cpu.procresize()
 
 	return
+}
+
+// Wake issues a wake interrupt (see [IRQ_WAKEUP]) to the target processor.
+func (cpu *CPU) Wake(procid uint64) {
+	cpu.LAPIC.IPI(int(procid), IRQ_WAKEUP, lapic.ICR_DLV_IRQ)
 }
