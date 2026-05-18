@@ -83,7 +83,7 @@ func (r *psc) AddEntry(index int, gpa uint64, pageSize int, private bool) {
 }
 
 // defined in page.s
-func pvalidate(addr uint64, pageSize int, validate bool) (ret uint32)
+func pvalidate(addr uint64, size int, validate bool) (ret uint32)
 
 // PageStateChange requests a page state change to either private/shared
 // assignment, as pages are validated/invalidated accordingly any C-Bit

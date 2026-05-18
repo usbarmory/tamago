@@ -44,7 +44,7 @@ halt:
 	JMP halt
 
 // func exit(int32)
-TEXT ·exit(SB),$0-8
+TEXT ·exit(SB),$0-4
 	CLI
 halt:
 	HLT

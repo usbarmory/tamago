@@ -17,7 +17,7 @@
 // func apinit_reloc(init uintptr, start uintptr)
 TEXT ·apinit_reloc(SB),$0-16
 	MOVQ	$·apinit<>(SB), SI
-	MOVL	init+0(FP), DI
+	MOVQ	init+0(FP), DI
 
 	// end of function marker
 	MOVQ	$doneMarker, BX

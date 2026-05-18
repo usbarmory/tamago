@@ -36,5 +36,5 @@ const (
 
 	// StackSystem is a number of additional bytes to add to each stack
 	// below the usual guard area.
-	StackSystem = 0
+	StackSystem = 512
 )

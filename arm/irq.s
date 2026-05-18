@@ -10,7 +10,8 @@
 #include "textflag.h"
 
 // func irq_enable(spsr bool)
-TEXT ·irq_enable(SB),$0
+TEXT ·irq_enable(SB),$0-1
+	MOVB	spsr+0(FP), R0
 	CMP	$1, R0
 	B.EQ	spsr
 
@@ -23,7 +24,8 @@ spsr:
 	RET
 
 // func irq_disable(spsr bool)
-TEXT ·irq_disable(SB),$0
+TEXT ·irq_disable(SB),$0-1
+	MOVB	spsr+0(FP), R0
 	CMP	$1, R0
 	B.EQ	spsr
 
@@ -36,7 +38,8 @@ spsr:
 	RET
 
 // func fiq_enable(spsr bool)
-TEXT ·fiq_enable(SB),$0
+TEXT ·fiq_enable(SB),$0-1
+	MOVB	spsr+0(FP), R0
 	CMP	$1, R0
 	B.EQ	spsr
 
@@ -49,7 +52,8 @@ spsr:
 	RET
 
 // func fiq_disable(spsr bool)
-TEXT ·fiq_disable(SB),$0
+TEXT ·fiq_disable(SB),$0-1
+	MOVB	spsr+0(FP), R0
 	CMP	$1, R0
 	B.EQ	spsr
 

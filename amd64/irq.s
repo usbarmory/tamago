@@ -65,18 +65,18 @@ load:
 	MOVQ	CX, 2(AX)
 
 	ADDQ	$16, SP
-	MOVQ	CX, ret+0(FP)
+	MOVQ	CX, idt+0(FP)
 	JMP	done
 reload:
 	MOVQ	$·idtptr(SB), AX
 	LIDT	(AX)
 
 	MOVQ	$·idt(SB), AX
-	MOVQ	AX, ret+0(FP)
+	MOVQ	AX, idt+0(FP)
 done:
 	// return irqHandler.abi0 pointer
 	MOVQ	$·irqHandler(SB), AX
-	MOVQ	AX, ret+8(FP)
+	MOVQ	AX, irqHandler+8(FP)
 
 	STI
 	RET

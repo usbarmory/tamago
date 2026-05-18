@@ -224,7 +224,7 @@ func (ring *bufferDescriptorRing) pop(buf []byte) (n int, err error) {
 func (ring *bufferDescriptorRing) push(buf []byte) (err error) {
 	bd := ring.bds[ring.index]
 
-	if uint16(bd.desc[3]<<8)&(1<<BD_TX_ST_R) != 0 {
+	if (uint16(bd.desc[3])<<8)&(1<<BD_TX_ST_R) != 0 {
 		return errors.New("frame not sent")
 	}
 

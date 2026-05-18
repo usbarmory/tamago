@@ -49,11 +49,11 @@ TEXT ·read_cntpct(SB),$0-8
 	RET
 
 // func write_cntptval(val uint32, enable bool)
-TEXT ·write_cntptval(SB),$0-8
+TEXT ·write_cntptval(SB),$0-5
 	// ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
 	// B6.1.13 CNTP_TVAL, PL1 Physical TimerValue register, PMSA
 	MOVW	val+0(FP), R0
-	MOVW	enable+4(FP), R1
+	MOVB	enable+4(FP), R1
 
 	WORD	$0xf57ff06f // isb sy
 	MCR	15, 0, R0, C14, C2, 0
