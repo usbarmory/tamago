@@ -23,7 +23,7 @@ import (
 
 const (
 	// ·apinit 16-bit relocation address
-	apinitAddress = 0x4000
+	APInitAddress = 0x4000
 	// ·apstart pointer address
 	apstartAddress = 0x5000
 
@@ -135,7 +135,7 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 
 	// copy ·apinit to a 16-bit address reachable in real mode
 	// copy ·apstart pointer to avoid RIP/EIP-relative addressing
-	apinit_reloc(apinitAddress, apstartAddress)
+	apinit_reloc(APInitAddress, apstartAddress)
 
 	// reset counting semaphore
 	reg.Write(taskAddress, 0)
@@ -169,7 +169,7 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 		//
 		// AP Startup Sequence:
 		// The vector provides the upper 8 bits of a 20-bit physical address.
-		vector := apinitAddress >> 12
+		vector := APInitAddress >> 12
 
 		cpu.LAPIC.IPI(i, vector, 1<<lapic.ICR_INIT|lapic.ICR_DLV_INIT)
 		time.Sleep(10 * time.Millisecond)

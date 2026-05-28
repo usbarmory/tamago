@@ -90,7 +90,7 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 	DATA32
 	MOVL	$(const_gdtrAddress), AX
 	DATA32
-	SUBL	$(const_apinitAddress), AX	// convert linear address to CS offset
+	SUBL	$(const_APInitAddress), AX	// convert linear address to CS offset
 	DATA32; ADDR32; CSADDR
 	LGDT	(AX)
 
@@ -106,7 +106,7 @@ TEXT ·apinit<>(SB),NOSPLIT|NOFRAME,$0
 
 	// set far return target (avoiding RIP/EIP relative addressing)
 	DATA32
-	MOVL	$(const_apinitAddress+doneOffset), AX
+	MOVL	$(const_APInitAddress+doneOffset), AX
 
 	// jump to target in Long Mode
 	PUSHQ	$0x08
