@@ -30,6 +30,7 @@ const (
 // SEV-ES Guest-Hypervisor Communication Block Standardization
 // 2.6 GHCB Layout.
 const (
+	RAX          = 0x01f8
 	SW_EXITCODE  = 0x0390
 	SW_EXITINFO1 = 0x0398
 	SW_EXITINFO2 = 0x03a0
@@ -54,6 +55,10 @@ type GHCB struct {
 	// Region is an unencrypted memory region for shared guest/hypervisor
 	// buffers, required for any function issuing [GHCB.GuestRequest].
 	Region *dma.Region
+
+	// VMSA is an encrypted memory region for shared guest/psp Virtual
+	// Machina Save Area buffers, required for [GHCB.CreateAP].
+	VMSA *dma.Region
 
 	// DMA buffer
 	addr uint
@@ -117,7 +122,7 @@ func (b *GHCB) Exit(code, info1, info2, scratch uint64) (err error) {
 	b.write(SW_EXITINFO2, info2)
 	b.write(SW_SCRATCH, scratch)
 
-	valid := []uint64{SW_EXITCODE, SW_EXITINFO1, SW_EXITINFO2}
+	valid := []uint64{RAX, SW_EXITCODE, SW_EXITINFO1, SW_EXITINFO2}
 
 	if scratch > 0 {
 		valid = append(valid, SW_SCRATCH)
@@ -133,7 +138,7 @@ func (b *GHCB) Exit(code, info1, info2, scratch uint64) (err error) {
 	info1 = b.read(SW_EXITINFO1)
 	info2 = b.read(SW_EXITINFO2)
 
-	if info1 != 0 || info2 != 0 {
+	if info1 != 0 || (info2>>32) != 0 {
 		return fmt.Errorf("exit error (info1:%#x info2:%#x)", info1, b.read(SW_EXITINFO2))
 	}
 

@@ -20,5 +20,20 @@ TEXT ·pvalidate(SB),$0-28
 	BYTE	$0x01
 	BYTE	$0xff
 
-	MOVL AX, ret+24(FP)
+	MOVL	AX, ret+24(FP)
+	RET
+
+// func rmpadjust(addr uint64, size int, attrs uint64) (ret uint32)
+TEXT ·rmpadjust(SB),$0-28
+	MOVQ addr+0(FP), AX
+	MOVQ size+8(FP), CX
+	MOVQ attrs+16(FP), DX
+
+	// rmpadjust
+	BYTE	$0xf3
+	BYTE	$0x0f
+	BYTE	$0x01
+	BYTE	$0xfe
+
+	MOVL	AX, ret+24(FP)
 	RET
