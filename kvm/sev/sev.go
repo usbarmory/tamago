@@ -64,6 +64,9 @@ type SEVStatus struct {
 	ES bool
 	// SEV reports whether the KVM guest was run with SEV-SNP.
 	SNP bool
+
+	// Features reports Guest-controlled SEV feature selection.
+	Features uint64
 }
 
 // SVMFeatures represents the processor AMD Secure Virtual Machine
@@ -88,9 +91,10 @@ func Features(cpu *amd64.CPU) (f *SVMFeatures) {
 
 	f = &SVMFeatures{
 		SEV: SEVStatus{
-			SEV: bits.Get(&status, SEV_STATUS_SEV),
-			ES:  bits.Get(&status, SEV_STATUS_SEV_ES),
-			SNP: bits.Get(&status, SEV_STATUS_SEV_SNP),
+			SEV:      bits.Get(&status, SEV_STATUS_SEV),
+			ES:       bits.Get(&status, SEV_STATUS_SEV_ES),
+			SNP:      bits.Get(&status, SEV_STATUS_SEV_SNP),
+			Features: uint64(status >> 2),
 		},
 		EncryptedBit: int(ebx & 0b111111),
 	}
