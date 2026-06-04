@@ -11,8 +11,6 @@ package sev
 import (
 	"bytes"
 	"encoding/binary"
-
-	"github.com/usbarmory/tamago/amd64"
 )
 
 // Segment represents a segment descriptor
@@ -153,8 +151,8 @@ func (v *VMSA) Bytes() []byte {
 
 // Init sets the VMSA state to safe defaults for AP initialization by
 // [amd64.CPU.InitSMP].
-func (v *VMSA) Init() {
-	vector := amd64.APInitAddress >> 12
+func (v *VMSA) Init(pc uint64) {
+	vector := pc >> 12
 
 	// AMD64 Architecture Programmer’s Manual, Volume 2
 	// Canonicalization and Consistency Checks (p505).
@@ -184,7 +182,7 @@ func (v *VMSA) Init() {
 	v.CR0 = 0x60000010 // Cache Disabled, Not Writethrough
 	v.EFER = 0x1000    // SVME Secure Virtual Machine Enable
 
-	v.RIP = uint64(amd64.APInitAddress & 0xfff)
+	v.RIP = pc & 0xfff
 
 	// set reserved bits
 	v.RFLAGS = 0x2
