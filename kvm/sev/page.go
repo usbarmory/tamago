@@ -136,6 +136,12 @@ func (b *GHCB) PageStateChange(start uint64, end uint64, pageSize int, private b
 	last := uint16(i - 1)
 	req.Header.EndEntry = last
 
+	if b.Layout == nil {
+		if err = b.init(); err != nil {
+			return
+		}
+	}
+
 	buf := req.Bytes()
 	copy(b.buf[SharedBuffer:], buf)
 

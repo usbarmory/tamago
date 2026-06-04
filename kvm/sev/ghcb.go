@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/dma"
 )
 
@@ -47,9 +48,23 @@ const SNP_GUEST_REQUEST = 0x80000011
 
 // GHCB represents a Guest-Hypervisor Communication Block instance, used to
 // expose register state to an AMD SEV-ES hypervisor.
+//
+// # SMP
+//
+// Before its first exit to the VMM the [GHCB.Layout], if not previously
+// defined, is opportunistically initialized using the existing GHCB GPA
+// registration for the executing vCPU.
+//
+// This entails that after initial use the GHCB instance is bound to a specific
+// vCPU, it is the caller responsibility to manage this association.
 type GHCB struct {
-	// Layout is a required unencrypted memory page for shared
-	// guest/hypervisor access of the GHCB Layout.
+	// CPU is a required processor instance.
+	CPU *amd64.CPU
+
+	// Layout is an unencrypted memory page for shared guest/hypervisor
+	// access of the GHCB Layout. When empty it is automatically
+	// initialized at first use using the existing GHCB GPA for the
+	// executing vCPU.
 	Layout *dma.Region
 
 	// Region is an unencrypted memory region for shared guest/hypervisor
@@ -57,18 +72,35 @@ type GHCB struct {
 	Region *dma.Region
 
 	// VMSA is an encrypted memory region for shared guest/psp Virtual
-	// Machina Save Area buffers, required for [GHCB.CreateAP].
+	// Machine Save Area buffers, required for [GHCB.CreateAP].
 	VMSA *dma.Region
 
 	// DMA buffer
 	addr uint
 	buf  []byte
-
-	seqNo uint64
 }
 
 // defined in sev.s
 func vmgexit()
+
+func (b *GHCB) init() (err error) {
+	if b.CPU == nil {
+		return errors.New("invalid instance, nil CPU field")
+	}
+
+	if b.addr = uint(b.CPU.MSR(MSR_AMD_GHCB)); b.addr == 0 {
+		return errors.New("could not find GHCB address")
+	}
+
+	if b.Layout, err = dma.NewRegion(b.addr, pageSize, false); err != nil {
+		return fmt.Errorf("could not allocate GHCB layout page, %v", err)
+	}
+
+	b.addr, b.buf = b.Layout.Reserve(int(b.Layout.Size()), pageSize)
+	seqNo = 1
+
+	return
+}
 
 func (b *GHCB) write(off uint, val uint64) {
 	binary.LittleEndian.PutUint64(b.buf[off:off+8], val)
@@ -92,29 +124,15 @@ func (b *GHCB) read(off uint64) (val uint64) {
 	return binary.LittleEndian.Uint64(b.buf[off : off+8])
 }
 
-// Init initializes a Guest-Hypervisor Communication Block instance, mapping
-// its memory location for guest/hypervisor access.
-//
-// The argument DMA region must be initialized and have been previously
-// allocated as unencrypted for hypervisor access (e.g. C-bit disabled).
-func (b *GHCB) Init() (err error) {
-	if b.Layout == nil {
-		return errors.New("invalid instance, no GHCB page")
-	}
-
-	b.addr, b.buf = b.Layout.Reserve(int(b.Layout.Size()), pageSize)
-	b.seqNo = 1
-
-	return
-}
-
 // Exit triggers an Automatic Exit (AE) event to transfer control to an AMD
 // SEV-ES hypervisor for updated GHCB access. The arguments represent guest
 // state towards the hypervisor, the return values represent hypervisor state
 // towards the guest.
 func (b *GHCB) Exit(code, info1, info2, scratch uint64) (err error) {
 	if b.Layout == nil {
-		return errors.New("invalid instance, no GHCB page")
+		if err = b.init(); err != nil {
+			return
+		}
 	}
 
 	b.write(SW_EXITCODE, code)
@@ -198,7 +216,7 @@ func (b *GHCB) GuestRequest(index int, key, req []byte, messageType int) (res []
 		return
 	}
 
-	b.seqNo += 1
+	seqNo += 1
 
 	// copy response buffer as soon as possible as GHCB might overwrite it
 	buf := make([]byte, pageSize)

@@ -28,6 +28,8 @@ const (
 	AES_256_GCM = 1
 )
 
+var seqNo uint64
+
 // MessageHeader represents an AMD SEV-SNP Message Header.
 type MessageHeader struct {
 	AuthTag        [32]byte
@@ -102,7 +104,7 @@ func unseal(key, nonce, ciphertext, additionalData []byte) (plaintext []byte, er
 func (b *GHCB) sealMessage(hdr *MessageHeader, plaintext, key []byte) (msg []byte, err error) {
 	// update header
 	hdr.MessageSize = uint16(len(plaintext))
-	hdr.SetSeq(b.seqNo)
+	hdr.SetSeq(seqNo)
 
 	// encrypt request
 	ciphertext, err := seal(key, hdr.SeqNo[0:12], plaintext, hdr.Bytes()[48:])
@@ -124,7 +126,7 @@ func (b *GHCB) sealMessage(hdr *MessageHeader, plaintext, key []byte) (msg []byt
 }
 
 func (b *GHCB) openMessage(hdr *MessageHeader, ciphertext, key []byte) (plaintext []byte, err error) {
-	if hdr.Seq() != b.seqNo {
+	if hdr.Seq() != seqNo {
 		return nil, errors.New("invalid response header")
 	}
 
@@ -139,7 +141,7 @@ func (b *GHCB) openMessage(hdr *MessageHeader, ciphertext, key []byte) (plaintex
 		return
 	}
 
-	b.seqNo += 1
+	seqNo += 1
 
 	return
 }
