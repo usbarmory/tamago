@@ -100,7 +100,8 @@ func (cpu *CPU) ID() uint64 {
 }
 
 // GOMAXPROCS sets the maximum number of CPUs that can be executing
-// simultaneously and returns the previous setting.
+// simultaneously and returns the previous setting, it must be used instead of
+// [runtime.GOMAXPROCS] when using this package.
 //
 // The function checks if n-1 APs are ready (within 1s) at their idle state, if
 // the condition fails the current state is not changed.
