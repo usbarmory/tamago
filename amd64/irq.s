@@ -9,23 +9,6 @@
 #include "go_asm.h"
 #include "textflag.h"
 
-TEXT ·ret<>(SB),NOSPLIT|NOFRAME,$0
-	RET
-
-TEXT ·reload_gdt<>(SB),NOSPLIT|NOFRAME,$0
-	// reload segment registers
-	MOVW	$0x10, AX
-	MOVW	AX, DS
-	MOVW	AX, ES
-	MOVW	AX, GS
-	MOVW	AX, SS
-
-	// reload code segment
-	MOVQ	$·ret<>(SB), AX
-	PUSHQ	$0x08
-	PUSHQ	AX
-	RETFQ
-
 // func load_idt() (idt uintptr, irqHandler uintptr)
 TEXT ·load_idt(SB),NOSPLIT|NOFRAME,$0-16
 	MOVQ	$·gdt(SB), BX
@@ -38,7 +21,7 @@ TEXT ·load_idt(SB),NOSPLIT|NOFRAME,$0-16
 	// re-use GDT and IDT if cpuinit override is detected
 	CMPQ	AX, BX
 	JE	reload
-load:
+reuse:
 	// copy code descriptor
 	MOVQ	8(BX), CX
 	MOVQ	CX, 8(AX)
@@ -46,8 +29,6 @@ load:
 	// copy data descriptor
 	MOVQ	16(BX), CX
 	MOVQ	CX, 16(AX)
-
-	CALL	·reload_gdt<>(SB)
 
 	// load IDT register
 	SUBQ	$16, SP
