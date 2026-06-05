@@ -58,7 +58,7 @@ const SNP_GUEST_REQUEST = 0x80000011
 // This entails that after initial use the GHCB instance is bound to a specific
 // vCPU, it is the caller responsibility to manage this association.
 type GHCB struct {
-	// CPU is a required processor instance.
+	// CPU is a required processor instance for [MSR_AMD_GHCB] access.
 	CPU *amd64.CPU
 
 	// Layout is an unencrypted memory page for shared guest/hypervisor
