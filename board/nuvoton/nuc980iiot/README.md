@@ -42,9 +42,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC            | Board                                                                       | SoC package                                                                    | Board package                                                                            |
-|----------------|-----------------------------------------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
-| Nuvoton NUC980 | [NuMaker-IIoT-NUC980G2](https://www.nuvoton.com/products/iot-solution/iot-platform/numaker-iiot-nuc980g2) | [nuc980](https://github.com/usbarmory/tamago/tree/master/soc/nuvoton/nuc980) | [nuc980iiot](https://github.com/usbarmory/tamago/tree/master/board/nuvoton/nuc980iiot) |
+| SoC            | Board                                                                                                     | SoC package                                                                    | Board package                                                                            |
+|----------------|-----------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| Nuvoton NUC980 | [NuMaker-IIoT-NUC980G2](https://www.nuvoton.com/products/iot-solution/iot-platform/numaker-iiot-nuc980g2) | [nuc980](https://github.com/usbarmory/tamago/tree/master/soc/nuvoton/nuc980)   | [nuc980iiot](https://github.com/usbarmory/tamago/tree/master/board/nuvoton/nuc980iiot)   |
 
 Compiling
 =========
@@ -57,6 +57,20 @@ command downloads, compiles, and runs the `go` command from the
 [TamaGo distribution](https://github.com/usbarmory/tamago-go) matching the
 tamago module version from the application `go.mod`.
 
+Applications can add `github.com/usbarmory/tamago` to `go.mod`, and then
+replace the `go` command with:
+
+
+```sh
+go run github.com/usbarmory/tamago/cmd/tamago
+```
+
+or add the following line to `go.mod` to use `go tool tamago` as go command:
+
+```
+tool github.com/usbarmory/tamago/cmd/tamago
+```
+
 Alternatively the
 [latest TamaGo distribution](https://github.com/usbarmory/tamago-go/tree/latest)
 can be manually built:
@@ -67,9 +81,6 @@ unzip latest.zip
 cd tamago-go-latest/src && ./all.bash
 cd ../bin && export TAMAGO=`pwd`/go
 ```
-
-The ARM926EJ-S is an ARMv5TE core without LDREX/STREX; a single-processor
-compare-and-swap is selected at `GOARM=5` (see `internal/runtime/atomic`).
 
 Building applications
 ---------------------
@@ -91,6 +102,10 @@ installs the board reset vector required to boot from the Nuvoton boot ROM:
 GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARM=5 GOARCH=arm \
 	${TAMAGO} build -tags linkcpuinit -ldflags "-T 0x00010000 -R 0x1000" main.go
 ```
+
+> [!NOTE]
+> The ARM926EJ-S is an ARMv5TE core without LDREX/STREX; a single-processor
+> compare-and-swap is selected which `GOARM=5`.
 
 Build tags
 ==========
@@ -134,4 +149,3 @@ These source files are distributed under the BSD-style license found in the
 The TamaGo logo is adapted from the Go gopher designed by Renee French and
 licensed under the Creative Commons 3.0 Attributions license. Go Gopher vector
 illustration by Hugo Arganda.
-</content>

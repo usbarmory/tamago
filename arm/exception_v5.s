@@ -59,11 +59,9 @@ TEXT ·set_mvbar(SB),NOSPLIT,$0-4
 	MCR	15, 0, R0, C12, C0, 1
 	RET
 
-// EXCEPTION_V5 is the ARMv5 exception handler macro.
-//
-// ARMv5 lacks "mrs sp, SP_usr" used by exception.s; instead the
-// preamble loads excStack, saves R0/R1, round-trips through SYS mode
-// to read the user SP, then switches back.
+// ARMv5 lacks `mrs sp, SP_usr` (used by exception.s); instead the preamble
+// loads excStack, saves R0/R1, round-trips through SYS mode to read the user
+// SP, then switches back.
 #define EXCEPTION_V5(OFFSET, FN, LROFFSET, RN, SAVE_SIZE, MODE)	\
 	/* load exception SP (re-read on every entry) */		\
 	MOVW	·excStack(SB), R13					\
