@@ -17,6 +17,7 @@
 package prng
 
 import (
+	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/internal/rng"
 )
@@ -30,11 +31,14 @@ const (
 
 // PRNG_CTL register bits.
 const (
-	CTL_START    = 1 << 0 // start PRNG generation
-	CTL_SEEDRLD  = 1 << 1 // reload seed before generation
-	CTL_KEYSZ256 = 3 << 2 // key size: 0b11 = 256-bit
-	CTL_BUSY     = 1 << 8 // PRNG busy (read-only)
+	CTL_START   = 0 // start PRNG generation
+	CTL_SEEDRLD = 1 // reload seed before generation
+	CTL_KEYSZ   = 2 // key size field [3:2]
+	CTL_BUSY    = 8 // PRNG busy (read-only)
 )
+
+// KEYSZ_256 selects a 256-bit key size in the CTL_KEYSZ field.
+const KEYSZ_256 = 0b11
 
 // keyRegs is the number of 32-bit output key registers (256-bit / 32).
 const keyRegs = 8
@@ -66,18 +70,20 @@ func (hw *PRNG) GetRandomData(b []byte) {
 	need := len(b)
 
 	for read < need {
-		ctl := uint32(CTL_KEYSZ256) | CTL_START
+		var ctl uint32
+		bits.SetN(&ctl, CTL_KEYSZ, 0b11, KEYSZ_256)
+		bits.Set(&ctl, CTL_START)
 
 		if !hw.seeded {
 			reg.Write(hw.Base+PRNG_SEED, hw.Seed)
-			ctl |= CTL_SEEDRLD
+			bits.Set(&ctl, CTL_SEEDRLD)
 			hw.seeded = true
 		}
 
 		reg.Write(hw.Base+PRNG_CTL, ctl)
 
 		// wait for completion
-		for reg.Read(hw.Base+PRNG_CTL)&CTL_BUSY != 0 {
+		for reg.Get(hw.Base+PRNG_CTL, CTL_BUSY) {
 		}
 
 		// drain up to 32 bytes (8×32-bit key words)

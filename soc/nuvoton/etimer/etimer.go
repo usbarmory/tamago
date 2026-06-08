@@ -38,6 +38,9 @@ const (
 	CTL_CONTINUOUS = 0x30 // bits [5:4] = 11: continuous (free-running)
 )
 
+// IER/ISR register bits.
+const IER_CMP_IEN = 0 // bit 0: compare-match interrupt enable
+
 // CMPR_MAX is the maximum value of the 24-bit compare/data register.
 const CMPR_MAX = 0x00ffffff
 
@@ -66,11 +69,7 @@ func (hw *ETimer) SetCompare(compare uint32) {
 
 // EnableInterrupt enables or disables the compare-match interrupt.
 func (hw *ETimer) EnableInterrupt(enable bool) {
-	if enable {
-		reg.Write(hw.Base+IER, 0x1)
-	} else {
-		reg.Write(hw.Base+IER, 0)
-	}
+	reg.SetTo(hw.Base+IER, IER_CMP_IEN, enable)
 }
 
 // ClearInterrupt clears a pending compare-match interrupt.

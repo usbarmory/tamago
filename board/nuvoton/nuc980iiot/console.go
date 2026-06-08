@@ -18,10 +18,5 @@ import (
 
 //go:linkname printk runtime/goos.Printk
 func printk(c byte) {
-	// Emit CR before LF so output is legible on serial terminals that do
-	// not perform implicit CR insertion (raw mode, minicom, screen, etc.).
-	if c == '\n' {
-		nuc980.UART0.Tx('\r')
-	}
 	nuc980.UART0.Tx(c)
 }

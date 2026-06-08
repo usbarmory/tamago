@@ -20,6 +20,13 @@ import (
 	"github.com/usbarmory/tamago/soc/nuvoton/nuc980"
 )
 
+// UART0 pin multiplexing (used by pinmux.s): GPF11 = UART0_RXD,
+// GPF12 = UART0_TXD via SYS_GPF_MFPH function select 1.
+const (
+	SYS_GPF_MFPH   = 0xb000009c
+	GPF_MFPH_UART0 = 0x00011000
+)
+
 // Init takes care of the lower level initialization triggered early in runtime
 // setup (post World start).
 //

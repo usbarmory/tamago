@@ -31,14 +31,16 @@ const (
 	BAUD = 0x24 // Baud Rate Divisor Register
 )
 
-// LCR: 8-bit word length, no parity, 1 stop bit.
-const lcr8N1 = 0x3
+// Register bit positions.
+const (
+	LCR_WLS    = 0  // word length select [1:0]
+	FCR_RFR    = 1  // RX FIFO reset
+	FCR_TFR    = 2  // TX FIFO reset
+	FSR_TXFULL = 23 // TX FIFO full
+)
 
-// FCR: reset and enable the TX/RX FIFOs.
-const fcrFIFOEnable = 0x6
-
-// fsrTXFull is set when the TX FIFO is full.
-const fsrTXFull = 1 << 23
+// WLS_8BIT selects an 8-bit word length in the LCR_WLS field.
+const WLS_8BIT = 0b11
 
 // UART represents a Nuvoton UART instance.
 type UART struct {
@@ -58,14 +60,20 @@ func (hw *UART) Init() {
 		panic("invalid UART instance")
 	}
 
-	reg.Write(hw.Base+LCR, lcr8N1)
-	reg.Write(hw.Base+FCR, fcrFIFOEnable)
+	// 8-bit word length, no parity, 1 stop bit
+	reg.SetN(hw.Base+LCR, LCR_WLS, 0b11, WLS_8BIT)
+
+	// reset the TX/RX FIFOs
+	reg.Set(hw.Base+FCR, FCR_RFR)
+	reg.Set(hw.Base+FCR, FCR_TFR)
+
+	// baud rate divisor
 	reg.Write(hw.Base+BAUD, hw.Baud)
 }
 
 // Tx transmits a single byte, blocking until the TX FIFO has room.
 func (hw *UART) Tx(c byte) {
-	for reg.Read(hw.Base+FSR)&fsrTXFull != 0 {
+	for reg.Get(hw.Base+FSR, FSR_TXFULL) {
 	}
 	reg.Write(hw.Base+THR, uint32(c))
 }

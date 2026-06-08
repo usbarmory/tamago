@@ -42,12 +42,13 @@ var (
 // timerWrapPeriod is the number of ticks in one full counter cycle.
 const timerWrapPeriod = uint64(etimer.CMPR_MAX) + 1
 
-// timerLast holds the most recent hardware counter value seen by
-// readTimerExtended.
-var timerLast uint32
-
-// timerHigh accumulates full counter periods (each 2^24 ticks = ~16.77 s).
-var timerHigh uint64
+var (
+	// timerLast holds the most recent hardware counter value seen by
+	// readTimerExtended.
+	timerLast uint32
+	// timerHigh accumulates full counter periods (each 2^24 ticks).
+	timerHigh uint64
+)
 
 // readTimerExtended returns a 64-bit microsecond count by extending the
 // 24-bit hardware counter with software wrap-around detection. It must be
