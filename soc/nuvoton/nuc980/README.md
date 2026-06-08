@@ -1,5 +1,5 @@
-TamaGo - bare metal Go - ARM 32-bit support
-===========================================
+TamaGo - bare metal Go - Nuvoton NUC980 support
+===============================================
 
 tamago | https://github.com/usbarmory/tamago  
 
@@ -10,11 +10,8 @@ Copyright (c) The TamaGo Authors. All Rights Reserved.
 Authors
 =======
 
-Andrea Barisani  
-andrea@inversepath.com  
-
-Andrej Rosano  
-andrej@inversepath.com  
+Marvin Drees
+marvin.drees@9elements.com
 
 Introduction
 ============
@@ -22,8 +19,8 @@ Introduction
 TamaGo is a framework that enables compilation and execution of unencumbered Go
 applications on bare metal processors.
 
-The [arm](https://github.com/usbarmory/tamago/tree/master/arm) package provides
-support for ARM 32-bit CPUs.
+The [nuc980](https://github.com/usbarmory/tamago/tree/master/soc/nuvoton/nuc980)
+package provides support for Nuvoton NUC980 microprocessors.
 
 Documentation
 =============
@@ -39,11 +36,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| CPU                    | Related platform packages                                                              | Core drivers                                                                                                                         |
-|------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| ARM Cortex-A7 (ARMv7A) | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory/mk2)   | [GIC](https://github.com/usbarmory/tamago/tree/master/arm/gic), [TZC380](https://github.com/usbarmory/tamago/tree/master/arm/tzc380) |
-| ARM1176JZF-S  (ARMv6Z) | [raspberrypi](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)       |                                                                                                                                      |
-| ARMv5TEJ     (ARMv5TE) | [nuc980iiot](https://github.com/usbarmory/tamago/tree/master/board/nuvoton/nuc980iiot) |
+| SoC            | Related board packages                                                                         | Peripheral drivers                                                                     |
+|----------------|------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| Nuvoton NUC980 | [nuvoton/nuc980iiot](https://github.com/usbarmory/tamago/tree/master/board/nuvoton/nuc980iiot) | [AIC, ETIMER, PRNG, UART](https://github.com/usbarmory/tamago/tree/master/soc/nuvoton) |
 
 Build tags
 ==========
@@ -52,7 +47,7 @@ The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
 * `linkramstart`: exclude `ramStart` from `mem.go`
-* `linkcpuinit`: exclude `cpuinit` from `init.s`
+* `linkcpuinit`: exclude `cpuinit` imported from `arm/init.s`
 
 License
 =======
