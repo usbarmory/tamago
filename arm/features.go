@@ -23,10 +23,23 @@ const (
 )
 
 // defined in features.s
+func read_midr() uint32
 func read_idpfr0() uint32
 func read_idpfr1() uint32
 
+// MIDR returns the Main ID Register (CP15 c0, c0, 0), which identifies the
+// processor implementer, architecture, part number and revision.
+func (cpu *CPU) MIDR() uint32 {
+	return read_midr()
+}
+
 func (cpu *CPU) initFeatures() {
+	// Do not set read features on cores with fixed exception vectors (e.g.
+	// ARMv5) which have no CP15 feature ID registers.
+	if cpu.vbar == 0 {
+		return
+	}
+
 	idpfr0 := read_idpfr0()
 	idpfr1 := read_idpfr1()
 

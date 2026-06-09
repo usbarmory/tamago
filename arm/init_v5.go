@@ -6,7 +6,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-//go:build arm.6
+//go:build !arm.6
 
 package arm
 
@@ -18,11 +18,4 @@ import (
 // setup (pre World start).
 //
 //go:linkname Init runtime/goos.Hwinit0
-func Init() {
-	if int(read_cpsr()&0x1f) != SYS_MODE {
-		// initialization required only when in PL1
-		return
-	}
-
-	vfp_enable()
-}
+func Init() {}
