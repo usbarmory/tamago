@@ -39,6 +39,14 @@ const (
 	UARTx_TXCTRL = 0x0008
 	UARTx_RXCTRL = 0x000c
 	CTRL_EN      = 0
+
+	// baud rate divisor: fbaud = Clock / (div + 1)
+	UARTx_DIV = 0x0018
+
+	// Framing setup register (Nuclei UX600 variant only); the standard
+	// SiFive FU540 UART does not implement it. UART_SETUP_8N1 selects 8N1.
+	UARTx_SETUP    = 0x0020
+	UART_SETUP_8N1 = 0x30
 )
 
 // UART represents a serial port instance.
@@ -47,6 +55,17 @@ type UART struct {
 	Index int
 	// Base register
 	Base uint32
+	// Clock returns the UART input clock frequency in Hz; when set the baud
+	// rate divisor is programmed during Init (otherwise the divisor left by
+	// an earlier boot stage is kept).
+	Clock func() uint32
+	// Baudrate is the desired baud rate; defaults to UART_DEFAULT_BAUDRATE
+	// when zero. Only used when Clock is set.
+	Baudrate uint32
+	// Setup, when non-zero, is written to the framing setup register
+	// (offset 0x20) during Init. Required by the Nuclei UX600 UART variant
+	// (UART_SETUP_8N1); leave zero for standard SiFive FU540 UARTs.
+	Setup uint32
 
 	// control registers
 	txdata uint32
@@ -62,6 +81,23 @@ func (hw *UART) Init() {
 
 	hw.txdata = hw.Base + UARTx_TXDATA
 	hw.rxdata = hw.Base + UARTx_RXDATA
+
+	if hw.Clock != nil {
+		baudrate := hw.Baudrate
+
+		if baudrate == 0 {
+			baudrate = UART_DEFAULT_BAUDRATE
+		}
+
+		// div = ceil(f_in / baud) - 1 (SiFive FSBL convention, matching
+		// the vendor OpenSBI and U-Boot drivers).
+		clock := hw.Clock()
+		reg.Write(hw.Base+UARTx_DIV, (clock+baudrate-1)/baudrate-1)
+	}
+
+	if hw.Setup != 0 {
+		reg.Write(hw.Base+UARTx_SETUP, hw.Setup)
+	}
 
 	reg.Set(hw.Base+UARTx_TXCTRL, CTRL_EN)
 	reg.Set(hw.Base+UARTx_RXCTRL, CTRL_EN)

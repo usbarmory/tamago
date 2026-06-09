@@ -21,6 +21,14 @@ TEXT ·irq_enable(SB),NOSPLIT|NOFRAME,$0
 
 	RET
 
+// func meie_enable()
+TEXT ·meie_enable(SB),NOSPLIT|NOFRAME,$0
+	// enable machine level external interrupts (PLIC sources)
+	MOV	$(1<<11), T0		// set MIE.MEIE
+	CSRRS	T0, MIE, ZERO
+
+	RET
+
 // func irq_disable()
 TEXT ·irq_disable(SB),NOSPLIT|NOFRAME,$0
 	// disable machine level software interrupts

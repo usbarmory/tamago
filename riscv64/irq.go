@@ -30,11 +30,21 @@ var (
 // defined in irq.s
 func irq_enable()
 func irq_disable()
+func meie_enable()
 func wfi()
 
 // EnableInterrupts unmasks IRQ interrupts.
 func (cpu *CPU) EnableInterrupts() {
 	irq_enable()
+}
+
+// EnableExternalInterrupts sets MIE.MEIE so that machine-level external
+// interrupts (PLIC sources) are delivered to this hart. Machine software
+// (MSIE) and timer (MTIE) interrupts are enabled elsewhere; the trap handler's
+// irq_disable does not clear MEIE, so a single call before [CPU.ServiceInterrupts]
+// suffices for applications that service PLIC interrupt sources.
+func (cpu *CPU) EnableExternalInterrupts() {
+	meie_enable()
 }
 
 // DisableInterrupts masks IRQ interrupts.
