@@ -19,9 +19,7 @@ import (
 // CRPT_BA is the CRYPTO engine register base.
 const CRPT_BA = 0xb001c000
 
-// PRNG is the NUC980 CRYPTO engine pseudo random number generator. Its Seed
-// is derived from the free-running timer in Init; this is not a cryptographic
-// entropy source and should be replaced with a hardware TRNG when available.
+// PRNG is the NUC980 CRYPTO engine pseudo random number generator.
 var PRNG = &prng.PRNG{
 	Base: CRPT_BA,
 }
@@ -33,6 +31,10 @@ func initRNG() {
 	// than in nuc980.Init() to avoid a busy-wait on an unclocked peripheral.
 	reg.Or(REG_CLK_HCLKEN, HCLKEN_CRPT)
 
-	PRNG.Init()
+	// InitRNG also fires before Hwinit1, so start the timer here to make
+	// nanotime() usable as a seed source.
+	initTimer()
+	PRNG.Seed(uint32(nanotime()))
+
 	rng.GetRandomDataFn = PRNG.GetRandomData
 }

@@ -136,10 +136,8 @@ func Init() {
 	UART0.Init()
 
 	// initialize ETimer0 as 1 MHz free-running counter for nanotime
+	// (idempotent; already started by initRNG before Hwinit1)
 	initTimer()
-
-	// seed the PRNG from the free-running timer now that it is running
-	PRNG.Seed = uint32(nanotime())
 }
 
 // EnableIdleWFI switches the scheduler idle governor from no-op spin

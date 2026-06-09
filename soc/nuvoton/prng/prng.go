@@ -47,25 +47,41 @@ const keyRegs = 8
 type PRNG struct {
 	// Base register
 	Base uint32
-	// Seed is the value loaded on the first generation; subsequent calls
-	// let the PRNG advance its internal state without reloading.
-	Seed uint32
 
-	seeded bool
+	seed uint32
 }
 
-// Init initializes the CRYPTO PRNG instance. The CRYPTO engine AHB clock
-// must be gated on by the caller before use.
-func (hw *PRNG) Init() {
-	if hw.Base == 0 {
-		panic("invalid PRNG instance")
+// Seed sets the value used to seed the CRYPTO PRNG. The CRYPTO PRNG is
+// deterministic, so its output sequence is fully determined by this value.
+// Seed can be called again at any time to re-seed a running PRNG.
+func (hw *PRNG) Seed(seed uint32) {
+	if seed == 0 {
+		panic("RNG seed must not be 0")
 	}
+
+	var ctl uint32
+	bits.SetN(&ctl, CTL_KEYSZ, 0b11, KEYSZ_256)
+	bits.Set(&ctl, CTL_START)
+	bits.Set(&ctl, CTL_SEEDRLD)
+
+	reg.Write(hw.Base+PRNG_SEED, seed)
+	reg.Write(hw.Base+PRNG_CTL, ctl)
+
+	// wait for completion
+	for reg.Get(hw.Base+PRNG_CTL, CTL_BUSY) {
+	}
+
+	hw.seed = seed
 }
 
 // GetRandomData fills b with bytes from the CRYPTO PRNG. Each generation
 // produces 256 bits (8×32-bit); the generation is repeated as needed for
 // requests larger than 32 bytes.
 func (hw *PRNG) GetRandomData(b []byte) {
+	if hw.seed == 0 {
+		panic("RNG uninitialized")
+	}
+
 	read := 0
 	need := len(b)
 
@@ -73,13 +89,6 @@ func (hw *PRNG) GetRandomData(b []byte) {
 		var ctl uint32
 		bits.SetN(&ctl, CTL_KEYSZ, 0b11, KEYSZ_256)
 		bits.Set(&ctl, CTL_START)
-
-		if !hw.seeded {
-			reg.Write(hw.Base+PRNG_SEED, hw.Seed)
-			bits.Set(&ctl, CTL_SEEDRLD)
-			hw.seeded = true
-		}
-
 		reg.Write(hw.Base+PRNG_CTL, ctl)
 
 		// wait for completion

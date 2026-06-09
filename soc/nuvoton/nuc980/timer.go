@@ -48,6 +48,9 @@ var (
 	timerLast uint32
 	// timerHigh accumulates full counter periods (each 2^24 ticks).
 	timerHigh uint64
+	// timerStarted guards initTimer against re-running, which would reset
+	// the free-running counter (and nanotime) mid-boot.
+	timerStarted bool
 )
 
 // readTimerExtended returns a 64-bit microsecond count by extending the
@@ -71,6 +74,11 @@ func readTimerExtended() uint64 {
 // init. The APB clock for Timer0 and the XIN eclk mux are configured in
 // EarlyClockInit.
 func initTimer() {
+	if timerStarted {
+		return
+	}
+	timerStarted = true
+
 	ETimer0.Stop()
 	ETimer0.SetPrescale(timerPrescale)
 	ETimer0.SetCompare(etimer.CMPR_MAX)
