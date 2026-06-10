@@ -86,8 +86,8 @@ func (cpu *CPU) Init() {
 	goos.Exit = exit
 	goos.Idle = cpu.DefaultIdleGovernor
 
-	cpu.initVectorTable()
 	cpu.initFeatures()
+	cpu.initVectorTable()
 }
 
 // Mode returns the processor mode.
