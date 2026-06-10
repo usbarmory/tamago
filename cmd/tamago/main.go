@@ -98,6 +98,13 @@ func install(root, tag string) error {
 		return fmt.Errorf("failed to create repository: %v", err)
 	}
 
+	// If invoked from GOOS=tamago compilation GOOS must be unset while
+	// building the toolchain.
+	key := "GOOS"
+	val := os.Getenv(key)
+	os.Unsetenv(key)
+	defer os.Setenv(key, val)
+
 	cmd := exec.Command("git", "clone", "--depth=1", "--branch="+tag, "https://github.com/usbarmory/tamago-go", root)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
