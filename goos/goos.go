@@ -109,4 +109,10 @@ var (
 	// Task is an optional function which can be set to provide an
 	// implementation for HW/OS threading (e.g. [runtime.newosproc]).
 	Task func(sp, mp, gp, fn unsafe.Pointer)
+
+	// Wake is an optional function which can be set to provide a wake up
+	// call for halted processors as reported by [ProcID], it must be
+	// defined as required to handle [Idle] implementations which halt a
+	// processor.
+	Wake func(procid uint64)
 )

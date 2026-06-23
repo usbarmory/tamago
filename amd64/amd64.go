@@ -102,6 +102,11 @@ func (cpu *CPU) Init() {
 
 	cpu.initFeatures()
 	cpu.initTimers()
+
+	// reset SMP semaphore/task
+	reg.Write64(taskAddress+0x00, 0)
+	reg.Write64(taskAddress+0x08, 0)
+	reg.Write64(taskAddress+0x10, 0)
 }
 
 // Name returns the CPU identifier.

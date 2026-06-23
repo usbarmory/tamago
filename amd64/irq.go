@@ -54,8 +54,6 @@ var (
 
 // defined in irq.s
 func load_idt() (idt uintptr, irqHandler uintptr)
-func irq_enable()
-func irq_disable()
 func wfi()
 
 //go:nosplit
@@ -157,9 +155,6 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	if isr == nil {
 		isr = func(_ int) { return }
 	}
-
-	// user defined interrupts
-	setIDT(32, 255)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, IRQ_SIGNAL)

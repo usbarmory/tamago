@@ -52,6 +52,10 @@ var SystemExceptionHandler = DefaultExceptionHandler
 // EnableExceptions initializes handling of processor exceptions through
 // DefaultExceptionHandler().
 func (cpu *CPU) EnableExceptions() {
-	// processor exceptions
-	setIDT(0, 31)
+	// Handle processor exceptions, stop before VMM Communication to
+	// preserve original handler if present (e.g. under UEFI+SEV-SNP).
+	setIDT(0, 28)
+
+	// user defined interrupts
+	setIDT(32, 255)
 }

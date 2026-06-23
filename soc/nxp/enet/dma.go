@@ -11,17 +11,20 @@ package enet
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
+	"fmt"
 
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
 const (
-	MTU               = 1518
-	minFrameSizeBytes = 42
-	defaultRingSize   = 16
+	MTU             = 1500
+	maxFrameSize    = MTU + 18
+	minFrameSize    = 42
+	defaultRingSize = 16
 
-	// On arm64 Go `copy` built-in  cannot be safely used on device memory
+	// On arm64 Go `copy` built-in cannot be safely used on device memory
 	// as LDP/STP instructions require 8-byte alignment, for this reason
 	// all `copy` against DMA buffers are forced to 8-byte aligned slices.
 	copyAlign   = 8
@@ -76,17 +79,35 @@ func (bd *bufferDescriptor) Bytes() []byte {
 	return buf.Bytes()
 }
 
-func (bd *bufferDescriptor) Data() (buf []byte) {
-	size := bd.Length - 4
+func (bd *bufferDescriptor) Read(buf []byte) (n int, err error) {
+	n = int(bd.Length) - 4
 
-	if r := size % copyAlign; r != 0 {
-		size += copyAlign - r
+	if len(buf) < n {
+		return 0, fmt.Errorf("buffer too small (%d < %d)", len(buf), n)
 	}
 
-	buf = make([]byte, size)
-	copy(buf, bd.data)
+	r := n % copyAlign
+	n -= r
 
-	return buf[0:size]
+	copy(buf[:n], bd.data[:n])
+
+	for i := range r {
+		buf[n+i] = bd.data[n+i]
+	}
+
+	return n + r, nil
+}
+
+func (bd *bufferDescriptor) Write(buf []byte) {
+	n := len(buf)
+	r := n % copyAlign
+	n -= r
+
+	copy(bd.data, buf[:n])
+
+	for i := range r {
+		bd.data[n+i] = buf[n+i]
+	}
 }
 
 func (bd *bufferDescriptor) Valid() bool {
@@ -105,10 +126,10 @@ func (bd *bufferDescriptor) Valid() bool {
 		}
 
 		return false
-	case bd.Length < minFrameSizeBytes:
+	case bd.Length < minFrameSize:
 		bd.stats.FrameTooSmall += 1
 		return false
-	case bd.Length > MTU:
+	case bd.Length > maxFrameSize:
 		bd.stats.FrameTooLarge += 1
 		return false
 	}
@@ -133,7 +154,7 @@ func (ring *bufferDescriptorRing) init(rx bool, n int, s *Stats) uint32 {
 	descSize := len((&bufferDescriptor{}).Bytes())
 	ptr, desc := dma.Reserve(n*descSize, bufferAlign)
 
-	dataSize := MTU + (bufferAlign - (MTU % bufferAlign))
+	dataSize := maxFrameSize + (bufferAlign - (maxFrameSize % bufferAlign))
 	addr, data := dma.Reserve(n*dataSize, bufferAlign)
 
 	for i := range n {
@@ -175,7 +196,7 @@ func (ring *bufferDescriptorRing) next() (wrap bool) {
 	return
 }
 
-func (ring *bufferDescriptorRing) pop() (data []byte) {
+func (ring *bufferDescriptorRing) pop(buf []byte) (n int, err error) {
 	bd := ring.bds[ring.index]
 
 	bd.Length = uint16(bd.desc[0])
@@ -191,7 +212,7 @@ func (ring *bufferDescriptorRing) pop() (data []byte) {
 	ring.next()
 
 	if bd.Valid() {
-		data = bd.Data()
+		n, err = bd.Read(buf)
 	}
 
 	// set empty
@@ -200,14 +221,14 @@ func (ring *bufferDescriptorRing) pop() (data []byte) {
 	return
 }
 
-func (ring *bufferDescriptorRing) push(data []byte) {
+func (ring *bufferDescriptorRing) push(buf []byte) (err error) {
 	bd := ring.bds[ring.index]
 
-	if uint16(bd.desc[3]<<8)&(1<<BD_TX_ST_R) != 0 {
-		print("enet: frame not sent\n")
+	if (uint16(bd.desc[3])<<8)&(1<<BD_TX_ST_R) != 0 {
+		return errors.New("frame not sent")
 	}
 
-	bd.Length = uint16(len(data))
+	bd.Length = uint16(len(buf))
 	bd.Status = (1 << BD_ST_L) | (1 << BD_TX_ST_TC)
 
 	bd.desc[0] = byte(bd.Length & 0xff)
@@ -216,11 +237,7 @@ func (ring *bufferDescriptorRing) push(data []byte) {
 	bd.desc[2] = byte((bd.Status & 0xff))
 	bd.desc[3] = byte((bd.Status & 0xff00) >> 8)
 
-	if r := len(data) % copyAlign; r != 0 {
-		data = append(data, make([]byte, copyAlign-r)...)
-	}
-
-	copy(bd.data, data)
+	bd.Write(buf)
 
 	if ring.next() {
 		bd.desc[3] |= (1 << BD_ST_W) >> 8
@@ -228,30 +245,26 @@ func (ring *bufferDescriptorRing) push(data []byte) {
 
 	// set ready
 	bd.desc[3] |= (1 << BD_TX_ST_R) >> 8
-}
-
-// Rx receives a single Ethernet frame, excluding the checksum, from the MAC
-// controller ring buffer.
-func (hw *ENET) Rx() (buf []byte) {
-	hw.Lock()
-	defer hw.Unlock()
-
-	buf = hw.rx.pop()
-	reg.Set(hw.rdar, RDAR_ACTIVE)
 
 	return
 }
 
-// Tx transmits a single Ethernet frame, the checksum is appended
-// automatically and must not be included.
-func (hw *ENET) Tx(buf []byte) {
-	hw.Lock()
-	defer hw.Unlock()
+// Receive receives a single Ethernet frame, excluding the checksum, from the
+// MAC controller ring buffer.
+func (hw *ENET) Receive(buf []byte) (n int, err error) {
+	n, err = hw.rx.pop(buf)
+	reg.Set(hw.rdar, RDAR_ACTIVE)
+	return
+}
 
-	if len(buf) > MTU {
-		return
+// Transmit transmits a single Ethernet frame, the checksum is appended
+// automatically and must not be included.
+func (hw *ENET) Transmit(buf []byte) (err error) {
+	if len(buf) > maxFrameSize {
+		return errors.New("frame too large")
 	}
 
-	hw.tx.push(buf)
+	err = hw.tx.push(buf)
 	reg.Set(hw.tdar, TDAR_ACTIVE)
+	return
 }

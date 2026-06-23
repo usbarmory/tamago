@@ -9,6 +9,7 @@
 package arm
 
 import (
+	"runtime/goos"
 	"unsafe"
 
 	"github.com/usbarmory/tamago/internal/reg"
@@ -26,8 +27,12 @@ const (
 	FIQ            = 0x1c
 )
 
-// set by application or, if not previously defined, by cpu.Init()
+// linknamed by application as needed
 var vecTableStart uint32
+
+// excStack is the exception stack address set by initVectorTable,
+// read by exception_v5.s which cannot use the ARMv6+ banked SP MRS.
+var excStack uint32
 
 const (
 	vecTableJump   = 0xe59ff018 // ldr pc, [pc, #24]
@@ -35,7 +40,7 @@ const (
 	excStackSize   = 0x4000     // 16 kB
 )
 
-// defined in exception.s
+// defined in exception.s or exception_v5.s (see build constraints)
 func set_exc_stack(addr uint32)
 func set_vbar(addr uint32)
 func set_mvbar(addr uint32)
@@ -136,8 +141,14 @@ func (cpu *CPU) SetVectorTable(t VectorTable) {
 }
 
 //go:nosplit
-func (cpu *CPU) initVectorTable(vbar uint32) {
-	cpu.vbar = vbar
+func (cpu *CPU) initVectorTable() {
+	// 32-bytes alignment is required
+	cpu.vbar = uint32(goos.RamStart)
+
+	// the application is allowed to override the reserved area
+	if vecTableStart != 0 {
+		cpu.vbar = vecTableStart
+	}
 
 	// initialize jump table
 	// Table 11-1 ARM® Cortex™ -A Series Programmer’s Guide
@@ -148,16 +159,19 @@ func (cpu *CPU) initVectorTable(vbar uint32) {
 	// set exception handlers
 	cpu.SetVectorTable(SystemVectorTable())
 
-	// set vector base address register
-	set_vbar(cpu.vbar)
+	// Do not set VBAR on cores with fixed exception vectors (e.g. ARMv5)
+	// which have no VBAR/MVBAR registers.
+	if cpu.vbar != 0 {
+		set_vbar(cpu.vbar)
 
-	if cpu.Secure() {
-		// set monitor vector base address register
-		set_mvbar(cpu.vbar)
+		if cpu.Secure() {
+			// set monitor vector base address register
+			set_mvbar(cpu.vbar)
+		}
 	}
 
 	// Set the stack pointer for exception modes to provide a stack when
 	// summoned by exception vectors.
-	excStackStart := cpu.vbar + excStackOffset
-	set_exc_stack(excStackStart + excStackSize)
+	excStack = cpu.vbar + excStackOffset + excStackSize
+	set_exc_stack(excStack)
 }

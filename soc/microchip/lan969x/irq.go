@@ -14,8 +14,9 @@ import (
 
 // Interrupt controller registers
 const (
-	INTR          = 0x128
-	INTR_ENA_BASE = INTR + 0x60
+	INTR              = 0x128
+	INTR_STICKY_BASE = INTR + 0x40
+	INTR_ENA_BASE    = INTR + 0x60
 )
 
 // EnableInterrupt enables propagation of an individual interrupt source.
@@ -30,4 +31,11 @@ func DisableInterrupt(id int) {
 	group := id / 32
 	index := id % 32
 	reg.Clear(CPU_BASE+INTR_ENA_BASE+uint32(group*4), index)
+}
+
+// ClearInterrupt signals the end of an interrupt handling routine.
+func ClearInterrupt(id int) {
+	group := id / 32
+	index := id % 32
+	reg.Set(CPU_BASE+INTR_STICKY_BASE+uint32(group*4), index)
 }

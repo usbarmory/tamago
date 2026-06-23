@@ -49,7 +49,7 @@ func TestAEAD(t *testing.T) {
 	}
 
 	b := &GHCB{
-		seqNo: 1,
+		SeqNo: 1,
 	}
 
 	hdr := &MessageHeader{

@@ -105,19 +105,6 @@ func init() {
 	}
 }
 
-func configurePHYPad(mux uint32, pad uint32, daisy uint32, mode uint32, ctl uint32) (p *iomuxc.Pad) {
-	p = &iomuxc.Pad{
-		Mux:   mux,
-		Pad:   pad,
-		Daisy: daisy,
-	}
-
-	p.Mode(mode)
-	p.Ctl(ctl)
-
-	return
-}
-
 func ctl50() uint32 {
 	return (iomuxc.SW_PAD_CTL_DSE_2_R0_6 << iomuxc.SW_PAD_CTL_DSE) |
 		(iomuxc.SW_PAD_CTL_SPEED_50MHZ << iomuxc.SW_PAD_CTL_SPEED) |
@@ -141,43 +128,43 @@ func configurePHYPads() {
 	ctl100 := ctl100()
 
 	// [ALT0] ENET2_RDATA01
-	configurePHYPad(
+	configurePad(
 		IOMUXC_SW_MUX_CTL_PAD_ENET2_RX_DATA0,
 		IOMUXC_SW_PAD_CTL_PAD_ENET2_RX_DATA0,
 		0, IOMUX_ALT0, ctl100)
 
 	// [ALT0] ENET2_RDATA01
-	configurePHYPad(
+	configurePad(
 		IOMUXC_SW_MUX_CTL_PAD_ENET2_RX_DATA1,
 		IOMUXC_SW_PAD_CTL_PAD_ENET2_RX_DATA1,
 		0, IOMUX_ALT0, ctl100)
 
 	// [ALT0] ENET2_RX_EN
-	configurePHYPad(
+	configurePad(
 		IOMUXC_SW_MUX_CTL_PAD_ENET2_RX_EN,
 		IOMUXC_SW_PAD_CTL_PAD_ENET2_RX_EN,
 		0, IOMUX_ALT0, ctl100)
 
 	// [ALT0] ENET2_TDATA00
-	configurePHYPad(
+	configurePad(
 		IOMUXC_SW_MUX_CTL_PAD_ENET2_TX_DATA0,
 		IOMUXC_SW_PAD_CTL_PAD_ENET2_TX_DATA0,
 		0, IOMUX_ALT0, ctl100)
 
 	// [ALT0] ENET2_TDATA01
-	configurePHYPad(
+	configurePad(
 		IOMUXC_SW_MUX_CTL_PAD_ENET2_TX_DATA1,
 		IOMUXC_SW_PAD_CTL_PAD_ENET2_TX_DATA1,
 		0, IOMUX_ALT0, ctl100)
 
 	// [ALT0] ENET2_TX_EN
-	configurePHYPad(
+	configurePad(
 		IOMUXC_SW_MUX_CTL_PAD_ENET2_TX_EN,
 		IOMUXC_SW_PAD_CTL_PAD_ENET2_TX_EN,
 		0, IOMUX_ALT0, ctl100)
 
 	// [ALT4] ENET2_REF_CLK / SION ENABLED
-	pad := configurePHYPad(
+	pad := configurePad(
 		IOMUXC_SW_MUX_CTL_PAD_ENET2_TX_CLK,
 		IOMUXC_SW_PAD_CTL_PAD_ENET2_TX_CLK,
 		IOMUXC_ENET2_REF_CLK2_SELECT_INPUT,
@@ -186,13 +173,13 @@ func configurePHYPads() {
 	pad.SoftwareInput(true)
 
 	// [ALT0] ENET2_RX_ER
-	configurePHYPad(
+	configurePad(
 		IOMUXC_SW_MUX_CTL_PAD_ENET2_RX_ER,
 		IOMUXC_SW_PAD_CTL_PAD_ENET2_RX_ER,
 		0, IOMUX_ALT0, ctl100)
 
 	// [ALT0] ENET2_MDIO
-	pad = configurePHYPad(
+	pad = configurePad(
 		IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO06,
 		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO06,
 		IOMUXC_ENET2_MAC0_MDIO_SELECT_INPUT,
@@ -200,7 +187,7 @@ func configurePHYPads() {
 	pad.Select(DAISY_ENET2_GPIO1_IO06_ALT0)
 
 	// [ALT0] ENET2_MDC
-	configurePHYPad(
+	configurePad(
 		IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO07,
 		IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO07,
 		0, IOMUX_ALT1, ctl100)

@@ -30,6 +30,6 @@ TEXT ·Init(SB),NOSPLIT|NOFRAME,$0
 	JMP	_rt0_tamago_start(SB)
 
 // func exit(int32)
-TEXT ·exit(SB),$0-8
+TEXT ·exit(SB),$0-4
 	// wait forever in low-power state
 	WORD	$0x10500073 // wfi

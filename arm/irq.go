@@ -57,7 +57,7 @@ func (cpu *CPU) WaitInterrupt() {
 // ServiceInterrupts puts the calling goroutine in wait state, its execution is
 // resumed when an IRQ exception is received, an argument function can be set
 // to service signaled interrupts (see gic package).
-func ServiceInterrupts(isr func()) {
+func (cpu *CPU) ServiceInterrupts(isr func()) {
 	if isr == nil {
 		isr = func() { return }
 	}

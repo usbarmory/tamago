@@ -37,6 +37,24 @@ const (
 	SEV_STATUS_SEV     = 0
 )
 
+// SEV-ES Guest-Hypervisor Communication Block Standardization
+// Table 1: FEATURES Bitmap.
+const (
+	FeatureSNP                      = 0
+	FeatureAPCreation               = 1
+	FeatureRestrictedInjection      = 2
+	FeatureRestrictedInjectionTimer = 3
+	FeatureAPICIDList               = 4
+	FeatureMultiVMPL                = 5
+	FeaturePSC                      = 6
+	FeatureTIO                      = 7
+	FeatureUnregister               = 8
+)
+
+// SEV-ES Guest-Hypervisor Communication Block Standardization
+// Table 7: List of Supported Non-Automatic Events.
+const HV_FEATURE_SUPPORT = 0x8000fffd
+
 // SEVStatus represents active AMD Secure Encrypted Virtualization (SEV)
 // features.
 type SEVStatus struct {
@@ -46,6 +64,9 @@ type SEVStatus struct {
 	ES bool
 	// SEV reports whether the KVM guest was run with SEV-SNP.
 	SNP bool
+
+	// Features reports Guest-controlled SEV feature selection.
+	Features uint64
 }
 
 // SVMFeatures represents the processor AMD Secure Virtual Machine
@@ -70,12 +91,22 @@ func Features(cpu *amd64.CPU) (f *SVMFeatures) {
 
 	f = &SVMFeatures{
 		SEV: SEVStatus{
-			SEV: bits.Get(&status, SEV_STATUS_SEV),
-			ES:  bits.Get(&status, SEV_STATUS_SEV_ES),
-			SNP: bits.Get(&status, SEV_STATUS_SEV_SNP),
+			SEV:      bits.Get(&status, SEV_STATUS_SEV),
+			ES:       bits.Get(&status, SEV_STATUS_SEV_ES),
+			SNP:      bits.Get(&status, SEV_STATUS_SEV_SNP),
+			Features: uint64(status >> 2),
 		},
 		EncryptedBit: int(ebx & 0b111111),
 	}
 
 	return
+}
+
+// HypervisorFeatures requests the hypervisor features support bitmap.
+func (b *GHCB) HypervisorFeatures() (features uint64, err error) {
+	if err = b.Exit(HV_FEATURE_SUPPORT, 0, 0, 0); err != nil {
+		return
+	}
+
+	return b.read(SW_EXITINFO2), nil
 }

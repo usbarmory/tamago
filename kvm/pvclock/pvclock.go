@@ -12,7 +12,7 @@
 //
 //	https://docs.kernel.org/virt/kvm/x86/msr.html
 //
-// This package is only meant to be used with `GOOS=tamago` as
+// This package is only meant to be used with `GOOS=tamago GOARCH=amd64` as
 // supported by the TamaGo framework for bare metal Go, see
 // https://github.com/usbarmory/tamago.
 package pvclock

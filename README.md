@@ -83,15 +83,16 @@ Supported ARM targets
 The following table summarizes currently supported ARM SoCs and boards
 (`GOOS=tamago GOARCH=arm`).
 
-| SoC                   | Board                                                                                                                                                                                | SoC package                                                              | Board package                                                                    |
-|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| NXP i.MX6ULZ/i.MX6UL  | [USB armory Mk II](https://github.com/usbarmory/usbarmory/wiki/Mk-II-Introduction)                                                                                                   | [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul) | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory) |
-| NXP i.MX6ULL/i.MX6UL  | [USB armory Mk II LAN](https://github.com/usbarmory/usbarmory/wiki/Mk-II-LAN)                                                                                                        | [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul) | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory) |
-| NXP i.MX6ULL/i.MX6ULZ | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul) | [mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk) |
-| Broadcom BCM2835      | [Raspberry Pi Zero](https://www.raspberrypi.org/products/raspberry-pi-zero)                                                                                                          | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)   | [pi/pizero](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)   |
-| Broadcom BCM2835      | [Raspberry Pi 1 Model A+](https://www.raspberrypi.org/products/raspberry-pi-1-model-a-plus/)                                                                                         | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)   | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
-| Broadcom BCM2835      | [Raspberry Pi 1 Model B+](https://www.raspberrypi.org/products/raspberry-pi-1-model-b-plus/)                                                                                         | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)   | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
-| Broadcom BCM2836      | [Raspberry Pi 2 Model B](https://www.raspberrypi.org/products/raspberry-pi-2-model-b)                                                                                                | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)   | [pi/pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)      |
+| SoC                   | Board                                                                                                                                                                                | SoC package                                                                  | Board package                                                                          |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| NXP i.MX6ULZ/i.MX6UL  | [USB armory Mk II](https://github.com/usbarmory/usbarmory/wiki/Mk-II-Introduction)                                                                                                   | [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul)     | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory)       |
+| NXP i.MX6ULL/i.MX6UL  | [USB armory Mk II LAN](https://github.com/usbarmory/usbarmory/wiki/Mk-II-LAN)                                                                                                        | [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul)     | [usbarmory/mk2](https://github.com/usbarmory/tamago/tree/master/board/usbarmory)       |
+| NXP i.MX6ULL/i.MX6ULZ | [MCIMX6ULL-EVK](https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/evaluation-kit-for-the-i-mx-6ull-and-6ulz-applications-processor:MCIMX6ULL-EVK) | [imx6ul](https://github.com/usbarmory/tamago/tree/master/soc/nxp/imx6ul)     | [mx6ullevk](https://github.com/usbarmory/tamago/tree/master/board/nxp/mx6ullevk)       |
+| Broadcom BCM2835      | [Raspberry Pi Zero](https://www.raspberrypi.org/products/raspberry-pi-zero)                                                                                                          | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)       | [pi/pizero](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)         |
+| Broadcom BCM2835      | [Raspberry Pi 1 Model A+](https://www.raspberrypi.org/products/raspberry-pi-1-model-a-plus/)                                                                                         | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)       | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)            |
+| Broadcom BCM2835      | [Raspberry Pi 1 Model B+](https://www.raspberrypi.org/products/raspberry-pi-1-model-b-plus/)                                                                                         | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)       | [pi/pi1](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)            |
+| Broadcom BCM2836      | [Raspberry Pi 2 Model B](https://www.raspberrypi.org/products/raspberry-pi-2-model-b)                                                                                                | [bcm2835](https://github.com/usbarmory/tamago/tree/master/soc/bcm2835)       | [pi/pi2](https://github.com/usbarmory/tamago/tree/master/board/raspberrypi)            |
+| Nuvoton NUC980        | [NuMaker-IIoT-NUC980G2](https://www.nuvoton.com/products/iot-solution/iot-platform/numaker-iiot-nuc980g2)                                                                            | [nuc980](https://github.com/usbarmory/tamago/tree/master/soc/nuvoton/nuc980) | [nuc980iiot](https://github.com/usbarmory/tamago/tree/master/board/nuvoton/nuc980iiot) |
 
 Supported ARM64 targets
 =======================
@@ -270,15 +271,15 @@ Applications using TamaGo
 * [tamago-example](https://github.com/usbarmory/tamago-example) - TamaGo example application
 * [tamago-sev-example](https://github.com/usbarmory/tamago-sev-example) - Confidential VM (AMD SEV-SNP) example
 * [kotama](https://github.com/usbarmory/kotama) - Tiny RISC-V target demonstrator
+* [kanzashi](https://github.com/abarisani/kanzashi) - Bare Metal Agent
 
 External drivers using TamaGo
 =============================
 
-* [imx-usbserial](https://github.com/usbarmory/imx-usbserial) - i.MX Serial over USB driver
-* [imx-usbnet](https://github.com/usbarmory/imx-usbnet) - i.MX Ethernet over USB driver
-* [imx-enet](https://github.com/usbarmory/imx-enet) - i.MX Ethernet driver
-* [virtio-net](https://github.com/usbarmory/virtio-net) - VirtIO Network driver
 * [go-net](https://github.com/usbarmory/go-net) - Generic Network driver
+* [go-net/imx-usb](https://github.com/usbarmory/go-net/tree/main/imx-usb) - i.MX Ethernet over USB driver
+* [go-net/virtio](https://github.com/usbarmory/go-net/tree/main/virtio) - VirtIO Network driver
+* [imx-usbserial](https://github.com/usbarmory/imx-usbserial) - i.MX Serial over USB driver
 
 Additional resources
 ====================

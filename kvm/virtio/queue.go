@@ -296,6 +296,12 @@ func (d *VirtualQueue) Address() (desc uint, driver uint, device uint) {
 	return d.desc, d.driver, d.device
 }
 
+// NeedsNotify reports whether [VirtIO.QueueNotify] should be invoked to notify
+// the device that the queue can be processed.
+func (d *VirtualQueue) NeedsNotify() bool {
+	return d.Available.index%d.size == d.Used.Index()%d.size
+}
+
 // Pop receives a single used buffer from the virtual queue,
 func (d *VirtualQueue) Pop(buf []byte) (n int, err error) {
 	d.Lock()

@@ -28,6 +28,14 @@ const (
 	PAGE_SIZE_2M = 1
 )
 
+// AMD64 Architecture Programmer’s Manual, Volume 3
+// RMPADJUST - Adjust RMP Permissions.
+const (
+	RMP_VMSA             = 16
+	RMP_TARGET_PERM_MASK = 8
+	RMP_TARGET_VMPL      = 0
+)
+
 type pscHeader struct {
 	CurEntry uint16
 	EndEntry uint16
@@ -83,7 +91,8 @@ func (r *psc) AddEntry(index int, gpa uint64, pageSize int, private bool) {
 }
 
 // defined in page.s
-func pvalidate(addr uint64, pageSize int, validate bool) (ret uint32)
+func pvalidate(addr uint64, size int, validate bool) (ret uint32)
+func rmpadjust(addr uint64, size int, attrs uint64) (ret uint32)
 
 // PageStateChange requests a page state change to either private/shared
 // assignment, as pages are validated/invalidated accordingly any C-Bit
@@ -126,6 +135,12 @@ func (b *GHCB) PageStateChange(start uint64, end uint64, pageSize int, private b
 
 	last := uint16(i - 1)
 	req.Header.EndEntry = last
+
+	if b.Layout == nil {
+		if err = b.init(); err != nil {
+			return
+		}
+	}
 
 	buf := req.Bytes()
 	copy(b.buf[SharedBuffer:], buf)

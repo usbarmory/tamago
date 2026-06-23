@@ -10,9 +10,8 @@
 // following reference specifications:
 //   - IMX6ULLRM - i.MX 6ULL Applications Processor Reference Manual - Rev 1 2017/11
 //
-// This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
-// supported by the TamaGo framework for bare metal Go, see
-// https://github.com/usbarmory/tamago.
+// This package is only meant to be used with `GOOS=tamago` as supported by the
+// TamaGo framework for bare metal Go, see https://github.com/usbarmory/tamago.
 package uart
 
 import (
@@ -306,18 +305,18 @@ func (hw *UART) Rx() (c byte, valid bool) {
 
 // Write data from buffer to serial port.
 func (hw *UART) Write(buf []byte) (n int, _ error) {
-	for n = range buf {
-		hw.Tx(buf[n])
+	for _, c := range buf {
+		hw.Tx(c)
 	}
 
-	return
+	return len(buf), nil
 }
 
 // Read available data to buffer from serial port.
 func (hw *UART) Read(buf []byte) (n int, _ error) {
 	var valid bool
 
-	for n = range buf {
+	for n < len(buf) {
 		buf[n], valid = hw.Rx()
 
 		if !valid {
@@ -327,6 +326,8 @@ func (hw *UART) Read(buf []byte) (n int, _ error) {
 
 			break
 		}
+
+		n++
 	}
 
 	return

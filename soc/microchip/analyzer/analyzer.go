@@ -161,7 +161,7 @@ func (a *ANA) Learning(mac net.HardwareAddr, addrType, vid, pgid, cmd uint32) {
 	// issue command
 	reg.SetN(a.Learn+COMMON_ACCESS_CTRL, CTRL_CPU_ACCESS_CMD, 0xf, cmd)
 	reg.Set(a.Learn+COMMON_ACCESS_CTRL, CTRL_MAC_TABLE_ACCESS_SHOT)
-	reg.WaitFor(Timeout, a.Learn+COMMON_ACCESS_CTRL, CTRL_MAC_TABLE_ACCESS_SHOT, 1, 0)
+	reg.WaitFor(a.Timeout, a.Learn+COMMON_ACCESS_CTRL, CTRL_MAC_TABLE_ACCESS_SHOT, 1, 0)
 }
 
 // Insert adds a new entry in the MAC table.

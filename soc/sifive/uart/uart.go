@@ -38,6 +38,7 @@ const (
 
 	UARTx_TXCTRL = 0x0008
 	UARTx_RXCTRL = 0x000c
+	CTRL_EN      = 0
 )
 
 // UART represents a serial port instance.
@@ -50,8 +51,6 @@ type UART struct {
 	// control registers
 	txdata uint32
 	rxdata uint32
-	txctrl uint32
-	rxctrl uint32
 }
 
 // Init initializes and enables the UART for RS-232 mode,
@@ -63,8 +62,9 @@ func (hw *UART) Init() {
 
 	hw.txdata = hw.Base + UARTx_TXDATA
 	hw.rxdata = hw.Base + UARTx_RXDATA
-	hw.txctrl = hw.Base + UARTx_TXCTRL
-	hw.rxctrl = hw.Base + UARTx_RXCTRL
+
+	reg.Set(hw.Base+UARTx_TXCTRL, CTRL_EN)
+	reg.Set(hw.Base+UARTx_RXCTRL, CTRL_EN)
 }
 
 // Tx transmits a single character to the serial port.
@@ -89,18 +89,18 @@ func (hw *UART) Rx() (c byte, valid bool) {
 
 // Write data from buffer to serial port.
 func (hw *UART) Write(buf []byte) (n int, _ error) {
-	for n = range buf {
-		hw.Tx(buf[n])
+	for _, c := range buf {
+		hw.Tx(c)
 	}
 
-	return
+	return len(buf), nil
 }
 
 // Read available data to buffer from serial port.
 func (hw *UART) Read(buf []byte) (n int, _ error) {
 	var valid bool
 
-	for n = range buf {
+	for n < len(buf) {
 		buf[n], valid = hw.Rx()
 
 		if !valid {
@@ -110,6 +110,8 @@ func (hw *UART) Read(buf []byte) (n int, _ error) {
 
 			break
 		}
+
+		n++
 	}
 
 	return

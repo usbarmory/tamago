@@ -11,6 +11,7 @@
 //
 // The following architectures/cores are supported/tested:
 //   - ARMv7-A / Cortex-A7 (single-core)
+//   - ARMv5TEJ / ARM926EJ-S (single-core, no VFP)
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm` as
 // supported by the TamaGo framework for bare metal Go, see
@@ -77,21 +78,16 @@ func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
 	}
 }
 
-// Init performs initialization of an ARM core instance, the argument must be a
-// pointer to a 64 kB memory area which will be reserved for storing the
+// Init performs initialization of an ARM core instance, it must be called
+// after the 64 kB memory area at RamStart is reserved for storing the
 // exception vector table, L1/L2 page tables and the exception stack
 // (see https://github.com/usbarmory/tamago/wiki/Internals#memory-layout).
-func (cpu *CPU) Init(vbar uint32) {
+func (cpu *CPU) Init() {
 	goos.Exit = exit
 	goos.Idle = cpu.DefaultIdleGovernor
 
-	// the application is allowed to override the reserved area
-	if vecTableStart != 0 {
-		vbar = vecTableStart
-	}
-
 	cpu.initFeatures()
-	cpu.initVectorTable(vbar)
+	cpu.initVectorTable()
 }
 
 // Mode returns the processor mode.

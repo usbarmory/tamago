@@ -9,29 +9,61 @@
 #include "go_asm.h"
 #include "textflag.h"
 
-// Interrupt Descriptor Table
-GLOBL	·idt<>(SB),RODATA,$(const_vectors*16)
-
-DATA	·idtptr+0x00(SB)/2, $(const_vectors*16-1)	// IDT Limit
-DATA	·idtptr+0x02(SB)/8, $·idt<>(SB)			// IDT Base Address
-GLOBL	·idtptr(SB),RODATA,$(2+8)
-
 // func load_idt() (idt uintptr, irqHandler uintptr)
-TEXT ·load_idt(SB),$0-16
+TEXT ·load_idt(SB),NOSPLIT|NOFRAME,$0-16
+	MOVQ	$·gdt(SB), BX
+
+	SUBQ	$16, SP
+	SGDT	(SP)
+	MOVQ	2(SP), AX
+	ADDQ	$16, SP
+
+	// re-use GDT and IDT if cpuinit override is detected
+	CMPQ	AX, BX
+	JE	reload
+reuse:
+	// copy code descriptor
+	MOVQ	8(BX), CX
+	MOVQ	CX, 8(AX)
+
+	// copy data descriptor
+	MOVQ	16(BX), CX
+	MOVQ	CX, 16(AX)
+
+	// load IDT register
+	SUBQ	$16, SP
+	SIDT	(SP)
+
+	// save IDT register for APs
+	MOVQ	$·idtptr(SB), AX
+
+	// save size
+	MOVQ	0(SP), CX
+	MOVQ	CX, 0(AX)
+
+	// save offset
+	MOVQ	2(SP), CX
+	MOVQ	CX, 2(AX)
+
+	ADDQ	$16, SP
+	MOVQ	CX, idt+0(FP)
+	JMP	done
+reload:
 	MOVQ	$·idtptr(SB), AX
 	LIDT	(AX)
 
-	MOVQ	$·idt<>(SB), AX
-	MOVQ	AX, ret+0(FP)
-
+	MOVQ	$·idt(SB), AX
+	MOVQ	AX, idt+0(FP)
+done:
 	// return irqHandler.abi0 pointer
 	MOVQ	$·irqHandler(SB), AX
-	MOVQ	AX, ret+8(FP)
+	MOVQ	AX, irqHandler+8(FP)
 
+	STI
 	RET
 
 // func wfi()
-TEXT ·wfi(SB),$0
+TEXT ·wfi(SB),NOSPLIT|NOFRAME,$0
 	// disable interrupts to avoid races while checking state
 	CLI
 

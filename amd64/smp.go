@@ -34,6 +34,9 @@ const (
 
 	// AP task address
 	taskAddress = 0x6020
+
+	// CR3 value address
+	cr3Address = 0x6028
 )
 
 // defined in smp.s
@@ -76,12 +79,12 @@ func (cpu *CPU) Task(sp, _, gp, fn unsafe.Pointer) {
 		pc: uint64(uintptr(fn)),
 	}
 
-	if cpu.init+1 >= runtime.GOMAXPROCS(-1) {
-		panic("Task exceeds available resources")
+	if t.sp == 0 || t.gp == 0 {
+		return
 	}
 
-	if t.sp == 0 || t.gp == 0 {
-		panic("Task empty")
+	if cpu.init+1 >= runtime.GOMAXPROCS(-1) {
+		panic("Task exceeds available resources")
 	}
 
 	t.Write(taskAddress)
@@ -91,31 +94,34 @@ func (cpu *CPU) Task(sp, _, gp, fn unsafe.Pointer) {
 	cpu.LAPIC.IPI(cpu.init, 0, lapic.ICR_DLV_NMI)
 }
 
-// NumCPU returns the number of logical CPUs initialized on the platform.
-func (cpu *CPU) NumCPU() (n int) {
-	return 1 + len(cpu.aps)
-}
-
 // ID returns the processor identifier.
 func (cpu *CPU) ID() uint64 {
 	return uint64(cpu.LAPIC.ID())
 }
 
-func (cpu *CPU) procresize() {
-	n := cpu.NumCPU()
-
+// GOMAXPROCS sets the maximum number of CPUs that can be executing
+// simultaneously and returns the previous setting, it must be used instead of
+// [runtime.GOMAXPROCS] when using this package.
+//
+// The function checks if n-1 APs are ready (within 1s) at their idle state, if
+// the condition fails the current state is not changed.
+//
+// The function is not required when using [CPU.InitSMP], which invokes it, as
+// it is exported for applications that initialize APs by other means.
+func (cpu *CPU) GOMAXPROCS(n int) int {
 	// wait for all APs to reach ·apstart idle state
-	if !reg.WaitFor(1*time.Second, taskAddress, 0, 0xffffffff, uint32(n-1)) {
-		return
+	if reg.WaitFor(1*time.Second, taskAddress, 0, 0xffffffff, uint32(n-1)) {
+		goos.ProcID = cpu.ID
+		goos.Task = cpu.Task
+		goos.Wake = cpu.Wake
+	} else {
+		n = 1
 	}
 
-	goos.ProcID = cpu.ID
-	goos.Task = cpu.Task
-
-	runtime.GOMAXPROCS(n)
+	return runtime.GOMAXPROCS(n)
 }
 
-// InitSMP enables Secure Multiprocessor (SMP) operation by initializing the
+// InitSMP enables Secure Multiprocessor (SMP) operation by initializing
 // available Application Processors.
 //
 // A positive argument caps the total (BSP+APs) number of cores, a negative
@@ -123,18 +129,18 @@ func (cpu *CPU) procresize() {
 //
 // After initialization [runtime.NumCPU] or [runtime.GOMAXPROCS] can be used to
 // verify SMP use by the runtime.
-func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
+func (cpu *CPU) InitSMP(n int) {
+	var i int
+
 	if n == 0 || n == 1 {
 		goos.Task = nil
+		runtime.GOMAXPROCS(1)
 		return
 	}
 
 	// copy ·apinit to a 16-bit address reachable in real mode
 	// copy ·apstart pointer to avoid RIP/EIP-relative addressing
 	apinit_reloc(apinitAddress, apstartAddress)
-
-	// reset counting semaphore
-	reg.Write(taskAddress, 0)
 
 	// create AP Global Descriptor Table (GDT)
 	reg.Write64(gdtAddress+0x00, 0x0000000000000000) // null descriptor
@@ -145,16 +151,12 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 	reg.Write16(gdtrAddress+0x00, 3*8-1)      // GTD Limit
 	reg.Write32(gdtrAddress+0x02, gdtAddress) // GDT Base Address
 
-	for i := 1; i < NumCPU(); i++ {
+	// read fresh CR3 as a cpuinit override might have overridden ours
+	reg.Write(cr3Address, uint32(read_cr3()))
+
+	for i = 1; i < NumCPU(); i++ {
 		if i == n {
 			break
-		}
-
-		ap := &CPU{
-			TimerMultiplier: cpu.TimerMultiplier,
-			LAPIC: &lapic.LAPIC{
-				Base: cpu.LAPIC.Base,
-			},
 		}
 
 		// AMD64 Architecture Programmer’s Manual
@@ -168,10 +170,12 @@ func (cpu *CPU) InitSMP(n int) (aps []*CPU) {
 		time.Sleep(10 * time.Millisecond)
 
 		cpu.LAPIC.IPI(i, vector, 1<<lapic.ICR_INIT|lapic.ICR_DLV_SIPI)
-		cpu.aps = append(cpu.aps, ap)
 	}
 
-	cpu.procresize()
+	cpu.GOMAXPROCS(i)
+}
 
-	return
+// Wake issues a wake interrupt (see [IRQ_WAKEUP]) to the target processor.
+func (cpu *CPU) Wake(procid uint64) {
+	cpu.LAPIC.IPI(int(procid), IRQ_WAKEUP, lapic.ICR_DLV_IRQ)
 }

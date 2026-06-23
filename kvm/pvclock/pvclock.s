@@ -16,11 +16,11 @@ DATA	·time_info<>+0x10(SB)/8, $0x0000000000000000
 GLOBL	·time_info<>(SB),RODATA,$32
 
 // func pvclock(msr uint32) uint32
-TEXT ·pvclock(SB),$0-8
+TEXT ·pvclock(SB),$0-12
 	MOVL	msr+0(FP), CX
 	MOVL	$·time_info<>(SB), AX
 	MOVL	$0, DX
-	MOVL	AX, ret+8(FP)
+	MOVL	AX, ptr+8(FP)
 	ORL	$1, AX
 	WRMSR
 	RET
