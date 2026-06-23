@@ -63,7 +63,7 @@ func (hw *GVE) describeDevice() (err error) {
 	return
 }
 
-// MAC returns the Media Access Control hardware addres.
+// MAC returns the Media Access Control hardware address.
 func (hw *GVE) MAC() (mac net.HardwareAddr) {
 	if hw.Info == nil {
 		return
