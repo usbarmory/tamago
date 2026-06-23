@@ -95,11 +95,11 @@ func (hw *UART) Rx() (c byte, valid bool) {
 
 // Write data from buffer to serial port.
 func (hw *UART) Write(buf []byte) (n int, _ error) {
-	for n = range buf {
-		hw.Tx(buf[n])
+	for _, c := range buf {
+		hw.Tx(c)
 	}
 
-	return
+	return len(buf), nil
 }
 
 // Read available data to buffer from serial port.

@@ -14,7 +14,7 @@ import (
 	_ "unsafe"
 )
 
-// ramSize is the total DDR2 SDRAM size on the NuMaker-IIoT-NUC980G2: 128 MB.
-//
+// The NuMaker-IIoT-NUC980G2 features 120MB DDR2 SDRAM.
+
 //go:linkname ramSize runtime/goos.RamSize
 var ramSize uint32 = 0x08000000 // 128 MB

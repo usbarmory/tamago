@@ -19,14 +19,21 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
-// ETimer register offsets (from ETimer.Base).
+// ETimer registers
 const (
 	CTL    = 0x00 // Timer Control Register
 	PRECNT = 0x04 // Pre-scale Counter Register
-	CMPR   = 0x08 // Compare Register
-	IER    = 0x0c // Interrupt Enable Register
-	ISR    = 0x10 // Interrupt Status Register
-	DR     = 0x14 // Data Register (current count)
+
+	// Compare Register
+	CMPR      = 0x08
+	CMPR_MAX  = 0x00ffffff
+
+	// // Interrupt Enable Register
+	IER         = 0x0c
+	IER_CMP_IEN = 0
+
+	ISR = 0x10 // Interrupt Status Register
+	DR  = 0x14 // Data Register (current count)
 )
 
 // CTL register bits.
@@ -37,12 +44,6 @@ const (
 	CTL_TOGGLE     = 0x20 // bits [5:4] = 10: toggle mode
 	CTL_CONTINUOUS = 0x30 // bits [5:4] = 11: continuous (free-running)
 )
-
-// IER/ISR register bits.
-const IER_CMP_IEN = 0 // bit 0: compare-match interrupt enable
-
-// CMPR_MAX is the maximum value of the 24-bit compare/data register.
-const CMPR_MAX = 0x00ffffff
 
 // ETimer represents an Enhanced Timer instance.
 type ETimer struct {

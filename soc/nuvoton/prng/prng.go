@@ -24,17 +24,14 @@ import (
 
 // CRYPTO PRNG register offsets (from PRNG.Base).
 const (
-	PRNG_CTL  = 0x008
-	PRNG_SEED = 0x00c
-	PRNG_KEY0 = 0x010
-)
-
-// PRNG_CTL register bits.
-const (
+	PRNG_CTL    = 0x008
 	CTL_START   = 0 // start PRNG generation
 	CTL_SEEDRLD = 1 // reload seed before generation
 	CTL_KEYSZ   = 2 // key size field [3:2]
 	CTL_BUSY    = 8 // PRNG busy (read-only)
+
+	PRNG_SEED = 0x00c
+	PRNG_KEY0 = 0x010
 )
 
 // KEYSZ_256 selects a 256-bit key size in the CTL_KEYSZ field.

@@ -21,22 +21,28 @@ import (
 
 // UART register offsets (from UART.Base).
 const (
-	RBR  = 0x00 // Receive Buffer Register
-	THR  = 0x00 // Transmit Holding Register (same offset)
-	IER  = 0x04 // Interrupt Enable Register
-	FCR  = 0x08 // FIFO Control Register
-	LCR  = 0x0c // Line Control Register
-	MCR  = 0x10 // Modem Control Register
-	FSR  = 0x18 // FIFO Status Register
-	BAUD = 0x24 // Baud Rate Divisor Register
-)
+	RBR = 0x00 // Receive Buffer Register
+	THR = 0x00 // Transmit Holding Register (same offset)
+	IER = 0x04 // Interrupt Enable Register
 
-// Register bit positions.
-const (
-	LCR_WLS    = 0  // word length select [1:0]
-	FCR_RFR    = 1  // RX FIFO reset
-	FCR_TFR    = 2  // TX FIFO reset
-	FSR_TXFULL = 23 // TX FIFO full
+	// FIFO Control Register
+	FCR     = 0x08
+	FCR_RFR = 1 // RX FIFO reset
+	FCR_TFR = 2 // TX FIFO reset
+
+	// Line Control Register
+	LCR     = 0x0c
+	LCR_WLS = 0 // word length select [1:0]
+
+	// Modem Control Register
+	MCR = 0x10
+
+	// FIFO Status Register
+	FSR        = 0x18
+	FSR_TXFULL = 23
+
+	// Baud Rate Divisor Register
+	BAUD = 0x24
 )
 
 // WLS_8BIT selects an 8-bit word length in the LCR_WLS field.
@@ -52,9 +58,6 @@ type UART struct {
 }
 
 // Init configures the UART for 8N1 operation at the divisor set in Baud.
-//
-// Pin mux and the UART APB clock must be configured by the caller (e.g. in
-// the board cpuinit) before Init.
 func (hw *UART) Init() {
 	if hw.Base == 0 {
 		panic("invalid UART instance")
@@ -71,16 +74,19 @@ func (hw *UART) Init() {
 	reg.Write(hw.Base+BAUD, hw.Baud)
 }
 
-// Tx transmits a single byte, blocking until the TX FIFO has room.
+// Tx transmits a single character to the serial port.
 func (hw *UART) Tx(c byte) {
 	for reg.Get(hw.Base+FSR, FSR_TXFULL) {
 	}
+
 	reg.Write(hw.Base+THR, uint32(c))
 }
 
-// Write transmits buf.
-func (hw *UART) Write(buf []byte) {
-	for _, c := range buf {
+// Write data from buffer to serial port.
+func (hw *UART) Write(buf []byte) (n int, _ error) {
+	for _, c = range buf {
 		hw.Tx(c)
 	}
+
+	return len(buf), nil
 }

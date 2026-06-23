@@ -88,8 +88,10 @@ func (hw *miniUART) Tx(c byte) {
 }
 
 // Write data from buffer to serial port.
-func (hw *miniUART) Write(buf []byte) {
-	for i := 0; i < len(buf); i++ {
-		hw.Tx(buf[i])
+func (hw *miniUART) Write(buf []byte) (n int, _ error) {
+	for _, c := range buf {
+		hw.Tx(c)
 	}
+
+	return len(buf), nil
 }

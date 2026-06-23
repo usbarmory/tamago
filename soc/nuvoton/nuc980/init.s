@@ -104,9 +104,6 @@ after_eret:
 	B	_rt0_tamago_start(SB)
 
 // clearBSS zeroes the .bss and .noptrbss sections.
-//
-// Note the $ prefix: MOVW $sym(SB) loads the ADDRESS of the symbol, while
-// MOVW sym(SB) would load the CONTENTS at that address.
 TEXT clearBSS(SB),NOSPLIT|NOFRAME,$0
 	MOVW	$runtime·bss(SB), R0
 	MOVW	$runtime·enoptrbss(SB), R1

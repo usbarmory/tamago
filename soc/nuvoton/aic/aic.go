@@ -23,7 +23,7 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
-// AIC register offsets (from AIC.Base).
+// AIC registers
 const (
 	SISCR = 0x100 // Software Interrupt Set Command Register
 	SICCR = 0x104 // Software Interrupt Clear Command Register
@@ -56,6 +56,7 @@ func (hw *AIC) EnableIRQ(irq int) {
 	if irq < 0 || irq > maxIRQ {
 		return
 	}
+
 	if irq < 32 {
 		reg.Write(hw.Base+MECR, 1<<uint(irq))
 	} else {
@@ -68,6 +69,7 @@ func (hw *AIC) DisableIRQ(irq int) {
 	if irq < 0 || irq > maxIRQ {
 		return
 	}
+
 	if irq < 32 {
 		reg.Write(hw.Base+MDCR, 1<<uint(irq))
 	} else {
@@ -86,10 +88,12 @@ func (hw *AIC) EOI() {
 }
 
 // SoftwareInterrupt generates a software interrupt for source irq. The AIC
-// SISCR register only covers IRQ0..31; higher sources are not supported.
+// SISCR register only covers the first 32 IRQs (0..31), higher sources are not
+// supported.
 func (hw *AIC) SoftwareInterrupt(irq int) {
 	if irq < 0 || irq > 31 {
 		return
 	}
+
 	reg.Write(hw.Base+SISCR, 1<<uint(irq))
 }

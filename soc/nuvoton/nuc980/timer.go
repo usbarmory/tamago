@@ -100,9 +100,8 @@ func initTimer() {
 // specified period (in microseconds). On each compare match the counter
 // resets and raises a periodic IRQ through the AIC (IRQ_ETMR1).
 //
-// ETimer1's APB clock and eclk source are configured from assembly in the
-// board cpuinit via EarlyClockInit. The timer is not started here; call
-// StartInterruptTimer once ServiceInterrupts is running.
+// The timer is not started here; call StartInterruptTimer once
+// ServiceInterrupts is running.
 func InitInterruptTimer(periodUs uint32) {
 	ETimer1.Stop()
 	ETimer1.SetPrescale(timerPrescale)

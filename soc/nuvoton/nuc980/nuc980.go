@@ -52,22 +52,20 @@ func PDID() uint32 {
 	return reg.Read(SYS_PDID)
 }
 
-// MIDR returns the ARM Main ID Register.
-func MIDR() uint32 {
-	return ARM.MIDR()
-}
-
 // SoftReset triggers an immediate chip reset via the AHB IP reset register.
-// The function does not return; the CPU restarts from the boot ROM.
+// The function does not return as the CPU restarts from the boot ROM.
 func SoftReset() {
-	// Unlock SYS register write protection.
+	// unlock SYS register write protection
 	for !reg.Get(SYS_REGWPCTL, REGWPCTL_UNLOCK) {
 		reg.Write(SYS_REGWPCTL, 0x59)
 		reg.Write(SYS_REGWPCTL, 0x16)
 		reg.Write(SYS_REGWPCTL, 0x88)
 	}
-	// Trigger chip reset.
+
+	// trigger chip reset
 	reg.Set(SYS_AHBIPRST, AHBIPRST_CHIPRST)
+
+	// block forever
 	select {}
 }
 
@@ -97,6 +95,7 @@ const (
 
 // ARM processor instance
 var ARM = &arm.CPU{
+	// required before Init()
 	TimerMultiplier: 1,
 }
 
@@ -111,9 +110,6 @@ func nanotime() int64 {
 // Init takes care of the lower level initialization triggered early in runtime
 // setup (e.g. runtime/goos.Hwinit1).
 func Init() {
-	// Clock gates and pin mux are configured from assembly in the
-	// board cpuinit via EarlyClockInit (see init.s).
-
 	ARM.Init()
 
 	// ARM926EJ-S has no WFI opcode; override exit/idle with
@@ -126,6 +122,7 @@ func Init() {
 			ARM.WaitInterrupt()
 		}
 	}
+
 	// Start with a no-op idle governor so the scheduler can spin-poll
 	// during early init.  Application code must call EnableIdleWFI()
 	// after the timer interrupt infrastructure is running, otherwise
@@ -141,10 +138,11 @@ func Init() {
 }
 
 // EnableIdleWFI switches the scheduler idle governor from no-op spin
-// to WFI (Wait For Interrupt), reducing power consumption.  Call this
-// only after a periodic hardware interrupt source (e.g. ETimer1) is
-// running and arm.ServiceInterrupts is fully initialized; otherwise
-// the CPU will halt permanently on the first scheduler idle.
+// to WFI (Wait For Interrupt), reducing power consumption.
+//
+// This should be called only after a periodic hardware interrupt source (e.g.
+// ETimer1) is running and arm.ServiceInterrupts is fully initialized,
+// otherwise the CPU will halt permanently on the first scheduler idle.
 func EnableIdleWFI() {
 	goos.Idle = func(_ int64) {
 		ARM.WaitInterrupt()
