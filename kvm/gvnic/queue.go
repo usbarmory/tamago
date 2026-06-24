@@ -10,6 +10,7 @@ package gvnic
 
 import (
 	"encoding/binary"
+	"errors"
 	"math/bits"
 
 	"github.com/usbarmory/tamago/internal/reg"
@@ -21,9 +22,12 @@ const (
 	ADMINQ_CREATE_RX_QUEUE    = 0x6
 
 	GVE_GQI_QPL_FORMAT = 0x02
+	GVE_TXD_STD        = 0x00
+)
 
-	rxID = 0
-	txID = 1
+const (
+	flagsMask = 0b111
+	rxPadLen  = 2
 )
 
 type queueResources struct {
@@ -39,6 +43,7 @@ type registerPageListCommand struct {
 	_                   [16]byte
 }
 
+// TODO: convert to offsets
 type rxDesc struct {
 	_        [48]byte
 	RSSHash  uint32
@@ -51,7 +56,7 @@ type rxDesc struct {
 	FlagsSeq uint16
 }
 
-type rxQueue struct {
+type queue struct {
 	// control registers
 	Doorbell uint32
 
@@ -63,6 +68,48 @@ type rxQueue struct {
 	desc []byte
 	data []byte
 	qpl  []byte
+
+	// ring state
+	size uint32
+}
+
+func (q *queue) setDoorbell(base uint32) {
+	// get queue resources
+	binary.Decode(q.res, binary.BigEndian, q.Resources)
+
+	// get doorbell
+	q.Doorbell = base + q.Resources.DBIndex*4
+}
+
+type rxQueue struct {
+	queue
+
+	// ring state
+	cnt   uint32
+	fill  uint32
+	seqno uint16
+}
+
+func (rx *rxQueue) next() {
+	// advance the read cursor
+	rx.cnt++
+
+	if rx.seqno == flagsMask {
+		rx.seqno = 1
+	} else {
+		rx.seqno += 1
+	}
+
+	// recycle consumed buffers when half is drained
+	if rx.fill-rx.cnt > rx.size/2 {
+		return
+	}
+
+	rx.fill = rx.cnt + rx.size
+
+	// notify ring size
+	n := bits.ReverseBytes32(rx.fill)
+	reg.Write(rx.Doorbell, n)
 }
 
 type createRxQueueCommand struct {
@@ -81,6 +128,7 @@ type createRxQueueCommand struct {
 	_                  [5]byte
 }
 
+// TODO: convert to offsets
 type txDesc struct {
 	TypeFlags uint8
 	CsumOff   uint8
@@ -88,14 +136,23 @@ type txDesc struct {
 	DescCnt   uint8
 	Len       uint16
 	SegLen    uint16
-	SeqAddr   uint64
+	SegAddr   uint64
 }
 
 type txQueue struct {
-	// DMA buffers
-	res  []byte
-	desc []byte
-	qpl  []byte
+	queue
+
+	// ring state
+	head  uint32
+	tail  uint32
+}
+
+func (tx *txQueue) next() {
+	tx.head++
+
+	// notify ring size
+	n := bits.ReverseBytes32(tx.head)
+	reg.Write(tx.Doorbell, n)
 }
 
 type createTxQueueCommand struct {
@@ -142,10 +199,17 @@ func (hw *GVE) registerPageList(id int, size int) (addr uint, buf []byte, err er
 func (hw *GVE) initRxQueue(id int) (err error) {
 	var addr uint
 
-	hw.rx = &rxQueue{}
-	size := int(hw.Info.RxPagesPerQpl)
+	queueSize := uint32(hw.Info.RxQueueEntries)
+	qplSize := int(hw.Info.RxPagesPerQpl)
 
-	if _, hw.rx.qpl, err = hw.registerPageList(id, size); err != nil {
+	hw.rx = &rxQueue{
+		cnt:   0,
+		fill:  queueSize,
+		seqno: 1,
+	}
+	hw.rx.size = hw.rx.fill
+
+	if _, hw.rx.qpl, err = hw.registerPageList(id, qplSize); err != nil {
 		return
 	}
 
@@ -154,7 +218,7 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 		Index:            uint32(hw.Index),
 		NtfyID:           uint32(id),
 		QueuePageListID:  uint32(id),
-		RingSize:         hw.Info.RxQueueEntries,
+		RingSize:         uint16(hw.rx.size),
 		PacketBufferSize: pageSize / 2,
 	}
 
@@ -168,6 +232,11 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 	n = binary.Size(rxDesc{}) * int(cmd.RingSize)
 	addr, hw.rx.desc = hw.Region.Reserve(n, 0)
 	cmd.DescRingAddr = uint64(addr)
+
+	// zero out descriptor ring contents
+	for i := range hw.rx.desc {
+		hw.rx.desc[i] = 0x00
+	}
 
 	// allocate data ring
 	n = 8 * int(cmd.RingSize)
@@ -183,14 +252,10 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 		return
 	}
 
-	// get queue resources
-	binary.Decode(hw.rx.res, binary.BigEndian, hw.rx.Resources)
-
-	// get doorbell
-	hw.rx.Doorbell = hw.doorbells + hw.rx.Resources.DBIndex*4
+	hw.rx.setDoorbell(hw.doorbells)
 
 	// notify ring size
-	cnt := bits.ReverseBytes32(uint32(hw.Info.RxQueueEntries))
+	cnt := bits.ReverseBytes32(queueSize)
 	reg.Write(hw.rx.Doorbell, cnt)
 
 	return
@@ -199,10 +264,13 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 func (hw *GVE) initTxQueue(id int) (err error) {
 	var addr uint
 
-	hw.tx = &txQueue{}
-	size := int(hw.Info.TxPagesPerQpl)
+	queueSize := uint32(hw.Info.TxQueueEntries)
+	qplSize := int(hw.Info.TxPagesPerQpl)
 
-	if _, hw.tx.qpl, err = hw.registerPageList(id, size); err != nil {
+	hw.tx = &txQueue{}
+	hw.tx.size = queueSize
+
+	if _, hw.tx.qpl, err = hw.registerPageList(id, qplSize); err != nil {
 		return
 	}
 
@@ -214,7 +282,8 @@ func (hw *GVE) initTxQueue(id int) (err error) {
 	}
 
 	// allocate queue resources
-	n := binary.Size(queueResources{})
+	hw.tx.Resources = &queueResources{}
+	n := binary.Size(hw.tx.Resources)
 	addr, hw.tx.res = hw.Region.Reserve(n, 64)
 	cmd.QueueResourcesAddr = uint64(addr)
 
@@ -223,5 +292,78 @@ func (hw *GVE) initTxQueue(id int) (err error) {
 	addr, hw.tx.desc = hw.Region.Reserve(n, 0)
 	cmd.DescRingAddr = uint64(addr)
 
-	return hw.aq.Push(ADMINQ_CREATE_TX_QUEUE, cmd)
+	if err = hw.aq.Push(ADMINQ_CREATE_TX_QUEUE, cmd); err != nil {
+		return
+	}
+
+	hw.tx.setDoorbell(hw.doorbells)
+
+	return
+}
+
+func (hw *GVE) Receive(buf []byte) (n int, err error) {
+	if len(buf) == 0 {
+		return
+	}
+
+	idx := hw.rx.cnt % hw.rx.size
+	off := uint(idx) * 64
+
+	flagsSeq := binary.BigEndian.Uint16(hw.rx.desc[off+62:]) // rxDesc.FlagsSeq
+	length := binary.BigEndian.Uint16(hw.rx.desc[off+60:])   // rxDesc.Len
+
+	if flagsSeq&flagsMask != hw.rx.seqno {
+		return 0, nil
+	}
+
+	defer hw.rx.next()
+
+	if length <= rxPadLen {
+		return 0, nil
+	}
+
+	// the data ring holds 64-bit QPL offsets pointing to the actual data
+	qplOff := uint(binary.BigEndian.Uint64(hw.rx.data[idx*8:]))
+	data := hw.rx.qpl[qplOff+rxPadLen : qplOff+uint(length)]
+
+	n = copy(buf, data)
+
+	return n, nil
+}
+
+func (hw *GVE) Transmit(buf []byte) (err error) {
+	if len(buf) > pageSize {
+		return errors.New("frame too large")
+	}
+
+	txPages := uint32(hw.Info.TxPagesPerQpl)
+	idx := hw.tx.head % hw.tx.size
+	qplOff := (hw.tx.head % txPages) * pageSize
+
+	cntIndex := hw.tx.Resources.CounterIndex * 4
+	hw.tx.tail = binary.BigEndian.Uint32(hw.counters[cntIndex:])
+
+	inflight := hw.tx.head - hw.tx.tail
+
+	if inflight >= hw.tx.size || inflight >= txPages {
+		return errors.New("tx queue full")
+	}
+
+	// copy the frame into the TX QPL
+	copy(hw.tx.qpl[qplOff:qplOff+uint32(len(buf))], buf)
+
+	// write one standard descriptor
+	off := uint(idx) * uint(binary.Size(txDesc{}))
+	d := hw.tx.desc
+	d[off+0] = GVE_TXD_STD                                  // type_flags
+	d[off+1] = 0                                            // l4_csum_offset
+	d[off+2] = 0                                            // l4_hdr_offset
+	d[off+3] = 1                                            // desc_cnt
+	binary.BigEndian.PutUint16(d[off+4:], uint16(len(buf))) // len
+	binary.BigEndian.PutUint16(d[off+6:], uint16(len(buf))) // seg_len
+	binary.BigEndian.PutUint64(d[off+8:], uint64(qplOff))   // seg_addr
+
+	hw.tx.next()
+
+	return nil
 }

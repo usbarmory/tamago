@@ -34,7 +34,8 @@ func (hw *GVE) configureDeviceResources() (err error) {
 	counterSize := int(hw.Info.Counters) * 4
 
 	// allocate counter array
-	counterArrayAddr, _ := hw.Region.Reserve(counterSize, pageSize)
+	counterArrayAddr, counters := hw.Region.Reserve(counterSize, pageSize)
+	hw.counters = counters
 
 	// allocate IRQ doorbell array
 	doorbells := 2 // rx+tx

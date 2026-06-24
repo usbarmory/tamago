@@ -80,6 +80,9 @@ type GVE struct {
 	aq *adminQueue
 	rx *rxQueue
 	tx *txQueue
+
+	// DMA buffer
+	counters []byte
 }
 
 func (hw *GVE) set(off uint32, val any) {
@@ -105,7 +108,7 @@ func (hw *GVE) Init() (err error) {
 	}
 
 	hw.registers = uint32(hw.Device.BaseAddress(0))
-	hw.doorbells = uint32(hw.Device.BaseAddress(1))
+	hw.doorbells = uint32(hw.Device.BaseAddress(2))
 
 	if hw.registers&1 != 0 || hw.doorbells&1 != 0 {
 		return errors.New("unexpected PCI BAR type, expected memory")
