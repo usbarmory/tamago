@@ -28,6 +28,28 @@ const (
 const (
 	flagsMask = 0b111
 	rxPadLen  = 2
+
+	irqAck   = 1 << 31
+	irqEvent = 1 << 29
+)
+
+// TX descriptor offsets
+const (
+	txDescSize  = 16
+	txTypeFlags = 0
+	txCsumOff   = 1
+	txHdrOff    = 2
+	txDescCnt   = 3
+	txLen       = 4
+	txSegLen    = 6
+	txSegAddr   = 8
+)
+
+// RX descriptor offsets
+const (
+	rxDescSize = descSize
+	rxLen      = 60
+	rxFlagsSeq = 62
 )
 
 type queueResources struct {
@@ -43,28 +65,18 @@ type registerPageListCommand struct {
 	_                   [16]byte
 }
 
-// TODO: convert to offsets
-type rxDesc struct {
-	_        [48]byte
-	RSSHash  uint32
-	MSS      uint16
-	_        uint16
-	HdrLen   uint8
-	HdrOff   uint8
-	Csum     uint16
-	Len      uint16
-	FlagsSeq uint16
-}
-
 type queue struct {
+	id int
+
 	// control registers
-	Doorbell uint32
+	Doorbell    uint32
+	DoorbellIRQ uint32
 
 	// Resources cache
 	Resources *queueResources
-	res       []byte // DMA buffer
 
 	// DMA buffers
+	res  []byte
 	desc []byte
 	data []byte
 	qpl  []byte
@@ -73,12 +85,67 @@ type queue struct {
 	size uint32
 }
 
-func (q *queue) setDoorbell(base uint32) {
-	// get queue resources
-	binary.Decode(q.res, binary.BigEndian, q.Resources)
+func (q *queue) init(hw *GVE, ringSize uint16) (resAddr, descAddr uint64) {
+	var addr uint
 
-	// get doorbell
-	q.Doorbell = base + q.Resources.DBIndex*4
+	// allocate queue resources
+	q.Resources = &queueResources{}
+	n := binary.Size(q.Resources)
+	addr, q.res = hw.Region.Reserve(n, pageSize)
+	resAddr = uint64(addr)
+
+	// allocate descriptor ring
+	n = rxDescSize * int(ringSize)
+	addr, q.desc = hw.Region.Reserve(n, pageSize)
+	descAddr = uint64(addr)
+
+	// zero out DMA pages
+	clear(q.res)
+	clear(q.desc)
+
+	return
+}
+
+func (q *queue) setDoorbells(hw *GVE) {
+	binary.Decode(q.res, binary.BigEndian, q.Resources)
+	q.Doorbell = hw.doorbells + q.Resources.DBIndex*4
+
+	irqIndex := binary.BigEndian.Uint32(hw.irqs[q.id*descSize:])
+	q.DoorbellIRQ = hw.doorbells + irqIndex*4
+}
+
+func (q *queue) ack() {
+	// ack IRQ, re-enable event delivery
+	reg.Write(q.DoorbellIRQ, bits.ReverseBytes32(irqAck|irqEvent))
+}
+
+type txQueue struct {
+	queue
+
+	// ring state
+	head uint32
+	tail uint32
+}
+
+func (tx *txQueue) next() {
+	tx.head++
+
+	// notify ring size
+	n := bits.ReverseBytes32(tx.head)
+	reg.Write(tx.Doorbell, n)
+}
+
+type createTxQueueCommand struct {
+	QueueID            uint32
+	_                  uint32
+	QueueResourcesAddr uint64
+	DescRingAddr       uint64
+	QueuePageListID    uint32
+	NtfyID             uint32
+	CompRingAddr       uint64
+	RingSize           uint16
+	CompRingSize       uint16
+	_                  [4]byte
 }
 
 type rxQueue struct {
@@ -128,46 +195,6 @@ type createRxQueueCommand struct {
 	_                  [5]byte
 }
 
-// TODO: convert to offsets
-type txDesc struct {
-	TypeFlags uint8
-	CsumOff   uint8
-	HdrOff    uint8
-	DescCnt   uint8
-	Len       uint16
-	SegLen    uint16
-	SegAddr   uint64
-}
-
-type txQueue struct {
-	queue
-
-	// ring state
-	head  uint32
-	tail  uint32
-}
-
-func (tx *txQueue) next() {
-	tx.head++
-
-	// notify ring size
-	n := bits.ReverseBytes32(tx.head)
-	reg.Write(tx.Doorbell, n)
-}
-
-type createTxQueueCommand struct {
-	QueueID            uint32
-	_                  uint32
-	QueueResourcesAddr uint64
-	DescRingAddr       uint64
-	QueuePageListID    uint32
-	NtfyID             uint32
-	CompRingAddr       uint64
-	RingSize           uint16
-	CompRingSize       uint16
-	_                  [4]byte
-}
-
 func (hw *GVE) registerPageList(id int, size int) (addr uint, buf []byte, err error) {
 	cmd := &registerPageListCommand{
 		PageListID: uint32(id),
@@ -184,6 +211,10 @@ func (hw *GVE) registerPageList(id int, size int) (addr uint, buf []byte, err er
 	cmd.PageAddressListAddr = uint64(plAddr)
 	defer hw.Region.Release(plAddr)
 
+	// zero out DMA pages
+	clear(buf)
+	clear(pageList)
+
 	for i := uint64(0); i < uint64(cmd.NumPages); i++ {
 		pga := uint64(addr) + i*pageSize
 		binary.BigEndian.PutUint64(pageList[i*8:], pga)
@@ -192,6 +223,36 @@ func (hw *GVE) registerPageList(id int, size int) (addr uint, buf []byte, err er
 	if err = hw.aq.Push(ADMINQ_REGISTER_PAGE_LIST, cmd); err != nil {
 		return 0, nil, err
 	}
+
+	return
+}
+
+func (hw *GVE) initTxQueue(id int) (err error) {
+	queueSize := uint32(hw.Info.TxQueueEntries)
+	qplSize := int(hw.Info.TxPagesPerQpl)
+
+	hw.tx = &txQueue{}
+	hw.tx.id = id
+	hw.tx.size = queueSize
+
+	if _, hw.tx.qpl, err = hw.registerPageList(id, qplSize); err != nil {
+		return
+	}
+
+	cmd := &createTxQueueCommand{
+		QueueID:         uint32(hw.Index),
+		NtfyID:          uint32(id),
+		QueuePageListID: uint32(id),
+		RingSize:        hw.Info.TxQueueEntries,
+	}
+
+	cmd.QueueResourcesAddr, cmd.DescRingAddr = hw.tx.init(hw, cmd.RingSize)
+
+	if err = hw.aq.Push(ADMINQ_CREATE_TX_QUEUE, cmd); err != nil {
+		return
+	}
+
+	hw.tx.setDoorbells(hw)
 
 	return
 }
@@ -207,6 +268,8 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 		fill:  queueSize,
 		seqno: 1,
 	}
+
+	hw.rx.id = id
 	hw.rx.size = hw.rx.fill
 
 	if _, hw.rx.qpl, err = hw.registerPageList(id, qplSize); err != nil {
@@ -222,25 +285,11 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 		PacketBufferSize: pageSize / 2,
 	}
 
-	// allocate queue resources
-	hw.rx.Resources = &queueResources{}
-	n := binary.Size(hw.rx.Resources)
-	addr, hw.rx.res = hw.Region.Reserve(n, 64)
-	cmd.QueueResourcesAddr = uint64(addr)
-
-	// allocate descriptor ring
-	n = binary.Size(rxDesc{}) * int(cmd.RingSize)
-	addr, hw.rx.desc = hw.Region.Reserve(n, 0)
-	cmd.DescRingAddr = uint64(addr)
-
-	// zero out descriptor ring contents
-	for i := range hw.rx.desc {
-		hw.rx.desc[i] = 0x00
-	}
+	cmd.QueueResourcesAddr, cmd.DescRingAddr = hw.rx.init(hw, cmd.RingSize)
 
 	// allocate data ring
-	n = 8 * int(cmd.RingSize)
-	addr, hw.rx.data = hw.Region.Reserve(n, 0)
+	n := 8 * int(cmd.RingSize)
+	addr, hw.rx.data = hw.Region.Reserve(n, pageSize)
 	cmd.DataRingAddr = uint64(addr)
 
 	// fill data ring slots
@@ -252,51 +301,11 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 		return
 	}
 
-	hw.rx.setDoorbell(hw.doorbells)
+	hw.rx.setDoorbells(hw)
 
 	// notify ring size
 	cnt := bits.ReverseBytes32(queueSize)
 	reg.Write(hw.rx.Doorbell, cnt)
-
-	return
-}
-
-func (hw *GVE) initTxQueue(id int) (err error) {
-	var addr uint
-
-	queueSize := uint32(hw.Info.TxQueueEntries)
-	qplSize := int(hw.Info.TxPagesPerQpl)
-
-	hw.tx = &txQueue{}
-	hw.tx.size = queueSize
-
-	if _, hw.tx.qpl, err = hw.registerPageList(id, qplSize); err != nil {
-		return
-	}
-
-	cmd := &createTxQueueCommand{
-		QueueID:         uint32(hw.Index),
-		NtfyID:          uint32(id),
-		QueuePageListID: uint32(id),
-		RingSize:        hw.Info.TxQueueEntries,
-	}
-
-	// allocate queue resources
-	hw.tx.Resources = &queueResources{}
-	n := binary.Size(hw.tx.Resources)
-	addr, hw.tx.res = hw.Region.Reserve(n, 64)
-	cmd.QueueResourcesAddr = uint64(addr)
-
-	// allocate descriptor ring
-	n = binary.Size(txDesc{}) * int(cmd.RingSize)
-	addr, hw.tx.desc = hw.Region.Reserve(n, 0)
-	cmd.DescRingAddr = uint64(addr)
-
-	if err = hw.aq.Push(ADMINQ_CREATE_TX_QUEUE, cmd); err != nil {
-		return
-	}
-
-	hw.tx.setDoorbell(hw.doorbells)
 
 	return
 }
@@ -307,10 +316,10 @@ func (hw *GVE) Receive(buf []byte) (n int, err error) {
 	}
 
 	idx := hw.rx.cnt % hw.rx.size
-	off := uint(idx) * 64
+	off := uint(idx) * rxDescSize
 
-	flagsSeq := binary.BigEndian.Uint16(hw.rx.desc[off+62:]) // rxDesc.FlagsSeq
-	length := binary.BigEndian.Uint16(hw.rx.desc[off+60:])   // rxDesc.Len
+	length := binary.BigEndian.Uint16(hw.rx.desc[off+rxLen:])
+	flagsSeq := binary.BigEndian.Uint16(hw.rx.desc[off+rxFlagsSeq:])
 
 	if flagsSeq&flagsMask != hw.rx.seqno {
 		return 0, nil
@@ -352,16 +361,17 @@ func (hw *GVE) Transmit(buf []byte) (err error) {
 	// copy the frame into the TX QPL
 	copy(hw.tx.qpl[qplOff:qplOff+uint32(len(buf))], buf)
 
-	// write one standard descriptor
-	off := uint(idx) * uint(binary.Size(txDesc{}))
-	d := hw.tx.desc
-	d[off+0] = GVE_TXD_STD                                  // type_flags
-	d[off+1] = 0                                            // l4_csum_offset
-	d[off+2] = 0                                            // l4_hdr_offset
-	d[off+3] = 1                                            // desc_cnt
-	binary.BigEndian.PutUint16(d[off+4:], uint16(len(buf))) // len
-	binary.BigEndian.PutUint16(d[off+6:], uint16(len(buf))) // seg_len
-	binary.BigEndian.PutUint64(d[off+8:], uint64(qplOff))   // seg_addr
+	off := uint(idx) * txDescSize
+	tx := hw.tx.desc
+
+	tx[off+txTypeFlags] = GVE_TXD_STD
+	tx[off+txCsumOff] = 0
+	tx[off+txHdrOff] = 0
+	tx[off+txDescCnt] = 1
+
+	binary.BigEndian.PutUint16(tx[off+txLen:], uint16(len(buf)))
+	binary.BigEndian.PutUint16(tx[off+txSegLen:], uint16(len(buf)))
+	binary.BigEndian.PutUint64(tx[off+txSegAddr:], uint64(qplOff))
 
 	hw.tx.next()
 

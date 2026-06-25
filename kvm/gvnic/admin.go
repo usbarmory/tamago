@@ -46,7 +46,6 @@ const (
 	pageSize       = 4096
 	adminQueueSize = pageSize
 	hdrSize        = 8
-	cmdSize        = 64
 )
 
 type adminCommandHeader struct {
@@ -72,8 +71,8 @@ func (aq *adminQueue) Push(opcode uint32, cmd any) (err error) {
 		Opcode: opcode,
 	}
 
-	low := aq.cnt * cmdSize
-	high := low + cmdSize
+	low := aq.cnt * descSize
+	high := low + descSize
 
 	if _, err = binary.Encode(aq.buf[low:high], binary.BigEndian, ac); err != nil {
 		return
@@ -84,11 +83,11 @@ func (aq *adminQueue) Push(opcode uint32, cmd any) (err error) {
 	}
 
 	// zero out remaining buffer
-	pad := cmdSize - hdrSize - binary.Size(cmd)
-	copy(aq.buf[high-uint32(pad):high], make([]byte, pad))
+	pad := descSize - hdrSize - binary.Size(cmd)
+	clear(aq.buf[high-uint32(pad) : high])
 
 	// bump counter and ring door bell
-	aq.cnt = (aq.cnt + 1) % (adminQueueSize / cmdSize)
+	aq.cnt = (aq.cnt + 1) % (adminQueueSize / descSize)
 	cnt := bits.ReverseBytes32(aq.cnt)
 	reg.Write(aq.Doorbell, cnt)
 
@@ -109,7 +108,7 @@ func (hw *GVE) initAdminQueue() (err error) {
 		Counter:  hw.registers + ADMINQ_EVENT_COUNTER,
 	}
 
-	hw.aq.addr, hw.aq.buf = hw.Region.Reserve(adminQueueSize, 0)
+	hw.aq.addr, hw.aq.buf = hw.Region.Reserve(adminQueueSize, pageSize)
 
 	if hw.Device.Revision < 1 {
 		// set admin queue based address to region page frame number

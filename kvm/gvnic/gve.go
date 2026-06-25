@@ -50,6 +50,17 @@ const (
 	ADMINQ_LENGTH            = 0x28
 )
 
+const (
+	registersBAR = 0
+	MSIXTableBAR = 1
+	doorbellsBAR = 2
+
+	txID = 0
+	rxID = 1
+
+	descSize = 64
+)
+
 // GVE represents a Google Virtual NIC instance.
 type GVE struct {
 	sync.Mutex
@@ -77,12 +88,14 @@ type GVE struct {
 	msixTable uint32
 	doorbells uint32
 
+	// queues
 	aq *adminQueue
 	rx *rxQueue
 	tx *txQueue
 
-	// DMA buffer
+	// DMA buffers
 	counters []byte
+	irqs     []byte
 }
 
 func (hw *GVE) set(off uint32, val any) {
@@ -107,8 +120,8 @@ func (hw *GVE) Init() (err error) {
 		hw.Region = dma.Default()
 	}
 
-	hw.registers = uint32(hw.Device.BaseAddress(0))
-	hw.doorbells = uint32(hw.Device.BaseAddress(2))
+	hw.registers = uint32(hw.Device.BaseAddress(registersBAR))
+	hw.doorbells = uint32(hw.Device.BaseAddress(doorbellsBAR))
 
 	if hw.registers&1 != 0 || hw.doorbells&1 != 0 {
 		return errors.New("unexpected PCI BAR type, expected memory")
@@ -130,12 +143,12 @@ func (hw *GVE) Init() (err error) {
 		return fmt.Errorf("failed to configure device resources, %v", err)
 	}
 
-	if err = hw.initRxQueue(0); err != nil {
-		return fmt.Errorf("failed to initialize rx queue, %v", err)
+	if err = hw.initTxQueue(txID); err != nil {
+		return fmt.Errorf("failed to initialize tx queue, %v", err)
 	}
 
-	if err = hw.initTxQueue(1); err != nil {
-		return fmt.Errorf("failed to initialize tx queue, %v", err)
+	if err = hw.initRxQueue(rxID); err != nil {
+		return fmt.Errorf("failed to initialize rx queue, %v", err)
 	}
 
 	return

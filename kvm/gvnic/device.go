@@ -45,7 +45,7 @@ func (hw *GVE) describeDevice() (err error) {
 		hw.Info = &DeviceDescriptor{}
 	}
 
-	addr, buf := hw.Region.Reserve(pageSize, 0)
+	addr, buf := hw.Region.Reserve(pageSize, pageSize)
 	defer hw.Region.Release(addr)
 
 	cmd := &deviceDescriptorCommand{
