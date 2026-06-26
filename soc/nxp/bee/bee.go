@@ -66,7 +66,8 @@ const (
 
 // BEE represents the Bus Encryption Engine instance.
 type BEE struct {
-	sync.Mutex
+	// must be a variable to avoid conflict with Lock()
+	mu sync.Mutex
 
 	// Base register
 	Base uint32
@@ -86,8 +87,8 @@ type BEE struct {
 
 // Init initializes the BEE module.
 func (hw *BEE) Init() {
-	hw.Lock()
-	defer hw.Unlock()
+	hw.mu.Lock()
+	defer hw.mu.Unlock()
 
 	if hw.Base == 0 {
 		panic("invalid BEE instance")
@@ -153,8 +154,8 @@ func checkRegion(region uint32, offset uint32) error {
 // respective aliased spaces (see AliasRegion0 and AliasRegion1) and only with
 // caching enabled (see arm.ConfigureMMU).
 func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
-	hw.Lock()
-	defer hw.Unlock()
+	hw.mu.Lock()
+	defer hw.mu.Unlock()
 
 	if err = checkRegion(region0, region0-AliasRegion0); err != nil {
 		return fmt.Errorf("region0 error: %v", err)
@@ -202,8 +203,8 @@ func (hw *BEE) Enable(region0 uint32, region1 uint32) (err error) {
 
 // Lock restricts BEE registers writing.
 func (hw *BEE) Lock() {
-	hw.Lock()
-	defer hw.Unlock()
+	hw.mu.Lock()
+	defer hw.mu.Unlock()
 
 	reg.Set(hw.ctrl, CTRL_CLK_EN_LOCK)
 	reg.Set(hw.ctrl, CTRL_SFTRST_N_LOCK)
