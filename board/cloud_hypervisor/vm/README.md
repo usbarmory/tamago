@@ -112,6 +112,9 @@ GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARCH=amd64 \
 An example application, targeting the Cloud Hypervisor platform, is
 [available](https://github.com/usbarmory/tamago-example).
 
+The [go-net](https://github.com/usbarmory/go-net) package provides drivers for
+TCP/IP connectivity.
+
 Build tags
 ==========
 

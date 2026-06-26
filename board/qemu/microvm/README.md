@@ -114,6 +114,9 @@ Two examples application, targeting the QEMU microvm platform, are available:
 [tamago-sev-example](https://github.com/usbarmory/tamago-sev-example)
 (confidential KVM with AMD SEV-SNP).
 
+The [go-net](https://github.com/usbarmory/go-net) package provides drivers for
+TCP/IP connectivity.
+
 Build tags
 ==========
 
