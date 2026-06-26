@@ -52,7 +52,7 @@ func (hw *GVE) configureDeviceResources() (err error) {
 		IRQDBAddr:            uint64(irqDBAddr),
 		NumCounters:          uint32(hw.Info.Counters),
 		NumIRQDBs:            irqDoorbells,
-		IRQDBStride:          uint32(descSize),
+		IRQDBStride:          descSize,
 		NtfyBlockMSIXBaseIdx: 0,
 		QueueFormat:          GVE_GQI_QPL_FORMAT,
 	}

@@ -115,7 +115,7 @@ func (hw *GVE) initAdminQueue() (err error) {
 		hw.set(ADMINQ_PFN, uint32(hw.aq.addr/pageSize))
 	} else {
 		// set admin queue based address and size
-		hw.set(ADMINQ_LENGTH, uint16(adminQueueSize))
+		hw.set(ADMINQ_LENGTH, adminQueueSize)
 		hw.set(ADMINQ_BASE_ADDRESS_LOW, uint32(hw.aq.addr))
 	}
 
