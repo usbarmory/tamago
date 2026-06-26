@@ -106,6 +106,9 @@ GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARCH=arm64 \
 	${TAMAGO} build -ldflags "-T 0x60010000 -R 0x1000" main.go
 ```
 
+The [go-net](https://github.com/usbarmory/go-net) package provides drivers for
+TCP/IP connectivity.
+
 Build tags
 ==========
 

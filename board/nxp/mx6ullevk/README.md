@@ -109,6 +109,9 @@ GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARM=7 GOARCH=arm \
 An example application, targeting the MCIMX6ULL-EVK platform,
 is [available](https://github.com/usbarmory/tamago-example).
 
+The [go-net](https://github.com/usbarmory/go-net) package provides drivers for
+TCP/IP connectivity.
+
 Build tags
 ==========
 

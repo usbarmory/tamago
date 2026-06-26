@@ -58,7 +58,8 @@ Go distribution supporting `GOOS=tamago`
 
 The [tamago](https://github.com/usbarmory/tamago/tree/latest/cmd/tamago)
 command downloads, compiles, and runs the `go` command from the
-[TamaGo distribution](https://github.com/usbarmory/tamago-go) matching the                                                                                                                                          tamago module version from the application `go.mod`.
+[TamaGo distribution](https://github.com/usbarmory/tamago-go) matching the
+tamago module version from the application `go.mod`.
 
 Applications can add `github.com/usbarmory/tamago` to `go.mod`, and then
 replace the `go` command with:
@@ -111,6 +112,9 @@ GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARCH=amd64 \
 An example application, targeting the Google Cloud Platform platform,
 is [available](https://github.com/usbarmory/tamago-example).
 
+The [go-net](https://github.com/usbarmory/go-net) package provides drivers for
+TCP/IP connectivity.
+
 Build tags
 ==========
 
@@ -128,11 +132,12 @@ reference usage and a Makefile target for automatic creation of an ELF image,
 paravirtualized execution on Google Compute Engine can be accomplished through a
 [boot disk image](https://github.com/usbarmory/tamago-example/tree/master/tools).
 
-The [uefi/x64](https://github.com/usbarmory/go-boot/tree/main/uefi/x64) package
-[can be used as an alternative](https://github.com/usbarmory/go-boot/wiki/Google-Compute-Engine).
-
 The Google Cloud Compute instance machine type verified with this package is
 T2D.
+
+The [uefi/x64](https://github.com/usbarmory/go-boot/tree/main/uefi/x64) package
+can be used as an alternative to run under [UEFI capable GCP VMs](https://github.com/usbarmory/go-boot/wiki/Google-Compute-Engine)
+and is required for execution under [GCP Confidential VMs](https://github.com/usbarmory/go-boot/wiki/Google-Compute-Engine-(AMD-SEV%E2%80%90SNP)).
 
 QEMU
 ----

@@ -60,16 +60,10 @@ type CPU struct {
 	// LAPIC represents the Local APIC instance
 	LAPIC *lapic.LAPIC
 
-	// aps represents the Application Processors on symmetric
-	// multiprocessing (SMP systems, it is populated by [CPU.InitSMP] with
-	// the available number of additional cores.
-	aps []*CPU
 	// init represents the last initialized CPU index
 	init int
-
 	// features
 	features Features
-
 	// core frequency in Hz
 	freq uint32
 }
@@ -94,6 +88,10 @@ func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
 func (cpu *CPU) Init() {
 	goos.Exit = exit
 	goos.Idle = cpu.DefaultIdleGovernor
+
+	goos.ProcID = func() uint64 {
+		return 0
+	}
 
 	// Local APIC
 	cpu.LAPIC = &lapic.LAPIC{

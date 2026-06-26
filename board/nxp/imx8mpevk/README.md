@@ -112,6 +112,9 @@ GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARCH=arm64 \
 An example application, targeting the 8MPLUSLPD4-EVK platform,
 is [available](https://github.com/usbarmory/tamago-example).
 
+The [go-net](https://github.com/usbarmory/go-net) package provides drivers for
+TCP/IP connectivity.
+
 Build tags
 ==========
 

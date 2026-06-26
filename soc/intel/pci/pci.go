@@ -48,6 +48,8 @@ type Device struct {
 	Vendor uint16
 	// Device ID
 	Device uint16
+	// Revision ID
+	Revision uint8
 
 	// PCI Slot
 	Slot uint32
@@ -107,6 +109,7 @@ func (d *Device) probe() bool {
 	}
 
 	d.Device = uint16(val >> 16)
+	d.Revision = uint8(d.Read(0, RevisionID))
 
 	return true
 }

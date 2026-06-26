@@ -114,6 +114,9 @@ Two examples application, targeting the QEMU microvm platform, are available:
 [tamago-sev-example](https://github.com/usbarmory/tamago-sev-example)
 (confidential KVM with AMD SEV-SNP).
 
+The [go-net](https://github.com/usbarmory/go-net) package provides drivers for
+TCP/IP connectivity.
+
 Build tags
 ==========
 
@@ -129,6 +132,10 @@ Executing and debugging
 The [example application](https://github.com/usbarmory/tamago-example) provides
 reference usage and a Makefile target for automatic creation of an ELF image as
 well as paravirtualized execution.
+
+The [uefi/x64](https://github.com/usbarmory/go-boot/tree/main/uefi/x64) package
+can be used as an alternative to run under UEFI and is required for execution
+under [AMD Secure Encrypted Virtualization (SEV)](https://www.qemu.org/docs/master/system/i386/amd-memory-encryption.html).
 
 QEMU
 ----

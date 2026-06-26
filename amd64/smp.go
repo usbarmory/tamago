@@ -109,6 +109,10 @@ func (cpu *CPU) ID() uint64 {
 // The function is not required when using [CPU.InitSMP], which invokes it, as
 // it is exported for applications that initialize APs by other means.
 func (cpu *CPU) GOMAXPROCS(n int) int {
+	if cpu.init > 0 {
+		return runtime.GOMAXPROCS(n)
+	}
+
 	// wait for all APs to reach ·apstart idle state
 	if reg.WaitFor(1*time.Second, taskAddress, 0, 0xffffffff, uint32(n-1)) {
 		goos.ProcID = cpu.ID
