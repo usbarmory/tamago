@@ -6,7 +6,12 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// https://www.kernel.org/doc/html/latest/networking/device_drivers/ethernet/google/gve.html
+// Package gvnic implements a driver for Google Compute Engine Virtual Ethernet
+// (gVNIC) virtual network interfaces.
+//
+// This package is only meant to be used with `GOOS=tamago` as
+// supported by the TamaGo framework for bare metal Go, see
+// https://github.com/usbarmory/tamago.
 package gvnic
 
 import (
@@ -79,7 +84,7 @@ type GVE struct {
 	// initialized to the global DMA region if unset during [GVE.Init].
 	//
 	// It can be used to override the global DMA region as needed, for
-	// example to specify an unencrypted memory region when running in a
+	// example to specify an unencrypted memory region when running in
 	// Confidential VMs.
 	Region *dma.Region
 
