@@ -11,7 +11,7 @@ Introduction
 ============
 
 TamaGo is a framework that enables compilation and execution of unencumbered Go
-applications on bare metal processors (AMD64, ARM, ARM64, RISCV64).
+applications on bare metal processors (AMD64, ARM, ARM64, RISCV64, LOONG64).
 
 The projects spawns from the desire of reducing the attack surface of embedded
 systems firmware by removing any runtime dependency on C code and Operating
@@ -117,6 +117,16 @@ The following table summarizes currently supported RISC-V SoCs and boards
 | AI Foundry Erbium   | [erbium_emu](https://github.com/aifoundry-org/et-platform)                    | [erbium](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/erbium) | [erbium_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/erbium_emu) |
 | AI Foundry ET-SoC-1 | [sys_emu](https://github.com/aifoundry-org/et-platform/tree/master/sw-sysemu) | [etsoc1](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/etsoc1) | [sys_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/sys_emu)       |
 
+Supported LoongArch targets
+===========================
+
+The following table summarizes currently supported LoongArch SoCs and boards
+(`GOOS=tamago GOARCH=loong64`).
+
+| SoC             | Board                                                                    | SoC package                                                                       | Board package                                                                |
+|-----------------|--------------------------------------------------------------------------|-----------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| Loongson 3A5000 | [QEMU virt](https://www.qemu.org/docs/master/system/loongarch/virt.html) | [ls3a5000](https://github.com/usbarmory/tamago/tree/master/soc/loongson/ls3a5000) | [qemu/virt](https://github.com/usbarmory/tamago/tree/master/board/qemu/virt) |
+
 Userspace targets
 =================
 
@@ -220,6 +230,9 @@ GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" ma
 
 # Example for AI Foundry Erbium
 GOOS=tamago GOARCH=riscv64 GOSOFT=1 ${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main.go
+
+# Example for QEMU LoongArch virt
+GOOS=tamago GOARCH=loong64 ${TAMAGO} build -ldflags "-T 0x1000000 -R 0x1000" main.go
 
 # Example for Linux userspace
 GOOS=tamago ${TAMAGO} build main.go
