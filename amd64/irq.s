@@ -125,7 +125,7 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 	// wake idle APs
 	MOVL	$(const_LAPIC_ICRL), AX
 	MOVL	$(const_ICR_DST_REST|const_IRQ_WAKEUP), (AX)
-done:
+
 	// restore caller registers
 	POPQ	AX
 	POPQ	CX

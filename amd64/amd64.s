@@ -13,7 +13,7 @@
 DATA	·gdt+0x00(SB)/8, $0x0000000000000000	// null descriptor
 DATA	·gdt+0x08(SB)/8, $0x00209a0000000000	// code descriptor (x/r)
 DATA	·gdt+0x10(SB)/8, $0x0000920000000000	// data descriptor (r/w)
-GLOBL	·gdt(SB),RODATA,$24
+GLOBL	·gdt(SB),RODATA,$(3*8)
 
 // Global Descriptor Table Register
 DATA	·gdtptr+0x00(SB)/2, $(3*8-1)		// GDT Limit
