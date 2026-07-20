@@ -10,7 +10,7 @@ Copyright (c) The TamaGo Authors. All Rights Reserved.
 Authors
 =======
 
-Marvin Drees
+Marvin Drees  
 marvin.drees@9elements.com
 
 Introduction

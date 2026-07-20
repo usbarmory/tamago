@@ -111,11 +111,13 @@ Supported RISC-V targets
 The following table summarizes currently supported RISC-V SoCs and boards
 (`GOOS=tamago GOARCH=riscv64`).
 
-| SoC                 | Board                                                                         | SoC package                                                                    | Board package                                                                            |
-|---------------------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
-| SiFive FU540        | [QEMU sifive_u](https://www.qemu.org/docs/master/system/riscv/sifive_u.html)  | [fu540](https://github.com/usbarmory/tamago/tree/master/soc/sifive/fu540)      | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u)     |
-| AI Foundry Erbium   | [erbium_emu](https://github.com/aifoundry-org/et-platform)                    | [erbium](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/erbium) | [erbium_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/erbium_emu) |
-| AI Foundry ET-SoC-1 | [sys_emu](https://github.com/aifoundry-org/et-platform/tree/master/sw-sysemu) | [etsoc1](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/etsoc1) | [sys_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/sys_emu)       |
+| SoC                 | Board                                                                         | SoC package                                                                       | Board package                                                                            |
+|---------------------|-------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| AI Foundry Erbium   | [erbium_emu](https://github.com/aifoundry-org/et-platform)                    | [erbium](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/erbium)    | [erbium_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/erbium_emu) |
+| AI Foundry ET-SoC-1 | [sys_emu](https://github.com/aifoundry-org/et-platform/tree/master/sw-sysemu) | [etsoc1](https://github.com/usbarmory/tamago/tree/master/soc/aifoundry/etsoc1)    | [sys_emu](https://github.com/usbarmory/tamago/tree/master/board/aifoundry/sys_emu)       |
+| Fisilink FSL91030   | [MilkV Vega](https://milkv.io/vega)                                           | [fsl91030](https://github.com/usbarmory/tamago/tree/master/soc/fisilink/fsl91030) | [vega](https://github.com/usbarmory/tamago/tree/master/board/milkv/vega)                 |
+| Fisilink FSL91030   | [Nuclei QEMU](https://doc.nucleisys.com/nuclei_tools/qemu/index.html)         | [fsl91030](https://github.com/usbarmory/tamago/tree/master/soc/fisilink/fsl91030) | [eval_soc](https://github.com/usbarmory/tamago/tree/master/board/nuclei/eval_soc)        |
+| SiFive FU540        | [QEMU sifive_u](https://www.qemu.org/docs/master/system/riscv/sifive_u.html)  | [fu540](https://github.com/usbarmory/tamago/tree/master/soc/sifive/fu540)         | [qemu/sifive_u](https://github.com/usbarmory/tamago/tree/master/board/qemu/sifive_u)     |
 
 Userspace targets
 =================
