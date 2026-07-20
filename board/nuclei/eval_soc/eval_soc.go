@@ -24,13 +24,13 @@ package eval_soc
 import (
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/soc/fisilink/fsl91030"
+	fsl "github.com/usbarmory/tamago/soc/fisilink/fsl91030"
 )
 
 // Peripheral instances
 var (
-	UART0 = fsl91030.UART0
-	UART1 = fsl91030.UART1
+	UART0 = fsl.UART0
+	UART1 = fsl.UART1
 )
 
 // Init takes care of the lower level initialization triggered early in runtime
@@ -40,8 +40,8 @@ var (
 func Init() {
 	// initialize the RISC-V core; the emulator does not model the GPIO
 	// block, so UART pinmux (required only on real hardware) is skipped.
-	fsl91030.RV64.Init()
+	fsl.RV64.Init()
 
 	// initialize serial console
-	fsl91030.UART0.Init()
+	fsl.UART0.Init()
 }

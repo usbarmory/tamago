@@ -13,10 +13,10 @@ package eval_soc
 import (
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/soc/fisilink/fsl91030"
+	fsl "github.com/usbarmory/tamago/soc/fisilink/fsl91030"
 )
 
 //go:linkname printk runtime/goos.Printk
 func printk(c byte) {
-	fsl91030.UART0.Tx(c)
+	fsl.UART0.Tx(c)
 }
