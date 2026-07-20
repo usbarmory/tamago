@@ -205,12 +205,7 @@ func (hw *FLEXCOM) Write(buf []byte) (n int, _ error) {
 
 // Read available data to buffer from serial port.
 func (hw *FLEXCOM) Read(buf []byte) (n int, _ error) {
-	if len(buf) == 0 {
-		return
-	}
-
-	buf[0], _ = hw.Rx(true)
-	n = 1
+	block := true
 
 	for n < len(buf) {
 		c, valid := hw.Rx(false)
@@ -221,6 +216,10 @@ func (hw *FLEXCOM) Read(buf []byte) (n int, _ error) {
 
 		buf[n] = c
 		n++
+
+		if n == 1 {
+			block = false
+		}
 	}
 
 	return
