@@ -47,7 +47,7 @@ func exit(int32)
 func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
 	// we have nothing to do forever
 	if pollUntil == math.MaxInt64 {
-		exit(0)
+		cpu.WaitInterrupt()
 	}
 }
 
