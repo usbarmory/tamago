@@ -14,18 +14,150 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
+// Translation tables are placed at the start of RAM, together with the
+// exception vector table (see initVectorTable), below the text region:
+//
+//	0x0000 exception vector table
+//	0x4000 L1 table
+//	0x5000 L2 table covering the first 1GB block
+//	0x6000 L3 table covering the first 2MB block
+//	0x7000 arena for tables splitting mixed blocks
+//
+// Each boundary at RAM start, RAM end or text end can require one L2 and
+// one L3 arena table, therefore binaries must be linked at least 0xd000
+// bytes past the start of RAM.
 const (
-	l1pageTableOffset = 0x4000
-	l1pageTableSize   = 512
+	l1pageTableOffset    = 0x4000
+	l2pageTableOffset    = 0x5000
+	l3pageTableOffset    = 0x6000
+	pageTableArenaOffset = 0x7000
 
-	l2pageTableOffset = 0x5000
-	l2pageTableSize   = 512
-
-	// another L2 table is appended at 0x6000
-
-	l3pageTableOffset = 0x7000
-	l3pageTableSize   = 512
+	pageTableSize   = 0x1000 // 512 8-byte entries per 4KB granule
+	entriesPerTable = pageTableSize / 8
 )
+
+// mmuMap tracks the memory region boundaries relevant to attribute
+// classification, along with the arena from which tables splitting mixed
+// blocks are allocated.
+type mmuMap struct {
+	ramStart  uint64
+	ramEnd    uint64
+	textStart uint64
+	textEnd   uint64
+
+	arenaNext uint64
+	arenaEnd  uint64
+}
+
+type mappingAction uint8
+
+const (
+	mappingDevice mappingAction = iota
+	mappingMemoryExec
+	mappingMemoryXN
+	mappingSplit
+)
+
+func alignDown(addr uint64, align uint64) uint64 {
+	return addr &^ (align - 1)
+}
+
+func alignUp(addr uint64, align uint64) uint64 {
+	return alignDown(addr+align-1, align)
+}
+
+func newMMUMap() mmuMap {
+	ramStart, ramEnd := runtime.MemRegion()
+	textStart, textEnd := runtime.TextRegion()
+
+	if textStart >= textEnd {
+		panic("empty text region")
+	}
+
+	if ramStart&(pageTableSize-1) != 0 || ramEnd&(pageTableSize-1) != 0 {
+		panic("RAM region not 4KB aligned")
+	}
+
+	m := mmuMap{
+		ramStart:  ramStart,
+		ramEnd:    ramEnd,
+		textStart: alignDown(textStart, pageTableSize),
+		textEnd:   alignUp(textEnd, pageTableSize),
+	}
+
+	if m.textStart < ramStart || m.textEnd > ramEnd {
+		panic("text region outside RAM")
+	}
+
+	m.arenaNext = ramStart + pageTableArenaOffset
+	m.arenaEnd = m.textStart
+
+	if m.arenaNext >= m.arenaEnd {
+		panic("empty early page table space; link binary higher in RAM")
+	}
+
+	return m
+}
+
+// alloc returns the next free arena table, callers must initialize all of
+// its entries.
+func (m *mmuMap) alloc() uint64 {
+	addr := m.arenaNext
+
+	if addr+pageTableSize > m.arenaEnd {
+		panic("out of early page table space; link binary higher in RAM")
+	}
+	m.arenaNext += pageTableSize
+
+	return addr
+}
+
+func (m *mmuMap) classifyBlock(addr uint64, end uint64) mappingAction {
+	if addr >= m.ramStart && end <= m.ramEnd {
+		// The exception vector table is placed at ramStart (see
+		// initVectorTable), which is below textStart. RAM up to textEnd
+		// must therefore stay executable: if the vector table page were
+		// execute-never the first exception taken would fault fetching
+		// its own vector and nest forever. Only RAM strictly above the
+		// text region is mapped execute-never.
+		switch {
+		case end <= m.textEnd:
+			return mappingMemoryExec
+		case addr >= m.textEnd:
+			return mappingMemoryXN
+		default:
+			return mappingSplit
+		}
+	} else if addr < m.ramEnd && end > m.ramStart {
+		return mappingSplit
+	}
+
+	return mappingDevice
+}
+
+func (m *mmuMap) classifyPage(addr uint64) mappingAction {
+	end := addr + pageTableSize
+	action := m.classifyBlock(addr, end)
+
+	if action == mappingSplit {
+		panic("MMU boundary is not 4KB aligned")
+	}
+
+	return action
+}
+
+func writeMapping(page uint64, addr uint64, memoryRegion uint64, deviceRegion uint64, action mappingAction) {
+	switch action {
+	case mappingMemoryExec:
+		reg.Write64(page, addr|memoryRegion)
+	case mappingMemoryXN:
+		reg.Write64(page, addr|memoryRegion|TTE_EXECUTE_NEVER)
+	case mappingDevice:
+		reg.Write64(page, addr|deviceRegion|TTE_EXECUTE_NEVER)
+	default:
+		panic("invalid MMU mapping action")
+	}
+}
 
 // Memory region attributes
 //
@@ -107,114 +239,87 @@ func set_ttbr0_el1(addr uint64)
 
 // ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 // D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats.
-func (cpu *CPU) initL1Table(entry int, ttbr uint64, section uint64) {
+func (m *mmuMap) initL1Table(entry int, ttbr uint64, section uint64) {
 	n := 30 // 1GB
-
-	ramStart, ramEnd := runtime.MemRegion()
-	_, textEnd := runtime.TextRegion()
 
 	memoryRegion := memoryAttributes | TTE_BLOCK
 	deviceRegion := deviceAttributes | TTE_BLOCK
 
-	for i := uint64(entry); i < l1pageTableSize; i++ {
+	for i := uint64(entry); i < entriesPerTable; i++ {
 		page := ttbr + 8*i
 		addr := section + (i << n)
+		end := addr + (1 << n)
+		action := m.classifyBlock(addr, end)
 
-		switch {
-		case addr < textEnd && (addr+(1<<n)) > textEnd:
-			// skip first L2 table, pointing to L3
-			l2pageTableStart := ramStart + l2pageTableOffset
-			base := l2pageTableStart + l2pageTableSize*8
-
-			// use L2 table to end non-executable boundary
-			// precisely at textStart
-			reg.Write64(page, base|TTE_TABLE)
-			cpu.initL2Table(0, base, addr)
-		case addr >= ramStart && addr < textEnd:
-			reg.Write64(page, addr|memoryRegion)
-		case addr >= ramStart && addr < ramEnd:
-			reg.Write64(page, addr|memoryRegion|TTE_EXECUTE_NEVER)
-		default:
-			reg.Write64(page, addr|deviceRegion|TTE_EXECUTE_NEVER)
+		if action == mappingSplit {
+			next := m.alloc()
+			reg.Write64(page, next|TTE_TABLE)
+			m.initL2Table(0, next, addr)
+		} else {
+			writeMapping(page, addr, memoryRegion, deviceRegion, action)
 		}
 	}
 }
 
 // ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 // D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats.
-func (cpu *CPU) initL2Table(entry int, base uint64, section uint64) {
+func (m *mmuMap) initL2Table(entry int, base uint64, section uint64) {
 	n := 21 // 2MB
-
-	ramStart, ramEnd := runtime.MemRegion()
-	_, textEnd := runtime.TextRegion()
 
 	memoryRegion := memoryAttributes | TTE_BLOCK
 	deviceRegion := deviceAttributes | TTE_BLOCK
 
-	for i := uint64(entry); i < l2pageTableSize; i++ {
+	for i := uint64(entry); i < entriesPerTable; i++ {
 		page := base + 8*i
 		addr := section + (i << n)
+		end := addr + (1 << n)
+		action := m.classifyBlock(addr, end)
 
-		switch {
-		case addr < textEnd && (addr+(1<<n)) > textEnd:
-			// skip first L3 table, reserved to trap null pointers
-			l3pageTableStart := ramStart + l3pageTableOffset
-			base := l3pageTableStart + l3pageTableSize*8
-
-			// use L3 table to end non-executable boundary
-			// precisely at textStart
-			reg.Write64(page, base|TTE_TABLE)
-			cpu.initL3Table(0, base, addr)
-		case addr >= ramStart && addr < textEnd:
-			reg.Write64(page, addr|memoryRegion)
-		case addr >= ramStart && addr < ramEnd:
-			reg.Write64(page, addr|memoryRegion|TTE_EXECUTE_NEVER)
-		default:
-			reg.Write64(page, addr|deviceRegion|TTE_EXECUTE_NEVER)
+		if action == mappingSplit {
+			next := m.alloc()
+			reg.Write64(page, next|TTE_TABLE)
+			m.initL3Table(0, next, addr)
+		} else {
+			writeMapping(page, addr, memoryRegion, deviceRegion, action)
 		}
 	}
 }
 
 // ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 // D5.3.2 ARMv8 translation table level 3 descriptor formats.
-func (cpu *CPU) initL3Table(entry int, base uint64, section uint64) {
+func (m *mmuMap) initL3Table(entry int, base uint64, section uint64) {
 	n := 12 // 4KB
-
-	ramStart, ramEnd := runtime.MemRegion()
-	_, textEnd := runtime.TextRegion()
 
 	memoryRegion := memoryAttributes | TTE_PAGE
 	deviceRegion := deviceAttributes | TTE_PAGE
 
-	for i := uint64(entry); i < l3pageTableSize; i++ {
+	for i := uint64(entry); i < entriesPerTable; i++ {
 		page := base + 8*i
 		addr := section + (i << n)
 
-		switch {
-		case addr >= ramStart && addr < textEnd:
-			reg.Write64(page, addr|memoryRegion)
-		case addr >= ramStart && addr < ramEnd:
-			reg.Write64(page, addr|memoryRegion|TTE_EXECUTE_NEVER)
-		default:
-			reg.Write64(page, addr|deviceRegion|TTE_EXECUTE_NEVER)
-		}
+		writeMapping(page, addr, memoryRegion, deviceRegion, m.classifyPage(addr))
 	}
 }
 
-// InitMMU initializes the first-level translation tables for all available
-// memory with a flat mapping and privileged attribute flags.
+// InitMMU builds and enables an identity map for the EL1&0 translation regime.
 //
 // The first 4096 bytes (0x00000000 - 0x00001000) are flagged as invalid to
 // trap null pointers.
 //
-// All available memory is marked as non-executable except for the range
-// returned by runtime.TextRegion().
+// Runtime RAM is mapped as normal cacheable memory. RAM through the end of the
+// text region remains executable because it contains the exception vectors at
+// RamStart; RAM above text and all device mappings are execute-never. Mappings
+// descend to 2MB or 4KB granularity when RAM or executable boundaries fall
+// inside a larger block.
+//
+// The caller enters with MMU disabled. set_ttbr0_el1 installs TTBR0_EL1,
+// invalidates stale TLB entries, and enables MMU, D-cache, and I-cache.
 func (cpu *CPU) InitMMU() {
-	ramStart, _ := runtime.MemRegion()
+	m := newMMUMap()
 
-	l1pageTableStart := ramStart + l1pageTableOffset
-	l2pageTableStart := ramStart + l2pageTableOffset
-	l3pageTableStart := ramStart + l3pageTableOffset
+	l1pageTableStart := m.ramStart + l1pageTableOffset
+	l2pageTableStart := m.ramStart + l2pageTableOffset
+	l3pageTableStart := m.ramStart + l3pageTableOffset
 
 	// Map the first L1 entry to an L2 table.
 	tte := l2pageTableStart | TTE_TABLE
@@ -229,9 +334,9 @@ func (cpu *CPU) InitMMU() {
 	reg.Write64(l3pageTableStart, 0)
 
 	// set remaining entries with flat mapping
-	cpu.initL1Table(1, l1pageTableStart, 0)
-	cpu.initL2Table(1, l2pageTableStart, 0)
-	cpu.initL3Table(1, l3pageTableStart, 0)
+	m.initL1Table(1, l1pageTableStart, 0)
+	m.initL2Table(1, l2pageTableStart, 0)
+	m.initL3Table(1, l3pageTableStart, 0)
 
 	// set memory region attributes
 	//   * attr0: device
