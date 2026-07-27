@@ -89,7 +89,7 @@ func Init() {
 
 	goos.Exit = func(_ int32) {
 		// shutdown_pio_address
-		reg.Out32(0x600, 0x34)
+		reg.Out8(0x600, 0x34)
 	}
 }
 
