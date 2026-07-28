@@ -211,6 +211,7 @@ const (
 const (
 	TCR_IPS   = 32
 	TCR_TBID  = 29
+	TCR_EPD1  = 23
 	TCR_TG0   = 14
 	TCR_SH0   = 12
 	TCR_ORGN0 = 10
@@ -219,6 +220,8 @@ const (
 
 	// 32-bit or 40-bit intermediate physical address size
 	tcr uint64 = 0b010<<TCR_IPS |
+		// disable TTBR1_EL1 translation table walks
+		0b1<<TCR_EPD1 |
 		// 4KB granule
 		0b00<<TCR_TG0 |
 		// inner shareable
