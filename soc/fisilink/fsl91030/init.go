@@ -19,5 +19,4 @@ var ramStackOffset uint64 = 0x100
 // setup (e.g. runtime/goos.Hwinit1).
 func Init() {
 	RV64.Init()
-	InitUARTPinmux()
 }

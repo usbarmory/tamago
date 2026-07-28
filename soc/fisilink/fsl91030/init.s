@@ -80,7 +80,6 @@
 #define MSTATUS_FS_INITIAL 13    // FS field low bit: 0b01 = Initial (FPU on)
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
-
 	// disable I/D cache before DDR init
 	MOV	$(1<<MCACHE_CTL_IC_EN | 1<<MCACHE_CTL_DC_EN), T0
 	WORD	$0x7ca2b073	// csrrc x0, CSR_MCACHE_CTL, t0

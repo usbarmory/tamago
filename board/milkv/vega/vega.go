@@ -18,13 +18,22 @@ package vega
 import (
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/soc/fisilink/fsl91030"
+	fsl "github.com/usbarmory/tamago/soc/fisilink/fsl91030"
+)
+
+// UART0 signals are routed to GPIO pin 16 (TX) and pin 17 (RX) via IOF0
+// connected to the onboard FTDI channel 0.
+const (
+	GPIO_UART0_TX = 16
+	GPIO_UART0_RX = 17
 )
 
 // Peripheral instances
 var (
-	UART0 = fsl91030.UART0
-	UART1 = fsl91030.UART1
+	// UART0 is the USB-C console
+	UART0 = fsl.UART0
+	// UART1 is the rear connector
+	UART1 = fsl.UART1
 )
 
 // Init takes care of the lower level initialization triggered early in runtime
@@ -33,8 +42,12 @@ var (
 //go:linkname Init runtime/goos.Hwinit1
 func Init() {
 	// initialize SoC (CPU, GPIO pinmux)
-	fsl91030.Init()
+	fsl.Init()
+
+	// route UART0 signals to physical pins
+	fsl.ConfigureGPIO(GPIO_UART0_TX, true)
+	fsl.ConfigureGPIO(GPIO_UART0_RX, true)
 
 	// initialize serial console
-	fsl91030.UART0.Init()
+	fsl.UART0.Init()
 }

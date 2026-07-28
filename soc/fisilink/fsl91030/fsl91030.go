@@ -35,7 +35,7 @@ const (
 	NUCLEI_TIMER_BASE = 0x2000000
 	CLINT_BASE        = NUCLEI_TIMER_BASE + 0x1000
 
-	// software reset key written to NUCLEI_TIMER_BASE+NUCLEI_TIMER_MSFTRST
+	// software reset key
 	NUCLEI_TIMER_MSFTRST     = 0xff0
 	NUCLEI_TIMER_MSFTRST_KEY = 0x80000a5f
 
@@ -45,13 +45,7 @@ const (
 	// DDR controller
 	DDR_BASE = 0x10019000
 
-	// GPIO block; the Nuclei UX600 variant places the IOF (I/O Function)
-	// registers at offsets 0x44 (enable) and 0x48 (select).
-	GPIO_BASE    = 0x10011000
-	GPIO_IOF_EN  = GPIO_BASE + 0x44
-	GPIO_IOF_SEL = GPIO_BASE + 0x48
-
-	// UART0 (USB-C console) and UART1 (rear connector)
+	// UARTs
 	UART0_BASE = 0x10013000
 	UART1_BASE = 0x10012000
 
@@ -106,26 +100,9 @@ var (
 	Watchdog = &WDT{Base: WDT_BASE}
 )
 
-// UART0 signals are routed to GPIO pin 16 (TX) and pin 17 (RX) via IOF0
-// connected to the onboard FTDI channel 0.
-const (
-	GPIO_UART0_TX = 16
-	GPIO_UART0_RX = 17
-)
-
 // uartClock returns the UART baud-generator input clock frequency.
 func uartClock() uint32 {
 	return UARTCLK
-}
-
-// InitUARTPinmux routes the UART0 signals to their physical pins by selecting
-// IOF0 (clearing the function select bit) and enabling the IOF override. Must
-// be called during board initialization before UART0 can be used.
-func InitUARTPinmux() {
-	reg.Clear(GPIO_IOF_SEL, GPIO_UART0_TX)
-	reg.Clear(GPIO_IOF_SEL, GPIO_UART0_RX)
-	reg.Set(GPIO_IOF_EN, GPIO_UART0_TX)
-	reg.Set(GPIO_IOF_EN, GPIO_UART0_RX)
 }
 
 // Model returns the SoC model name.
