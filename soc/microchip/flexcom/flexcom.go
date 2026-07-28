@@ -208,7 +208,7 @@ func (hw *FLEXCOM) Read(buf []byte) (n int, _ error) {
 	block := true
 
 	for n < len(buf) {
-		c, valid := hw.Rx(false)
+		c, valid := hw.Rx(block)
 
 		if !valid {
 			break
