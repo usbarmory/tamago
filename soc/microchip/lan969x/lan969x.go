@@ -61,6 +61,9 @@ const (
 	// CPU system registers
 	CPU_BASE = 0xe00c0000
 
+	// Chip Top registers
+	CHIP_TOP_BASE = 0xe2020000
+
 	// DDR base address
 	DDR_BASE = 0x60000000
 
@@ -197,6 +200,9 @@ var (
 		Base: OTPC_BASE,
 		Size: 16 * 1024,
 	}
+
+	// Temperature sensor
+	TEMP = &temp{}
 
 	// True Random Number Generator
 	TRNG = &trng.TRNG{
