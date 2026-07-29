@@ -14,31 +14,16 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
-// Translation tables are placed at the start of RAM, together with the
-// exception vector table (see initVectorTable), below the text region:
-//
-//	0x0000 exception vector table
-//	0x4000 L1 table
-//	0x5000 L2 table covering the first 1GB block
-//	0x6000 L3 table covering the first 2MB block
-//	0x7000 arena for tables splitting mixed blocks
-//
-// Each boundary at RAM start, RAM end or text end can require one L2 and
-// one L3 arena table, therefore binaries must be linked at least 0xd000
-// bytes past the start of RAM.
 const (
 	l1pageTableOffset    = 0x4000
 	l2pageTableOffset    = 0x5000
 	l3pageTableOffset    = 0x6000
 	pageTableArenaOffset = 0x7000
 
-	pageTableSize   = 0x1000 // 512 8-byte entries per 4KB granule
-	entriesPerTable = pageTableSize / 8
+	entriesPerTable = 512
+	pageTableSize   = entriesPerTable * 8
 )
 
-// mmuMap tracks the memory region boundaries relevant to attribute
-// classification, along with the arena from which tables splitting mixed
-// blocks are allocated.
 type mmuMap struct {
 	ramStart  uint64
 	ramEnd    uint64
@@ -66,19 +51,15 @@ func alignUp(addr uint64, align uint64) uint64 {
 	return alignDown(addr+align-1, align)
 }
 
-func newMMUMap() mmuMap {
+func newMMUMap() (m mmuMap) {
 	ramStart, ramEnd := runtime.MemRegion()
 	textStart, textEnd := runtime.TextRegion()
-
-	if textStart >= textEnd {
-		panic("empty text region")
-	}
 
 	if ramStart&(pageTableSize-1) != 0 || ramEnd&(pageTableSize-1) != 0 {
 		panic("RAM region not 4KB aligned")
 	}
 
-	m := mmuMap{
+	m = mmuMap{
 		ramStart:  ramStart,
 		ramEnd:    ramEnd,
 		textStart: alignDown(textStart, pageTableSize),
@@ -96,54 +77,51 @@ func newMMUMap() mmuMap {
 		panic("empty early page table space; link binary higher in RAM")
 	}
 
-	return m
+	return
 }
 
-// alloc returns the next free arena table, callers must initialize all of
-// its entries.
-func (m *mmuMap) alloc() uint64 {
-	addr := m.arenaNext
+func (m *mmuMap) alloc() (addr uint64) {
+	addr = m.arenaNext
 
 	if addr+pageTableSize > m.arenaEnd {
 		panic("out of early page table space; link binary higher in RAM")
 	}
+
 	m.arenaNext += pageTableSize
 
-	return addr
+	return
 }
 
-func (m *mmuMap) classifyBlock(addr uint64, end uint64) mappingAction {
-	if addr >= m.ramStart && end <= m.ramEnd {
-		// The exception vector table is placed at ramStart (see
-		// initVectorTable), which is below textStart. RAM up to textEnd
-		// must therefore stay executable: if the vector table page were
-		// execute-never the first exception taken would fault fetching
-		// its own vector and nest forever. Only RAM strictly above the
-		// text region is mapped execute-never.
-		switch {
-		case end <= m.textEnd:
-			return mappingMemoryExec
-		case addr >= m.textEnd:
-			return mappingMemoryXN
-		default:
-			return mappingSplit
-		}
-	} else if addr < m.ramEnd && end > m.ramStart {
-		return mappingSplit
+func (m *mmuMap) classifyBlock(addr uint64, end uint64) (action mappingAction) {
+	switch {
+	case addr >= m.ramStart && end <= m.textEnd:
+		// exception vector table
+		action = mappingMemoryExec
+	case addr >= m.textEnd && end <= m.ramEnd:
+		// runtime memory
+		action = mappingMemoryXN
+	case addr >= m.ramStart && end <= m.ramEnd:
+		// text/runtime boundary cross
+		action = mappingSplit
+	case addr < m.ramEnd && end > m.ramStart:
+		// RAM boundary cross
+		action = mappingSplit
+	default:
+		action = mappingDevice
 	}
 
-	return mappingDevice
+	return
 }
 
-func (m *mmuMap) classifyPage(addr uint64) mappingAction {
+func (m *mmuMap) classifyPage(addr uint64) (action mappingAction) {
 	end := addr + pageTableSize
-	action := m.classifyBlock(addr, end)
+	action = m.classifyBlock(addr, end)
 
 	if action == mappingSplit {
 		panic("MMU boundary is not 4KB aligned")
 	}
 
-	return action
+	return
 }
 
 func writeMapping(page uint64, addr uint64, memoryRegion uint64, deviceRegion uint64, action mappingAction) {
@@ -304,19 +282,14 @@ func (m *mmuMap) initL3Table(entry int, base uint64, section uint64) {
 	}
 }
 
-// InitMMU builds and enables an identity map for the EL1&0 translation regime.
+// InitMMU initializes translation tables for all available memory with a flat
+// mapping.
 //
 // The first 4096 bytes (0x00000000 - 0x00001000) are flagged as invalid to
 // trap null pointers.
 //
-// Runtime RAM is mapped as normal cacheable memory. RAM through the end of the
-// text region remains executable because it contains the exception vectors at
-// RamStart; RAM above text and all device mappings are execute-never. Mappings
-// descend to 2MB or 4KB granularity when RAM or executable boundaries fall
-// inside a larger block.
-//
-// The caller enters with MMU disabled. set_ttbr0_el1 installs TTBR0_EL1,
-// invalidates stale TLB entries, and enables MMU, D-cache, and I-cache.
+// All available memory is marked as non-executable except for the range
+// returned by runtime.TextRegion().
 func (cpu *CPU) InitMMU() {
 	m := newMMUMap()
 
