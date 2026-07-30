@@ -28,6 +28,7 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/gpio"
 	"github.com/usbarmory/tamago/soc/microchip/miim"
 	"github.com/usbarmory/tamago/soc/microchip/otpc"
+	"github.com/usbarmory/tamago/soc/microchip/temp"
 	"github.com/usbarmory/tamago/soc/microchip/trng"
 )
 
@@ -60,9 +61,6 @@ const (
 
 	// CPU system registers
 	CPU_BASE = 0xe00c0000
-
-	// Chip Top registers
-	CHIP_TOP_BASE = 0xe2020000
 
 	// DDR base address
 	DDR_BASE = 0x60000000
@@ -122,6 +120,9 @@ const (
 
 	// Rewriter
 	REW_BASE = 0xe2600000
+
+	// Temperature sensor control
+	TEMP_SENSOR_BASE = 0xe2020100
 
 	// True Random Number Generator
 	TRNG_BASE = 0xe0048000
@@ -202,7 +203,9 @@ var (
 	}
 
 	// Temperature sensor
-	TEMP = &temp{}
+	TEMP = &temp.SENSOR{
+		Base: TEMP_SENSOR_BASE,
+	}
 
 	// True Random Number Generator
 	TRNG = &trng.TRNG{
