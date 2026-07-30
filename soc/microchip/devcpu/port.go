@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+	"runtime"
 	"sync"
 
 	"github.com/usbarmory/tamago/internal/reg"
@@ -95,8 +96,9 @@ func (p *Port) Init() (err error) {
 	p.inj_wr = p.Queue + INJ_WR + groupOffset
 
 	// set manual injection/extraction for CPU queue
-	reg.SetN(p.Queue+INJ_GRP_CFG+groupOffset, CFG_MODE, 0b11, 1)
-	reg.SetN(p.Queue+XTR_GRP_CFG+groupOffset, CFG_MODE, 0b11, 1)
+	reg.Write(p.Queue+INJ_GRP_CFG+groupOffset, 1<<CFG_MODE|1<<CFG_BYTE_SWAP)
+	reg.Write(p.Queue+XTR_GRP_CFG+groupOffset, 1<<CFG_MODE|1<<CFG_STATUS_WORD_POS|1<<CFG_BYTE_SWAP)
+	reg.Write(p.Queue+XTR_FRM_PRUNING+groupOffset, 0)
 
 	// add physical address to MAC table
 	p.SetMAC(p.MAC)
@@ -119,19 +121,43 @@ func (p *Port) SetMAC(mac net.HardwareAddr) {
 	p.MAC = mac
 }
 
-func (p *Port) recv(buf []byte) (ok bool) {
-	switch val := reg.Read(p.xtr_rd); val {
-	case RD_EOF_UNUSED_0, RD_EOF_UNUSED_1, RD_EOF_UNUSED_2, RD_EOF_UNUSED_3:
-		return false
-	case RD_EOF_TRUNCATED, RD_EOF_ABORTED, RD_ESCAPE:
-		return false
-	case RD_NOT_READY:
-		return false
+func (p *Port) read() (val uint32) {
+	for {
+		if val = reg.Read(p.xtr_rd); val != RD_NOT_READY {
+			return
+		}
+
+		runtime.Gosched()
+	}
+}
+
+func (p *Port) recv(buf []byte) (eof bool, unused int, err error) {
+	val := p.read()
+
+	switch val {
+	case RD_EOF_UNUSED_0:
+		eof = true
+	case RD_EOF_UNUSED_1:
+		eof = true
+		unused = 1
+	case RD_EOF_UNUSED_2:
+		eof = true
+		unused = 2
+	case RD_EOF_UNUSED_3:
+		eof = true
+		unused = 3
+	case RD_EOF_TRUNCATED:
+		p.read()
+		err = errors.New("truncated frame")
+	case RD_EOF_ABORTED:
+		err = errors.New("aborted frame")
+	case RD_ESCAPE:
+		binary.LittleEndian.PutUint32(buf, p.read())
 	default:
 		binary.LittleEndian.PutUint32(buf, val)
 	}
 
-	return true
+	return
 }
 
 // Receive receives a single Ethernet frame from a port module.
@@ -140,37 +166,77 @@ func (p *Port) Receive(buf []byte) (n int, err error) {
 		return
 	}
 
+	var scratch [4]byte
+
 	// skip internal frame header
 	for i := 0; i < p.HeaderLength; i += 4 {
-		reg.Read(p.xtr_rd)
-	}
+		eof, _, recvErr := p.recv(scratch[:])
 
-	length := len(buf)
-	r := length % 4
+		switch {
+		case recvErr != nil:
+			err = recvErr
+		case eof:
+			err = errors.New("short frame header")
+		}
 
-	for i := 0; i < length-r; i += 4 {
-		if p.recv(buf[i:]) {
-			n += 4
-		} else {
+		if err != nil {
 			return
 		}
 	}
 
-	if r > 0 {
-		if b := make([]byte, 4); p.recv(b) {
-			copy(buf[length-r:], b)
-			n += r
+	padded := 0
 
-			// reach EOF
-			p.recv(b)
+	for {
+		dst := scratch[:]
+		direct := len(buf)-n >= len(scratch)
+
+		if direct {
+			dst = buf[n : n+len(scratch)]
+		}
+
+		eof, unused, recvErr := p.recv(dst)
+		if recvErr != nil {
+			err = recvErr
+			return
+		}
+
+		if eof {
+			if unused > padded {
+				n = 0
+				err = errors.New("invalid frame length")
+				return
+			}
+
+			length := padded - unused
+
+			switch {
+			case length == 0:
+				n = 0
+				err = errors.New("empty frame")
+			case length > len(buf):
+				err = errors.New("frame exceeds receive buffer")
+			default:
+				n = length
+			}
+
+			return
+		}
+
+		padded += len(scratch)
+
+		switch {
+		case direct:
+			n += len(scratch)
+		case n < len(buf):
+			n += copy(buf[n:], scratch[:])
 		}
 	}
-
-	return
 }
 
 // Transmit transmits a single Ethernet frame to a port module.
 func (p *Port) Transmit(buf []byte) (err error) {
+	valid := len(buf) % 4
+
 	// signal Start Of Frame
 	reg.Set(p.inj_ctrl, CTRL_SOF)
 
@@ -184,7 +250,7 @@ func (p *Port) Transmit(buf []byte) (err error) {
 	}
 
 	// set valid bytes of last word
-	reg.SetN(p.inj_ctrl, CTRL_VLD_BYTES, 0b11, uint32(len(buf)%4))
+	reg.SetN(p.inj_ctrl, CTRL_VLD_BYTES, 0b11, uint32(valid))
 
 	// signal End Of Frame
 	reg.Set(p.inj_ctrl, CTRL_EOF)
