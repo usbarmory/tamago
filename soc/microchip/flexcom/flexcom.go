@@ -38,6 +38,8 @@ const (
 	FLEX_US_CR    = 0x00
 	US_CR_FIFODIS = 31
 	US_CR_FIFOEN  = 30
+	US_CR_RXFCLR  = 25
+	US_CR_TXFCLR  = 24
 	US_CR_TXDIS   = 7
 	US_CR_TXEN    = 6
 	US_CR_RXDIS   = 5
@@ -66,6 +68,8 @@ const (
 
 	FLEX_US_BRGR = 0x20
 	US_BRGR_CD   = 0
+
+	FLEX_US_FMR = 0xa0
 )
 
 // FLEXCOM represents a Flexible Serial Communication controller instance.
@@ -91,6 +95,7 @@ type FLEXCOM struct {
 	us_rhr  uint32
 	us_thr  uint32
 	us_brgr uint32
+	us_fmr  uint32
 
 	rx chan bool
 }
@@ -114,6 +119,7 @@ func (hw *FLEXCOM) Init() {
 	hw.us_rhr = hw.Base + FLEX_USART_OFFSET + FLEX_US_RHR
 	hw.us_thr = hw.Base + FLEX_USART_OFFSET + FLEX_US_THR
 	hw.us_brgr = hw.Base + FLEX_USART_OFFSET + FLEX_US_BRGR
+	hw.us_fmr = hw.Base + FLEX_USART_OFFSET + FLEX_US_FMR
 
 	hw.setup()
 }
@@ -145,6 +151,12 @@ func (hw *FLEXCOM) setup() {
 	// set asynchronous mode (UART)
 	reg.ClearN(hw.us_mr, US_MR_SYNC, 1)
 
+	// single-data FIFOs
+	reg.Write(hw.us_fmr, 0)
+	reg.Write(hw.us_cr, 1<<US_CR_FIFOEN)
+	reg.Write(hw.us_cr, 1<<US_CR_RXFCLR)
+	reg.Write(hw.us_cr, 1<<US_CR_TXFCLR)
+
 	// enable Tx and RX
 	reg.Write(hw.us_cr, 1<<US_CR_RXEN)
 	reg.Write(hw.us_cr, 1<<US_CR_TXEN)
@@ -168,37 +180,27 @@ func (hw *FLEXCOM) Tx(c byte) {
 		// wait for TX FIFO to have room for a character
 	}
 
-	reg.Write(hw.us_thr, uint32(c))
+	reg.Write8(hw.us_thr, c)
 }
 
 // Rx receives a single character from the serial port, waiting for data to
 // become available if the argument is true.
 func (hw *FLEXCOM) Rx(block bool) (c byte, valid bool) {
-	if hw.rx != nil {
-		if block {
+	for {
+		if reg.GetN(hw.us_csr, US_CSR_RXRDY, 1) == 1 {
+			return reg.Read8(hw.us_rhr), true
+		}
+
+		if !block {
+			return
+		}
+
+		if hw.rx != nil {
 			<-hw.rx
 		} else {
-			select {
-			case <-hw.rx:
-			default:
-				return
-			}
-		}
-	}
-
-	if reg.GetN(hw.us_csr, US_CSR_RXRDY, 1) == 1 {
-		return byte(reg.Read(hw.us_rhr)), true
-	}
-
-	if block && hw.rx == nil {
-		for reg.GetN(hw.us_csr, US_CSR_RXRDY, 1) == 0 {
 			runtime.Gosched()
 		}
-
-		return byte(reg.Read(hw.us_rhr)), true
 	}
-
-	return
 }
 
 // Write data from buffer to serial port.

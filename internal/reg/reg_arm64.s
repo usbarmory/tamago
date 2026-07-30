@@ -20,6 +20,23 @@ TEXT ·Move(SB),$0-8
 
 	RET
 
+// func Read8(addr uint32) uint8
+TEXT ·Read8(SB),$0-9
+	MOVWU	addr+0(FP), R0
+	MOVBU	(R0), R1
+	MOVB	R1, ret+8(FP)
+
+	RET
+
+// func Write8(addr uint32, val uint8)
+TEXT ·Write8(SB),$0-5
+	MOVWU	addr+0(FP), R0
+	MOVBU	val+4(FP), R1
+
+	MOVB	R1, (R0)
+
+	RET
+
 // func Write(addr uint32, val uint32)
 TEXT ·Write(SB),$0-8
 	MOVWU	addr+0(FP), R0
