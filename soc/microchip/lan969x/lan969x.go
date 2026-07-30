@@ -28,6 +28,7 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/gpio"
 	"github.com/usbarmory/tamago/soc/microchip/miim"
 	"github.com/usbarmory/tamago/soc/microchip/otpc"
+	"github.com/usbarmory/tamago/soc/microchip/temp"
 	"github.com/usbarmory/tamago/soc/microchip/trng"
 )
 
@@ -120,6 +121,9 @@ const (
 	// Rewriter
 	REW_BASE = 0xe2600000
 
+	// Temperature sensor control
+	TEMP_SENSOR_BASE = 0xe2020100
+
 	// True Random Number Generator
 	TRNG_BASE = 0xe0048000
 
@@ -196,6 +200,11 @@ var (
 	OTPC = &otpc.OTPC{
 		Base: OTPC_BASE,
 		Size: 16 * 1024,
+	}
+
+	// Temperature sensor
+	TEMP = &temp.SENSOR{
+		Base: TEMP_SENSOR_BASE,
 	}
 
 	// True Random Number Generator
