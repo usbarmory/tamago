@@ -30,6 +30,7 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/otpc"
 	"github.com/usbarmory/tamago/soc/microchip/temp"
 	"github.com/usbarmory/tamago/soc/microchip/trng"
+	"github.com/usbarmory/tamago/soc/microchip/wdt"
 )
 
 // Ports defines the number of available Ethernet ports
@@ -132,6 +133,9 @@ const (
 
 	// Versatile OAM MEP Processor (VOP) block
 	VOP_BASE = 0xe2a00000
+
+	// Watchdog Timer
+	WDT_BASE = 0xe0090000
 )
 
 // Peripheral instances
@@ -210,5 +214,10 @@ var (
 	// True Random Number Generator
 	TRNG = &trng.TRNG{
 		Base: TRNG_BASE,
+	}
+
+	// Watchdog Timer
+	WDT = &wdt.WDT{
+		Base: WDT_BASE,
 	}
 )
