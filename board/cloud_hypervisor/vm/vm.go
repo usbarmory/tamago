@@ -28,8 +28,8 @@ import (
 )
 
 const (
-	dmaStart = 0x50000000
 	dmaSize  = 0x10000000 // 256MB
+	dmaStart = 0xc0000000 - dmaSize
 )
 
 // Peripheral registers
@@ -89,7 +89,7 @@ func Init() {
 
 	goos.Exit = func(_ int32) {
 		// shutdown_pio_address
-		reg.Out32(0x600, 0x34)
+		reg.Out8(0x600, 0x34)
 	}
 }
 

@@ -321,8 +321,7 @@ func (d *VirtualQueue) Pop(buf []byte) (n int, err error) {
 	d.Descriptors[avail.Index].Read(buf)
 
 	d.Available.SetRingIndex(d.Available.index%d.size, uint16(avail.Index))
-	d.Available.index += 1
-	d.Available.SetIndex(d.Available.index)
+	d.Available.SetIndex(d.Available.index + 1)
 
 	d.Used.last += 1
 
@@ -343,6 +342,5 @@ func (d *VirtualQueue) Push(buf []byte) {
 	d.Descriptors[index].Write(buf)
 	d.Available.SetRingIndex(d.Available.index%d.size, index)
 
-	d.Available.index++
-	d.Available.SetIndex(d.Available.index)
+	d.Available.SetIndex(d.Available.index + 1)
 }

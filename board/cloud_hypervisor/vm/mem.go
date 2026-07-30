@@ -20,4 +20,4 @@ import (
 // tamago `dma` package in external RAM.
 
 //go:linkname ramSize runtime/goos.RamSize
-var ramSize uint64 = 0x40000000 // 1GB
+var ramSize uint64 = 0xb0000000 - dmaSize // 2560 MiB
