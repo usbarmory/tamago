@@ -53,6 +53,7 @@ const (
 	US_MR_CHRL   = 6
 
 	FLEX_US_IER  = 0x08
+	FLEX_US_IDR  = 0x0c
 	IER_TXRDY_IE = 1
 	IER_RXRDY_IE = 0
 
@@ -85,6 +86,7 @@ type FLEXCOM struct {
 	us_cr   uint32
 	us_mr   uint32
 	us_ier  uint32
+	us_idr  uint32
 	us_csr  uint32
 	us_rhr  uint32
 	us_thr  uint32
@@ -107,6 +109,7 @@ func (hw *FLEXCOM) Init() {
 	hw.us_cr = hw.Base + FLEX_USART_OFFSET + FLEX_US_CR
 	hw.us_mr = hw.Base + FLEX_USART_OFFSET + FLEX_US_MR
 	hw.us_ier = hw.Base + FLEX_USART_OFFSET + FLEX_US_IER
+	hw.us_idr = hw.Base + FLEX_USART_OFFSET + FLEX_US_IDR
 	hw.us_csr = hw.Base + FLEX_USART_OFFSET + FLEX_US_CSR
 	hw.us_rhr = hw.Base + FLEX_USART_OFFSET + FLEX_US_RHR
 	hw.us_thr = hw.Base + FLEX_USART_OFFSET + FLEX_US_THR
@@ -129,10 +132,10 @@ func (hw *FLEXCOM) setup() {
 	reg.Write(hw.us_brgr, uint32(cd))
 
 	// reset the receiver and transmitter
-	reg.SetN(hw.us_cr, US_CR_RSTRX, 1, 1)
-	reg.SetN(hw.us_cr, US_CR_RSTTX, 1, 1)
-	reg.SetN(hw.us_cr, US_CR_RXDIS, 1, 1)
-	reg.SetN(hw.us_cr, US_CR_TXDIS, 1, 1)
+	reg.Write(hw.us_cr, 1<<US_CR_RSTRX)
+	reg.Write(hw.us_cr, 1<<US_CR_RSTTX)
+	reg.Write(hw.us_cr, 1<<US_CR_RXDIS)
+	reg.Write(hw.us_cr, 1<<US_CR_TXDIS)
 
 	// set 8N1 mode
 	reg.SetN(hw.us_mr, US_MR_PAR, 0b111, 4)
@@ -143,15 +146,19 @@ func (hw *FLEXCOM) setup() {
 	reg.ClearN(hw.us_mr, US_MR_SYNC, 1)
 
 	// enable Tx and RX
-	reg.SetN(hw.us_cr, US_CR_RXEN, 1, 1)
-	reg.SetN(hw.us_cr, US_CR_TXEN, 1, 1)
+	reg.Write(hw.us_cr, 1<<US_CR_RXEN)
+	reg.Write(hw.us_cr, 1<<US_CR_TXEN)
 }
 
-// EnableInterrupt enables interrupt generation for receive FIFOs. Once enabled
-// [FLEXCOM.Read] and [FLEXCOM.Rx] block, as required, on the argument channel
-// rather than polling for valid data.
+// EnableInterrupt configures interrupt-driven receive waits. A nil channel
+// disables receive interrupts and restores polling.
 func (hw *FLEXCOM) EnableInterrupt(rx chan bool) {
-	reg.SetTo(hw.us_ier, IER_RXRDY_IE, rx != nil)
+	if rx == nil {
+		reg.Write(hw.us_idr, 1<<IER_RXRDY_IE)
+	} else {
+		reg.Write(hw.us_ier, 1<<IER_RXRDY_IE)
+	}
+
 	hw.rx = rx
 }
 
