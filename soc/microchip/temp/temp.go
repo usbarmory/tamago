@@ -52,9 +52,9 @@ func (hw *SENSOR) Init() {
 	hw.Lock()
 	defer hw.Unlock()
 
-	reg.SetN(TEMP_SENSOR_CFG, CFG_CLK_CYCLES_1US, 0x1ff, TEMP_CLK_CYCLES_1US)
-	reg.Set(TEMP_SENSOR_CFG, CFG_CONTINUOUS_MODE)
-	reg.Set(TEMP_SENSOR_CFG, CFG_SAMPLE_ENA)
+	reg.SetN(hw.Base+TEMP_SENSOR_CFG, CFG_CLK_CYCLES_1US, 0x1ff, TEMP_CLK_CYCLES_1US)
+	reg.Set(hw.Base+TEMP_SENSOR_CFG, CFG_CONTINUOUS_MODE)
+	reg.Set(hw.Base+TEMP_SENSOR_CFG, CFG_SAMPLE_ENA)
 
 	hw.run = true
 }
@@ -65,11 +65,11 @@ func (hw *SENSOR) Read() (celsius float32, valid bool) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if !hw.run || !reg.Get(TEMP_SENSOR_STAT, STAT_TEMP_VALID) {
+	if !hw.run || !reg.Get(hw.Base+TEMP_SENSOR_STAT, STAT_TEMP_VALID) {
 		return
 	}
 
-	raw := reg.GetN(TEMP_SENSOR_STAT, STAT_TEMP, 0xfff)
+	raw := reg.GetN(hw.Base+TEMP_SENSOR_STAT, STAT_TEMP, 0xfff)
 
 	// p768, 3.47.11.17 Temperature Sensor, Microchip DS00005048E
 	celsius = float32(raw)/4096*352.3 - 109.4
