@@ -15,17 +15,127 @@ import (
 )
 
 const (
-	l1pageTableOffset = 0x4000
-	l1pageTableSize   = 512
+	l1pageTableOffset    = 0x4000
+	l2pageTableOffset    = 0x5000
+	l3pageTableOffset    = 0x6000
+	pageTableArenaOffset = 0x7000
 
-	l2pageTableOffset = 0x5000
-	l2pageTableSize   = 512
-
-	// another L2 table is appended at 0x6000
-
-	l3pageTableOffset = 0x7000
-	l3pageTableSize   = 512
+	entriesPerTable = 512
+	pageTableSize   = entriesPerTable * 8
 )
+
+type mmuMap struct {
+	ramStart  uint64
+	ramEnd    uint64
+	textStart uint64
+	textEnd   uint64
+
+	arenaNext uint64
+	arenaEnd  uint64
+}
+
+type mappingAction uint8
+
+const (
+	mappingDevice mappingAction = iota
+	mappingMemoryExec
+	mappingMemoryXN
+	mappingSplit
+)
+
+func alignDown(addr uint64, align uint64) uint64 {
+	return addr &^ (align - 1)
+}
+
+func alignUp(addr uint64, align uint64) uint64 {
+	return alignDown(addr+align-1, align)
+}
+
+func newMMUMap() (m mmuMap) {
+	ramStart, ramEnd := runtime.MemRegion()
+	textStart, textEnd := runtime.TextRegion()
+
+	if ramStart&(pageTableSize-1) != 0 || ramEnd&(pageTableSize-1) != 0 {
+		panic("RAM region not 4KB aligned")
+	}
+
+	m = mmuMap{
+		ramStart:  ramStart,
+		ramEnd:    ramEnd,
+		textStart: alignDown(textStart, pageTableSize),
+		textEnd:   alignUp(textEnd, pageTableSize),
+	}
+
+	if m.textStart < ramStart || m.textEnd > ramEnd {
+		panic("text region outside RAM")
+	}
+
+	m.arenaNext = ramStart + pageTableArenaOffset
+	m.arenaEnd = m.textStart
+
+	if m.arenaNext >= m.arenaEnd {
+		panic("empty early page table space; link binary higher in RAM")
+	}
+
+	return
+}
+
+func (m *mmuMap) alloc() (addr uint64) {
+	addr = m.arenaNext
+
+	if addr+pageTableSize > m.arenaEnd {
+		panic("out of early page table space; link binary higher in RAM")
+	}
+
+	m.arenaNext += pageTableSize
+
+	return
+}
+
+func (m *mmuMap) classifyBlock(addr uint64, end uint64) (action mappingAction) {
+	switch {
+	case addr >= m.ramStart && end <= m.textEnd:
+		// exception vector table
+		action = mappingMemoryExec
+	case addr >= m.textEnd && end <= m.ramEnd:
+		// runtime memory
+		action = mappingMemoryXN
+	case addr >= m.ramStart && end <= m.ramEnd:
+		// text/runtime boundary cross
+		action = mappingSplit
+	case addr < m.ramEnd && end > m.ramStart:
+		// RAM boundary cross
+		action = mappingSplit
+	default:
+		action = mappingDevice
+	}
+
+	return
+}
+
+func (m *mmuMap) classifyPage(addr uint64) (action mappingAction) {
+	end := addr + pageTableSize
+	action = m.classifyBlock(addr, end)
+
+	if action == mappingSplit {
+		panic("MMU boundary is not 4KB aligned")
+	}
+
+	return
+}
+
+func writeMapping(page uint64, addr uint64, memoryRegion uint64, deviceRegion uint64, action mappingAction) {
+	switch action {
+	case mappingMemoryExec:
+		reg.Write64(page, addr|memoryRegion)
+	case mappingMemoryXN:
+		reg.Write64(page, addr|memoryRegion|TTE_EXECUTE_NEVER)
+	case mappingDevice:
+		reg.Write64(page, addr|deviceRegion|TTE_EXECUTE_NEVER)
+	default:
+		panic("invalid MMU mapping action")
+	}
+}
 
 // Memory region attributes
 //
@@ -79,6 +189,7 @@ const (
 const (
 	TCR_IPS   = 32
 	TCR_TBID  = 29
+	TCR_EPD1  = 23
 	TCR_TG0   = 14
 	TCR_SH0   = 12
 	TCR_ORGN0 = 10
@@ -87,6 +198,8 @@ const (
 
 	// 32-bit or 40-bit intermediate physical address size
 	tcr uint64 = 0b010<<TCR_IPS |
+		// disable TTBR1_EL1 translation table walks
+		0b1<<TCR_EPD1 |
 		// 4KB granule
 		0b00<<TCR_TG0 |
 		// inner shareable
@@ -107,102 +220,70 @@ func set_ttbr0_el1(addr uint64)
 
 // ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 // D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats.
-func (cpu *CPU) initL1Table(entry int, ttbr uint64, section uint64) {
+func (m *mmuMap) initL1Table(entry int, ttbr uint64, section uint64) {
 	n := 30 // 1GB
-
-	ramStart, ramEnd := runtime.MemRegion()
-	_, textEnd := runtime.TextRegion()
 
 	memoryRegion := memoryAttributes | TTE_BLOCK
 	deviceRegion := deviceAttributes | TTE_BLOCK
 
-	for i := uint64(entry); i < l1pageTableSize; i++ {
+	for i := uint64(entry); i < entriesPerTable; i++ {
 		page := ttbr + 8*i
 		addr := section + (i << n)
+		end := addr + (1 << n)
+		action := m.classifyBlock(addr, end)
 
-		switch {
-		case addr < textEnd && (addr+(1<<n)) > textEnd:
-			// skip first L2 table, pointing to L3
-			l2pageTableStart := ramStart + l2pageTableOffset
-			base := l2pageTableStart + l2pageTableSize*8
-
-			// use L2 table to end non-executable boundary
-			// precisely at textStart
-			reg.Write64(page, base|TTE_TABLE)
-			cpu.initL2Table(0, base, addr)
-		case addr >= ramStart && addr < textEnd:
-			reg.Write64(page, addr|memoryRegion)
-		case addr >= ramStart && addr < ramEnd:
-			reg.Write64(page, addr|memoryRegion|TTE_EXECUTE_NEVER)
-		default:
-			reg.Write64(page, addr|deviceRegion|TTE_EXECUTE_NEVER)
+		if action == mappingSplit {
+			next := m.alloc()
+			reg.Write64(page, next|TTE_TABLE)
+			m.initL2Table(0, next, addr)
+		} else {
+			writeMapping(page, addr, memoryRegion, deviceRegion, action)
 		}
 	}
 }
 
 // ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 // D5.3.1 Translation table level 0, level 1, and level 2 descriptor formats.
-func (cpu *CPU) initL2Table(entry int, base uint64, section uint64) {
+func (m *mmuMap) initL2Table(entry int, base uint64, section uint64) {
 	n := 21 // 2MB
-
-	ramStart, ramEnd := runtime.MemRegion()
-	_, textEnd := runtime.TextRegion()
 
 	memoryRegion := memoryAttributes | TTE_BLOCK
 	deviceRegion := deviceAttributes | TTE_BLOCK
 
-	for i := uint64(entry); i < l2pageTableSize; i++ {
+	for i := uint64(entry); i < entriesPerTable; i++ {
 		page := base + 8*i
 		addr := section + (i << n)
+		end := addr + (1 << n)
+		action := m.classifyBlock(addr, end)
 
-		switch {
-		case addr < textEnd && (addr+(1<<n)) > textEnd:
-			// skip first L3 table, reserved to trap null pointers
-			l3pageTableStart := ramStart + l3pageTableOffset
-			base := l3pageTableStart + l3pageTableSize*8
-
-			// use L3 table to end non-executable boundary
-			// precisely at textStart
-			reg.Write64(page, base|TTE_TABLE)
-			cpu.initL3Table(0, base, addr)
-		case addr >= ramStart && addr < textEnd:
-			reg.Write64(page, addr|memoryRegion)
-		case addr >= ramStart && addr < ramEnd:
-			reg.Write64(page, addr|memoryRegion|TTE_EXECUTE_NEVER)
-		default:
-			reg.Write64(page, addr|deviceRegion|TTE_EXECUTE_NEVER)
+		if action == mappingSplit {
+			next := m.alloc()
+			reg.Write64(page, next|TTE_TABLE)
+			m.initL3Table(0, next, addr)
+		} else {
+			writeMapping(page, addr, memoryRegion, deviceRegion, action)
 		}
 	}
 }
 
 // ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 // D5.3.2 ARMv8 translation table level 3 descriptor formats.
-func (cpu *CPU) initL3Table(entry int, base uint64, section uint64) {
+func (m *mmuMap) initL3Table(entry int, base uint64, section uint64) {
 	n := 12 // 4KB
-
-	ramStart, ramEnd := runtime.MemRegion()
-	_, textEnd := runtime.TextRegion()
 
 	memoryRegion := memoryAttributes | TTE_PAGE
 	deviceRegion := deviceAttributes | TTE_PAGE
 
-	for i := uint64(entry); i < l3pageTableSize; i++ {
+	for i := uint64(entry); i < entriesPerTable; i++ {
 		page := base + 8*i
 		addr := section + (i << n)
 
-		switch {
-		case addr >= ramStart && addr < textEnd:
-			reg.Write64(page, addr|memoryRegion)
-		case addr >= ramStart && addr < ramEnd:
-			reg.Write64(page, addr|memoryRegion|TTE_EXECUTE_NEVER)
-		default:
-			reg.Write64(page, addr|deviceRegion|TTE_EXECUTE_NEVER)
-		}
+		writeMapping(page, addr, memoryRegion, deviceRegion, m.classifyPage(addr))
 	}
 }
 
-// InitMMU initializes the first-level translation tables for all available
-// memory with a flat mapping and privileged attribute flags.
+// InitMMU initializes translation tables for all available memory with a flat
+// mapping.
 //
 // The first 4096 bytes (0x00000000 - 0x00001000) are flagged as invalid to
 // trap null pointers.
@@ -210,11 +291,11 @@ func (cpu *CPU) initL3Table(entry int, base uint64, section uint64) {
 // All available memory is marked as non-executable except for the range
 // returned by runtime.TextRegion().
 func (cpu *CPU) InitMMU() {
-	ramStart, _ := runtime.MemRegion()
+	m := newMMUMap()
 
-	l1pageTableStart := ramStart + l1pageTableOffset
-	l2pageTableStart := ramStart + l2pageTableOffset
-	l3pageTableStart := ramStart + l3pageTableOffset
+	l1pageTableStart := m.ramStart + l1pageTableOffset
+	l2pageTableStart := m.ramStart + l2pageTableOffset
+	l3pageTableStart := m.ramStart + l3pageTableOffset
 
 	// Map the first L1 entry to an L2 table.
 	tte := l2pageTableStart | TTE_TABLE
@@ -229,9 +310,9 @@ func (cpu *CPU) InitMMU() {
 	reg.Write64(l3pageTableStart, 0)
 
 	// set remaining entries with flat mapping
-	cpu.initL1Table(1, l1pageTableStart, 0)
-	cpu.initL2Table(1, l2pageTableStart, 0)
-	cpu.initL3Table(1, l3pageTableStart, 0)
+	m.initL1Table(1, l1pageTableStart, 0)
+	m.initL2Table(1, l2pageTableStart, 0)
+	m.initL3Table(1, l3pageTableStart, 0)
 
 	// set memory region attributes
 	//   * attr0: device
