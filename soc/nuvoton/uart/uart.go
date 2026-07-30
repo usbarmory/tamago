@@ -84,7 +84,7 @@ func (hw *UART) Tx(c byte) {
 
 // Write data from buffer to serial port.
 func (hw *UART) Write(buf []byte) (n int, _ error) {
-	for _, c = range buf {
+	for _, c := range buf {
 		hw.Tx(c)
 	}
 
