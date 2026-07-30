@@ -23,10 +23,34 @@ import (
 	"net"
 	"runtime"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/soc/microchip/analyzer"
 )
+
+const (
+	injectionPollInterval = 1 * time.Millisecond
+	injectionTimeout      = 1 * time.Second
+	minimumFrameSize      = 60
+)
+
+// ErrorCounters represents frame path errors since the most recent call to
+// [Port.Init].
+type ErrorCounters struct {
+	RxTruncated         uint64
+	RxAborted           uint64
+	RxEmpty             uint64
+	RxOversized         uint64
+	RxInvalid           uint64
+	RxShortHeader       uint64
+	TxWatermarkTimeouts uint64
+	TxFIFOTimeouts      uint64
+	TxInitAborts        uint64
+	TxAborts            uint64
+	TxAbortTimeouts     uint64
+}
 
 // Port represents a CPU port module.
 type Port struct {
@@ -55,10 +79,26 @@ type Port struct {
 	// FID represents the VLAN filtering identifier
 	FID int
 
+	rxMu sync.Mutex
+	txMu sync.Mutex
+
+	rxTruncated         atomic.Uint64
+	rxAborted           atomic.Uint64
+	rxEmpty             atomic.Uint64
+	rxOversized         atomic.Uint64
+	rxInvalid           atomic.Uint64
+	rxShortHeader       atomic.Uint64
+	txWatermarkTimeouts atomic.Uint64
+	txFIFOTimeouts      atomic.Uint64
+	txInitAborts        atomic.Uint64
+	txAborts            atomic.Uint64
+	txAbortTimeouts     atomic.Uint64
+
 	// control registers
-	xtr_rd   uint32
-	inj_ctrl uint32
-	inj_wr   uint32
+	xtr_rd     uint32
+	inj_ctrl   uint32
+	inj_wr     uint32
+	inj_status uint32
 }
 
 // Init initializes a CPU port module.
@@ -69,6 +109,12 @@ func (p *Port) Init() (err error) {
 	if p.Queue == 0 {
 		return errors.New("invalid port instance")
 	}
+
+	if p.Group < 0 || p.Group > 1 {
+		return errors.New("invalid port group")
+	}
+
+	p.resetErrorCounters()
 
 	if p.MAC == nil {
 		p.MAC = make([]byte, 6)
@@ -94,14 +140,56 @@ func (p *Port) Init() (err error) {
 	p.xtr_rd = p.Queue + XTR_RD + groupOffset
 	p.inj_ctrl = p.Queue + INJ_CTRL + groupOffset
 	p.inj_wr = p.Queue + INJ_WR + groupOffset
+	p.inj_status = p.Queue + INJ_STATUS
 
 	// set manual injection/extraction for CPU queue
 	reg.Write(p.Queue+INJ_GRP_CFG+groupOffset, 1<<CFG_MODE|1<<CFG_BYTE_SWAP)
 	reg.Write(p.Queue+XTR_GRP_CFG+groupOffset, 1<<CFG_MODE|1<<CFG_STATUS_WORD_POS|1<<CFG_BYTE_SWAP)
 	reg.Write(p.Queue+XTR_FRM_PRUNING+groupOffset, 0)
 
+	// abort stale frame
+	if reg.Get(p.inj_status, INJ_STATUS_INJ_IN_PROGRESS+p.Group) {
+		p.txInitAborts.Add(1)
+
+		if !p.abortInjection() {
+			return errors.New("injection abort failed")
+		}
+	}
+
 	// add physical address to MAC table
 	p.SetMAC(p.MAC)
+
+	return
+}
+
+func (p *Port) resetErrorCounters() {
+	p.rxTruncated.Store(0)
+	p.rxAborted.Store(0)
+	p.rxEmpty.Store(0)
+	p.rxOversized.Store(0)
+	p.rxInvalid.Store(0)
+	p.rxShortHeader.Store(0)
+	p.txWatermarkTimeouts.Store(0)
+	p.txFIFOTimeouts.Store(0)
+	p.txInitAborts.Store(0)
+	p.txAborts.Store(0)
+	p.txAbortTimeouts.Store(0)
+}
+
+// ErrorCounters returns frame path errors since the most recent call to
+// [Port.Init].
+func (p *Port) ErrorCounters() (counters ErrorCounters) {
+	counters.RxTruncated = p.rxTruncated.Load()
+	counters.RxAborted = p.rxAborted.Load()
+	counters.RxEmpty = p.rxEmpty.Load()
+	counters.RxOversized = p.rxOversized.Load()
+	counters.RxInvalid = p.rxInvalid.Load()
+	counters.RxShortHeader = p.rxShortHeader.Load()
+	counters.TxWatermarkTimeouts = p.txWatermarkTimeouts.Load()
+	counters.TxFIFOTimeouts = p.txFIFOTimeouts.Load()
+	counters.TxInitAborts = p.txInitAborts.Load()
+	counters.TxAborts = p.txAborts.Load()
+	counters.TxAbortTimeouts = p.txAbortTimeouts.Load()
 
 	return
 }
@@ -148,8 +236,10 @@ func (p *Port) recv(buf []byte) (eof bool, unused int, err error) {
 		unused = 3
 	case RD_EOF_TRUNCATED:
 		p.read()
+		p.rxTruncated.Add(1)
 		err = errors.New("truncated frame")
 	case RD_EOF_ABORTED:
+		p.rxAborted.Add(1)
 		err = errors.New("aborted frame")
 	case RD_ESCAPE:
 		binary.LittleEndian.PutUint32(buf, p.read())
@@ -162,6 +252,9 @@ func (p *Port) recv(buf []byte) (eof bool, unused int, err error) {
 
 // Receive receives a single Ethernet frame from a port module.
 func (p *Port) Receive(buf []byte) (n int, err error) {
+	p.rxMu.Lock()
+	defer p.rxMu.Unlock()
+
 	if !reg.Get(p.Queue+XTR_DATA_PRESENT, p.Group) {
 		return
 	}
@@ -176,6 +269,7 @@ func (p *Port) Receive(buf []byte) (n int, err error) {
 		case recvErr != nil:
 			err = recvErr
 		case eof:
+			p.rxShortHeader.Add(1)
 			err = errors.New("short frame header")
 		}
 
@@ -203,6 +297,7 @@ func (p *Port) Receive(buf []byte) (n int, err error) {
 		if eof {
 			if unused > padded {
 				n = 0
+				p.rxInvalid.Add(1)
 				err = errors.New("invalid frame length")
 				return
 			}
@@ -212,8 +307,10 @@ func (p *Port) Receive(buf []byte) (n int, err error) {
 			switch {
 			case length == 0:
 				n = 0
+				p.rxEmpty.Add(1)
 				err = errors.New("empty frame")
 			case length > len(buf):
+				p.rxOversized.Add(1)
 				err = errors.New("frame exceeds receive buffer")
 			default:
 				n = length
@@ -233,20 +330,129 @@ func (p *Port) Receive(buf []byte) (n int, err error) {
 	}
 }
 
+func (p *Port) waitForInjection() (err error) {
+	group := uint32(1 << p.Group)
+	fifoReady := group << INJ_STATUS_FIFO_RDY
+	watermarkReached := group << INJ_STATUS_WMARK_REACHED
+	var deadline time.Time
+
+	for {
+		status := reg.Read(p.inj_status)
+		watermarked := status&watermarkReached != 0
+
+		if !watermarked && status&fifoReady != 0 {
+			return
+		}
+
+		now := time.Now()
+		if deadline.IsZero() {
+			deadline = now.Add(injectionTimeout)
+		} else if !now.Before(deadline) {
+			if watermarked {
+				p.txWatermarkTimeouts.Add(1)
+				return errors.New("injection watermark reached")
+			}
+
+			p.txFIFOTimeouts.Add(1)
+			return errors.New("injection FIFO not ready")
+		}
+
+		if watermarked {
+			time.Sleep(injectionPollInterval)
+		} else {
+			runtime.Gosched()
+		}
+	}
+}
+
+func (p *Port) write(val uint32) (err error) {
+	if reg.Get(p.inj_status, INJ_STATUS_FIFO_RDY+p.Group) {
+		reg.Write(p.inj_wr, val)
+		return
+	}
+
+	deadline := time.Now().Add(injectionTimeout)
+
+	for !reg.Get(p.inj_status, INJ_STATUS_FIFO_RDY+p.Group) {
+		if !time.Now().Before(deadline) {
+			p.txFIFOTimeouts.Add(1)
+			return errors.New("injection FIFO not ready")
+		}
+
+		runtime.Gosched()
+	}
+
+	reg.Write(p.inj_wr, val)
+	return
+}
+
+func (p *Port) abortInjection() (complete bool) {
+	reg.Set(p.inj_ctrl, CTRL_ABORT)
+
+	deadline := time.Now().Add(injectionTimeout)
+	for reg.Get(p.inj_status, INJ_STATUS_INJ_IN_PROGRESS+p.Group) {
+		if !time.Now().Before(deadline) {
+			p.txAbortTimeouts.Add(1)
+			return
+		}
+
+		runtime.Gosched()
+	}
+
+	return true
+}
+
 // Transmit transmits a single Ethernet frame to a port module.
 func (p *Port) Transmit(buf []byte) (err error) {
+	p.txMu.Lock()
+	defer p.txMu.Unlock()
+
+	if err = p.waitForInjection(); err != nil {
+		return
+	}
+
 	valid := len(buf) % 4
+	if len(buf) < minimumFrameSize {
+		valid = 0
+	}
 
 	// signal Start Of Frame
 	reg.Set(p.inj_ctrl, CTRL_SOF)
 
-	// pad to word size
-	if r := len(buf) % 4; r != 0 {
-		buf = append(buf, make([]byte, 4-r)...)
+	defer func() {
+		if err != nil {
+			p.txAborts.Add(1)
+			p.abortInjection()
+		}
+	}()
+
+	var scratch [4]byte
+	written := 0
+
+	for len(buf)-written >= len(scratch) {
+		if err = p.write(binary.LittleEndian.Uint32(buf[written:])); err != nil {
+			return
+		}
+
+		written += len(scratch)
 	}
 
-	for i := 0; i < len(buf); i += 4 {
-		reg.Write(p.inj_wr, binary.LittleEndian.Uint32(buf[i:]))
+	if written < len(buf) {
+		copy(scratch[:], buf[written:])
+
+		if err = p.write(binary.LittleEndian.Uint32(scratch[:])); err != nil {
+			return
+		}
+
+		written += len(scratch)
+	}
+
+	for written < minimumFrameSize {
+		if err = p.write(0); err != nil {
+			return
+		}
+
+		written += len(scratch)
 	}
 
 	// set valid bytes of last word
@@ -256,7 +462,6 @@ func (p *Port) Transmit(buf []byte) (err error) {
 	reg.Set(p.inj_ctrl, CTRL_EOF)
 
 	// add dummy CRC
-	reg.Write(p.inj_wr, 0)
-
+	err = p.write(0)
 	return
 }

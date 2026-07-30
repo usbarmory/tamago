@@ -107,6 +107,12 @@ const (
 	PORT_ENA              = 19
 )
 
+// Disassembler registers
+const (
+	DEV_TX_STOP_WM_CFG = DSM_CFG + 0x550
+	DEV_TX_CNT_CLR     = 0
+)
+
 // Assembler registers
 const (
 	PORT_CFG_BASE   = lan969x.ASM_BASE + 0x4780 + 0x21c

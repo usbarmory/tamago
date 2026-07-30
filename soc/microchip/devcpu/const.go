@@ -45,7 +45,13 @@ const (
 
 	INJ_CTRL       = INJ + 0x10
 	CTRL_GAP_SIZE  = 21
+	CTRL_ABORT     = 20
 	CTRL_EOF       = 19
 	CTRL_SOF       = 18
 	CTRL_VLD_BYTES = 16
+
+	INJ_STATUS                 = INJ + 0x18
+	INJ_STATUS_WMARK_REACHED   = 4
+	INJ_STATUS_FIFO_RDY        = 2
+	INJ_STATUS_INJ_IN_PROGRESS = 0
 )
