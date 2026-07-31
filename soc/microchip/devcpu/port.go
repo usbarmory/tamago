@@ -21,11 +21,34 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+	"runtime"
 	"sync"
+	"time"
 
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/soc/microchip/analyzer"
 )
+
+const (
+	ExtractionTimeout     = 1 * time.Second
+	InjectionTimeout      = 1 * time.Second
+	InjectionPollInterval = 1 * time.Millisecond
+	MinimumFrameSize      = 60
+)
+
+type Stats struct {
+	RxTruncated         uint64
+	RxFIFOTimeouts      uint64
+	RxAborted           uint64
+	RxEmpty             uint64
+	RxOversized         uint64
+	RxInvalid           uint64
+	RxShortHeader       uint64
+	TxWatermarkTimeouts uint64
+	TxFIFOTimeouts      uint64
+	TxAborts            uint64
+	TxAbortTimeouts     uint64
+}
 
 // Port represents a CPU port module.
 type Port struct {
@@ -54,10 +77,17 @@ type Port struct {
 	// FID represents the VLAN filtering identifier
 	FID int
 
+	// Statistics
+	Stats Stats
+
+	rxMu sync.Mutex
+	txMu sync.Mutex
+
 	// control registers
-	xtr_rd   uint32
-	inj_ctrl uint32
-	inj_wr   uint32
+	xtr_rd     uint32
+	inj_ctrl   uint32
+	inj_wr     uint32
+	inj_status uint32
 }
 
 // Init initializes a CPU port module.
@@ -68,6 +98,12 @@ func (p *Port) Init() (err error) {
 	if p.Queue == 0 {
 		return errors.New("invalid port instance")
 	}
+
+	if p.Group < 0 || p.Group > 1 {
+		return errors.New("invalid port group")
+	}
+
+	p.Stats = Stats{}
 
 	if p.MAC == nil {
 		p.MAC = make([]byte, 6)
@@ -93,10 +129,17 @@ func (p *Port) Init() (err error) {
 	p.xtr_rd = p.Queue + XTR_RD + groupOffset
 	p.inj_ctrl = p.Queue + INJ_CTRL + groupOffset
 	p.inj_wr = p.Queue + INJ_WR + groupOffset
+	p.inj_status = p.Queue + INJ_STATUS
 
 	// set manual injection/extraction for CPU queue
-	reg.SetN(p.Queue+INJ_GRP_CFG+groupOffset, CFG_MODE, 0b11, 1)
-	reg.SetN(p.Queue+XTR_GRP_CFG+groupOffset, CFG_MODE, 0b11, 1)
+	reg.Write(p.Queue+INJ_GRP_CFG+groupOffset, 1<<CFG_MODE|1<<CFG_BYTE_SWAP)
+	reg.Write(p.Queue+XTR_GRP_CFG+groupOffset, 1<<CFG_MODE|1<<CFG_STATUS_WORD_POS|1<<CFG_BYTE_SWAP)
+	reg.Write(p.Queue+XTR_FRM_PRUNING+groupOffset, 0)
+
+	// abort stale frame
+	if !p.abortInjection() {
+		return errors.New("injection abort failed")
+	}
 
 	// add physical address to MAC table
 	p.SetMAC(p.MAC)
@@ -119,78 +162,261 @@ func (p *Port) SetMAC(mac net.HardwareAddr) {
 	p.MAC = mac
 }
 
-func (p *Port) recv(buf []byte) (ok bool) {
-	switch val := reg.Read(p.xtr_rd); val {
-	case RD_EOF_UNUSED_0, RD_EOF_UNUSED_1, RD_EOF_UNUSED_2, RD_EOF_UNUSED_3:
-		return false
-	case RD_EOF_TRUNCATED, RD_EOF_ABORTED, RD_ESCAPE:
-		return false
-	case RD_NOT_READY:
-		return false
-	default:
-		binary.LittleEndian.PutUint32(buf, val)
+func (p *Port) abortInjection() (complete bool) {
+	reg.Set(p.inj_ctrl, CTRL_ABORT)
+	deadline := time.Now().Add(InjectionTimeout)
+
+	for reg.Get(p.inj_status, INJ_STATUS_INJ_IN_PROGRESS+p.Group) {
+		if !time.Now().Before(deadline) {
+			p.Stats.TxAbortTimeouts++
+			return
+		}
+
+		runtime.Gosched()
 	}
 
 	return true
 }
 
-// Receive receives a single Ethernet frame from a port module.
-func (p *Port) Receive(buf []byte) (n int, err error) {
-	if !reg.Get(p.Queue+XTR_DATA_PRESENT, p.Group) {
-		return
-	}
+func (p *Port) read() (val uint32, err error) {
+	var deadline time.Time
 
-	// skip internal frame header
-	for i := 0; i < p.HeaderLength; i += 4 {
-		reg.Read(p.xtr_rd)
-	}
-
-	length := len(buf)
-	r := length % 4
-
-	for i := 0; i < length-r; i += 4 {
-		if p.recv(buf[i:]) {
-			n += 4
-		} else {
-			return
+	for val = reg.Read(p.xtr_rd); val == RD_NOT_READY; val = reg.Read(p.xtr_rd) {
+		if deadline.IsZero() {
+			deadline = time.Now().Add(ExtractionTimeout)
 		}
-	}
 
-	if r > 0 {
-		if b := make([]byte, 4); p.recv(b) {
-			copy(buf[length-r:], b)
-			n += r
-
-			// reach EOF
-			p.recv(b)
+		if !time.Now().Before(deadline) {
+			p.Stats.RxFIFOTimeouts++
+			return 0, errors.New("extraction FIFO not ready")
 		}
+
+		runtime.Gosched()
 	}
 
 	return
 }
 
+func (p *Port) write(val uint32) (err error) {
+	var deadline time.Time
+
+	for !reg.Get(p.inj_status, INJ_STATUS_FIFO_RDY+p.Group) {
+		if deadline.IsZero() {
+			deadline = time.Now().Add(InjectionTimeout)
+		}
+
+		if !time.Now().Before(deadline) {
+			p.Stats.TxFIFOTimeouts++
+			return errors.New("injection FIFO not ready")
+		}
+
+		runtime.Gosched()
+	}
+
+	reg.Write(p.inj_wr, val)
+
+	return
+}
+
+func (p *Port) recv(buf []byte) (eof bool, unused int, err error) {
+	val, err := p.read()
+
+	if err != nil {
+		return
+	}
+
+	switch val {
+	case RD_EOF_UNUSED_0:
+		eof = true
+	case RD_EOF_UNUSED_1:
+		eof = true
+		unused = 1
+	case RD_EOF_UNUSED_2:
+		eof = true
+		unused = 2
+	case RD_EOF_UNUSED_3:
+		eof = true
+		unused = 3
+	case RD_EOF_TRUNCATED:
+		p.read()
+		p.Stats.RxTruncated++
+		err = errors.New("truncated frame")
+	case RD_EOF_ABORTED:
+		p.Stats.RxAborted++
+		err = errors.New("aborted frame")
+	case RD_ESCAPE:
+		if val, err = p.read(); err == nil {
+			binary.LittleEndian.PutUint32(buf, val)
+		}
+	default:
+		binary.LittleEndian.PutUint32(buf, val)
+	}
+
+	return
+}
+
+// Receive receives a single Ethernet frame from a port module.
+func (p *Port) Receive(buf []byte) (n int, err error) {
+	p.rxMu.Lock()
+	defer p.rxMu.Unlock()
+
+	if !reg.Get(p.Queue+XTR_DATA_PRESENT, p.Group) {
+		return
+	}
+
+	// rx FIFO reads are 32-bits of frame data
+	var scratch [4]byte
+
+	// skip internal frame header
+	for i := 0; i < p.HeaderLength; i += 4 {
+		eof, _, err := p.recv(scratch[:])
+
+		switch {
+		case err != nil:
+			return 0, err
+		case eof:
+			p.Stats.RxShortHeader++
+			return 0, errors.New("short frame header")
+		}
+	}
+
+	padded := 0
+
+	for {
+		dst := scratch[:]
+
+		if len(buf)-padded >= len(scratch) {
+			dst = buf[padded : padded+len(scratch)]
+		}
+
+		eof, unused, err := p.recv(dst)
+
+		if err != nil {
+			return 0, err
+		}
+
+		if eof {
+			if unused > padded {
+				p.Stats.RxInvalid++
+				return 0, errors.New("invalid frame length")
+			}
+
+			switch length := padded - unused; {
+			case length == 0:
+				p.Stats.RxEmpty++
+				return 0, errors.New("empty frame")
+			case length > len(buf):
+				p.Stats.RxOversized++
+				return n, errors.New("frame exceeds receive buffer")
+			default:
+				return length, nil
+			}
+		}
+
+		padded += len(scratch)
+	}
+}
+
+func (p *Port) waitForInjection() (err error) {
+	var deadline time.Time
+
+	group := uint32(1 << p.Group)
+	fifoReady := group << INJ_STATUS_FIFO_RDY
+	watermarkReached := group << INJ_STATUS_WMARK_REACHED
+
+	for {
+		status := reg.Read(p.inj_status)
+		watermarked := status&watermarkReached != 0
+
+		if !watermarked && status&fifoReady != 0 {
+			return
+		}
+
+		now := time.Now()
+
+		if deadline.IsZero() {
+			deadline = now.Add(InjectionTimeout)
+		} else if !now.Before(deadline) {
+			if watermarked {
+				p.Stats.TxWatermarkTimeouts++
+				return errors.New("injection watermark reached")
+			}
+
+			p.Stats.TxFIFOTimeouts++
+			return errors.New("injection FIFO not ready")
+		}
+
+		if watermarked {
+			time.Sleep(InjectionPollInterval)
+		} else {
+			runtime.Gosched()
+		}
+	}
+}
+
 // Transmit transmits a single Ethernet frame to a port module.
 func (p *Port) Transmit(buf []byte) (err error) {
+	p.txMu.Lock()
+	defer p.txMu.Unlock()
+
+	if err = p.waitForInjection(); err != nil {
+		return
+	}
+
+	valid := len(buf) % 4
+	written := 0
+
+	if len(buf) < MinimumFrameSize {
+		valid = 0
+	}
+
 	// signal Start Of Frame
 	reg.Set(p.inj_ctrl, CTRL_SOF)
 
-	// pad to word size
-	if r := len(buf) % 4; r != 0 {
-		buf = append(buf, make([]byte, 4-r)...)
+	defer func() {
+		if err != nil {
+			p.Stats.TxAborts++
+			p.abortInjection()
+		}
+	}()
+
+	// tx FIFO reads are 32-bits of frame data
+	var scratch [4]byte
+
+	for len(buf)-written >= len(scratch) {
+		if err = p.write(binary.LittleEndian.Uint32(buf[written:])); err != nil {
+			return
+		}
+
+		written += len(scratch)
 	}
 
-	for i := 0; i < len(buf); i += 4 {
-		reg.Write(p.inj_wr, binary.LittleEndian.Uint32(buf[i:]))
+	if written < len(buf) {
+		copy(scratch[:], buf[written:])
+
+		if err = p.write(binary.LittleEndian.Uint32(scratch[:])); err != nil {
+			return
+		}
+
+		written += len(scratch)
+	}
+
+	for written < MinimumFrameSize {
+		if err = p.write(0); err != nil {
+			return
+		}
+
+		written += len(scratch)
 	}
 
 	// set valid bytes of last word
-	reg.SetN(p.inj_ctrl, CTRL_VLD_BYTES, 0b11, uint32(len(buf)%4))
+	reg.SetN(p.inj_ctrl, CTRL_VLD_BYTES, 0b11, uint32(valid))
 
 	// signal End Of Frame
 	reg.Set(p.inj_ctrl, CTRL_EOF)
 
 	// add dummy CRC
-	reg.Write(p.inj_wr, 0)
+	err = p.write(0)
 
 	return
 }

@@ -16,19 +16,26 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/miim"
 )
 
-const MAC_FID = 1
+const (
+	MAC_FID             = 1
+	ManagementPortIndex = PORT29
+)
 
 // On the LAN969x 24-port EVB the management network interface is port D29,
 // connected through DEV_RGMII1 with a Microchip LAN8840 PHY.
 //
 // CPU port 0 (D30) is used for injection and extraction of frames.
 var ManagementPort = &devcpu.Port{
-	Index:    29,
+	Index:    PORT29,
 	IRQ:      lan969x.XTR_READY_IRQ,
 	Queue:    lan969x.DEVCPU_QS,
 	Analyzer: lan969x.ANA,
 	Enable:   enablePort,
 	FID:      MAC_FID,
+}
+
+func resetInjectionFlowControl(port uint32) {
+	reg.Set(DEV_TX_STOP_WM_CFG+port*4, DEV_TX_CNT_CLR)
 }
 
 func enablePort() (err error) {
@@ -44,6 +51,9 @@ func enablePort() (err error) {
 
 	// init capture on CPU port 0 (D30)
 	initCapture(PORT_CFG30)
+
+	// reset injection flow control
+	resetInjectionFlowControl(PORT29)
 
 	return nil
 }
