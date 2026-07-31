@@ -55,9 +55,10 @@ const (
 	US_MR_CHRL   = 6
 
 	FLEX_US_IER  = 0x08
+	US_IER_TXRDY_IE = 1
+	US_IER_RXRDY_IE = 0
+
 	FLEX_US_IDR  = 0x0c
-	IER_TXRDY_IE = 1
-	IER_RXRDY_IE = 0
 
 	FLEX_US_CSR  = 0x14
 	US_CSR_TXRDY = 1
@@ -168,9 +169,9 @@ func (hw *FLEXCOM) setup() {
 // interrupts and restores polling.
 func (hw *FLEXCOM) EnableInterrupt(rx chan bool) {
 	if rx == nil {
-		reg.Write(hw.us_idr, 1<<IER_RXRDY_IE)
+		reg.Write(hw.us_idr, 1<<US_IER_RXRDY_IE)
 	} else {
-		reg.Write(hw.us_ier, 1<<IER_RXRDY_IE)
+		reg.Write(hw.us_ier, 1<<US_IER_RXRDY_IE)
 	}
 
 	hw.rx = rx

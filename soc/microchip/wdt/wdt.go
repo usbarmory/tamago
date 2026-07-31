@@ -6,8 +6,9 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package wdt implements the Synopsys DesignWare APB Watchdog Timer integrated
-// in Microchip LAN969x SoCs under the following specification:
+// Package wdt implements a driver for Synopsys DesignWare APB Watchdog Timers
+// as integrated in Microchip LAN969x SoCs adopting the following
+// specifications:
 //   - Microchip - LAN9694/LAN9696/LAN9698 Datasheet - DS00005048E (02-27-25)
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm64` as
@@ -34,7 +35,8 @@ const (
 
 	WDT_STAT = 0x10
 	STAT_WDT = 0
-	WDT_EOI  = 0x14
+
+	WDT_EOI = 0x14
 
 	WDT_COMP_PARAM_1 = 0xf4
 	WDT_COMP_VERSION = 0xf8
@@ -50,7 +52,7 @@ const (
 	CLOCK_HZ = 250000000
 )
 
-// WDT represents a DesignWare APB Watchdog Timer instance.
+// WDT represents a Watchdog Timer instance.
 type WDT struct {
 	sync.Mutex
 
@@ -58,14 +60,17 @@ type WDT struct {
 	Base uint32
 }
 
-// EnableReset starts the watchdog in direct-reset mode. A timeout range n
-// represents 2^(16+n) watchdog clock cycles.
+// EnableReset starts the watchdog in direct-reset mode. The timeout range
+// represents 2^(16+top) watchdog clock cycles.
 func (hw *WDT) EnableReset(top int) {
 	hw.enable(top, false)
 }
 
-// EnableInterrupt starts the watchdog in interrupt-first mode. The first
-// timeout raises an interrupt and the second timeout resets the system.
+// EnableInterrupt starts the watchdog in interrupt-first mode, the timeout
+// range represents 2^(16+top) watchdog clock cycles.
+//
+// The first timeout raises an interrupt and the second timeout resets the
+// system.
 func (hw *WDT) EnableInterrupt(top int) {
 	hw.enable(top, true)
 }
@@ -81,89 +86,56 @@ func (hw *WDT) enable(top int, interrupt bool) {
 	reg.Write(hw.Base+WDT_TORR, uint32(top))
 	reg.SetTo(hw.Base+WDT_CR, CR_RMOD, interrupt)
 	reg.Set(hw.Base+WDT_CR, CR_WDT_EN)
-	hw.kick()
+
+	hw.Kick()
 }
 
 // Kick restarts the watchdog counter.
 func (hw *WDT) Kick() {
-	hw.Lock()
-	defer hw.Unlock()
-
-	hw.kick()
-}
-
-func (hw *WDT) kick() {
 	reg.Write(hw.Base+WDT_CRR, CRR_KICK)
 }
 
 // Enabled reports whether the watchdog is running.
 func (hw *WDT) Enabled() bool {
-	hw.Lock()
-	defer hw.Unlock()
-
 	return reg.Get(hw.Base+WDT_CR, CR_WDT_EN)
 }
 
 // Counter returns the current watchdog counter value.
 func (hw *WDT) Counter() uint32 {
-	hw.Lock()
-	defer hw.Unlock()
-
 	return reg.Read(hw.Base + WDT_CCVR)
 }
 
 // Top returns the configured timeout range.
 func (hw *WDT) Top() int {
-	hw.Lock()
-	defer hw.Unlock()
-
 	return int(reg.GetN(hw.Base+WDT_TORR, TORR_TOP, 0xf))
 }
 
 // InterruptMode reports whether interrupt-first mode is selected.
 func (hw *WDT) InterruptMode() bool {
-	hw.Lock()
-	defer hw.Unlock()
-
 	return reg.Get(hw.Base+WDT_CR, CR_RMOD)
 }
 
 // Status reports whether the watchdog interrupt is active.
 func (hw *WDT) Status() bool {
-	hw.Lock()
-	defer hw.Unlock()
-
 	return reg.Get(hw.Base+WDT_STAT, STAT_WDT)
 }
 
 // ClearInterrupt clears the watchdog interrupt without restarting the counter.
 func (hw *WDT) ClearInterrupt() {
-	hw.Lock()
-	defer hw.Unlock()
-
 	reg.Read(hw.Base + WDT_EOI)
 }
 
 // Version returns the component version register.
 func (hw *WDT) Version() uint32 {
-	hw.Lock()
-	defer hw.Unlock()
-
 	return reg.Read(hw.Base + WDT_COMP_VERSION)
 }
 
 // ComponentType returns the component type register.
 func (hw *WDT) ComponentType() uint32 {
-	hw.Lock()
-	defer hw.Unlock()
-
 	return reg.Read(hw.Base + WDT_COMP_TYPE)
 }
 
 // Parameters returns the component parameters register.
 func (hw *WDT) Parameters() uint32 {
-	hw.Lock()
-	defer hw.Unlock()
-
 	return reg.Read(hw.Base + WDT_COMP_PARAM_1)
 }
