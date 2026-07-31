@@ -38,6 +38,8 @@ const (
 	FLEX_US_CR    = 0x00
 	US_CR_FIFODIS = 31
 	US_CR_FIFOEN  = 30
+	US_CR_RXFCLR  = 25
+	US_CR_TXFCLR  = 24
 	US_CR_TXDIS   = 7
 	US_CR_TXEN    = 6
 	US_CR_RXDIS   = 5
@@ -53,6 +55,7 @@ const (
 	US_MR_CHRL   = 6
 
 	FLEX_US_IER  = 0x08
+	FLEX_US_IDR  = 0x0c
 	IER_TXRDY_IE = 1
 	IER_RXRDY_IE = 0
 
@@ -65,6 +68,8 @@ const (
 
 	FLEX_US_BRGR = 0x20
 	US_BRGR_CD   = 0
+
+	FLEX_US_FMR = 0xa0
 )
 
 // FLEXCOM represents a Flexible Serial Communication controller instance.
@@ -85,10 +90,12 @@ type FLEXCOM struct {
 	us_cr   uint32
 	us_mr   uint32
 	us_ier  uint32
+	us_idr  uint32
 	us_csr  uint32
 	us_rhr  uint32
 	us_thr  uint32
 	us_brgr uint32
+	us_fmr  uint32
 
 	rx chan bool
 }
@@ -107,10 +114,12 @@ func (hw *FLEXCOM) Init() {
 	hw.us_cr = hw.Base + FLEX_USART_OFFSET + FLEX_US_CR
 	hw.us_mr = hw.Base + FLEX_USART_OFFSET + FLEX_US_MR
 	hw.us_ier = hw.Base + FLEX_USART_OFFSET + FLEX_US_IER
+	hw.us_idr = hw.Base + FLEX_USART_OFFSET + FLEX_US_IDR
 	hw.us_csr = hw.Base + FLEX_USART_OFFSET + FLEX_US_CSR
 	hw.us_rhr = hw.Base + FLEX_USART_OFFSET + FLEX_US_RHR
 	hw.us_thr = hw.Base + FLEX_USART_OFFSET + FLEX_US_THR
 	hw.us_brgr = hw.Base + FLEX_USART_OFFSET + FLEX_US_BRGR
+	hw.us_fmr = hw.Base + FLEX_USART_OFFSET + FLEX_US_FMR
 
 	hw.setup()
 }
@@ -129,10 +138,10 @@ func (hw *FLEXCOM) setup() {
 	reg.Write(hw.us_brgr, uint32(cd))
 
 	// reset the receiver and transmitter
-	reg.SetN(hw.us_cr, US_CR_RSTRX, 1, 1)
-	reg.SetN(hw.us_cr, US_CR_RSTTX, 1, 1)
-	reg.SetN(hw.us_cr, US_CR_RXDIS, 1, 1)
-	reg.SetN(hw.us_cr, US_CR_TXDIS, 1, 1)
+	reg.Write(hw.us_cr, 1<<US_CR_RSTRX)
+	reg.Write(hw.us_cr, 1<<US_CR_RSTTX)
+	reg.Write(hw.us_cr, 1<<US_CR_RXDIS)
+	reg.Write(hw.us_cr, 1<<US_CR_TXDIS)
 
 	// set 8N1 mode
 	reg.SetN(hw.us_mr, US_MR_PAR, 0b111, 4)
@@ -142,16 +151,26 @@ func (hw *FLEXCOM) setup() {
 	// set asynchronous mode (UART)
 	reg.ClearN(hw.us_mr, US_MR_SYNC, 1)
 
+	// single-data FIFOs
+	reg.Write(hw.us_fmr, 0)
+	reg.Write(hw.us_cr, 1<<US_CR_FIFOEN)
+	reg.Write(hw.us_cr, 1<<US_CR_RXFCLR)
+	reg.Write(hw.us_cr, 1<<US_CR_TXFCLR)
+
 	// enable Tx and RX
-	reg.SetN(hw.us_cr, US_CR_RXEN, 1, 1)
-	reg.SetN(hw.us_cr, US_CR_TXEN, 1, 1)
+	reg.Write(hw.us_cr, 1<<US_CR_RXEN)
+	reg.Write(hw.us_cr, 1<<US_CR_TXEN)
 }
 
-// EnableInterrupt enables interrupt generation for receive FIFOs. Once enabled
-// [FLEXCOM.Read] and [FLEXCOM.Rx] block, as required, on the argument channel
-// rather than polling for valid data.
+// EnableInterrupt configures interrupt-driven receive waits. A nil channel
+// disables receive interrupts and restores polling.
 func (hw *FLEXCOM) EnableInterrupt(rx chan bool) {
-	reg.SetTo(hw.us_ier, IER_RXRDY_IE, rx != nil)
+	if rx == nil {
+		reg.Write(hw.us_idr, 1<<IER_RXRDY_IE)
+	} else {
+		reg.Write(hw.us_ier, 1<<IER_RXRDY_IE)
+	}
+
 	hw.rx = rx
 }
 
@@ -161,37 +180,27 @@ func (hw *FLEXCOM) Tx(c byte) {
 		// wait for TX FIFO to have room for a character
 	}
 
-	reg.Write(hw.us_thr, uint32(c))
+	reg.Write8(hw.us_thr, c)
 }
 
 // Rx receives a single character from the serial port, waiting for data to
 // become available if the argument is true.
 func (hw *FLEXCOM) Rx(block bool) (c byte, valid bool) {
-	if hw.rx != nil {
-		if block {
+	for {
+		if reg.GetN(hw.us_csr, US_CSR_RXRDY, 1) == 1 {
+			return reg.Read8(hw.us_rhr), true
+		}
+
+		if !block {
+			return
+		}
+
+		if hw.rx != nil {
 			<-hw.rx
 		} else {
-			select {
-			case <-hw.rx:
-			default:
-				return
-			}
-		}
-	}
-
-	if reg.GetN(hw.us_csr, US_CSR_RXRDY, 1) == 1 {
-		return byte(reg.Read(hw.us_rhr)), true
-	}
-
-	if block && hw.rx == nil {
-		for reg.GetN(hw.us_csr, US_CSR_RXRDY, 1) == 0 {
 			runtime.Gosched()
 		}
-
-		return byte(reg.Read(hw.us_rhr)), true
 	}
-
-	return
 }
 
 // Write data from buffer to serial port.
