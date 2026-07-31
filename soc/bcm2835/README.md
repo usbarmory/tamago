@@ -3,7 +3,7 @@ TamaGo - bare metal Go - BCM2835 support
 
 tamago | https://github.com/usbarmory/tamago
 
-Copyright (c) the bcm2835 package authors  
+Copyright (c) The TamaGo Authors. All Rights Reserved.  
 
 Contributors
 ============

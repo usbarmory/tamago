@@ -3,7 +3,7 @@ TamaGo - bare metal Go - Raspberry Pi Support
 
 tamago | https://github.com/usbarmory/tamago  
 
-Copyright (c) the pi/pi2/pizero package authors  
+Copyright (c) The TamaGo Authors. All Rights Reserved.  
 
 ![TamaGo gopher](https://github.com/usbarmory/tamago/wiki/images/tamago.svg?sanitize=true)
 
