@@ -11,7 +11,7 @@ TEXT ·Move(SB),$0-8
 	MOVL	src+4(FP), BX
 
 	// copy src to dst
-	MOVL	(AX), CX
+	MOVL	(BX), CX
 	MOVL	CX, (AX)
 
 	// zero out src

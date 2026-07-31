@@ -20,7 +20,7 @@ func Get16(addr uint32, pos int) bool {
 	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
 	r := *reg
 
-	return (int(r)>>pos)&1 == 1
+	return (r>>pos)&1 == 1
 }
 
 func Set16(addr uint32, pos int) {
@@ -48,7 +48,7 @@ func GetN16(addr uint32, pos int, mask int) uint16 {
 
 func SetN16(addr uint32, pos int, mask int, val uint16) {
 	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
-	*reg = (*reg & (^(uint16(mask) << pos))) | (val << pos)
+	*reg = (*reg & (^(uint16(mask) << pos))) | ((val & uint16(mask)) << pos)
 }
 
 func ClearN16(addr uint32, pos int, mask int) {
@@ -66,28 +66,17 @@ func Write16(addr uint32, val uint16) {
 	*reg = val
 }
 
-func WriteBack16(addr uint32) {
-	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
-	*reg |= *reg
-}
-
 func Or16(addr uint32, val uint16) {
 	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
 	*reg |= val
 }
 
-// Wait16 waits for a specific register bit to match a value. This function
-// cannot be used before runtime initialization with `GOOS=tamago`.
 func Wait16(addr uint32, pos int, mask int, val uint16) {
 	for GetN16(addr, pos, mask) != val {
 		runtime.Gosched()
 	}
 }
 
-// WaitFor16 waits, until a timeout expires, for a specific register bit to match
-// a value. The return boolean indicates whether the wait condition was checked
-// (true) or if it timed out (false). This function cannot be used before
-// runtime initialization with `GOOS=tamago`.
 func WaitFor16(timeout time.Duration, addr uint32, pos int, mask int, val uint16) bool {
 	start := time.Now()
 
