@@ -47,7 +47,7 @@ const (
 	SRR_UR = 0
 )
 
-// APB represents a Synopsys APB UART serial port instance.
+// Synopsys represents a Synopsys APB UART serial port instance.
 type Synopsys struct {
 	// Controller index
 	Index int
