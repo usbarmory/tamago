@@ -133,7 +133,7 @@ func (hw *OTPC) Read(off int, b []byte) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if off + len(b) >= hw.Size {
+	if off+len(b) >= hw.Size {
 		return errors.New("address out of range")
 	}
 
@@ -161,7 +161,7 @@ func (hw *OTPC) Blow(off int, b []byte) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if off + len(b) >= hw.Size {
+	if off+len(b) >= hw.Size {
 		return errors.New("address out of range")
 	}
 
@@ -169,7 +169,7 @@ func (hw *OTPC) Blow(off int, b []byte) (err error) {
 	defer hw.power(false)
 
 	for i := range b {
-		if err = hw.write(uint32(off + i), b[i]); err != nil {
+		if err = hw.write(uint32(off+i), b[i]); err != nil {
 			return
 		}
 	}

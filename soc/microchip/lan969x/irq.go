@@ -14,7 +14,7 @@ import (
 
 // Interrupt controller registers
 const (
-	INTR              = 0x128
+	INTR             = 0x128
 	INTR_STICKY_BASE = INTR + 0x40
 	INTR_ENA_BASE    = INTR + 0x60
 )
