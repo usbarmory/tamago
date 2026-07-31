@@ -18,7 +18,7 @@ import (
 
 const (
 	MAC_FID             = 1
-	managementPortIndex = 29
+	ManagementPortIndex = PORT29
 )
 
 // On the LAN969x 24-port EVB the management network interface is port D29,
@@ -26,7 +26,7 @@ const (
 //
 // CPU port 0 (D30) is used for injection and extraction of frames.
 var ManagementPort = &devcpu.Port{
-	Index:    managementPortIndex,
+	Index:    PORT29,
 	IRQ:      lan969x.XTR_READY_IRQ,
 	Queue:    lan969x.DEVCPU_QS,
 	Analyzer: lan969x.ANA,
@@ -34,8 +34,8 @@ var ManagementPort = &devcpu.Port{
 	FID:      MAC_FID,
 }
 
-func resetInjectionFlowControl() {
-	reg.Set(DEV_TX_STOP_WM_CFG+managementPortIndex*4, DEV_TX_CNT_CLR)
+func resetInjectionFlowControl(port uint32) {
+	reg.Set(DEV_TX_STOP_WM_CFG+port*4, DEV_TX_CNT_CLR)
 }
 
 func enablePort() (err error) {
@@ -53,7 +53,7 @@ func enablePort() (err error) {
 	initCapture(PORT_CFG30)
 
 	// reset injection flow control
-	resetInjectionFlowControl()
+	resetInjectionFlowControl(PORT29)
 
 	return nil
 }

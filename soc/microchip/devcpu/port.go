@@ -23,7 +23,6 @@ import (
 	"net"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/usbarmory/tamago/internal/reg"
@@ -31,15 +30,15 @@ import (
 )
 
 const (
-	injectionPollInterval = 1 * time.Millisecond
-	injectionTimeout      = 1 * time.Second
-	minimumFrameSize      = 60
+	ExtractionTimeout     = 1 * time.Second
+	InjectionTimeout      = 1 * time.Second
+	InjectionPollInterval = 1 * time.Millisecond
+	MinimumFrameSize      = 60
 )
 
-// ErrorCounters represents frame path errors since the most recent call to
-// [Port.Init].
-type ErrorCounters struct {
+type Stats struct {
 	RxTruncated         uint64
+	RxFIFOTimeouts      uint64
 	RxAborted           uint64
 	RxEmpty             uint64
 	RxOversized         uint64
@@ -47,7 +46,6 @@ type ErrorCounters struct {
 	RxShortHeader       uint64
 	TxWatermarkTimeouts uint64
 	TxFIFOTimeouts      uint64
-	TxInitAborts        uint64
 	TxAborts            uint64
 	TxAbortTimeouts     uint64
 }
@@ -79,20 +77,11 @@ type Port struct {
 	// FID represents the VLAN filtering identifier
 	FID int
 
+	// Statistics
+	Stats Stats
+
 	rxMu sync.Mutex
 	txMu sync.Mutex
-
-	rxTruncated         atomic.Uint64
-	rxAborted           atomic.Uint64
-	rxEmpty             atomic.Uint64
-	rxOversized         atomic.Uint64
-	rxInvalid           atomic.Uint64
-	rxShortHeader       atomic.Uint64
-	txWatermarkTimeouts atomic.Uint64
-	txFIFOTimeouts      atomic.Uint64
-	txInitAborts        atomic.Uint64
-	txAborts            atomic.Uint64
-	txAbortTimeouts     atomic.Uint64
 
 	// control registers
 	xtr_rd     uint32
@@ -114,7 +103,7 @@ func (p *Port) Init() (err error) {
 		return errors.New("invalid port group")
 	}
 
-	p.resetErrorCounters()
+	p.Stats = Stats{}
 
 	if p.MAC == nil {
 		p.MAC = make([]byte, 6)
@@ -148,48 +137,12 @@ func (p *Port) Init() (err error) {
 	reg.Write(p.Queue+XTR_FRM_PRUNING+groupOffset, 0)
 
 	// abort stale frame
-	if reg.Get(p.inj_status, INJ_STATUS_INJ_IN_PROGRESS+p.Group) {
-		p.txInitAborts.Add(1)
-
-		if !p.abortInjection() {
-			return errors.New("injection abort failed")
-		}
+	if !p.abortInjection() {
+		return errors.New("injection abort failed")
 	}
 
 	// add physical address to MAC table
 	p.SetMAC(p.MAC)
-
-	return
-}
-
-func (p *Port) resetErrorCounters() {
-	p.rxTruncated.Store(0)
-	p.rxAborted.Store(0)
-	p.rxEmpty.Store(0)
-	p.rxOversized.Store(0)
-	p.rxInvalid.Store(0)
-	p.rxShortHeader.Store(0)
-	p.txWatermarkTimeouts.Store(0)
-	p.txFIFOTimeouts.Store(0)
-	p.txInitAborts.Store(0)
-	p.txAborts.Store(0)
-	p.txAbortTimeouts.Store(0)
-}
-
-// ErrorCounters returns frame path errors since the most recent call to
-// [Port.Init].
-func (p *Port) ErrorCounters() (counters ErrorCounters) {
-	counters.RxTruncated = p.rxTruncated.Load()
-	counters.RxAborted = p.rxAborted.Load()
-	counters.RxEmpty = p.rxEmpty.Load()
-	counters.RxOversized = p.rxOversized.Load()
-	counters.RxInvalid = p.rxInvalid.Load()
-	counters.RxShortHeader = p.rxShortHeader.Load()
-	counters.TxWatermarkTimeouts = p.txWatermarkTimeouts.Load()
-	counters.TxFIFOTimeouts = p.txFIFOTimeouts.Load()
-	counters.TxInitAborts = p.txInitAborts.Load()
-	counters.TxAborts = p.txAborts.Load()
-	counters.TxAbortTimeouts = p.txAbortTimeouts.Load()
 
 	return
 }
@@ -209,18 +162,68 @@ func (p *Port) SetMAC(mac net.HardwareAddr) {
 	p.MAC = mac
 }
 
-func (p *Port) read() (val uint32) {
-	for {
-		if val = reg.Read(p.xtr_rd); val != RD_NOT_READY {
+func (p *Port) abortInjection() (complete bool) {
+	reg.Set(p.inj_ctrl, CTRL_ABORT)
+	deadline := time.Now().Add(InjectionTimeout)
+
+	for reg.Get(p.inj_status, INJ_STATUS_INJ_IN_PROGRESS+p.Group) {
+		if !time.Now().Before(deadline) {
+			p.Stats.TxAbortTimeouts++
 			return
 		}
 
 		runtime.Gosched()
 	}
+
+	return true
+}
+
+func (p *Port) read() (val uint32, err error) {
+	var deadline time.Time
+
+	for val = reg.Read(p.xtr_rd); val == RD_NOT_READY; val = reg.Read(p.xtr_rd) {
+		if deadline.IsZero() {
+			deadline = time.Now().Add(ExtractionTimeout)
+		}
+
+		if !time.Now().Before(deadline) {
+			p.Stats.RxFIFOTimeouts++
+			return 0, errors.New("extraction FIFO not ready")
+		}
+
+		runtime.Gosched()
+	}
+
+	return
+}
+
+func (p *Port) write(val uint32) (err error) {
+	var deadline time.Time
+
+	for !reg.Get(p.inj_status, INJ_STATUS_FIFO_RDY+p.Group) {
+		if deadline.IsZero() {
+			deadline = time.Now().Add(InjectionTimeout)
+		}
+
+		if !time.Now().Before(deadline) {
+			p.Stats.TxFIFOTimeouts++
+			return errors.New("injection FIFO not ready")
+		}
+
+		runtime.Gosched()
+	}
+
+	reg.Write(p.inj_wr, val)
+
+	return
 }
 
 func (p *Port) recv(buf []byte) (eof bool, unused int, err error) {
-	val := p.read()
+	val, err := p.read()
+
+	if err != nil {
+		return
+	}
 
 	switch val {
 	case RD_EOF_UNUSED_0:
@@ -236,13 +239,15 @@ func (p *Port) recv(buf []byte) (eof bool, unused int, err error) {
 		unused = 3
 	case RD_EOF_TRUNCATED:
 		p.read()
-		p.rxTruncated.Add(1)
+		p.Stats.RxTruncated++
 		err = errors.New("truncated frame")
 	case RD_EOF_ABORTED:
-		p.rxAborted.Add(1)
+		p.Stats.RxAborted++
 		err = errors.New("aborted frame")
 	case RD_ESCAPE:
-		binary.LittleEndian.PutUint32(buf, p.read())
+		if val, err = p.read(); err == nil {
+			binary.LittleEndian.PutUint32(buf, val)
+		}
 	default:
 		binary.LittleEndian.PutUint32(buf, val)
 	}
@@ -259,22 +264,19 @@ func (p *Port) Receive(buf []byte) (n int, err error) {
 		return
 	}
 
+	// rx FIFO reads are 32-bits of frame data
 	var scratch [4]byte
 
 	// skip internal frame header
 	for i := 0; i < p.HeaderLength; i += 4 {
-		eof, _, recvErr := p.recv(scratch[:])
+		eof, _, err := p.recv(scratch[:])
 
 		switch {
-		case recvErr != nil:
-			err = recvErr
+		case err != nil:
+			return 0, err
 		case eof:
-			p.rxShortHeader.Add(1)
-			err = errors.New("short frame header")
-		}
-
-		if err != nil {
-			return
+			p.Stats.RxShortHeader++
+			return 0, errors.New("short frame header")
 		}
 	}
 
@@ -282,59 +284,45 @@ func (p *Port) Receive(buf []byte) (n int, err error) {
 
 	for {
 		dst := scratch[:]
-		direct := len(buf)-n >= len(scratch)
 
-		if direct {
-			dst = buf[n : n+len(scratch)]
+		if len(buf)-padded >= len(scratch) {
+			dst = buf[padded : padded+len(scratch)]
 		}
 
-		eof, unused, recvErr := p.recv(dst)
-		if recvErr != nil {
-			err = recvErr
-			return
+		eof, unused, err := p.recv(dst)
+
+		if err != nil {
+			return 0, err
 		}
 
 		if eof {
 			if unused > padded {
-				n = 0
-				p.rxInvalid.Add(1)
-				err = errors.New("invalid frame length")
-				return
+				p.Stats.RxInvalid++
+				return 0, errors.New("invalid frame length")
 			}
 
-			length := padded - unused
-
-			switch {
+			switch length := padded - unused; {
 			case length == 0:
-				n = 0
-				p.rxEmpty.Add(1)
-				err = errors.New("empty frame")
+				p.Stats.RxEmpty++
+				return 0, errors.New("empty frame")
 			case length > len(buf):
-				p.rxOversized.Add(1)
-				err = errors.New("frame exceeds receive buffer")
+				p.Stats.RxOversized++
+				return n, errors.New("frame exceeds receive buffer")
 			default:
-				n = length
+				return length, nil
 			}
-
-			return
 		}
 
 		padded += len(scratch)
-
-		switch {
-		case direct:
-			n += len(scratch)
-		case n < len(buf):
-			n += copy(buf[n:], scratch[:])
-		}
 	}
 }
 
 func (p *Port) waitForInjection() (err error) {
+	var deadline time.Time
+
 	group := uint32(1 << p.Group)
 	fifoReady := group << INJ_STATUS_FIFO_RDY
 	watermarkReached := group << INJ_STATUS_WMARK_REACHED
-	var deadline time.Time
 
 	for {
 		status := reg.Read(p.inj_status)
@@ -345,61 +333,25 @@ func (p *Port) waitForInjection() (err error) {
 		}
 
 		now := time.Now()
+
 		if deadline.IsZero() {
-			deadline = now.Add(injectionTimeout)
+			deadline = now.Add(InjectionTimeout)
 		} else if !now.Before(deadline) {
 			if watermarked {
-				p.txWatermarkTimeouts.Add(1)
+				p.Stats.TxWatermarkTimeouts++
 				return errors.New("injection watermark reached")
 			}
 
-			p.txFIFOTimeouts.Add(1)
+			p.Stats.TxFIFOTimeouts++
 			return errors.New("injection FIFO not ready")
 		}
 
 		if watermarked {
-			time.Sleep(injectionPollInterval)
+			time.Sleep(InjectionPollInterval)
 		} else {
 			runtime.Gosched()
 		}
 	}
-}
-
-func (p *Port) write(val uint32) (err error) {
-	if reg.Get(p.inj_status, INJ_STATUS_FIFO_RDY+p.Group) {
-		reg.Write(p.inj_wr, val)
-		return
-	}
-
-	deadline := time.Now().Add(injectionTimeout)
-
-	for !reg.Get(p.inj_status, INJ_STATUS_FIFO_RDY+p.Group) {
-		if !time.Now().Before(deadline) {
-			p.txFIFOTimeouts.Add(1)
-			return errors.New("injection FIFO not ready")
-		}
-
-		runtime.Gosched()
-	}
-
-	reg.Write(p.inj_wr, val)
-	return
-}
-
-func (p *Port) abortInjection() (complete bool) {
-	reg.Set(p.inj_ctrl, CTRL_ABORT)
-
-	deadline := time.Now().Add(injectionTimeout)
-	for reg.Get(p.inj_status, INJ_STATUS_INJ_IN_PROGRESS+p.Group) {
-		if !time.Now().Before(deadline) {
-			p.txAbortTimeouts.Add(1)
-			return
-		}
-
-		runtime.Gosched()
-	}
-
-	return true
 }
 
 // Transmit transmits a single Ethernet frame to a port module.
@@ -412,7 +364,9 @@ func (p *Port) Transmit(buf []byte) (err error) {
 	}
 
 	valid := len(buf) % 4
-	if len(buf) < minimumFrameSize {
+	written := 0
+
+	if len(buf) < MinimumFrameSize {
 		valid = 0
 	}
 
@@ -421,13 +375,13 @@ func (p *Port) Transmit(buf []byte) (err error) {
 
 	defer func() {
 		if err != nil {
-			p.txAborts.Add(1)
+			p.Stats.TxAborts++
 			p.abortInjection()
 		}
 	}()
 
+	// tx FIFO reads are 32-bits of frame data
 	var scratch [4]byte
-	written := 0
 
 	for len(buf)-written >= len(scratch) {
 		if err = p.write(binary.LittleEndian.Uint32(buf[written:])); err != nil {
@@ -447,7 +401,7 @@ func (p *Port) Transmit(buf []byte) (err error) {
 		written += len(scratch)
 	}
 
-	for written < minimumFrameSize {
+	for written < MinimumFrameSize {
 		if err = p.write(0); err != nil {
 			return
 		}
@@ -463,5 +417,6 @@ func (p *Port) Transmit(buf []byte) (err error) {
 
 	// add dummy CRC
 	err = p.write(0)
+
 	return
 }
