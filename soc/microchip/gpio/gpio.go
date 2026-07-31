@@ -21,10 +21,12 @@ import (
 
 // GPIO registers
 const (
-	GPIO_OUT = 0x18
-	GPIO_IN  = 0x24
-	GPIO_OE  = 0x30
-	GPIO_ALT = 0x60
+	GPIO_OUT_SET = 0x00
+	GPIO_OUT_CLR = 0x0c
+	GPIO_OUT     = 0x18
+	GPIO_IN      = 0x24
+	GPIO_OE      = 0x30
+	GPIO_ALT     = 0x60
 )
 
 // GPIO controller instance
@@ -47,13 +49,25 @@ func addr(num int, size uint32) (off uint32, pos int) {
 // Out configures a GPIO as output.
 func (gpio *GPIO) Out(num int) {
 	off, pos := addr(num, 4)
-	reg.Set(gpio.Base+GPIO_OUT+off, pos)
+	reg.Set(gpio.Base+GPIO_OE+off, pos)
 }
 
 // In configures a GPIO as input.
 func (gpio *GPIO) In(num int) {
 	off, pos := addr(num, 4)
-	reg.Clear(gpio.Base+GPIO_OUT+off, pos)
+	reg.Clear(gpio.Base+GPIO_OE+off, pos)
+}
+
+// High configures a GPIO signal as high.
+func (gpio *GPIO) High(num int) {
+	off, pos := addr(num, 4)
+	reg.Set(gpio.Base+GPIO_OUT_SET+off, pos)
+}
+
+// Low configures a GPIO signal as low.
+func (gpio *GPIO) Low(num int) {
+	off, pos := addr(num, 4)
+	reg.Set(gpio.Base+GPIO_OUT_CLR+off, pos)
 }
 
 // Value returns a GPIO signal level.
