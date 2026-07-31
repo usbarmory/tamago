@@ -84,9 +84,15 @@ func (hw *UART) Init() {
 
 // EnableInterrupt enables interrupt generation for receive FIFOs. Once enabled
 // [UART.Read] and [UART.Rx] block, as required, on the argument channel rather
-// than polling for valid data.
+// than polling for valid data. A nil channel disables receive interrupts and
+// restores polling.
 func (hw *UART) EnableInterrupt(rx chan bool) {
-	reg.Out8(hw.Base+IER, 1 << IER_ERBFI)
+	if rx == nil {
+		reg.Out8(hw.Base+IER, 0)
+	} else {
+		reg.Out8(hw.Base+IER, 1 << IER_ERBFI)
+	}
+
 	hw.rx = rx
 }
 
@@ -101,31 +107,21 @@ func (hw *UART) Tx(c byte) {
 
 // Rx receives a single character from the serial port.
 func (hw *UART) Rx(block bool) (c byte, valid bool) {
-	if hw.rx != nil {
-		if block {
+	for {
+		if reg.In8(hw.Base+LSR)&(1<<LSR_DR) == 1 {
+			return byte(reg.In8(hw.Base + RBR)), true
+		}
+
+		if !block {
+			return
+		}
+
+		if hw.rx != nil {
 			<-hw.rx
 		} else {
-			select {
-			case <-hw.rx:
-			default:
-				return
-			}
-		}
-	}
-
-	if reg.In8(hw.Base+LSR)&(1<<LSR_DR) == 1 {
-		return byte(reg.In8(hw.Base + RBR)), true
-	}
-
-	if block && hw.rx == nil {
-		for reg.In8(hw.Base+LSR)&(1<<LSR_DR) == 0 {
 			runtime.Gosched()
 		}
-
-		return byte(reg.In8(hw.Base + RBR)), true
 	}
-
-	return
 }
 
 // Write data from buffer to serial port.

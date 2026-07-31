@@ -162,8 +162,10 @@ func (hw *FLEXCOM) setup() {
 	reg.Write(hw.us_cr, 1<<US_CR_TXEN)
 }
 
-// EnableInterrupt configures interrupt-driven receive waits. A nil channel
-// disables receive interrupts and restores polling.
+// EnableInterrupt enables interrupt generation for receive FIFOs. Once enabled
+// [FLEXCOM.Read] and [FLEXCOM.Rx] block, as required, on the argument channel
+// rather than polling for valid data. A nil channel disables receive
+// interrupts and restores polling.
 func (hw *FLEXCOM) EnableInterrupt(rx chan bool) {
 	if rx == nil {
 		reg.Write(hw.us_idr, 1<<IER_RXRDY_IE)
@@ -205,12 +207,11 @@ func (hw *FLEXCOM) Rx(block bool) (c byte, valid bool) {
 
 // Write data from buffer to serial port.
 func (hw *FLEXCOM) Write(buf []byte) (n int, _ error) {
-	for n < len(buf) {
-		hw.Tx(buf[n])
-		n++
+	for _, c := range buf {
+		hw.Tx(c)
 	}
 
-	return
+	return len(buf), nil
 }
 
 // Read available data to buffer from serial port.
