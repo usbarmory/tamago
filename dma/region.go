@@ -147,7 +147,7 @@ func (r *Region) Alloc(buf []byte, align int) (addr uint) {
 		return 0
 	}
 
-	if res, addr := Reserved(buf); res {
+	if res, addr := r.Reserved(buf); res {
 		return addr
 	}
 
@@ -179,7 +179,7 @@ func (r *Region) Read(addr uint, off int, buf []byte) {
 		return
 	}
 
-	if res, _ := Reserved(buf); res {
+	if res, _ := r.Reserved(buf); res {
 		return
 	}
 
