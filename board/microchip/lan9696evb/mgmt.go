@@ -40,7 +40,9 @@ func resetInjectionFlowControl(port uint32) {
 
 func enablePort() (err error) {
 	// init LAN8840 PHY
-	initPHY(lan969x.MIIM0)
+	if err = initPHY(lan969x.MIIM0); err != nil {
+		return
+	}
 
 	// init MAC controller
 	initRGMII()
@@ -58,7 +60,7 @@ func enablePort() (err error) {
 	return nil
 }
 
-func initPHY(miim *miim.MIIM) {
+func initPHY(miim *miim.MIIM) (err error) {
 	// Table 2-7: GPIO alternate function assignments
 	//
 	// GPIO_9:  ALT1 - MIIM0_MDC
@@ -66,10 +68,16 @@ func initPHY(miim *miim.MIIM) {
 	lan969x.GPIO.Function(9, 1)
 	lan969x.GPIO.Function(10, 1)
 
+	miim.Init()
+
 	// software reset
-	miim.WritePHYRegister(PHY_ADDR, PHY_CTRL, (1 << CTRL_RESET))
+	if err = miim.WritePHYRegister(PHY_ADDR, PHY_CTRL, (1 << CTRL_RESET)); err != nil {
+		return
+	}
+
 	// 1000 Mbps, Auto-Negotiation, Full-duplex
-	miim.WritePHYRegister(PHY_ADDR, PHY_CTRL, (0b1<<CTRL_SPEED1)|(1<<CTRL_ANEG)|(1<<CTRL_DUPLEX))
+	err = miim.WritePHYRegister(PHY_ADDR, PHY_CTRL, (0b1<<CTRL_SPEED1)|(1<<CTRL_ANEG)|(1<<CTRL_DUPLEX))
+	return
 }
 
 func initRGMII() {

@@ -16,6 +16,8 @@
 package miim
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -78,56 +80,97 @@ func (hw *MIIM) Init() {
 	}
 }
 
-func (hw *MIIM) mdio(phyad, regad, wrdata, op uint32) (rddata uint16) {
-	var cmd uint32
+func (hw *MIIM) mdio(phyad, regad, wrdata, op uint32, read bool) (rddata uint16, err error) {
+	if hw.Base == 0 {
+		return 0, errors.New("invalid MIIM controller instance")
+	}
 
+	timeout := hw.Timeout
+	if timeout == 0 {
+		timeout = Timeout
+	}
+
+	if !reg.WaitFor(timeout, hw.Base+MII_STATUS, STATUS_PENDING_OP, 1, 0) {
+		return 0, errors.New("command FIFO timeout")
+	}
+
+	var cmd uint32
 	bits.Set(&cmd, CMD_VLD)
 	bits.SetN(&cmd, CMD_PHYAD, 0x1f, phyad)
 	bits.SetN(&cmd, CMD_REGAD, 0x1f, regad)
 	bits.SetN(&cmd, CMD_WRDATA, 0xffff, wrdata)
 	bits.SetN(&cmd, CMD_OPR, 0b11, op)
-
-	reg.WaitFor(hw.Timeout, hw.Base+MII_STATUS, STATUS_PENDING_OP, 1, 0)
 	reg.Write(hw.Base+MII_CMD, cmd)
 
-	if op == mdio.OP_WRITE {
+	if !read {
+		if !reg.WaitFor(timeout, hw.Base+MII_STATUS, STATUS_PENDING_WR, 1, 0) {
+			return 0, errors.New("write timeout")
+		}
+
 		return
 	}
 
-	reg.WaitFor(hw.Timeout, hw.Base+MII_STATUS, STATUS_BUSY, 1, 0)
-	data := reg.GetN(hw.Base+MII_DATA, DATA_RDDATA, 0xffff)
+	if !reg.WaitFor(timeout, hw.Base+MII_STATUS, STATUS_BUSY, 1, 0) {
+		return 0, errors.New("read timeout")
+	}
 
-	return uint16(data)
+	data := reg.Read(hw.Base + MII_DATA)
+	if data>>DATA_SUCCESS&0b11 != 0 {
+		return 0, errors.New("PHY access failed")
+	}
+
+	rddata = uint16(data >> DATA_RDDATA)
+	return
 }
 
 // MDIO22 transmits an MII frame (IEEE 802.3-2008 Clause 22) to a connected
-// Ethernet PHY, the return data is returned on write operations.
-func (hw *MIIM) MDIO22(op, pa, ra int, data uint16) (rddata uint16) {
+// Ethernet PHY and returns read data when applicable.
+func (hw *MIIM) MDIO22(op, pa, ra int, data uint16) (rddata uint16, err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
+	if hw.Base == 0 {
+		return 0, errors.New("invalid MIIM controller instance")
+	}
+
 	reg.SetN(hw.Base+MII_CFG, CFG_ST_CFG_FIELD, 0b11, ST_CLAUSE_22)
-	return hw.mdio(uint32(pa), uint32(ra), uint32(data), uint32(op))
+	rddata, err = hw.mdio(uint32(pa), uint32(ra), uint32(data), uint32(op), op == mdio.OP_READ)
+	if err != nil {
+		err = fmt.Errorf("clause 22 PHY %d register %d: %w", pa, ra, err)
+	}
+
+	return
 }
 
 // MDIO45 transmits an MII frame (IEEE 802.3-2008 Clause 45) to a connected
-// Ethernet PHY, the return data is returned on write operations.
-func (hw *MIIM) MDIO45(op, prtad, devad int, data uint16) (rddata uint16) {
+// Ethernet PHY and returns read data when applicable.
+func (hw *MIIM) MDIO45(op, prtad, devad int, data uint16) (rddata uint16, err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
+	if hw.Base == 0 {
+		return 0, errors.New("invalid MIIM controller instance")
+	}
+
 	reg.SetN(hw.Base+MII_CFG, CFG_ST_CFG_FIELD, 0b11, ST_CLAUSE_45)
-	return hw.mdio(uint32(prtad), uint32(devad), uint32(data), uint32(op))
+	read := op == mdio.OP_READ_INC || op == mdio.OP_READ_45
+	rddata, err = hw.mdio(uint32(prtad), uint32(devad), uint32(data), uint32(op), read)
+	if err != nil {
+		err = fmt.Errorf("clause 45 port %d device %d: %w", prtad, devad, err)
+	}
+
+	return
 }
 
 // ReadPHYRegister reads a standard management register of a connected Ethernet
-// PHY (IEE 802.3-2008 Clause 22).
-func (hw *MIIM) ReadPHYRegister(pa int, ra int) (data uint16) {
+// PHY (IEEE 802.3-2008 Clause 22).
+func (hw *MIIM) ReadPHYRegister(pa int, ra int) (data uint16, err error) {
 	return hw.MDIO22(mdio.OP_READ, pa, ra, 0)
 }
 
 // WritePHYRegister writes a standard management register of a connected
-// Ethernet PHY (IEE 802.3-2008 Clause 22).
-func (hw *MIIM) WritePHYRegister(pa int, ra int, data uint16) {
-	hw.MDIO22(mdio.OP_WRITE, pa, ra, data)
+// Ethernet PHY (IEEE 802.3-2008 Clause 22).
+func (hw *MIIM) WritePHYRegister(pa int, ra int, data uint16) (err error) {
+	_, err = hw.MDIO22(mdio.OP_WRITE, pa, ra, data)
+	return
 }
