@@ -56,6 +56,10 @@ type IOAPIC struct {
 
 // Init initializes the I/O APIC.
 func (io *IOAPIC) Init() {
+	if io.Base == 0 {
+		panic("invalid IOAPIC instance")
+	}
+
 	reg.Write(io.Base+IOREGSEL, IOAPICID)
 	reg.SetN(io.Base+IOWIN, 24, 0xf, uint32(io.Index))
 }

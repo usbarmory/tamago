@@ -137,7 +137,7 @@ func checkRegion(region uint32, offset uint32) error {
 
 	if offset >= AliasRegion0 && offset < AliasRegion0+AliasRegionSize ||
 		offset >= AliasRegion1 && offset < AliasRegion1+AliasRegionSize {
-		return errors.New("invalid region (offset overalps with aliased region)")
+		return errors.New("invalid region (offset overlaps with aliased region)")
 	}
 
 	return nil

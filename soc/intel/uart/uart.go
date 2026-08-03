@@ -90,7 +90,7 @@ func (hw *UART) EnableInterrupt(rx chan bool) {
 	if rx == nil {
 		reg.Out8(hw.Base+IER, 0)
 	} else {
-		reg.Out8(hw.Base+IER, 1 << IER_ERBFI)
+		reg.Out8(hw.Base+IER, 1<<IER_ERBFI)
 	}
 
 	hw.rx = rx

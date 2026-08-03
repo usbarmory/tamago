@@ -54,11 +54,11 @@ const (
 	US_MR_SYNC   = 8
 	US_MR_CHRL   = 6
 
-	FLEX_US_IER  = 0x08
+	FLEX_US_IER     = 0x08
 	US_IER_TXRDY_IE = 1
 	US_IER_RXRDY_IE = 0
 
-	FLEX_US_IDR  = 0x0c
+	FLEX_US_IDR = 0x0c
 
 	FLEX_US_CSR  = 0x14
 	US_CSR_TXRDY = 1

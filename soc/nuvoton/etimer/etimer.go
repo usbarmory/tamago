@@ -25,8 +25,8 @@ const (
 	PRECNT = 0x04 // Pre-scale Counter Register
 
 	// Compare Register
-	CMPR      = 0x08
-	CMPR_MAX  = 0x00ffffff
+	CMPR     = 0x08
+	CMPR_MAX = 0x00ffffff
 
 	// // Interrupt Enable Register
 	IER         = 0x0c

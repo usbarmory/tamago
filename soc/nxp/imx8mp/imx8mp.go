@@ -96,11 +96,11 @@ var (
 
 	// Ethernet MAC 1
 	ENET1 = &enet.ENET{
-		Index:     1,
-		Base:      ENET1_BASE,
-		CCGR:      CCM_CCGR10,
-		Clock:     GetPeripheralClock,
-		IRQ:       ENET1_IRQ,
+		Index: 1,
+		Base:  ENET1_BASE,
+		CCGR:  CCM_CCGR10,
+		Clock: GetPeripheralClock,
+		IRQ:   ENET1_IRQ,
 	}
 
 	// Generic Interrupt Controller

@@ -55,7 +55,7 @@ func (msix *CapabilityMSIX) TableSize() int {
 // table.
 func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) (err error) {
 	if n > msix.TableSize() || msix.device == nil {
-		return errors.New("invalid capabilty instance")
+		return errors.New("invalid capability instance")
 	}
 
 	bir := int(msix.TableOffset & 0b11)

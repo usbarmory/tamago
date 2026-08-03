@@ -13,12 +13,12 @@ import (
 
 // IPI sends an Inter-Processor Interrupt (IPI).
 func (hw *CLINT) IPI(hart int) {
-	off := MSIP + uint32(hart * 4)
-	reg.Set(uint32(hw.Base) + off, 0)
+	off := MSIP + uint32(hart*4)
+	reg.Set(uint32(hw.Base)+off, 0)
 }
 
 // ClearIPI clears an Inter-Processor Interrupt (IPI).
 func (hw *CLINT) ClearIPI(hart int) {
-	off := MSIP + uint32(hart * 4)
-	reg.Clear(uint32(hw.Base) + off, 0)
+	off := MSIP + uint32(hart*4)
+	reg.Clear(uint32(hw.Base)+off, 0)
 }

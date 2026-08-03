@@ -31,7 +31,7 @@ var (
 	LA64 = &loong64.CPU{
 		// Counter must be set at package initialization as Nanotime
 		// is invoked by the runtime before [Init].
-		Counter:         loong64.Rdtime,
+		Counter: loong64.Rdtime,
 		// required before Init()
 		TimerMultiplier: 1,
 		TimerOffset:     1,

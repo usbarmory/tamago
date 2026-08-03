@@ -22,7 +22,7 @@ const (
 
 	// LogHeapArenaBytes defines the size of a runtime heap arena in log_2
 	// bytes (see runtime.logHeapArenaBytes).
-	LogHeapArenaBytes = (9+10)
+	LogHeapArenaBytes = (9 + 10)
 
 	// LogPallocChunkPages defines the size of a runtime bitmap chunk in
 	// log_2 bytes (see runtime.logPallocChunkPages).

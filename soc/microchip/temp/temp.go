@@ -52,6 +52,10 @@ func (hw *SENSOR) Init() {
 	hw.Lock()
 	defer hw.Unlock()
 
+	if hw.Base == 0 {
+		panic("invalid SENSOR instance")
+	}
+
 	reg.SetN(hw.Base+TEMP_SENSOR_CFG, CFG_CLK_CYCLES_1US, 0x1ff, TEMP_CLK_CYCLES_1US)
 	reg.Set(hw.Base+TEMP_SENSOR_CFG, CFG_CONTINUOUS_MODE)
 	reg.Set(hw.Base+TEMP_SENSOR_CFG, CFG_SAMPLE_ENA)

@@ -83,7 +83,7 @@ func (hw *WDOG) Init() {
 	defer hw.Unlock()
 
 	if hw.Base == 0 || hw.CCGR == 0 {
-		panic("invalid WDOG module instance")
+		panic("invalid WDOG instance")
 	}
 
 	hw.wcr = hw.Base + WDOGx_WCR
