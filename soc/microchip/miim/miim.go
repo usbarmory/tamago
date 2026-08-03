@@ -16,6 +16,7 @@
 package miim
 
 import (
+	"sync"
 	"time"
 
 	"github.com/usbarmory/tamago/bits"
@@ -53,6 +54,8 @@ const Timeout = 1 * time.Second
 
 // MIIM represents a MII Management Controller instance.
 type MIIM struct {
+	sync.Mutex
+
 	// Controller index
 	Index int
 	// Base register
@@ -63,6 +66,9 @@ type MIIM struct {
 
 // Init initializes and enables an MIIM controller instance.
 func (hw *MIIM) Init() {
+	hw.Lock()
+	defer hw.Unlock()
+
 	if hw.Base == 0 {
 		panic("invalid MIIM controller instance")
 	}
@@ -97,6 +103,9 @@ func (hw *MIIM) mdio(phyad, regad, wrdata, op uint32) (rddata uint16) {
 // MDIO22 transmits an MII frame (IEEE 802.3-2008 Clause 22) to a connected
 // Ethernet PHY, the return data is returned on write operations.
 func (hw *MIIM) MDIO22(op, pa, ra int, data uint16) (rddata uint16) {
+	hw.Lock()
+	defer hw.Unlock()
+
 	reg.SetN(hw.Base+MII_CFG, CFG_ST_CFG_FIELD, 0b11, ST_CLAUSE_22)
 	return hw.mdio(uint32(pa), uint32(ra), uint32(data), uint32(op))
 }
@@ -104,6 +113,9 @@ func (hw *MIIM) MDIO22(op, pa, ra int, data uint16) (rddata uint16) {
 // MDIO45 transmits an MII frame (IEEE 802.3-2008 Clause 45) to a connected
 // Ethernet PHY, the return data is returned on write operations.
 func (hw *MIIM) MDIO45(op, prtad, devad int, data uint16) (rddata uint16) {
+	hw.Lock()
+	defer hw.Unlock()
+
 	reg.SetN(hw.Base+MII_CFG, CFG_ST_CFG_FIELD, 0b11, ST_CLAUSE_45)
 	return hw.mdio(uint32(prtad), uint32(devad), uint32(data), uint32(op))
 }
