@@ -316,12 +316,13 @@ func (r *Region) alloc(size uint, align uint) *block {
 }
 
 func (r *Region) free(usedBlock *block) {
+	defer r.defrag()
+
 	for e := r.freeBlocks.Front(); e != nil; e = e.Next() {
 		b := e.Value.(*block)
 
 		if b.addr > usedBlock.addr {
 			r.freeBlocks.InsertBefore(usedBlock, e)
-			r.defrag()
 			return
 		}
 	}
