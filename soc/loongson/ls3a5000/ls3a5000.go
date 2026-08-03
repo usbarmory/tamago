@@ -22,7 +22,6 @@ import (
 
 // Peripheral registers
 const (
-	// LS7A legacy NS16550 console, also exposed by the QEMU `virt` machine
 	UART0_BASE = 0x1fe001e0
 )
 
@@ -33,6 +32,7 @@ var (
 		// Counter must be set at package initialization as Nanotime
 		// is invoked by the runtime before [Init].
 		Counter:         loong64.Rdtime,
+		// required before Init()
 		TimerMultiplier: 1,
 		TimerOffset:     1,
 	}

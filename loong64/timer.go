@@ -8,6 +8,16 @@
 
 package loong64
 
+// TimerInterrupt is the ESTAT.IS line index of the constant frequency timer
+// interrupt.
+const TimerInterrupt = 11
+
+// TCFG configuration bits.
+const (
+	tcfgEnable   = 1 << 0
+	tcfgPeriodic = 1 << 1
+)
+
 // nanoseconds per second
 const refFreq int64 = 1e9
 
@@ -58,16 +68,6 @@ func (cpu *CPU) SetTime(ns int64) {
 
 	cpu.TimerOffset = ns - int64(float64(cpu.Counter())*cpu.TimerMultiplier)
 }
-
-// TimerInterrupt is the ESTAT.IS line index of the constant frequency timer
-// interrupt.
-const TimerInterrupt = 11
-
-// TCFG configuration bits.
-const (
-	tcfgEnable   = 1 << 0
-	tcfgPeriodic = 1 << 1
-)
 
 // SetTimer programs the constant frequency timer to fire an interrupt after the
 // argument number of nanoseconds, periodically when periodic is set. The timer

@@ -9,16 +9,6 @@
 #include "go_asm.h"
 #include "textflag.h"
 
-// The Go LoongArch assembler provides no CSR access, exception return (ertn) or
-// idle mnemonics, therefore these are emitted as hand-encoded WORD directives,
-// verified via `go tool objdump`:
-//
-//	csrrd  R4, csr  = 0x04000000 | (csr<<10) | 0x04
-//	csrwr  R4, csr  = 0x04000000 | (csr<<10) | 0x24
-//	ertn            = 0x06483800
-//
-// CSR numbers: PRMD=0x1, ESTAT=0x5, SAVE0=0x30.
-
 // trapHandler is the common exception entry (ECFG.VS = 0); all exceptions and
 // interrupts share this single vector and are dispatched in software on the
 // ESTAT.Ecode field (0 identifies an interrupt).

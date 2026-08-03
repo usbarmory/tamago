@@ -41,8 +41,8 @@ var (
 	// RISC-V core
 	RV64 = &riscv64.CPU{
 		Counter:         Counter,
-		TimerMultiplier: 1,
 		// required before Init()
+		TimerMultiplier: 1,
 		TimerOffset: 1,
 	}
 

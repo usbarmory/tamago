@@ -41,9 +41,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| CPU     | Related platform packages                                                 | Core drivers                |
-|---------|---------------------------------------------------------------------------|-----------------------------|
-| la464   | [qemu/virt](https://github.com/usbarmory/tamago/blob/master/board/qemu/virt) | stable timer, CPUCFG, exceptions, interrupts |
+| CPU   | Related platform packages                                                    | Core drivers |
+|-------|------------------------------------------------------------------------------|--------------|
+| la464 | [qemu/virt](https://github.com/usbarmory/tamago/blob/master/board/qemu/virt) | CPUCFG, IRQs |
 
 Build tags
 ==========

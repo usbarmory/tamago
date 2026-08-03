@@ -23,9 +23,6 @@ import (
 	"sync"
 )
 
-// This package supports 64-bit cores.
-const XLEN = 64
-
 // CPU instance
 type CPU struct {
 	sync.Mutex

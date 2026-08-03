@@ -8,10 +8,6 @@
 
 #include "textflag.h"
 
-// The Go LoongArch assembler follows the Plan 9 destination-last operand
-// convention, therefore for `rdtime.d rd, rj` and `cpucfg rd, rj` the result
-// register (rd) is the last operand.
-
 // func Rdtime() uint64
 TEXT ·Rdtime(SB),NOSPLIT,$0-8
 	RDTIMED	R4, R5		// R5 = stable counter value, R4 = counter id

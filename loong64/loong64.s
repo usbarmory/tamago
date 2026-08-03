@@ -8,16 +8,6 @@
 
 #include "textflag.h"
 
-// The Go LoongArch assembler provides no mnemonics for privileged CSR access,
-// exception return (ertn) or the idle instruction, therefore these are emitted
-// as hand-encoded WORD directives, verified via `go tool objdump`:
-//
-//	csrwr Rd, csr = 0x04000000 | (csr<<10) | (1<<5) | Rd
-//	csrrd Rd, csr = 0x04000000 | (csr<<10) | Rd
-//	idle  0       = 0x06488000
-//
-// CSR numbers: EUEN=0x2.
-
 TEXT ·Init(SB),NOSPLIT|NOFRAME,$0
 	// enable the floating point unit (EUEN.FPE)
 	MOVV	$1, R4

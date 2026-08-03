@@ -8,15 +8,6 @@
 
 #include "textflag.h"
 
-// The Go LoongArch assembler provides no CSR access mnemonics, therefore these
-// helpers are emitted as hand-encoded WORD directives, verified via
-// `go tool objdump`:
-//
-//	csrrd R4, csr = 0x04000000 | (csr<<10) | 0x04
-//	csrwr R4, csr = 0x04000000 | (csr<<10) | 0x24
-//
-// CSR numbers: CRMD=0x0, ECFG=0x4, ESTAT=0x5, ERA=0x6, BADV=0x7, EENTRY=0xc.
-
 // func read_crmd() uint64
 TEXT ·read_crmd(SB),NOSPLIT,$0-8
 	WORD	$0x04000004	// csrrd R4, CRMD
