@@ -23,8 +23,6 @@ import (
 
 // UART registers
 const (
-	DEFAULT_BAUDRATE = 115200
-
 	RBR = 0x00
 	THR = 0x00
 
