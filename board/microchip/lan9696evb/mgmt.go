@@ -9,6 +9,9 @@
 package lan9696evb
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/soc/microchip/devcpu"
@@ -19,6 +22,9 @@ import (
 const (
 	MAC_FID             = 1
 	ManagementPortIndex = PORT29
+
+	phyWaitTimeout  = 10 * time.Second
+	phyPollInterval = 10 * time.Millisecond
 )
 
 // On the LAN969x 24-port EVB the management network interface is port D29,
@@ -40,12 +46,13 @@ func resetInjectionFlowControl(port uint32) {
 
 func enablePort() (err error) {
 	// init LAN8840 PHY
-	if err = initPHY(lan969x.MIIM0); err != nil {
+	var speed int
+	if speed, err = initPHY(lan969x.MIIM0); err != nil {
 		return
 	}
 
 	// init MAC controller
-	initRGMII()
+	initRGMII(speed)
 
 	// init VLAN on physical and CPU port
 	initVLAN(PORT29)
@@ -60,7 +67,9 @@ func enablePort() (err error) {
 	return nil
 }
 
-func initPHY(miim *miim.MIIM) (err error) {
+func initPHY(miim *miim.MIIM) (speed int, err error) {
+	var control uint16
+
 	// Table 2-7: GPIO alternate function assignments
 	//
 	// GPIO_9:  ALT1 - MIIM0_MDC
@@ -75,16 +84,103 @@ func initPHY(miim *miim.MIIM) (err error) {
 		return
 	}
 
-	// 1000 Mbps, Auto-Negotiation, Full-duplex
-	err = miim.WritePHYRegister(PHY_ADDR, PHY_CTRL, (0b1<<CTRL_SPEED1)|(1<<CTRL_ANEG)|(1<<CTRL_DUPLEX))
-	return
+	if control, err = waitPHYRegister(miim, PHY_CTRL, 1<<CTRL_RESET, 0); err != nil {
+		return 0, fmt.Errorf("LAN8840 reset: %w", err)
+	}
+
+	// enable and restart auto-negotiation
+	control |= (1 << CTRL_ANEG) | (1 << CTRL_ANEG_RESTART)
+	if err = miim.WritePHYRegister(PHY_ADDR, PHY_CTRL, control); err != nil {
+		return
+	}
+
+	statusMask := uint16((1 << STATUS_LINK) | (1 << STATUS_ANEG_COMPLETE))
+	if _, err = waitPHYRegister(miim, PHY_STATUS, statusMask, statusMask); err != nil {
+		return 0, fmt.Errorf("LAN8840 auto-negotiation: %w", err)
+	}
+
+	return negotiatedPHYSpeed(miim)
 }
 
-func initRGMII() {
-	var val uint32
+func waitPHYRegister(miim *miim.MIIM, address int, mask uint16, value uint16) (data uint16, err error) {
+	deadline := time.Now().Add(phyWaitTimeout)
 
-	// take RGMII out of reset and set speed to 1G
-	bits.SetN(&val, TX_CLK_CFG, 0b111, 1)
+	for {
+		if data, err = miim.ReadPHYRegister(PHY_ADDR, address); err != nil {
+			return
+		}
+
+		if data&mask == value {
+			return
+		}
+
+		if time.Now().After(deadline) {
+			return 0, fmt.Errorf("timed out waiting for PHY register %#x", address)
+		}
+
+		time.Sleep(phyPollInterval)
+	}
+}
+
+func negotiatedPHYSpeed(miim *miim.MIIM) (speed int, err error) {
+	var local, partner uint16
+
+	if local, err = miim.ReadPHYRegister(PHY_ADDR, PHY_1000_CTRL); err != nil {
+		return
+	}
+
+	if partner, err = miim.ReadPHYRegister(PHY_ADDR, PHY_1000_STATUS); err != nil {
+		return
+	}
+
+	if local&ANEG_ADV_1000_FULL != 0 && partner&ANEG_LPA_1000_FULL != 0 {
+		return 1000, nil
+	}
+
+	if local&ANEG_ADV_1000_HALF != 0 && partner&ANEG_LPA_1000_HALF != 0 {
+		return 0, fmt.Errorf("unsupported half-duplex management link")
+	}
+
+	if local, err = miim.ReadPHYRegister(PHY_ADDR, PHY_ANEG_ADV); err != nil {
+		return
+	}
+
+	if partner, err = miim.ReadPHYRegister(PHY_ADDR, PHY_ANEG_LPA); err != nil {
+		return
+	}
+
+	common := local & partner
+
+	switch {
+	case common&ANEG_ADV_100_FULL != 0:
+		return 100, nil
+	case common&ANEG_ADV_100_HALF != 0:
+		return 0, fmt.Errorf("unsupported half-duplex management link")
+	case common&(ANEG_ADV_10_FULL|ANEG_ADV_10_HALF) != 0:
+		return 0, fmt.Errorf("unsupported 10 Mbps management link")
+	default:
+		return 0, fmt.Errorf("management PHY has no common advertised mode")
+	}
+}
+
+func initRGMII(speed int) {
+	var val uint32
+	var txClock uint32
+	var macSpeed uint32
+
+	switch speed {
+	case 100:
+		txClock = 2
+		macSpeed = SPEED_100M
+	case 1000:
+		txClock = 1
+		macSpeed = SPEED_1G
+	default:
+		panic("invalid management link speed")
+	}
+
+	// take RGMII out of reset and match the negotiated link speed
+	bits.SetN(&val, TX_CLK_CFG, 0b111, txClock)
 	bits.Clear(&val, RGMII_TX_RST)
 	bits.Clear(&val, RGMII_RX_RST)
 	reg.Write(XMIICFG1+RGMII_CFG, val)
@@ -118,8 +214,8 @@ func initRGMII() {
 	reg.SetN(DEVRGMII1+MAC_IFG_CFG, RX_IFG2, 0x0f, 1) // rx inter frame gap (second part)
 	reg.SetN(DEVRGMII1+MAC_IFG_CFG, RX_IFG1, 0x0f, 5) // rx inter frame gap (first part)
 
-	// set 1000Mbps speed
-	reg.SetN(DEVRGMII1+DEV_RST_CTRL, SPEED_SEL, 0b111, SPEED_1G)
+	// set MAC speed
+	reg.SetN(DEVRGMII1+DEV_RST_CTRL, SPEED_SEL, 0b111, macSpeed)
 
 	// clear reset from clock domains
 	reg.Clear(DEVRGMII1+DEV_RST_CTRL, MAC_TX_RST)
