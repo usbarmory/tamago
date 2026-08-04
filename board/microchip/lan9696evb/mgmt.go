@@ -74,6 +74,16 @@ func enablePort() (err error) {
 	return nil
 }
 
+func initGPIO(num, fn int) {
+	pin, err := lan969x.GPIO.Init(num)
+
+	if err != nil {
+		return
+	}
+
+	pin.Function(fn)
+}
+
 func initPHY(miim *miim.MIIM) (speed int, err error) {
 	var control uint16
 
@@ -81,8 +91,8 @@ func initPHY(miim *miim.MIIM) (speed int, err error) {
 	//
 	// GPIO_9:  ALT1 - MIIM0_MDC
 	// GPIO_10: ALT1 - MIIM0_MDIO
-	lan969x.GPIO.Function(9, 1)
-	lan969x.GPIO.Function(10, 1)
+	initGPIO(9, 1)
+	initGPIO(10, 1)
 
 	miim.Init()
 
