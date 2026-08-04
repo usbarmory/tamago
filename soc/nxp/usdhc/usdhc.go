@@ -507,7 +507,7 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, arg uint64, blocks uint32, b
 		return
 	}
 
-	if (blocks & 0xffff) > 0xffff {
+	if blocks > 0xffff {
 		return errors.New("transfer size cannot exceed 65535 blocks")
 	}
 
