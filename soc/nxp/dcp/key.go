@@ -43,10 +43,8 @@ func (hw *DCP) DeriveKey(diversifier []byte, iv []byte, index int) (key []byte, 
 
 	region := hw.DeriveKeyMemory
 
-	if index >= 0 {
-		if region == nil {
-			return nil, errors.New("invalid DeriveKeyMemory")
-		}
+	if region == nil {
+		return nil, errors.New("invalid DeriveKeyMemory")
 	}
 
 	sourceBufferAddress := region.Alloc(key, aes.BlockSize)
@@ -91,7 +89,7 @@ func (hw *DCP) setKeyData(index int, key []byte, addr uint32) (err error) {
 		return errors.New("key index must be between 0 and 3")
 	}
 
-	if key != nil && len(key) > aes.BlockSize {
+	if len(key) != aes.BlockSize {
 		return errors.New("invalid key size")
 	}
 
