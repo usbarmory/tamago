@@ -23,6 +23,7 @@ const (
 	ST_45       = 0b00
 	OP_ADDR     = 0b00
 	OP_READ_INC = 0b10
+	OP_READ_45  = 0b11
 	TA_45       = 0b10
 
 	// Management Frame Fields
