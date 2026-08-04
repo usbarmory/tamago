@@ -89,7 +89,7 @@ func (hw *DCP) setKeyData(index int, key []byte, addr uint32) (err error) {
 		return errors.New("key index must be between 0 and 3")
 	}
 
-	if len(key) != aes.BlockSize {
+	if key != nil && len(key) != aes.BlockSize {
 		return errors.New("invalid key size")
 	}
 
