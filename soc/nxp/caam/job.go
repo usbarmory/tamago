@@ -78,11 +78,6 @@ func (ring *jobRing) init(base uint32, size int) {
 	ring.orjrr = ring.base + CAAM_ORJRR_JRx
 	ring.orsfr = ring.base + CAAM_ORSFR_JRx
 
-	if ring.size > 0 {
-		dma.Free(uint(ring.input))
-		dma.Free(uint(ring.output))
-	}
-
 	ring.size = size
 	ring.input = ring.initQueue(jobWords, ring.size)
 	ring.output = ring.initQueue(jobResultWords, ring.size)
