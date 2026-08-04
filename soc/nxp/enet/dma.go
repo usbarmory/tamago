@@ -141,7 +141,6 @@ type bufferDescriptorRing struct {
 	bds   []*bufferDescriptor
 	index int
 	size  int
-	stats *Stats
 }
 
 func (ring *bufferDescriptorRing) init(rx bool, n int, s *Stats) uint32 {
