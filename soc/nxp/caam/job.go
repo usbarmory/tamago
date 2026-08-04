@@ -46,7 +46,6 @@ const (
 	jobResultWords   = 2
 )
 
-
 type jobRing struct {
 	sync.Mutex
 

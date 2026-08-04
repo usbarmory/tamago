@@ -51,8 +51,8 @@ func (hw *AIC) DisableAll() {
 	reg.Write(hw.Base+MDCRH, 0xffffffff)
 }
 
-// EnableIRQ unmasks interrupt source irq (0..63).
-func (hw *AIC) EnableIRQ(irq int) {
+// EnableInterrupt unmasks interrupt source irq (0..63).
+func (hw *AIC) EnableInterrupt(irq int) {
 	if irq < 0 || irq > maxIRQ {
 		return
 	}
@@ -64,8 +64,8 @@ func (hw *AIC) EnableIRQ(irq int) {
 	}
 }
 
-// DisableIRQ masks interrupt source irq (0..63).
-func (hw *AIC) DisableIRQ(irq int) {
+// DisableInterrupt masks interrupt source irq (0..63).
+func (hw *AIC) DisableInterrupt(irq int) {
 	if irq < 0 || irq > maxIRQ {
 		return
 	}
@@ -77,13 +77,14 @@ func (hw *AIC) DisableIRQ(irq int) {
 	}
 }
 
-// CurrentIRQ returns the interrupt source number currently being serviced.
-func (hw *AIC) CurrentIRQ() int {
+// CurrentInterrupt returns the interrupt source number currently being
+// serviced.
+func (hw *AIC) CurrentInterrupt() int {
 	return int(reg.Read(hw.Base+ISNR) & 0x7f)
 }
 
-// EOI signals end-of-interrupt to the AIC.
-func (hw *AIC) EOI() {
+// ClearInterrupt signals end-of-interrupt to the AIC.
+func (hw *AIC) ClearInterrupt() {
 	reg.Write(hw.Base+EOSCR, 0x1)
 }
 
