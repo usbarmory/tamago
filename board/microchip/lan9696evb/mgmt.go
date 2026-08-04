@@ -22,9 +22,13 @@ import (
 const (
 	MAC_FID             = 1
 	ManagementPortIndex = PORT29
+)
 
-	phyWaitTimeout  = 10 * time.Second
-	phyPollInterval = 10 * time.Millisecond
+var (
+	// WaitTimeout represents the timeout for PHY register writes
+	WaitTimeout = 10 * time.Second
+	// PollInterval represents the delay between PHY register write attempts
+	PollInterval = 10 * time.Millisecond
 )
 
 // On the LAN969x 24-port EVB the management network interface is port D29,
@@ -46,13 +50,16 @@ func resetInjectionFlowControl(port uint32) {
 
 func enablePort() (err error) {
 	// init LAN8840 PHY
-	var speed int
-	if speed, err = initPHY(lan969x.MIIM0); err != nil {
+	speed, err := initPHY(lan969x.MIIM0)
+
+	if err != nil {
 		return
 	}
 
 	// init MAC controller
-	initRGMII(speed)
+	if err = initRGMII(speed); err != nil {
+		return
+	}
 
 	// init VLAN on physical and CPU port
 	initVLAN(PORT29)
@@ -85,25 +92,27 @@ func initPHY(miim *miim.MIIM) (speed int, err error) {
 	}
 
 	if control, err = waitPHYRegister(miim, PHY_CTRL, 1<<CTRL_RESET, 0); err != nil {
-		return 0, fmt.Errorf("LAN8840 reset: %w", err)
+		return 0, fmt.Errorf("could not reset PHY, %v", err)
 	}
 
 	// enable and restart auto-negotiation
 	control |= (1 << CTRL_ANEG) | (1 << CTRL_ANEG_RESTART)
+
 	if err = miim.WritePHYRegister(PHY_ADDR, PHY_CTRL, control); err != nil {
 		return
 	}
 
 	statusMask := uint16((1 << STATUS_LINK) | (1 << STATUS_ANEG_COMPLETE))
+
 	if _, err = waitPHYRegister(miim, PHY_STATUS, statusMask, statusMask); err != nil {
-		return 0, fmt.Errorf("LAN8840 auto-negotiation: %w", err)
+		return 0, fmt.Errorf("auto-negotiation status error, %w", err)
 	}
 
 	return negotiatedPHYSpeed(miim)
 }
 
 func waitPHYRegister(miim *miim.MIIM, address int, mask uint16, value uint16) (data uint16, err error) {
-	deadline := time.Now().Add(phyWaitTimeout)
+	deadline := time.Now().Add(WaitTimeout)
 
 	for {
 		if data, err = miim.ReadPHYRegister(PHY_ADDR, address); err != nil {
@@ -118,7 +127,7 @@ func waitPHYRegister(miim *miim.MIIM, address int, mask uint16, value uint16) (d
 			return 0, fmt.Errorf("timed out waiting for PHY register %#x", address)
 		}
 
-		time.Sleep(phyPollInterval)
+		time.Sleep(PollInterval)
 	}
 }
 
@@ -153,17 +162,19 @@ func negotiatedPHYSpeed(miim *miim.MIIM) (speed int, err error) {
 
 	switch {
 	case common&ANEG_ADV_100_FULL != 0:
-		return 100, nil
+		speed = 100
 	case common&ANEG_ADV_100_HALF != 0:
-		return 0, fmt.Errorf("unsupported half-duplex management link")
+		err = fmt.Errorf("unsupported half-duplex management link")
 	case common&(ANEG_ADV_10_FULL|ANEG_ADV_10_HALF) != 0:
-		return 0, fmt.Errorf("unsupported 10 Mbps management link")
+		err = fmt.Errorf("unsupported 10 Mbps management link")
 	default:
-		return 0, fmt.Errorf("management PHY has no common advertised mode")
+		err = fmt.Errorf("management PHY has no common advertised mode")
 	}
+
+	return
 }
 
-func initRGMII(speed int) {
+func initRGMII(speed int) (err error) {
 	var val uint32
 	var txClock uint32
 	var macSpeed uint32
@@ -176,7 +187,7 @@ func initRGMII(speed int) {
 		txClock = 1
 		macSpeed = SPEED_1G
 	default:
-		panic("invalid management link speed")
+		return fmt.Errorf("invalid management link speed (%d)", speed)
 	}
 
 	// take RGMII out of reset and match the negotiated link speed
@@ -220,6 +231,8 @@ func initRGMII(speed int) {
 	// clear reset from clock domains
 	reg.Clear(DEVRGMII1+DEV_RST_CTRL, MAC_TX_RST)
 	reg.Clear(DEVRGMII1+DEV_RST_CTRL, MAC_RX_RST)
+
+	return
 }
 
 func initVLAN(port uint32) {

@@ -81,16 +81,7 @@ func (hw *MIIM) Init() {
 }
 
 func (hw *MIIM) mdio(phyad, regad, wrdata, op uint32, read bool) (rddata uint16, err error) {
-	if hw.Base == 0 {
-		return 0, errors.New("invalid MIIM controller instance")
-	}
-
-	timeout := hw.Timeout
-	if timeout == 0 {
-		timeout = Timeout
-	}
-
-	if !reg.WaitFor(timeout, hw.Base+MII_STATUS, STATUS_PENDING_OP, 1, 0) {
+	if !reg.WaitFor(hw.Timeout, hw.Base+MII_STATUS, STATUS_PENDING_OP, 1, 0) {
 		return 0, errors.New("command FIFO timeout")
 	}
 
@@ -103,24 +94,24 @@ func (hw *MIIM) mdio(phyad, regad, wrdata, op uint32, read bool) (rddata uint16,
 	reg.Write(hw.Base+MII_CMD, cmd)
 
 	if !read {
-		if !reg.WaitFor(timeout, hw.Base+MII_STATUS, STATUS_PENDING_WR, 1, 0) {
+		if !reg.WaitFor(hw.Timeout, hw.Base+MII_STATUS, STATUS_PENDING_WR, 1, 0) {
 			return 0, errors.New("write timeout")
 		}
 
 		return
 	}
 
-	if !reg.WaitFor(timeout, hw.Base+MII_STATUS, STATUS_BUSY, 1, 0) {
+	if !reg.WaitFor(hw.Timeout, hw.Base+MII_STATUS, STATUS_BUSY, 1, 0) {
 		return 0, errors.New("read timeout")
 	}
 
 	data := reg.Read(hw.Base + MII_DATA)
+
 	if data>>DATA_SUCCESS&0b11 != 0 {
 		return 0, errors.New("PHY access failed")
 	}
 
-	rddata = uint16(data >> DATA_RDDATA)
-	return
+	return uint16(data >> DATA_RDDATA), nil
 }
 
 // MDIO22 transmits an MII frame (IEEE 802.3-2008 Clause 22) to a connected
@@ -134,9 +125,10 @@ func (hw *MIIM) MDIO22(op, pa, ra int, data uint16) (rddata uint16, err error) {
 	}
 
 	reg.SetN(hw.Base+MII_CFG, CFG_ST_CFG_FIELD, 0b11, ST_CLAUSE_22)
-	rddata, err = hw.mdio(uint32(pa), uint32(ra), uint32(data), uint32(op), op == mdio.OP_READ)
-	if err != nil {
-		err = fmt.Errorf("clause 22 PHY %d register %d: %w", pa, ra, err)
+	read := op == mdio.OP_READ
+
+	if rddata, err = hw.mdio(uint32(pa), uint32(ra), uint32(data), uint32(op), read); err != nil {
+		return 0, fmt.Errorf("clause 22 PHY %d register %d: %w", pa, ra, err)
 	}
 
 	return
@@ -154,9 +146,9 @@ func (hw *MIIM) MDIO45(op, prtad, devad int, data uint16) (rddata uint16, err er
 
 	reg.SetN(hw.Base+MII_CFG, CFG_ST_CFG_FIELD, 0b11, ST_CLAUSE_45)
 	read := op == mdio.OP_READ_INC || op == mdio.OP_READ_45
-	rddata, err = hw.mdio(uint32(prtad), uint32(devad), uint32(data), uint32(op), read)
-	if err != nil {
-		err = fmt.Errorf("clause 45 port %d device %d: %w", prtad, devad, err)
+
+	if rddata, err = hw.mdio(uint32(prtad), uint32(devad), uint32(data), uint32(op), read); err != nil {
+		return 0, fmt.Errorf("clause 45 port %d device %d: %w", prtad, devad, err)
 	}
 
 	return
