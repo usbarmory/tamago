@@ -135,11 +135,11 @@ func negotiatedPHYSpeed(miim *miim.MIIM) (speed int, err error) {
 	var local, partner uint16
 
 	if local, err = miim.ReadPHYRegister(PHY_ADDR, PHY_1000_CTRL); err != nil {
-		return
+		return 0, fmt.Errorf("could not read 1000BASE-T control register, %v", err)
 	}
 
 	if partner, err = miim.ReadPHYRegister(PHY_ADDR, PHY_1000_STATUS); err != nil {
-		return
+		return 0, fmt.Errorf("could not read 1000BASE-T status register, %v", err)
 	}
 
 	if local&ANEG_ADV_1000_FULL != 0 && partner&ANEG_LPA_1000_FULL != 0 {
@@ -151,11 +151,11 @@ func negotiatedPHYSpeed(miim *miim.MIIM) (speed int, err error) {
 	}
 
 	if local, err = miim.ReadPHYRegister(PHY_ADDR, PHY_ANEG_ADV); err != nil {
-		return
+		return 0, fmt.Errorf("could not read auto-negotiation advertisement register, %v", err)
 	}
 
 	if partner, err = miim.ReadPHYRegister(PHY_ADDR, PHY_ANEG_LPA); err != nil {
-		return
+		return 0, fmt.Errorf("could not read auto-negotiation link partner ability register, %v", err)
 	}
 
 	common := local & partner
