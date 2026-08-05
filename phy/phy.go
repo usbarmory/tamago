@@ -11,6 +11,8 @@ package phy
 
 // MIIM is the common interface used by sub-packages to access Media
 // Independent Interface Management (MIIM) buses.
+//
+// The bus is expected to be already initialized when passed to a PHY driver.
 type MIIM interface {
 	// ReadPHYRegister reads a standard management register of a connected Ethernet
 	// PHY (IEEE 802.3-2008 Clause 22).

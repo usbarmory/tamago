@@ -62,7 +62,9 @@ func enablePort() (err error) {
 	phy := &lan8840.PHY{}
 	miim := lan969x.MIIM0
 
-	miim.Init()
+	if err = miim.Init(); err != nil {
+		return
+	}
 
 	// initialize LAN8840 PHY
 	if err = phy.Init(PHY_ADDR, miim); err != nil {
