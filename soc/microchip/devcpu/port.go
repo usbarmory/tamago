@@ -163,10 +163,14 @@ func (p *Port) SetMAC(mac net.HardwareAddr) {
 }
 
 func (p *Port) abortInjection() (complete bool) {
-	reg.Set(p.inj_ctrl, CTRL_ABORT)
-	deadline := time.Now().Add(InjectionTimeout)
+	var deadline time.Time
 
 	for reg.Get(p.inj_status, INJ_STATUS_INJ_IN_PROGRESS+p.Group) {
+		if deadline.IsZero() {
+			reg.Set(p.inj_ctrl, CTRL_ABORT)
+			deadline = time.Now().Add(InjectionTimeout)
+		}
+
 		if !time.Now().Before(deadline) {
 			p.Stats.TxAbortTimeouts++
 			return
