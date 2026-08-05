@@ -37,6 +37,16 @@ var ManagementPort = &devcpu.Port{
 	FID:      MAC_FID,
 }
 
+func initGPIO(num, fn int) {
+	pin, err := lan969x.GPIO.Init(num)
+
+	if err != nil {
+		return
+	}
+
+	pin.Function(fn)
+}
+
 func resetInjectionFlowControl(port uint32) {
 	reg.Set(DEV_TX_STOP_WM_CFG+port*4, DEV_TX_CNT_CLR)
 }
@@ -46,8 +56,8 @@ func enablePort() (err error) {
 	//
 	// GPIO_9:  ALT1 - MIIM0_MDC
 	// GPIO_10: ALT1 - MIIM0_MDIO
-	lan969x.GPIO.Function(9, 1)
-	lan969x.GPIO.Function(10, 1)
+	initGPIO(9, 1)
+	initGPIO(10, 1)
 
 	phy := &lan8840.PHY{
 		Address: PHY_ADDR,
