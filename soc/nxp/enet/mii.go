@@ -41,12 +41,14 @@ func (hw *ENET) MDIO45(op, prtad, devad int, data uint16) (frame uint32) {
 
 // ReadPHYRegister reads a standard management register of a connected Ethernet
 // PHY (IEE 802.3-2008 Clause 22).
-func (hw *ENET) ReadPHYRegister(pa int, ra int) (data uint16) {
-	return uint16(hw.MDIO22(mdio.OP_READ, pa, ra, 0))
+func (hw *ENET) ReadPHYRegister(pa int, ra int) (data uint16, err error) {
+	data = uint16(hw.MDIO22(mdio.OP_READ, pa, ra, 0))
+	return
 }
 
 // WritePHYRegister writes a standard management register of a connected
 // Ethernet PHY (IEE 802.3-2008 Clause 22).
-func (hw *ENET) WritePHYRegister(pa int, ra int, data uint16) {
+func (hw *ENET) WritePHYRegister(pa int, ra int, data uint16) (err error) {
 	hw.MDIO22(mdio.OP_WRITE, pa, ra, data)
+	return
 }

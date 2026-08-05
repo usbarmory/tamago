@@ -67,17 +67,19 @@ type MIIM struct {
 }
 
 // Init initializes and enables an MIIM controller instance.
-func (hw *MIIM) Init() {
+func (hw *MIIM) Init() (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
 	if hw.Base == 0 {
-		panic("invalid MIIM controller instance")
+		return errors.New("invalid MIIM controller instance")
 	}
 
 	if hw.Timeout == 0 {
 		hw.Timeout = Timeout
 	}
+
+	return nil
 }
 
 func (hw *MIIM) mdio(phyad, regad, wrdata, op uint32, read bool) (rddata uint16, err error) {
