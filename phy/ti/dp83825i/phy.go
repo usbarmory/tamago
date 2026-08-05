@@ -36,60 +36,63 @@ const (
 
 // PHY represents the DP83825I Ethernet PHY instance.
 type PHY struct {
-	// Address represents the PHY address and must be set before [Init]
-	Address int
-
-	// MIIM represents the MIIM interface and must be set before [Init]
-	MIIM    phy.MIIM
-
+	miim  phy.MIIM
+	pa    int
 	speed int
 }
 
 // Init initializes the PHY and performs [PHY.Negotiate].
-func (phy *PHY) Init() (err error) {
-	if phy.MIIM == nil {
+func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
+	if miim == nil {
 		return errors.New("invalid PHY instance")
 	}
 
-	phy.speed = 0
+	hw.miim = miim
+	hw.pa = addr
+	hw.speed = 0
 
 	// software reset
-	if err = phy.MIIM.WritePHYRegister(phy.Address, DP_CTRL, (1 << CTRL_RESET)); err != nil {
+	if err = hw.miim.WritePHYRegister(hw.pa, DP_CTRL, (1 << CTRL_RESET)); err != nil {
 		return
 	}
 
-	return phy.Negotiate()
+	return hw.Negotiate()
 }
 
 // Negotiate refreshes the PHY auto-negotiation status, currently only 100 Mbps
 // Auto-Negotiation (Full-duplex) is supported.
-func (phy *PHY) Negotiate() (err error) {
-	phy.speed = 0
+func (hw *PHY) Negotiate() (err error) {
+	hw.speed = 0
 
-	if phy.MIIM == nil {
+	if hw.miim == nil {
 		return errors.New("invalid PHY instance")
 	}
 
 	// 100 Mbps, Auto-Negotiation, Full-duplex
 	ctrl := (1<<CTRL_SPEED)|(1<<CTRL_ANEG)|(1<<CTRL_DUPLEX)
 
-	if err = phy.MIIM.WritePHYRegister(phy.Address, DP_CTRL, uint16(ctrl)); err != nil {
+	if err = hw.miim.WritePHYRegister(hw.pa, DP_CTRL, uint16(ctrl)); err != nil {
 		return fmt.Errorf("could not configure auto-negotiation, %v", err)
 	}
 
 	// 50MHz RMII Reference Clock Select, 2 bit tolerance Receive Elasticity Buffer Size
 	rcsr := (1<<RCSR_RMII_CS)|(1<<RCSR_RX_BUF)
 
-	if err = phy.MIIM.WritePHYRegister(phy.Address, DP_RCSR, uint16(rcsr)); err != nil {
+	if err = hw.miim.WritePHYRegister(hw.pa, DP_RCSR, uint16(rcsr)); err != nil {
 		return fmt.Errorf("could not select reference clock, %v", err)
 	}
 
-	phy.speed = 100
+	hw.speed = 100
 
 	return
 }
 
+// Address returns the PHY address passed at [PHY.Init].
+func (hw *PHY) Address() int {
+	return hw.pa
+}
+
 // Speed returns the PHY auto-negotiated speed.
-func (phy *PHY) Speed() int {
-	return phy.speed
+func (hw *PHY) Speed() int {
+	return hw.speed
 }

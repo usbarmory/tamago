@@ -34,69 +34,72 @@ const (
 
 // PHY represents the KSZ8081 Ethernet PHY instance.
 type PHY struct {
-	// Address represents the PHY address and must be set before [Init]
-	Address int
-
-	// MIIM represents the MIIM interface and must be set before [Init]
-	MIIM phy.MIIM
-
+	miim  phy.MIIM
+	pa    int
 	speed int
 }
 
 // Init initializes the PHY and performs [PHY.Negotiate].
-func (phy *PHY) Init() (err error) {
-	if phy.MIIM == nil {
+func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
+	if miim == nil {
 		return errors.New("invalid PHY instance")
 	}
 
-	phy.speed = 0
+	hw.miim = miim
+	hw.pa = addr
+	hw.speed = 0
 
 	// software reset
-	if err = phy.MIIM.WritePHYRegister(phy.Address, KSZ_CTRL, (1 << CTRL_RESET)); err != nil {
+	if err = hw.miim.WritePHYRegister(hw.pa, KSZ_CTRL, (1 << CTRL_RESET)); err != nil {
 		return
 	}
 
-	return phy.Negotiate()
+	return hw.Negotiate()
 }
 
 // Negotiate refreshes the PHY auto-negotiation status, currently only 100 Mbps
 // Auto-Negotiation (Full-duplex) is supported.
-func (phy *PHY) Negotiate() (err error) {
-	phy.speed = 0
+func (hw *PHY) Negotiate() (err error) {
+	hw.speed = 0
 
-	if phy.MIIM == nil {
+	if hw.miim == nil {
 		return errors.New("invalid PHY instance")
 	}
 
 	// HP Auto MDI/MDI-X mode, RMII 50MHz, LEDs: Activity/Link
 	ctrl := (1 << CTRL2_HP_MDIX) | (1 << CTRL2_RMII) | (1 << CTRL2_LED)
 
-	if phy.MIIM.WritePHYRegister(phy.Address, KSZ_PHYCTRL2, uint16(ctrl)); err != nil {
+	if hw.miim.WritePHYRegister(hw.pa, KSZ_PHYCTRL2, uint16(ctrl)); err != nil {
 		return
 	}
 
 	// 100 Mbps, Full-duplex
 	ctrl = (1 << CTRL_SPEED) | (1 << CTRL_DUPLEX)
 
-	if phy.MIIM.WritePHYRegister(phy.Address, KSZ_CTRL, uint16(ctrl)); err != nil {
+	if hw.miim.WritePHYRegister(hw.pa, KSZ_CTRL, uint16(ctrl)); err != nil {
 		return
 	}
 
-	phy.speed = 100
+	hw.speed = 100
 
 	return
 }
 
+// Address returns the PHY address passed at [PHY.Init].
+func (hw *PHY) Address() int {
+	return hw.pa
+}
+
 // Speed returns the PHY auto-negotiated speed.
-func (phy *PHY) Speed() int {
-	return phy.speed
+func (hw *PHY) Speed() int {
+	return hw.speed
 }
 
 // EnableInterrupts enables all available transceiver interrupts.
-func (phy *PHY) EnableInterrupts() (err error) {
-	if phy.MIIM == nil {
+func (hw *PHY) EnableInterrupts() (err error) {
+	if hw.miim == nil {
 		return errors.New("invalid PHY instance")
 	}
 
-	return phy.MIIM.WritePHYRegister(phy.Address, KSZ_INT, 0xff00)
+	return hw.miim.WritePHYRegister(hw.pa, KSZ_INT, 0xff00)
 }

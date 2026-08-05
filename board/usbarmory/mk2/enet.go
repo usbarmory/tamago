@@ -169,10 +169,7 @@ var phy *dp83825i.PHY
 func EnablePHY(eth *enet.ENET) error {
 	configurePHYPads()
 
-	phy = &dp83825i.PHY{
-		Address: PHY_ADDR,
-		MIIM:    eth,
-	}
+	phy = &dp83825i.PHY{}
 
-	return phy.Init()
+	return phy.Init(PHY_ADDR, eth)
 }

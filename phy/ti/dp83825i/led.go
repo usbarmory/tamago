@@ -28,7 +28,7 @@ const (
 )
 
 // LED controls the PHY connected LED state.
-func (phy *PHY) LED(n int, on bool) (err error) {
+func (hw *PHY) LED(n int, on bool) (err error) {
 	switch n {
 	case 0,1:
 		val := uint16(1 << LEDCR1_LINK_LED_DRV)
@@ -37,7 +37,7 @@ func (phy *PHY) LED(n int, on bool) (err error) {
 			val |= 1 << LEDCR1_LINK_LED_OFF
 		}
 
-		return phy.MIIM.WritePHYRegister(phy.Address, DP_LEDCR1, val)
+		return hw.miim.WritePHYRegister(hw.pa, DP_LEDCR1, val)
 	case 2:
 		val := uint16(1 << LEDCR2_LED2_DRV_EN)
 
@@ -51,22 +51,22 @@ func (phy *PHY) LED(n int, on bool) (err error) {
 		devad := uint16(0x1f)
 
 		// set address function
-		if err = phy.MIIM.WritePHYRegister(phy.Address, DP_REGCR, uint16(MMD_FN_ADDR<<14)|devad); err != nil {
+		if err = hw.miim.WritePHYRegister(hw.pa, DP_REGCR, uint16(MMD_FN_ADDR<<14)|devad); err != nil {
 			return
 		}
 
 		// write address value
-		if err = phy.MIIM.WritePHYRegister(phy.Address, DP_ADDAR, DP_LEDCR2); err != nil {
+		if err = hw.miim.WritePHYRegister(hw.pa, DP_ADDAR, DP_LEDCR2); err != nil {
 			return
 		}
 
 		// set data function
-		if err = phy.MIIM.WritePHYRegister(phy.Address, DP_REGCR, uint16(MMD_FN_DATA<<14)|devad); err != nil {
+		if err = hw.miim.WritePHYRegister(hw.pa, DP_REGCR, uint16(MMD_FN_DATA<<14)|devad); err != nil {
 			return
 		}
 
 		// write data value
-		return phy.MIIM.WritePHYRegister(phy.Address, DP_ADDAR, val)
+		return hw.miim.WritePHYRegister(hw.pa, DP_ADDAR, val)
 	}
 
 	return errors.New("invalid LED")

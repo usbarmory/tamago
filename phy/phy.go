@@ -23,3 +23,19 @@ type MIIM interface {
 	// Ethernet PHY (IEE 802.3-2008 Clause 22).
 	WritePHYRegister(pa int, ra int, data uint16) (err error)
 }
+
+// PHY is the common interface used by sub-packages to implement Ethernet PHY
+// drivers.
+type PHY interface {
+	// Init represents the PHY initialization function.
+	Init(addr int, miim MIIM) error
+
+	// Negotiate represents the PHY auto-negotiation function.
+	Negotiate() error
+
+	// Address reports the PHY address.
+	Address() int
+
+	// Speed reports the PHY auto-negotiated speed.
+	Speed() int
+}

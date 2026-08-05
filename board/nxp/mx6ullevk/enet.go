@@ -269,20 +269,22 @@ func configurePHY2Pads() {
 
 var phy *ksz8081.PHY
 
-func EnablePHY(eth *enet.ENET) error {
-	phy = &ksz8081.PHY{
-		MIIM: eth,
-	}
+func EnablePHY(eth *enet.ENET) (err error) {
+	phy = &ksz8081.PHY{}
 
 	switch eth.Index {
 	case 1:
 		configurePHY1Pads()
-		phy.Address = 2
+		err = phy.Init(2, eth)
 	case 2:
 		configurePHY2Pads()
-		phy.Address = 1
+		err = phy.Init(1, eth)
 	default:
 		return errors.New("invalid index")
+	}
+
+	if err != nil {
+		return
 	}
 
 	return phy.EnableInterrupts()

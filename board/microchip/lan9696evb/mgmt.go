@@ -59,15 +59,13 @@ func enablePort() (err error) {
 	initGPIO(9, 1)
 	initGPIO(10, 1)
 
-	phy := &lan8840.PHY{
-		Address: PHY_ADDR,
-		MIIM:    lan969x.MIIM0,
-	}
+	phy := &lan8840.PHY{}
+	miim := lan969x.MIIM0
 
-	phy.MIIM.Init()
+	miim.Init()
 
 	// initialize LAN8840 PHY
-	if err = phy.Init(); err != nil {
+	if err = phy.Init(PHY_ADDR, miim); err != nil {
 		return
 	}
 

@@ -56,20 +56,16 @@ var PollInterval = 10 * time.Millisecond
 
 // PHY represents the LAN8840 Ethernet PHY instance.
 type PHY struct {
-	// Address represents the PHY address and must be set before [Init]
-	Address int
-
-	// MIIM represents the MIIM interface and must be set before [Init]
-	MIIM    phy.MIIM
-
+	miim  phy.MIIM
+	pa    int
 	speed int
 }
 
-func (phy *PHY) wait(addr int, mask uint16, value uint16) (data uint16, err error) {
+func (hw *PHY) wait(addr int, mask uint16, value uint16) (data uint16, err error) {
 	deadline := time.Now().Add(WaitTimeout)
 
 	for {
-		if data, err = phy.MIIM.ReadPHYRegister(phy.Address, addr); err != nil {
+		if data, err = hw.miim.ReadPHYRegister(hw.pa, addr); err != nil {
 			return
 		}
 
@@ -86,19 +82,21 @@ func (phy *PHY) wait(addr int, mask uint16, value uint16) (data uint16, err erro
 }
 
 // Init initializes the PHY and performs [PHY.Negotiate].
-func (phy *PHY) Init() (err error) {
-	if phy.MIIM == nil {
+func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
+	if miim == nil {
 		return errors.New("invalid PHY instance")
 	}
 
-	phy.speed = 0
+	hw.miim = miim
+	hw.pa = addr
+	hw.speed = 0
 
 	// software reset
-	if err = phy.MIIM.WritePHYRegister(phy.Address, PHY_CTRL, (1 << CTRL_RESET)); err != nil {
+	if err = hw.miim.WritePHYRegister(hw.pa, PHY_CTRL, (1 << CTRL_RESET)); err != nil {
 		return
 	}
 
-	control, err := phy.wait(PHY_CTRL, 1<<CTRL_RESET, 0)
+	control, err := hw.wait(PHY_CTRL, 1<<CTRL_RESET, 0)
 
 	if err != nil {
 		return fmt.Errorf("could not reset PHY, %v", err)
@@ -107,40 +105,40 @@ func (phy *PHY) Init() (err error) {
 	// enable and restart auto-negotiation
 	control |= (1 << CTRL_ANEG) | (1 << CTRL_ANEG_RESTART)
 
-	if err = phy.MIIM.WritePHYRegister(phy.Address, PHY_CTRL, control); err != nil {
+	if err = hw.miim.WritePHYRegister(hw.pa, PHY_CTRL, control); err != nil {
 		return
 	}
 
 	statusMask := uint16((1 << STATUS_LINK) | (1 << STATUS_ANEG_COMPLETE))
 
-	if _, err = phy.wait(PHY_STATUS, statusMask, statusMask); err != nil {
+	if _, err = hw.wait(PHY_STATUS, statusMask, statusMask); err != nil {
 		return fmt.Errorf("auto-negotiation status error, %w", err)
 	}
 
-	return phy.Negotiate()
+	return hw.Negotiate()
 }
 
 // Negotiate refreshes the PHY auto-negotiation status, currently only 100/1000
 // Mbps Auto-Negotiation (Full-duplex) is supported.
-func (phy *PHY) Negotiate() (err error) {
+func (hw *PHY) Negotiate() (err error) {
 	var local, partner uint16
 
-	phy.speed = 0
+	hw.speed = 0
 
-	if phy.MIIM == nil {
+	if hw.miim == nil {
 		return errors.New("invalid PHY instance")
 	}
 
-	if local, err = phy.MIIM.ReadPHYRegister(phy.Address, PHY_1000_CTRL); err != nil {
+	if local, err = hw.miim.ReadPHYRegister(hw.pa, PHY_1000_CTRL); err != nil {
 		return fmt.Errorf("could not read 1000BASE-T control register, %v", err)
 	}
 
-	if partner, err = phy.MIIM.ReadPHYRegister(phy.Address, PHY_1000_STATUS); err != nil {
+	if partner, err = hw.miim.ReadPHYRegister(hw.pa, PHY_1000_STATUS); err != nil {
 		return fmt.Errorf("could not read 1000BASE-T status register, %v", err)
 	}
 
 	if local&ANEG_ADV_1000_FULL != 0 && partner&ANEG_LPA_1000_FULL != 0 {
-		phy.speed = 1000
+		hw.speed = 1000
 		return
 	}
 
@@ -148,11 +146,11 @@ func (phy *PHY) Negotiate() (err error) {
 		return fmt.Errorf("unsupported half-duplex management link")
 	}
 
-	if local, err = phy.MIIM.ReadPHYRegister(phy.Address, PHY_ANEG_ADV); err != nil {
+	if local, err = hw.miim.ReadPHYRegister(hw.pa, PHY_ANEG_ADV); err != nil {
 		return fmt.Errorf("could not read auto-negotiation advertisement register, %v", err)
 	}
 
-	if partner, err = phy.MIIM.ReadPHYRegister(phy.Address, PHY_ANEG_LPA); err != nil {
+	if partner, err = hw.miim.ReadPHYRegister(hw.pa, PHY_ANEG_LPA); err != nil {
 		return fmt.Errorf("could not read auto-negotiation link partner ability register, %v", err)
 	}
 
@@ -160,7 +158,7 @@ func (phy *PHY) Negotiate() (err error) {
 
 	switch {
 	case common&ANEG_ADV_100_FULL != 0:
-		phy.speed = 100
+		hw.speed = 100
 	case common&ANEG_ADV_100_HALF != 0:
 		return fmt.Errorf("unsupported half-duplex management link")
 	case common&(ANEG_ADV_10_FULL|ANEG_ADV_10_HALF) != 0:
@@ -172,7 +170,12 @@ func (phy *PHY) Negotiate() (err error) {
 	return
 }
 
+// Address returns the PHY address passed at [PHY.Init].
+func (hw *PHY) Address() int {
+	return hw.pa
+}
+
 // Speed returns the PHY auto-negotiated speed.
-func (phy *PHY) Speed() int {
-	return phy.speed
+func (hw *PHY) Speed() int {
+	return hw.speed
 }
