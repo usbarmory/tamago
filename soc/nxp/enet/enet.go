@@ -214,12 +214,10 @@ func (hw *ENET) Init() (err error) {
 	hw.ftrl = hw.Base + ENETx_FTRL
 	hw.racc = hw.Base + ENETx_RACC
 
-	hw.setup()
-
-	return
+	return hw.setup()
 }
 
-func (hw *ENET) setup() {
+func (hw *ENET) setup() (err error) {
 	// enable clock
 	reg.SetN(hw.CCGR, hw.CG, 0b11, 0b11)
 
@@ -275,8 +273,10 @@ func (hw *ENET) setup() {
 
 	if hw.EnablePHY != nil {
 		// enable Ethernet PHY
-		hw.EnablePHY(hw)
+		err = hw.EnablePHY(hw)
 	}
+
+	return
 }
 
 // SetMAC allows to change the controller physical address register after
