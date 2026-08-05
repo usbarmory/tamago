@@ -20,6 +20,7 @@ import (
 	"errors"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/usbarmory/tamago/internal/reg"
 )
@@ -139,6 +140,9 @@ type ENET struct {
 	// Statistics about the MAC
 	Stats Stats
 
+	// Timeout for MIIM operations
+	Timeout time.Duration
+
 	// control registers
 	eir  uint32
 	eimr uint32
@@ -186,6 +190,10 @@ func (hw *ENET) Init() (err error) {
 
 	if hw.RingSize == 0 {
 		hw.RingSize = defaultRingSize
+	}
+
+	if hw.Timeout == 0 {
+		hw.Timeout = Timeout
 	}
 
 	hw.eir = hw.Base + ENETx_EIR
