@@ -69,14 +69,14 @@ func (hw *PHY) Negotiate() (err error) {
 	}
 
 	// 100 Mbps, Auto-Negotiation, Full-duplex
-	ctrl := (1<<CTRL_SPEED)|(1<<CTRL_ANEG)|(1<<CTRL_DUPLEX)
+	ctrl := (1 << CTRL_SPEED) | (1 << CTRL_ANEG) | (1 << CTRL_DUPLEX)
 
 	if err = hw.miim.WritePHYRegister(hw.pa, DP_CTRL, uint16(ctrl)); err != nil {
 		return fmt.Errorf("could not configure auto-negotiation, %v", err)
 	}
 
 	// 50MHz RMII Reference Clock Select, 2 bit tolerance Receive Elasticity Buffer Size
-	rcsr := (1<<RCSR_RMII_CS)|(1<<RCSR_RX_BUF)
+	rcsr := (1 << RCSR_RMII_CS) | (1 << RCSR_RX_BUF)
 
 	if err = hw.miim.WritePHYRegister(hw.pa, DP_RCSR, uint16(rcsr)); err != nil {
 		return fmt.Errorf("could not select reference clock, %v", err)

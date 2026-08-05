@@ -12,15 +12,15 @@ package phy
 // MIIM is the common interface used by sub-packages to access Media
 // Independent Interface Management (MIIM) buses.
 type MIIM interface {
-	// Init represents the MIIM bus initializattion function.
+	// Init represents the MIIM bus initialization function.
 	Init() error
 
 	// ReadPHYRegister reads a standard management register of a connected Ethernet
-	// PHY (IEE 802.3-2008 Clause 22).
+	// PHY (IEEE 802.3-2008 Clause 22).
 	ReadPHYRegister(pa int, ra int) (data uint16, err error)
 
 	// WritePHYRegister writes a standard management register of a connected
-	// Ethernet PHY (IEE 802.3-2008 Clause 22).
+	// Ethernet PHY (IEEE 802.3-2008 Clause 22).
 	WritePHYRegister(pa int, ra int, data uint16) (err error)
 }
 

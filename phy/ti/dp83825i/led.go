@@ -30,7 +30,7 @@ const (
 // LED controls the PHY connected LED state.
 func (hw *PHY) LED(n int, on bool) (err error) {
 	switch n {
-	case 0,1:
+	case 0, 1:
 		val := uint16(1 << LEDCR1_LINK_LED_DRV)
 
 		if !on {

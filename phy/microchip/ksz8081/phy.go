@@ -69,14 +69,14 @@ func (hw *PHY) Negotiate() (err error) {
 	// HP Auto MDI/MDI-X mode, RMII 50MHz, LEDs: Activity/Link
 	ctrl := (1 << CTRL2_HP_MDIX) | (1 << CTRL2_RMII) | (1 << CTRL2_LED)
 
-	if hw.miim.WritePHYRegister(hw.pa, KSZ_PHYCTRL2, uint16(ctrl)); err != nil {
+	if err = hw.miim.WritePHYRegister(hw.pa, KSZ_PHYCTRL2, uint16(ctrl)); err != nil {
 		return
 	}
 
 	// 100 Mbps, Full-duplex
 	ctrl = (1 << CTRL_SPEED) | (1 << CTRL_DUPLEX)
 
-	if hw.miim.WritePHYRegister(hw.pa, KSZ_CTRL, uint16(ctrl)); err != nil {
+	if err = hw.miim.WritePHYRegister(hw.pa, KSZ_CTRL, uint16(ctrl)); err != nil {
 		return
 	}
 
