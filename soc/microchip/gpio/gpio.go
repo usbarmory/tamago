@@ -16,6 +16,9 @@
 package gpio
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -29,64 +32,90 @@ const (
 	GPIO_ALT     = 0x60
 )
 
-// GPIO controller instance
+const (
+	bankSize = 32
+	banks    = 3
+)
+
+// GPIO represents a GPIO controller instance.
 type GPIO struct {
 	// Base register
 	Base uint32
 }
 
-func addr(num int, size uint32) (off uint32, pos int) {
-	switch {
-	case num < 32:
-		return 0 * size, num
-	case num < 64:
-		return 1 * size, num % 32
-	default:
-		return 2 * size, num % 32
-	}
+// Pin represents a GPIO line instance.
+type Pin struct {
+	num int
+	pos int
+	set uint32
+	clr uint32
+	in  uint32
+	oe  uint32
+	alt uint32
 }
 
-// Out configures a GPIO as output.
-func (gpio *GPIO) Out(num int) {
-	off, pos := addr(num, 4)
-	reg.Set(gpio.Base+GPIO_OE+off, pos)
+func bank(num int, size uint32) uint32 {
+	return uint32(num/bankSize) * size
 }
 
-// In configures a GPIO as input.
-func (gpio *GPIO) In(num int) {
-	off, pos := addr(num, 4)
-	reg.Clear(gpio.Base+GPIO_OE+off, pos)
-}
-
-// High configures a GPIO signal as high.
-func (gpio *GPIO) High(num int) {
-	off, pos := addr(num, 4)
-	reg.Set(gpio.Base+GPIO_OUT_SET+off, pos)
-}
-
-// Low configures a GPIO signal as low.
-func (gpio *GPIO) Low(num int) {
-	off, pos := addr(num, 4)
-	reg.Set(gpio.Base+GPIO_OUT_CLR+off, pos)
-}
-
-// Value returns a GPIO signal level.
-func (gpio *GPIO) Value(num int) (high bool) {
-	off, pos := addr(num, 4)
-	return reg.Get(gpio.Base+GPIO_IN+off, pos)
-}
-
-// Function sets a GPIO alternate function assignment.
-func (gpio *GPIO) Function(num int, mode int) {
-	if mode < 0 || mode > 7 {
-		return
+// Init initializes a GPIO line instance.
+func (hw *GPIO) Init(num int) (pin *Pin, err error) {
+	if hw.Base == 0 {
+		return nil, errors.New("invalid GPIO controller instance")
 	}
 
-	off, pos := addr(num, 12)
-	alt := gpio.Base + GPIO_ALT + off
+	if num < 0 || num >= banks*bankSize {
+		return nil, fmt.Errorf("invalid GPIO number %d", num)
+	}
+
+	pin = &Pin{
+		num: num,
+		pos: num % bankSize,
+		set: hw.Base + GPIO_OUT_SET + bank(num, 4),
+		clr: hw.Base + GPIO_OUT_CLR + bank(num, 4),
+		in:  hw.Base + GPIO_IN + bank(num, 4),
+		oe:  hw.Base + GPIO_OE + bank(num, 4),
+		alt: hw.Base + GPIO_ALT + bank(num, 12),
+	}
+
+	return
+}
+
+// Out configures a GPIO line for output.
+func (pin *Pin) Out() {
+	reg.Set(pin.oe, pin.pos)
+}
+
+// In configures a GPIO line for input.
+func (pin *Pin) In() {
+	reg.Clear(pin.oe, pin.pos)
+}
+
+// High configures a GPIO line to be high.
+func (pin *Pin) High() {
+	reg.Set(pin.set, pin.pos)
+}
+
+// Low configures a GPIO line to be low.
+func (pin *Pin) Low() {
+	reg.Set(pin.clr, pin.pos)
+}
+
+// Value returns the GPIO line level.
+func (pin *Pin) Value() (high bool) {
+	return reg.Get(pin.in, pin.pos)
+}
+
+// Function selects a GPIO line overlaid function.
+func (pin *Pin) Function(mode int) (err error) {
+	if mode < 0 || mode > 0b111 {
+		return fmt.Errorf("invalid GPIO function %d", mode)
+	}
 
 	// Table 3-426: GPIO overlaid functions
-	reg.SetTo(alt+(0*4), pos, (mode&0b001) > 0)
-	reg.SetTo(alt+(1*4), pos, (mode&0b010) > 0)
-	reg.SetTo(alt+(2*4), pos, (mode&0b100) > 0)
+	reg.SetTo(pin.alt+(0*4), pin.pos, (mode&0b001) > 0)
+	reg.SetTo(pin.alt+(1*4), pin.pos, (mode&0b010) > 0)
+	reg.SetTo(pin.alt+(2*4), pin.pos, (mode&0b100) > 0)
+
+	return
 }
