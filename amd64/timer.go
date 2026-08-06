@@ -157,7 +157,6 @@ func (cpu *CPU) SetAlarm(ns int64) {
 		return
 	}
 
-	// TODO: move to apinit ?
 	cpu.LAPIC.SetTimer(IRQ_WAKEUP, lapic.TIMER_MODE_TSC_DEADLINE)
 
 	if ns == 0 {
