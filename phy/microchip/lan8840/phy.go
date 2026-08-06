@@ -50,10 +50,10 @@ const (
 	ANEG_LPA_1000_FULL = 1 << 11
 )
 
-// WaitTimeout represents the timeout for PHY register writes
-var WaitTimeout = 10 * time.Second
+// Timeout is the default timeout for PHY operations.
+const Timeout = 100 * time.Millisecond
 
-// PollInterval represents the delay between PHY register write attempts
+// PollInterval represents the delay between PHY register polling attempts
 var PollInterval = 10 * time.Millisecond
 
 // Status represents the resolved PHY link state.
@@ -66,9 +66,33 @@ type Status struct {
 
 // PHY represents the LAN8840 Ethernet PHY instance.
 type PHY struct {
+	// Timeout for PHY operations
+	Timeout time.Duration
+
 	miim  phy.MIIM
 	pa    int
 	speed int
+}
+
+// Init initializes the PHY, resets it, and starts auto-negotiation.
+func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
+	if miim == nil || addr < 0 || addr > 0x07 {
+		return errors.New("invalid PHY instance")
+	}
+
+	hw.miim = miim
+	hw.pa = addr
+	hw.speed = 0
+
+	if hw.Timeout == 0 {
+		hw.Timeout = Timeout
+	}
+
+	if err = hw.Reset(); err != nil {
+		return
+	}
+
+	return hw.Negotiate()
 }
 
 func (hw *PHY) read(address int) (data uint16, err error) {
@@ -88,7 +112,7 @@ func (hw *PHY) write(address int, data uint16) (err error) {
 }
 
 func (hw *PHY) wait(addr int, mask uint16, value uint16) (data uint16, err error) {
-	deadline := time.Now().Add(WaitTimeout)
+	deadline := time.Now().Add(hw.Timeout)
 
 	for {
 		if data, err = hw.read(addr); err != nil {
@@ -107,47 +131,14 @@ func (hw *PHY) wait(addr int, mask uint16, value uint16) (data uint16, err error
 	}
 }
 
-// Init initializes the PHY and performs [PHY.Negotiate].
-func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
-	if miim == nil {
-		return errors.New("invalid PHY instance")
-	}
-
-	hw.miim = miim
-	hw.pa = addr
-	hw.speed = 0
-
-	// software reset
-	if err = hw.write(BASIC_CONTROL, (1 << CTRL_RESET)); err != nil {
+// Reset performs a software hard reset and waits for its completion.
+func (hw *PHY) Reset() (err error) {
+	if err = hw.write(BASIC_CONTROL, 1<<CTRL_RESET); err != nil {
 		return
 	}
 
 	if _, err = hw.wait(BASIC_CONTROL, 1<<CTRL_RESET, 0); err != nil {
-		return fmt.Errorf("could not reset PHY, %v", err)
-	}
-
-	if err = hw.Negotiate(); err != nil {
-		return
-	}
-
-	statusMask := uint16((1 << STATUS_LINK) | (1 << STATUS_ANEG_COMPLETE))
-
-	if _, err = hw.wait(BASIC_STATUS, statusMask, statusMask); err != nil {
-		return fmt.Errorf("auto-negotiation status error, %w", err)
-	}
-
-	var status Status
-	if status, err = hw.Status(); err != nil {
-		return
-	}
-
-	switch {
-	case status.Speed == 10:
-		return errors.New("unsupported 10 Mbps management link")
-	case !status.FullDuplex:
-		return errors.New("unsupported half-duplex management link")
-	case status.Speed != 100 && status.Speed != 1000:
-		return errors.New("management PHY has no common advertised mode")
+		return fmt.Errorf("could not reset PHY, %w", err)
 	}
 
 	return
