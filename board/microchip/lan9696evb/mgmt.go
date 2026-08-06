@@ -10,25 +10,18 @@ package lan9696evb
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
+	"github.com/usbarmory/tamago/phy/microchip/lan8840"
 	"github.com/usbarmory/tamago/soc/microchip/devcpu"
 	"github.com/usbarmory/tamago/soc/microchip/lan969x"
-	"github.com/usbarmory/tamago/soc/microchip/miim"
 )
 
 const (
+	PHY_ADDR            = 0x03
 	MAC_FID             = 1
 	ManagementPortIndex = PORT29
-)
-
-var (
-	// WaitTimeout represents the timeout for PHY register writes
-	WaitTimeout = 10 * time.Second
-	// PollInterval represents the delay between PHY register write attempts
-	PollInterval = 10 * time.Millisecond
 )
 
 // On the LAN969x 24-port EVB the management network interface is port D29,
@@ -44,36 +37,6 @@ var ManagementPort = &devcpu.Port{
 	FID:      MAC_FID,
 }
 
-func resetInjectionFlowControl(port uint32) {
-	reg.Set(DEV_TX_STOP_WM_CFG+port*4, DEV_TX_CNT_CLR)
-}
-
-func enablePort() (err error) {
-	// init LAN8840 PHY
-	speed, err := initPHY(lan969x.MIIM0)
-
-	if err != nil {
-		return
-	}
-
-	// init MAC controller
-	if err = initRGMII(speed); err != nil {
-		return
-	}
-
-	// init VLAN on physical and CPU port
-	initVLAN(PORT29)
-	initVLAN(PORT30)
-
-	// init capture on CPU port 0 (D30)
-	initCapture(PORT_CFG30)
-
-	// reset injection flow control
-	resetInjectionFlowControl(PORT29)
-
-	return nil
-}
-
 func initGPIO(num, fn int) {
 	pin, err := lan969x.GPIO.Init(num)
 
@@ -84,9 +47,11 @@ func initGPIO(num, fn int) {
 	pin.Function(fn)
 }
 
-func initPHY(miim *miim.MIIM) (speed int, err error) {
-	var control uint16
+func resetInjectionFlowControl(port uint32) {
+	reg.Set(DEV_TX_STOP_WM_CFG+port*4, DEV_TX_CNT_CLR)
+}
 
+func enablePort() (err error) {
 	// Table 2-7: GPIO alternate function assignments
 	//
 	// GPIO_9:  ALT1 - MIIM0_MDC
@@ -94,94 +59,34 @@ func initPHY(miim *miim.MIIM) (speed int, err error) {
 	initGPIO(9, 1)
 	initGPIO(10, 1)
 
-	miim.Init()
+	phy := &lan8840.PHY{}
+	miim := lan969x.MIIM0
 
-	// software reset
-	if err = miim.WritePHYRegister(PHY_ADDR, PHY_CTRL, (1 << CTRL_RESET)); err != nil {
+	if err = miim.Init(); err != nil {
 		return
 	}
 
-	if control, err = waitPHYRegister(miim, PHY_CTRL, 1<<CTRL_RESET, 0); err != nil {
-		return 0, fmt.Errorf("could not reset PHY, %v", err)
-	}
-
-	// enable and restart auto-negotiation
-	control |= (1 << CTRL_ANEG) | (1 << CTRL_ANEG_RESTART)
-
-	if err = miim.WritePHYRegister(PHY_ADDR, PHY_CTRL, control); err != nil {
+	// initialize LAN8840 PHY
+	if err = phy.Init(PHY_ADDR, miim); err != nil {
 		return
 	}
 
-	statusMask := uint16((1 << STATUS_LINK) | (1 << STATUS_ANEG_COMPLETE))
-
-	if _, err = waitPHYRegister(miim, PHY_STATUS, statusMask, statusMask); err != nil {
-		return 0, fmt.Errorf("auto-negotiation status error, %w", err)
+	// initialize MAC controller
+	if err = initRGMII(phy.Speed()); err != nil {
+		return
 	}
 
-	return negotiatedPHYSpeed(miim)
-}
+	// initialize VLAN on physical and CPU port
+	initVLAN(PORT29)
+	initVLAN(PORT30)
 
-func waitPHYRegister(miim *miim.MIIM, address int, mask uint16, value uint16) (data uint16, err error) {
-	deadline := time.Now().Add(WaitTimeout)
+	// initialize capture on CPU port 0 (D30)
+	initCapture(PORT_CFG30)
 
-	for {
-		if data, err = miim.ReadPHYRegister(PHY_ADDR, address); err != nil {
-			return
-		}
+	// reset injection flow control
+	resetInjectionFlowControl(PORT29)
 
-		if data&mask == value {
-			return
-		}
-
-		if time.Now().After(deadline) {
-			return 0, fmt.Errorf("timed out waiting for PHY register %#x", address)
-		}
-
-		time.Sleep(PollInterval)
-	}
-}
-
-func negotiatedPHYSpeed(miim *miim.MIIM) (speed int, err error) {
-	var local, partner uint16
-
-	if local, err = miim.ReadPHYRegister(PHY_ADDR, PHY_1000_CTRL); err != nil {
-		return 0, fmt.Errorf("could not read 1000BASE-T control register, %v", err)
-	}
-
-	if partner, err = miim.ReadPHYRegister(PHY_ADDR, PHY_1000_STATUS); err != nil {
-		return 0, fmt.Errorf("could not read 1000BASE-T status register, %v", err)
-	}
-
-	if local&ANEG_ADV_1000_FULL != 0 && partner&ANEG_LPA_1000_FULL != 0 {
-		return 1000, nil
-	}
-
-	if local&ANEG_ADV_1000_HALF != 0 && partner&ANEG_LPA_1000_HALF != 0 {
-		return 0, fmt.Errorf("unsupported half-duplex management link")
-	}
-
-	if local, err = miim.ReadPHYRegister(PHY_ADDR, PHY_ANEG_ADV); err != nil {
-		return 0, fmt.Errorf("could not read auto-negotiation advertisement register, %v", err)
-	}
-
-	if partner, err = miim.ReadPHYRegister(PHY_ADDR, PHY_ANEG_LPA); err != nil {
-		return 0, fmt.Errorf("could not read auto-negotiation link partner ability register, %v", err)
-	}
-
-	common := local & partner
-
-	switch {
-	case common&ANEG_ADV_100_FULL != 0:
-		speed = 100
-	case common&ANEG_ADV_100_HALF != 0:
-		err = fmt.Errorf("unsupported half-duplex management link")
-	case common&(ANEG_ADV_10_FULL|ANEG_ADV_10_HALF) != 0:
-		err = fmt.Errorf("unsupported 10 Mbps management link")
-	default:
-		err = fmt.Errorf("management PHY has no common advertised mode")
-	}
-
-	return
+	return nil
 }
 
 func initRGMII(speed int) (err error) {

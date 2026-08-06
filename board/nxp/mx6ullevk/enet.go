@@ -11,29 +11,14 @@ package mx6ullevk
 import (
 	"errors"
 
+	"github.com/usbarmory/tamago/phy/microchip/ksz8081"
 	"github.com/usbarmory/tamago/soc/nxp/enet"
 	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
 	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
 )
 
-// Ethernet PHY configuration constants.
-//
 // On the MCIMX6ULL-EVK the ENET MACs are each connected to an KSZ8081RNB PHY,
 // this board package configures them at 100 Mbps / Full-duplex mode.
-const (
-	KSZ_CTRL    = 0x00
-	CTRL_RESET  = 15
-	CTRL_SPEED  = 13
-	CTRL_DUPLEX = 8
-
-	KSZ_INT = 0x1b
-
-	KSZ_PHYCTRL2  = 0x1f
-	CTRL2_HP_MDIX = 15
-	CTRL2_RMII    = 7
-	CTRL2_LED     = 4
-)
-
 const (
 	// ENET1 MUX
 	IOMUXC_SW_MUX_CTL_PAD_ENET1_RX_DATA0 = 0x020e00c4
@@ -282,28 +267,25 @@ func configurePHY2Pads() {
 		0, IOMUX_ALT1, ctl100)
 }
 
-func EnablePHY(eth *enet.ENET) error {
-	var pa int
+var phy *ksz8081.PHY
+
+func EnablePHY(eth *enet.ENET) (err error) {
+	phy = &ksz8081.PHY{}
 
 	switch eth.Index {
 	case 1:
-		pa = 2
 		configurePHY1Pads()
+		err = phy.Init(2, eth)
 	case 2:
-		pa = 1
 		configurePHY2Pads()
+		err = phy.Init(1, eth)
 	default:
 		return errors.New("invalid index")
 	}
 
-	// Software reset
-	eth.WritePHYRegister(pa, KSZ_CTRL, (1 << CTRL_RESET))
-	// HP Auto MDI/MDI-X mode, RMII 50MHz, LEDs: Activity/Link
-	eth.WritePHYRegister(pa, KSZ_PHYCTRL2, (1<<CTRL2_HP_MDIX)|(1<<CTRL2_RMII)|(1<<CTRL2_LED))
-	// 100 Mbps, Full-duplex
-	eth.WritePHYRegister(pa, KSZ_CTRL, (1<<CTRL_SPEED)|(1<<CTRL_DUPLEX))
-	// enable interrupts
-	eth.WritePHYRegister(pa, KSZ_INT, 0xff00)
+	if err != nil {
+		return
+	}
 
-	return nil
+	return phy.EnableInterrupts()
 }

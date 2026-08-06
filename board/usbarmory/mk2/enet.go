@@ -9,6 +9,7 @@
 package mk2
 
 import (
+	"github.com/usbarmory/tamago/phy/ti/dp83825i"
 	"github.com/usbarmory/tamago/soc/nxp/enet"
 	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
 	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
@@ -57,38 +58,8 @@ const (
 
 	DAISY_ENET2_TX_CLK_ALT4     = 0b10
 	DAISY_ENET2_GPIO1_IO06_ALT0 = 0
-)
 
-// DP83825I PHY registers
-const (
 	PHY_ADDR = 0
-
-	DP_CTRL     = 0x00
-	CTRL_RESET  = 15
-	CTRL_SPEED  = 13
-	CTRL_ANEG   = 12
-	CTRL_DUPLEX = 8
-
-	DP_REGCR = 0xd
-	DP_ADDAR = 0xe
-
-	DP_RCSR      = 0x17
-	RCSR_RMII_CS = 7
-	RCSR_RX_BUF  = 0
-
-	DP_LEDCR1           = 0x18
-	LEDCR1_LINK_LED_DRV = 4
-	LEDCR1_LINK_LED_OFF = 1
-
-	DP_LEDCR2           = 0x469
-	LEDCR2_LED2_DRV_VAL = 5
-	LEDCR2_LED2_DRV_EN  = 4
-)
-
-// Table 22–9, MMD access control register bit definitions, 802.3-2008
-const (
-	MMD_FN_ADDR = 0b00
-	MMD_FN_DATA = 0b01
 )
 
 func init() {
@@ -193,15 +164,12 @@ func configurePHYPads() {
 		0, IOMUX_ALT1, ctl100)
 }
 
+var phy *dp83825i.PHY
+
 func EnablePHY(eth *enet.ENET) error {
 	configurePHYPads()
 
-	// software reset
-	eth.WritePHYRegister(PHY_ADDR, DP_CTRL, (1 << CTRL_RESET))
-	// 100 Mbps, Auto-Negotiation, Full-duplex
-	eth.WritePHYRegister(PHY_ADDR, DP_CTRL, (1<<CTRL_SPEED)|(1<<CTRL_ANEG)|(1<<CTRL_DUPLEX))
-	// 50MHz RMII Reference Clock Select, 2 bit tolerance Receive Elasticity Buffer Size
-	eth.WritePHYRegister(PHY_ADDR, DP_RCSR, (1<<RCSR_RMII_CS)|(1<<RCSR_RX_BUF))
+	phy = &dp83825i.PHY{}
 
-	return nil
+	return phy.Init(PHY_ADDR, eth)
 }

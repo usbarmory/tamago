@@ -12,7 +12,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/usbarmory/tamago/soc/nxp/enet"
 	"github.com/usbarmory/tamago/soc/nxp/gpio"
 	"github.com/usbarmory/tamago/soc/nxp/imx6ul"
 	"github.com/usbarmory/tamago/soc/nxp/iomuxc"
@@ -82,40 +81,16 @@ func init() {
 // LED turns on/off an LED by name.
 func LED(name string, on bool) (err error) {
 	var led *gpio.Pin
-	var eth *enet.ENET = imx6ul.ENET2
 
 	switch {
 	case strings.EqualFold(name, "white"):
 		led = white
 	case strings.EqualFold(name, "blue"):
 		led = blue
-	case strings.EqualFold(name, "green") && eth != nil:
-		val := uint16(1 << LEDCR1_LINK_LED_DRV)
-
-		if !on {
-			val |= 1 << LEDCR1_LINK_LED_OFF
-		}
-
-		eth.WritePHYRegister(PHY_ADDR, DP_LEDCR1, val)
-	case strings.EqualFold(name, "yellow") && eth != nil:
-		val := uint16(1 << LEDCR2_LED2_DRV_EN)
-
-		if !on {
-			val |= 1 << LEDCR2_LED2_DRV_VAL
-		}
-
-		// Clause 22 access to Clause 45 MMD registers (802.3-2008)
-
-		// set general MMD registers access
-		devad := uint16(0x1f)
-		// set address function
-		eth.WritePHYRegister(PHY_ADDR, DP_REGCR, uint16(MMD_FN_ADDR<<14)|devad)
-		// write address value
-		eth.WritePHYRegister(PHY_ADDR, DP_ADDAR, DP_LEDCR2)
-		// set data function
-		eth.WritePHYRegister(PHY_ADDR, DP_REGCR, uint16(MMD_FN_DATA<<14)|devad)
-		// write data value
-		eth.WritePHYRegister(PHY_ADDR, DP_ADDAR, val)
+	case strings.EqualFold(name, "green") && phy != nil:
+		return phy.LED(1, on)
+	case strings.EqualFold(name, "yellow") && phy != nil:
+		return phy.LED(2, on)
 	default:
 		return errors.New("invalid LED")
 	}
