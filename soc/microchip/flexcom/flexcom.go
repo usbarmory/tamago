@@ -7,7 +7,7 @@
 // that can be found in the LICENSE file.
 
 // Package flexcom implements a driver for Flexible Serial Communication
-// Controllers (FLEXCOM), currently only USART mode is supported.
+// Controllers (FLEXCOM) in USART and TWI initiator modes.
 //
 // This package is only meant to be used with `GOOS=tamago GOARCH=arm64` as
 // supported by the TamaGo framework for bare metal Go, see
@@ -17,6 +17,8 @@ package flexcom
 import (
 	"math"
 	"runtime"
+	"sync"
+	"time"
 
 	"github.com/usbarmory/tamago/internal/reg"
 )
@@ -32,8 +34,11 @@ const (
 
 	FLEX_USART_OFFSET = 0x200
 
-	FLEX_MR   = 0x00
-	MR_OPMODE = 0
+	FLEX_MR         = 0x00
+	MR_OPMODE       = 0
+	MR_OPMODE_MASK  = 0x3
+	MR_OPMODE_USART = 1
+	MR_OPMODE_TWI   = 3
 
 	FLEX_US_CR    = 0x00
 	US_CR_FIFODIS = 31
@@ -75,6 +80,8 @@ const (
 
 // FLEXCOM represents a Flexible Serial Communication controller instance.
 type FLEXCOM struct {
+	sync.Mutex
+
 	// Controller index
 	Index int
 	// Base register
@@ -83,6 +90,17 @@ type FLEXCOM struct {
 	Baudrate uint32
 	// Interrupt ID
 	IRQ int
+
+	// TWIClockLowDivider configures the TWI low-period divider.
+	TWIClockLowDivider uint8
+	// TWIClockHighDivider configures the TWI high-period divider.
+	TWIClockHighDivider uint8
+	// TWIClockDivider applies a 2^n scale to both TWI clock periods.
+	TWIClockDivider uint8
+	// TWIGenericClock selects GCLK instead of the peripheral clock.
+	TWIGenericClock bool
+	// TWITimeout bounds each wait for TWI controller progress. Zero selects 100 ms.
+	TWITimeout time.Duration
 
 	// flexcom control register
 	mr uint32
@@ -98,11 +116,16 @@ type FLEXCOM struct {
 	us_brgr uint32
 	us_fmr  uint32
 
+	twiClock uint32
+
 	rx chan bool
 }
 
-// Init initializes and enables an FLEXCOM controller instance in USART mode.
+// Init initializes and enables a FLEXCOM controller instance in USART mode.
 func (hw *FLEXCOM) Init() {
+	hw.Lock()
+	defer hw.Unlock()
+
 	if hw.Base == 0 {
 		panic("invalid FLEXCOM controller instance")
 	}
@@ -127,7 +150,7 @@ func (hw *FLEXCOM) Init() {
 
 func (hw *FLEXCOM) setup() {
 	// set USART operating mode
-	reg.SetN(hw.mr, MR_OPMODE, 0b11, 1)
+	reg.SetN(hw.mr, MR_OPMODE, MR_OPMODE_MASK, MR_OPMODE_USART)
 
 	// set baud rate
 	// p583, 3.47.11.2.5 USART Functional Description, Microchip DS00005048E
