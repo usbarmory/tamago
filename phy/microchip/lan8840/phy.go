@@ -68,8 +68,7 @@ type PHY struct {
 	speed int
 }
 
-// Init initializes the PHY, resets it, and starts auto-negotiation without
-// waiting for link establishment.
+// Init initializes a LAN8840 PHY instance for register access.
 func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
 	if miim == nil || addr < 0 || addr > 0x07 {
 		return errors.New("invalid PHY instance")
@@ -83,11 +82,7 @@ func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
 		hw.Timeout = Timeout
 	}
 
-	if err = hw.Reset(); err != nil {
-		return
-	}
-
-	return hw.Negotiate()
+	return
 }
 
 func (hw *PHY) read(address int) (data uint16, err error) {

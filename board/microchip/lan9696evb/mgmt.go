@@ -106,6 +106,14 @@ func enablePort() (err error) {
 		return
 	}
 
+	if err = phy.Reset(); err != nil {
+		return
+	}
+
+	if err = phy.Negotiate(); err != nil {
+		return
+	}
+
 	status, err := waitManagementLink(phy)
 	if err != nil {
 		return err
