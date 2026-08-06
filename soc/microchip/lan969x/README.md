@@ -40,9 +40,9 @@ The package API documentation can be found on
 Supported hardware
 ==================
 
-| SoC               | Related board packages                                                                             | Peripheral drivers                                                                                                                                                                         |
-|-------------------|----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Microchip LAN969x | [microchip/lan9696evb](https://github.com/usbarmory/tamago/tree/master/board/microchip/lan9696evb) | [ANA, DEVCPU, FLEXCOM, GPIO, MIIM, OTPC, TEMP, TRNG, WDT](https://github.com/usbarmory/tamago/tree/master/soc/microchip), [GIC](https://github.com/usbarmory/tamago/tree/master/arm64/gic) |
+| SoC               | Related board packages                                                                             | Peripheral drivers                                                                                                                                                                              |
+|-------------------|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Microchip LAN969x | [microchip/lan9696evb](https://github.com/usbarmory/tamago/tree/master/board/microchip/lan9696evb) | [ANA, DEVCPU, FAN, FLEXCOM, GPIO, MIIM, OTPC, TEMP, TRNG, WDT](https://github.com/usbarmory/tamago/tree/master/soc/microchip), [GIC](https://github.com/usbarmory/tamago/tree/master/arm64/gic) |
 
 Build tags
 ==========

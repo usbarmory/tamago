@@ -24,6 +24,7 @@ import (
 	"github.com/usbarmory/tamago/arm64"
 
 	"github.com/usbarmory/tamago/soc/microchip/analyzer"
+	"github.com/usbarmory/tamago/soc/microchip/fan"
 	"github.com/usbarmory/tamago/soc/microchip/flexcom"
 	"github.com/usbarmory/tamago/soc/microchip/gpio"
 	"github.com/usbarmory/tamago/soc/microchip/miim"
@@ -88,6 +89,9 @@ const (
 	// General Configuration Block
 	GCB_BASE = 0xe2010000
 
+	// Fan controller
+	FAN_BASE = GCB_BASE + 0x348
+
 	// General Interrupt Controller
 	GIC_BASE = 0xe8c10000
 
@@ -150,6 +154,11 @@ var (
 	ARM64 = &arm64.CPU{
 		// required before Init()
 		TimerOffset: 1,
+	}
+
+	// Fan controller
+	FAN = &fan.FAN{
+		Base: FAN_BASE,
 	}
 
 	// Serial port 1
