@@ -207,6 +207,7 @@ func (hw *PHY) Identifier() (id uint32, err error) {
 }
 
 func (hw *PHY) link() (basic uint16, err error) {
+	// STATUS_LINK is latch-low; the first read clears stale link state.
 	if _, err = hw.read(BASIC_STATUS); err != nil {
 		return
 	}
