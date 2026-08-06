@@ -16,6 +16,7 @@
 package fan
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/usbarmory/tamago/bits"
@@ -57,11 +58,15 @@ const (
 	TotalPulses
 )
 
-// Config defines fan controller output and tachometer behavior.
-type Config struct {
-	// Frequency is the PWM output frequency in hertz.
-	Frequency uint32
-	// Inverted reverses the PWM output polarity.
+// FAN represents a Microchip fan controller instance.
+type FAN struct {
+	sync.Mutex
+
+	// Base register
+	Base uint32
+	// PWM must be configures with the output frequency in hertz.
+	PWM uint32
+	// Inverted configures the PWM output polarity.
 	Inverted bool
 	// OpenCollector configures the PWM pin as an open-collector output.
 	OpenCollector bool
@@ -71,48 +76,43 @@ type Config struct {
 	CounterMode CounterMode
 }
 
-// FAN represents a Microchip fan controller instance.
-type FAN struct {
-	sync.Mutex
-
-	// Base register
-	Base uint32
-}
-
 // Init initializes the fan controller with its output disabled. Pin routing is
 // configured separately through the GPIO controller.
-func (hw *FAN) Init(config Config) {
+func (hw *FAN) Init() (err error) {
 	if hw.Base == 0 {
-		panic("invalid fan controller instance")
+		return errors.New("invalid fan controller instance")
 	}
 
-	if config.Frequency == 0 {
-		panic("invalid fan PWM frequency")
+	if hw.PWM == 0 {
+		return errors.New("invalid fan PWM frequency")
 	}
 
-	divider := FAN_CLOCK_HZ / config.Frequency / 256
+	divider := FAN_CLOCK_HZ / hw.PWM / 256
+
 	if divider == 0 || divider > FREQ_PWM_FREQ_MASK {
-		panic("invalid fan PWM frequency")
+		return errors.New("invalid fan PWM frequency")
 	}
 
-	if config.CounterMode > TotalPulses {
-		panic("invalid fan counter mode")
+	if hw.CounterMode > TotalPulses {
+		return errors.New("invalid fan counter mode")
 	}
 
 	hw.Lock()
 	defer hw.Unlock()
 
-	var frequency uint32
-	bits.SetN(&frequency, FREQ_PWM_FREQ, FREQ_PWM_FREQ_MASK, divider)
-	bits.SetN(&frequency, FREQ_CLK_CYCLES_10US, FREQ_CLK_CYCLES_MASK, FAN_CLOCK_CYCLES_10US)
-	reg.Write(hw.Base+PWM_FREQ, frequency)
+	var freq uint32
+	bits.SetN(&freq, FREQ_PWM_FREQ, FREQ_PWM_FREQ_MASK, divider)
+	bits.SetN(&freq, FREQ_CLK_CYCLES_10US, FREQ_CLK_CYCLES_MASK, FAN_CLOCK_CYCLES_10US)
+	reg.Write(hw.Base+PWM_FREQ, freq)
 
 	var cfg uint32
-	bits.SetTo(&cfg, CFG_INV_POL, config.Inverted)
-	bits.SetTo(&cfg, CFG_PWM_OPEN_COL_ENA, config.OpenCollector)
-	bits.SetTo(&cfg, CFG_GATE_ENA, config.GateTacho)
-	bits.SetTo(&cfg, CFG_FAN_STAT_CFG, config.CounterMode == TotalPulses)
+	bits.SetTo(&cfg, CFG_INV_POL, hw.Inverted)
+	bits.SetTo(&cfg, CFG_PWM_OPEN_COL_ENA, hw.OpenCollector)
+	bits.SetTo(&cfg, CFG_GATE_ENA, hw.GateTacho)
+	bits.SetTo(&cfg, CFG_FAN_STAT_CFG, hw.CounterMode == TotalPulses)
 	reg.Write(hw.Base+FAN_CFG, cfg)
+
+	return
 }
 
 // SetDuty sets the PWM duty cycle, where 0 is always off and 255 is always on.
@@ -121,32 +121,33 @@ func (hw *FAN) SetDuty(duty uint8) {
 }
 
 // Duty returns the configured PWM duty cycle.
-func (hw *FAN) Duty() uint8 {
+func (hw *FAN) Duty() (duty uint8) {
 	if hw.Base == 0 {
-		return 0
+		return
 	}
 
 	return uint8(reg.GetN(hw.Base+FAN_CFG, CFG_DUTY_CYCLE, CFG_DUTY_CYCLE_MASK))
 }
 
 // Frequency returns the configured PWM frequency.
-func (hw *FAN) Frequency() uint32 {
+func (hw *FAN) Frequency() (freq uint32) {
 	if hw.Base == 0 {
-		return 0
+		return
 	}
 
 	divider := reg.GetN(hw.Base+PWM_FREQ, FREQ_PWM_FREQ, FREQ_PWM_FREQ_MASK)
+
 	if divider == 0 {
-		return 0
+		return
 	}
 
 	return FAN_CLOCK_HZ / divider / 256
 }
 
 // TachoCount returns the raw 16-bit tachometer count.
-func (hw *FAN) TachoCount() uint16 {
+func (hw *FAN) TachoCount() (count uint16) {
 	if hw.Base == 0 {
-		return 0
+		return
 	}
 
 	return uint16(reg.GetN(hw.Base+FAN_CNT, CNT_FAN_CNT, CNT_FAN_CNT_MASK))
