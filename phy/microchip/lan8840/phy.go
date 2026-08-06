@@ -61,11 +61,27 @@ type PHY struct {
 	speed int
 }
 
+func (hw *PHY) read(address int) (data uint16, err error) {
+	if hw.miim == nil {
+		return 0, errors.New("invalid PHY instance")
+	}
+
+	return hw.miim.ReadPHYRegister(hw.pa, address)
+}
+
+func (hw *PHY) write(address int, data uint16) (err error) {
+	if hw.miim == nil {
+		return errors.New("invalid PHY instance")
+	}
+
+	return hw.miim.WritePHYRegister(hw.pa, address, data)
+}
+
 func (hw *PHY) wait(addr int, mask uint16, value uint16) (data uint16, err error) {
 	deadline := time.Now().Add(WaitTimeout)
 
 	for {
-		if data, err = hw.miim.ReadPHYRegister(hw.pa, addr); err != nil {
+		if data, err = hw.read(addr); err != nil {
 			return
 		}
 
@@ -92,7 +108,7 @@ func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
 	hw.speed = 0
 
 	// software reset
-	if err = hw.miim.WritePHYRegister(hw.pa, BASIC_CONTROL, (1 << CTRL_RESET)); err != nil {
+	if err = hw.write(BASIC_CONTROL, (1 << CTRL_RESET)); err != nil {
 		return
 	}
 
@@ -105,7 +121,7 @@ func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
 	// enable and restart auto-negotiation
 	control |= (1 << CTRL_ANEG_ENABLE) | (1 << CTRL_ANEG_RESTART)
 
-	if err = hw.miim.WritePHYRegister(hw.pa, BASIC_CONTROL, control); err != nil {
+	if err = hw.write(BASIC_CONTROL, control); err != nil {
 		return
 	}
 
@@ -125,15 +141,11 @@ func (hw *PHY) Negotiate() (err error) {
 
 	hw.speed = 0
 
-	if hw.miim == nil {
-		return errors.New("invalid PHY instance")
-	}
-
-	if local, err = hw.miim.ReadPHYRegister(hw.pa, PHY_1000_CTRL); err != nil {
+	if local, err = hw.read(PHY_1000_CTRL); err != nil {
 		return fmt.Errorf("could not read 1000BASE-T control register, %v", err)
 	}
 
-	if partner, err = hw.miim.ReadPHYRegister(hw.pa, PHY_1000_STATUS); err != nil {
+	if partner, err = hw.read(PHY_1000_STATUS); err != nil {
 		return fmt.Errorf("could not read 1000BASE-T status register, %v", err)
 	}
 
@@ -146,11 +158,11 @@ func (hw *PHY) Negotiate() (err error) {
 		return fmt.Errorf("unsupported half-duplex management link")
 	}
 
-	if local, err = hw.miim.ReadPHYRegister(hw.pa, PHY_ANEG_ADV); err != nil {
+	if local, err = hw.read(PHY_ANEG_ADV); err != nil {
 		return fmt.Errorf("could not read auto-negotiation advertisement register, %v", err)
 	}
 
-	if partner, err = hw.miim.ReadPHYRegister(hw.pa, PHY_ANEG_LPA); err != nil {
+	if partner, err = hw.read(PHY_ANEG_LPA); err != nil {
 		return fmt.Errorf("could not read auto-negotiation link partner ability register, %v", err)
 	}
 
