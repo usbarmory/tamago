@@ -140,28 +140,6 @@ func (hw *PHY) WriteExtendedRegister(page int, address uint16, data uint16) (err
 	return hw.write(EP_ACCESS_DATA, data)
 }
 
-// ModifyExtendedRegister updates selected bits in an Extended Page register.
-func (hw *PHY) ModifyExtendedRegister(page int, address uint16, mask uint16, set uint16) (err error) {
-	if hw.miim == nil {
-		return errors.New("invalid PHY instance")
-	}
-
-	if err = hw.selectExtended(page, address); err != nil {
-		return
-	}
-
-	var data uint16
-	if data, err = hw.read(EP_ACCESS_DATA); err != nil {
-		return
-	}
-
-	if err = hw.selectExtended(page, address); err != nil {
-		return
-	}
-
-	return hw.write(EP_ACCESS_DATA, (data&^mask)|(set&mask))
-}
-
 // Reset performs a software hard reset and waits for its completion.
 func (hw *PHY) Reset() (err error) {
 	if hw.miim == nil {
@@ -174,8 +152,8 @@ func (hw *PHY) Reset() (err error) {
 
 	deadline := time.Now().Add(hw.Timeout)
 
+	var control uint16
 	for {
-		var control uint16
 		if control, err = hw.read(BASIC_CONTROL); err != nil {
 			return
 		}
