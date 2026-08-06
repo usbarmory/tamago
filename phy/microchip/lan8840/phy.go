@@ -217,7 +217,7 @@ func (hw *PHY) Status() (status Status, err error) {
 	status.Link = basic&(1<<STATUS_LINK) != 0
 	status.AutoNegotiationComplete = basic&(1<<STATUS_ANEG_COMPLETE) != 0
 
-	if !status.Link {
+	if !status.Link || !status.AutoNegotiationComplete {
 		return
 	}
 

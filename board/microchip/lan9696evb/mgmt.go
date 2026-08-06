@@ -10,6 +10,7 @@ package lan9696evb
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
@@ -22,6 +23,9 @@ const (
 	PHY_ADDR            = 0x03
 	MAC_FID             = 1
 	ManagementPortIndex = PORT29
+
+	managementLinkTimeout      = 10 * time.Second
+	managementLinkPollInterval = 10 * time.Millisecond
 )
 
 // On the LAN969x 24-port EVB the management network interface is port D29,
@@ -51,6 +55,37 @@ func resetInjectionFlowControl(port uint32) {
 	reg.Set(DEV_TX_STOP_WM_CFG+port*4, DEV_TX_CNT_CLR)
 }
 
+func waitManagementLink(phy *lan8840.PHY) (status lan8840.Status, err error) {
+	deadline := time.Now().Add(managementLinkTimeout)
+
+	for {
+		if status, err = phy.Status(); err != nil {
+			return
+		}
+
+		if status.Link && status.AutoNegotiationComplete {
+			break
+		}
+
+		if time.Now().After(deadline) {
+			return status, fmt.Errorf("timed out waiting for management PHY link")
+		}
+
+		time.Sleep(managementLinkPollInterval)
+	}
+
+	switch {
+	case status.Speed == 10:
+		return status, fmt.Errorf("unsupported 10 Mbps management link")
+	case !status.FullDuplex:
+		return status, fmt.Errorf("unsupported half-duplex management link")
+	case status.Speed != 100 && status.Speed != 1000:
+		return status, fmt.Errorf("management PHY has no common advertised mode")
+	}
+
+	return
+}
+
 func enablePort() (err error) {
 	// Table 2-7: GPIO alternate function assignments
 	//
@@ -71,8 +106,13 @@ func enablePort() (err error) {
 		return
 	}
 
+	status, err := waitManagementLink(phy)
+	if err != nil {
+		return err
+	}
+
 	// initialize MAC controller
-	if err = initRGMII(phy.Speed()); err != nil {
+	if err = initRGMII(status.Speed); err != nil {
 		return
 	}
 
