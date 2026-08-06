@@ -71,12 +71,8 @@ type PHY struct {
 
 // Init initializes a LAN8804/LAN8814 PHY instance for register access.
 func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
-	if miim == nil {
+	if miim == nil || addr < 0 || addr > 0x1f {
 		return errors.New("invalid PHY instance")
-	}
-
-	if addr < 0 || addr > 0x1f {
-		return errors.New("invalid PHY address")
 	}
 
 	hw.miim = miim
@@ -91,10 +87,18 @@ func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
 }
 
 func (hw *PHY) read(address int) (data uint16, err error) {
+	if hw.miim == nil {
+		return 0, errors.New("invalid PHY instance")
+	}
+
 	return hw.miim.ReadPHYRegister(hw.pa, address)
 }
 
 func (hw *PHY) write(address int, data uint16) (err error) {
+	if hw.miim == nil {
+		return errors.New("invalid PHY instance")
+	}
+
 	return hw.miim.WritePHYRegister(hw.pa, address, data)
 }
 
@@ -116,10 +120,6 @@ func (hw *PHY) selectExtended(page int, address uint16) (err error) {
 
 // ReadExtendedRegister reads a vendor-specific Extended Page register.
 func (hw *PHY) ReadExtendedRegister(page int, address uint16) (data uint16, err error) {
-	if hw.miim == nil {
-		return 0, errors.New("invalid PHY instance")
-	}
-
 	if err = hw.selectExtended(page, address); err != nil {
 		return
 	}
@@ -129,10 +129,6 @@ func (hw *PHY) ReadExtendedRegister(page int, address uint16) (data uint16, err 
 
 // WriteExtendedRegister writes a vendor-specific Extended Page register.
 func (hw *PHY) WriteExtendedRegister(page int, address uint16, data uint16) (err error) {
-	if hw.miim == nil {
-		return errors.New("invalid PHY instance")
-	}
-
 	if err = hw.selectExtended(page, address); err != nil {
 		return
 	}
@@ -142,9 +138,7 @@ func (hw *PHY) WriteExtendedRegister(page int, address uint16, data uint16) (err
 
 // Reset performs a software hard reset and waits for its completion.
 func (hw *PHY) Reset() (err error) {
-	if hw.miim == nil {
-		return errors.New("invalid PHY instance")
-	}
+	var control uint16
 
 	if err = hw.write(BASIC_CONTROL, 1<<CTRL_RESET); err != nil {
 		return
@@ -152,7 +146,6 @@ func (hw *PHY) Reset() (err error) {
 
 	deadline := time.Now().Add(hw.Timeout)
 
-	var control uint16
 	for {
 		if control, err = hw.read(BASIC_CONTROL); err != nil {
 			return
@@ -172,28 +165,23 @@ func (hw *PHY) Reset() (err error) {
 
 // Negotiate enables and restarts auto-negotiation.
 func (hw *PHY) Negotiate() (err error) {
-	if hw.miim == nil {
-		return errors.New("invalid PHY instance")
-	}
+	var control uint16
 
 	hw.speed = 0
 
-	var control uint16
 	if control, err = hw.read(BASIC_CONTROL); err != nil {
 		return
 	}
 
 	control |= (1 << CTRL_ANEG_ENABLE) | (1 << CTRL_ANEG_RESTART)
+
 	return hw.write(BASIC_CONTROL, control)
 }
 
 // Identifier returns the PHY identifier registers as one 32-bit value.
 func (hw *PHY) Identifier() (id uint32, err error) {
-	if hw.miim == nil {
-		return 0, errors.New("invalid PHY instance")
-	}
-
 	var high, low uint16
+
 	if high, err = hw.read(PHY_ID_1); err != nil {
 		return
 	}
@@ -202,8 +190,7 @@ func (hw *PHY) Identifier() (id uint32, err error) {
 		return
 	}
 
-	id = uint32(high)<<16 | uint32(low)
-	return
+	return uint32(high)<<16 | uint32(low), nil
 }
 
 func (hw *PHY) link() (basic uint16, err error) {
@@ -218,33 +205,28 @@ func (hw *PHY) link() (basic uint16, err error) {
 // Link reports whether the PHY link is up. The status register is read twice
 // because its link bit is latched low.
 func (hw *PHY) Link() (up bool, err error) {
-	if hw.miim == nil {
-		return false, errors.New("invalid PHY instance")
-	}
-
 	var basic uint16
+
 	if basic, err = hw.link(); err != nil {
 		return
 	}
 
-	up = basic&(1<<STATUS_LINK) != 0
-	return
+	return basic&(1<<STATUS_LINK) != 0, nil
 }
 
 // Status returns link, auto-negotiation, speed, and duplex state.
 func (hw *PHY) Status() (status Status, err error) {
-	if hw.miim == nil {
-		return status, errors.New("invalid PHY instance")
-	}
-
 	var basic, control uint16
+
 	if basic, err = hw.link(); err != nil {
 		return
 	}
 
 	hw.speed = 0
+
 	status.Link = basic&(1<<STATUS_LINK) != 0
 	status.AutoNegotiationComplete = basic&(1<<STATUS_ANEG_COMPLETE) != 0
+
 	if !status.Link {
 		return
 	}
