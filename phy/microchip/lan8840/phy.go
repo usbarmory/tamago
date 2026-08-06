@@ -53,9 +53,6 @@ const (
 // Timeout is the default timeout for PHY operations.
 const Timeout = 100 * time.Millisecond
 
-// PollInterval represents the delay between PHY register polling attempts
-var PollInterval = 10 * time.Millisecond
-
 // Status represents the resolved PHY link state.
 type Status struct {
 	Link                    bool
@@ -111,37 +108,31 @@ func (hw *PHY) write(address int, data uint16) (err error) {
 	return hw.miim.WritePHYRegister(hw.pa, address, data)
 }
 
-func (hw *PHY) wait(addr int, mask uint16, value uint16) (data uint16, err error) {
-	deadline := time.Now().Add(hw.Timeout)
-
-	for {
-		if data, err = hw.read(addr); err != nil {
-			return
-		}
-
-		if data&mask == value {
-			return
-		}
-
-		if time.Now().After(deadline) {
-			return 0, fmt.Errorf("timed out waiting for PHY register %#x", addr)
-		}
-
-		time.Sleep(PollInterval)
-	}
-}
-
 // Reset performs a software hard reset and waits for its completion.
 func (hw *PHY) Reset() (err error) {
+	var control uint16
+
 	if err = hw.write(BASIC_CONTROL, 1<<CTRL_RESET); err != nil {
 		return
 	}
 
-	if _, err = hw.wait(BASIC_CONTROL, 1<<CTRL_RESET, 0); err != nil {
-		return fmt.Errorf("could not reset PHY, %w", err)
-	}
+	deadline := time.Now().Add(hw.Timeout)
 
-	return
+	for {
+		if control, err = hw.read(BASIC_CONTROL); err != nil {
+			return
+		}
+
+		if control&(1<<CTRL_RESET) == 0 {
+			return
+		}
+
+		if time.Now().After(deadline) {
+			return errors.New("LAN8840 reset timeout")
+		}
+
+		time.Sleep(time.Millisecond)
+	}
 }
 
 // Negotiate enables and restarts auto-negotiation.
