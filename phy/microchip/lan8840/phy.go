@@ -122,16 +122,11 @@ func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
 		return
 	}
 
-	control, err := hw.wait(BASIC_CONTROL, 1<<CTRL_RESET, 0)
-
-	if err != nil {
+	if _, err = hw.wait(BASIC_CONTROL, 1<<CTRL_RESET, 0); err != nil {
 		return fmt.Errorf("could not reset PHY, %v", err)
 	}
 
-	// enable and restart auto-negotiation
-	control |= (1 << CTRL_ANEG_ENABLE) | (1 << CTRL_ANEG_RESTART)
-
-	if err = hw.write(BASIC_CONTROL, control); err != nil {
+	if err = hw.Negotiate(); err != nil {
 		return
 	}
 
@@ -141,73 +136,36 @@ func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
 		return fmt.Errorf("auto-negotiation status error, %w", err)
 	}
 
-	return hw.Negotiate()
-}
-
-func (hw *PHY) resolveMode() (speed int, fullDuplex bool, err error) {
-	var local, partner uint16
-
-	if local, err = hw.read(PHY_1000_CTRL); err != nil {
-		return 0, false, fmt.Errorf("could not read 1000BASE-T control register, %v", err)
-	}
-
-	if partner, err = hw.read(PHY_1000_STATUS); err != nil {
-		return 0, false, fmt.Errorf("could not read 1000BASE-T status register, %v", err)
-	}
-
-	switch {
-	case local&ANEG_ADV_1000_FULL != 0 && partner&ANEG_LPA_1000_FULL != 0:
-		return 1000, true, nil
-	case local&ANEG_ADV_1000_HALF != 0 && partner&ANEG_LPA_1000_HALF != 0:
-		return 1000, false, nil
-	}
-
-	if local, err = hw.read(PHY_ANEG_ADV); err != nil {
-		return 0, false, fmt.Errorf("could not read auto-negotiation advertisement register, %v", err)
-	}
-
-	if partner, err = hw.read(PHY_ANEG_LPA); err != nil {
-		return 0, false, fmt.Errorf("could not read auto-negotiation link partner ability register, %v", err)
-	}
-
-	common := local & partner
-
-	switch {
-	case common&ANEG_ADV_100_FULL != 0:
-		return 100, true, nil
-	case common&ANEG_ADV_100_HALF != 0:
-		return 100, false, nil
-	case common&ANEG_ADV_10_FULL != 0:
-		return 10, true, nil
-	case common&ANEG_ADV_10_HALF != 0:
-		return 10, false, nil
-	default:
-		return 0, false, errors.New("management PHY has no common advertised mode")
-	}
-}
-
-// Negotiate refreshes the PHY auto-negotiation status, currently only 100/1000
-// Mbps Auto-Negotiation (Full-duplex) is supported.
-func (hw *PHY) Negotiate() (err error) {
-	hw.speed = 0
-
-	var speed int
-	var fullDuplex bool
-
-	if speed, fullDuplex, err = hw.resolveMode(); err != nil {
+	var status Status
+	if status, err = hw.Status(); err != nil {
 		return
 	}
 
 	switch {
-	case speed == 10:
+	case status.Speed == 10:
 		return errors.New("unsupported 10 Mbps management link")
-	case !fullDuplex:
+	case !status.FullDuplex:
 		return errors.New("unsupported half-duplex management link")
+	case status.Speed != 100 && status.Speed != 1000:
+		return errors.New("management PHY has no common advertised mode")
 	}
 
-	hw.speed = speed
-
 	return
+}
+
+// Negotiate enables and restarts auto-negotiation.
+func (hw *PHY) Negotiate() (err error) {
+	var control uint16
+
+	hw.speed = 0
+
+	if control, err = hw.read(BASIC_CONTROL); err != nil {
+		return
+	}
+
+	control |= (1 << CTRL_ANEG_ENABLE) | (1 << CTRL_ANEG_RESTART)
+
+	return hw.write(BASIC_CONTROL, control)
 }
 
 // Identifier returns the PHY identifier registers as one 32-bit value.
@@ -263,8 +221,47 @@ func (hw *PHY) Status() (status Status, err error) {
 		return
 	}
 
-	if status.Speed, status.FullDuplex, err = hw.resolveMode(); err != nil {
-		return
+	var local, partner uint16
+
+	if local, err = hw.read(PHY_1000_CTRL); err != nil {
+		return status, fmt.Errorf("could not read 1000BASE-T control register, %v", err)
+	}
+
+	if partner, err = hw.read(PHY_1000_STATUS); err != nil {
+		return status, fmt.Errorf("could not read 1000BASE-T status register, %v", err)
+	}
+
+	switch {
+	case local&ANEG_ADV_1000_FULL != 0 && partner&ANEG_LPA_1000_FULL != 0:
+		status.Speed = 1000
+		status.FullDuplex = true
+	case local&ANEG_ADV_1000_HALF != 0 && partner&ANEG_LPA_1000_HALF != 0:
+		status.Speed = 1000
+	default:
+		if local, err = hw.read(PHY_ANEG_ADV); err != nil {
+			return status, fmt.Errorf("could not read auto-negotiation advertisement register, %v", err)
+		}
+
+		if partner, err = hw.read(PHY_ANEG_LPA); err != nil {
+			return status, fmt.Errorf("could not read auto-negotiation link partner ability register, %v", err)
+		}
+
+		common := local & partner
+
+		switch {
+		case common&ANEG_ADV_100_FULL != 0:
+			status.Speed = 100
+			status.FullDuplex = true
+		case common&ANEG_ADV_100_HALF != 0:
+			status.Speed = 100
+		case common&ANEG_ADV_10_FULL != 0:
+			status.Speed = 10
+			status.FullDuplex = true
+		case common&ANEG_ADV_10_HALF != 0:
+			status.Speed = 10
+		default:
+			return status, errors.New("management PHY has no common advertised mode")
+		}
 	}
 
 	hw.speed = status.Speed
