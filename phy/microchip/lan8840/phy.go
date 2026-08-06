@@ -31,11 +31,8 @@ const (
 	PHY_1000_STATUS = 0x0a
 
 	CTRL_RESET        = 15
-	CTRL_SPEED0       = 13
 	CTRL_ANEG_ENABLE  = 12
 	CTRL_ANEG_RESTART = 9
-	CTRL_DUPLEX       = 8
-	CTRL_SPEED1       = 6
 
 	STATUS_LINK          = 2
 	STATUS_ANEG_COMPLETE = 5
@@ -61,7 +58,7 @@ type Status struct {
 	FullDuplex              bool
 }
 
-// PHY represents the LAN8840 Ethernet PHY instance.
+// PHY represents a LAN8840 PHY port.
 type PHY struct {
 	// Timeout for PHY operations
 	Timeout time.Duration
@@ -71,7 +68,8 @@ type PHY struct {
 	speed int
 }
 
-// Init initializes the PHY, resets it, and starts auto-negotiation.
+// Init initializes the PHY, resets it, and starts auto-negotiation without
+// waiting for link establishment.
 func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
 	if miim == nil || addr < 0 || addr > 0x07 {
 		return errors.New("invalid PHY instance")
@@ -206,11 +204,11 @@ func (hw *PHY) Status() (status Status, err error) {
 	var local, partner uint16
 
 	if local, err = hw.read(PHY_1000_CTRL); err != nil {
-		return status, fmt.Errorf("could not read 1000BASE-T control register, %v", err)
+		return status, fmt.Errorf("could not read 1000BASE-T control register, %w", err)
 	}
 
 	if partner, err = hw.read(PHY_1000_STATUS); err != nil {
-		return status, fmt.Errorf("could not read 1000BASE-T status register, %v", err)
+		return status, fmt.Errorf("could not read 1000BASE-T status register, %w", err)
 	}
 
 	switch {
@@ -221,11 +219,11 @@ func (hw *PHY) Status() (status Status, err error) {
 		status.Speed = 1000
 	default:
 		if local, err = hw.read(PHY_ANEG_ADV); err != nil {
-			return status, fmt.Errorf("could not read auto-negotiation advertisement register, %v", err)
+			return status, fmt.Errorf("could not read auto-negotiation advertisement register, %w", err)
 		}
 
 		if partner, err = hw.read(PHY_ANEG_LPA); err != nil {
-			return status, fmt.Errorf("could not read auto-negotiation link partner ability register, %v", err)
+			return status, fmt.Errorf("could not read auto-negotiation link partner ability register, %w", err)
 		}
 
 		common := local & partner
@@ -242,7 +240,7 @@ func (hw *PHY) Status() (status Status, err error) {
 		case common&ANEG_ADV_10_HALF != 0:
 			status.Speed = 10
 		default:
-			return status, errors.New("management PHY has no common advertised mode")
+			return status, errors.New("PHY has no common advertised mode")
 		}
 	}
 
@@ -256,7 +254,7 @@ func (hw *PHY) Address() int {
 	return hw.pa
 }
 
-// Speed returns the PHY auto-negotiated speed.
+// Speed returns the last resolved PHY link speed.
 func (hw *PHY) Speed() int {
 	return hw.speed
 }
