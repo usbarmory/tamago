@@ -20,6 +20,7 @@ import (
 	"github.com/usbarmory/tamago/phy"
 )
 
+// PHY registers
 const (
 	BASIC_CONTROL  = 0x00
 	BASIC_STATUS   = 0x01

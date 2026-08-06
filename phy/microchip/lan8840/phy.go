@@ -21,8 +21,8 @@ import (
 
 // PHY registers
 const (
-	PHY_CTRL        = 0x00
-	PHY_STATUS      = 0x01
+	BASIC_CONTROL   = 0x00
+	BASIC_STATUS    = 0x01
 	PHY_ANEG_ADV    = 0x04
 	PHY_ANEG_LPA    = 0x05
 	PHY_1000_CTRL   = 0x09
@@ -30,7 +30,7 @@ const (
 
 	CTRL_RESET        = 15
 	CTRL_SPEED0       = 13
-	CTRL_ANEG         = 12
+	CTRL_ANEG_ENABLE  = 12
 	CTRL_ANEG_RESTART = 9
 	CTRL_DUPLEX       = 8
 	CTRL_SPEED1       = 6
@@ -92,26 +92,26 @@ func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
 	hw.speed = 0
 
 	// software reset
-	if err = hw.miim.WritePHYRegister(hw.pa, PHY_CTRL, (1 << CTRL_RESET)); err != nil {
+	if err = hw.miim.WritePHYRegister(hw.pa, BASIC_CONTROL, (1 << CTRL_RESET)); err != nil {
 		return
 	}
 
-	control, err := hw.wait(PHY_CTRL, 1<<CTRL_RESET, 0)
+	control, err := hw.wait(BASIC_CONTROL, 1<<CTRL_RESET, 0)
 
 	if err != nil {
 		return fmt.Errorf("could not reset PHY, %v", err)
 	}
 
 	// enable and restart auto-negotiation
-	control |= (1 << CTRL_ANEG) | (1 << CTRL_ANEG_RESTART)
+	control |= (1 << CTRL_ANEG_ENABLE) | (1 << CTRL_ANEG_RESTART)
 
-	if err = hw.miim.WritePHYRegister(hw.pa, PHY_CTRL, control); err != nil {
+	if err = hw.miim.WritePHYRegister(hw.pa, BASIC_CONTROL, control); err != nil {
 		return
 	}
 
 	statusMask := uint16((1 << STATUS_LINK) | (1 << STATUS_ANEG_COMPLETE))
 
-	if _, err = hw.wait(PHY_STATUS, statusMask, statusMask); err != nil {
+	if _, err = hw.wait(BASIC_STATUS, statusMask, statusMask); err != nil {
 		return fmt.Errorf("auto-negotiation status error, %w", err)
 	}
 
