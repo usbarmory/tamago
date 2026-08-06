@@ -23,6 +23,8 @@ import (
 const (
 	BASIC_CONTROL   = 0x00
 	BASIC_STATUS    = 0x01
+	PHY_ID_1        = 0x02
+	PHY_ID_2        = 0x03
 	PHY_ANEG_ADV    = 0x04
 	PHY_ANEG_LPA    = 0x05
 	PHY_1000_CTRL   = 0x09
@@ -180,6 +182,21 @@ func (hw *PHY) Negotiate() (err error) {
 	}
 
 	return
+}
+
+// Identifier returns the PHY identifier registers as one 32-bit value.
+func (hw *PHY) Identifier() (id uint32, err error) {
+	var high, low uint16
+
+	if high, err = hw.read(PHY_ID_1); err != nil {
+		return
+	}
+
+	if low, err = hw.read(PHY_ID_2); err != nil {
+		return
+	}
+
+	return uint32(high)<<16 | uint32(low), nil
 }
 
 // Address returns the PHY address passed at [PHY.Init].
