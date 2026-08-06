@@ -56,6 +56,14 @@ var WaitTimeout = 10 * time.Second
 // PollInterval represents the delay between PHY register write attempts
 var PollInterval = 10 * time.Millisecond
 
+// Status represents the resolved PHY link state.
+type Status struct {
+	Link                    bool
+	AutoNegotiationComplete bool
+	Speed                   int
+	FullDuplex              bool
+}
+
 // PHY represents the LAN8840 Ethernet PHY instance.
 type PHY struct {
 	miim  phy.MIIM
@@ -136,50 +144,68 @@ func (hw *PHY) Init(addr int, miim phy.MIIM) (err error) {
 	return hw.Negotiate()
 }
 
-// Negotiate refreshes the PHY auto-negotiation status, currently only 100/1000
-// Mbps Auto-Negotiation (Full-duplex) is supported.
-func (hw *PHY) Negotiate() (err error) {
+func (hw *PHY) resolveMode() (speed int, fullDuplex bool, err error) {
 	var local, partner uint16
 
-	hw.speed = 0
-
 	if local, err = hw.read(PHY_1000_CTRL); err != nil {
-		return fmt.Errorf("could not read 1000BASE-T control register, %v", err)
+		return 0, false, fmt.Errorf("could not read 1000BASE-T control register, %v", err)
 	}
 
 	if partner, err = hw.read(PHY_1000_STATUS); err != nil {
-		return fmt.Errorf("could not read 1000BASE-T status register, %v", err)
+		return 0, false, fmt.Errorf("could not read 1000BASE-T status register, %v", err)
 	}
 
-	if local&ANEG_ADV_1000_FULL != 0 && partner&ANEG_LPA_1000_FULL != 0 {
-		hw.speed = 1000
-		return
-	}
-
-	if local&ANEG_ADV_1000_HALF != 0 && partner&ANEG_LPA_1000_HALF != 0 {
-		return fmt.Errorf("unsupported half-duplex management link")
+	switch {
+	case local&ANEG_ADV_1000_FULL != 0 && partner&ANEG_LPA_1000_FULL != 0:
+		return 1000, true, nil
+	case local&ANEG_ADV_1000_HALF != 0 && partner&ANEG_LPA_1000_HALF != 0:
+		return 1000, false, nil
 	}
 
 	if local, err = hw.read(PHY_ANEG_ADV); err != nil {
-		return fmt.Errorf("could not read auto-negotiation advertisement register, %v", err)
+		return 0, false, fmt.Errorf("could not read auto-negotiation advertisement register, %v", err)
 	}
 
 	if partner, err = hw.read(PHY_ANEG_LPA); err != nil {
-		return fmt.Errorf("could not read auto-negotiation link partner ability register, %v", err)
+		return 0, false, fmt.Errorf("could not read auto-negotiation link partner ability register, %v", err)
 	}
 
 	common := local & partner
 
 	switch {
 	case common&ANEG_ADV_100_FULL != 0:
-		hw.speed = 100
+		return 100, true, nil
 	case common&ANEG_ADV_100_HALF != 0:
-		return fmt.Errorf("unsupported half-duplex management link")
-	case common&(ANEG_ADV_10_FULL|ANEG_ADV_10_HALF) != 0:
-		return fmt.Errorf("unsupported 10 Mbps management link")
+		return 100, false, nil
+	case common&ANEG_ADV_10_FULL != 0:
+		return 10, true, nil
+	case common&ANEG_ADV_10_HALF != 0:
+		return 10, false, nil
 	default:
-		return fmt.Errorf("management PHY has no common advertised mode")
+		return 0, false, errors.New("management PHY has no common advertised mode")
 	}
+}
+
+// Negotiate refreshes the PHY auto-negotiation status, currently only 100/1000
+// Mbps Auto-Negotiation (Full-duplex) is supported.
+func (hw *PHY) Negotiate() (err error) {
+	hw.speed = 0
+
+	var speed int
+	var fullDuplex bool
+
+	if speed, fullDuplex, err = hw.resolveMode(); err != nil {
+		return
+	}
+
+	switch {
+	case speed == 10:
+		return errors.New("unsupported 10 Mbps management link")
+	case !fullDuplex:
+		return errors.New("unsupported half-duplex management link")
+	}
+
+	hw.speed = speed
 
 	return
 }
@@ -197,6 +223,53 @@ func (hw *PHY) Identifier() (id uint32, err error) {
 	}
 
 	return uint32(high)<<16 | uint32(low), nil
+}
+
+func (hw *PHY) link() (basic uint16, err error) {
+	// STATUS_LINK is latch-low; the first read clears stale link state.
+	if _, err = hw.read(BASIC_STATUS); err != nil {
+		return
+	}
+
+	return hw.read(BASIC_STATUS)
+}
+
+// Link reports whether the PHY link is up. The status register is read twice
+// because its link bit is latched low.
+func (hw *PHY) Link() (up bool, err error) {
+	var basic uint16
+
+	if basic, err = hw.link(); err != nil {
+		return
+	}
+
+	return basic&(1<<STATUS_LINK) != 0, nil
+}
+
+// Status returns link, auto-negotiation, speed, and duplex state.
+func (hw *PHY) Status() (status Status, err error) {
+	var basic uint16
+
+	if basic, err = hw.link(); err != nil {
+		return
+	}
+
+	hw.speed = 0
+
+	status.Link = basic&(1<<STATUS_LINK) != 0
+	status.AutoNegotiationComplete = basic&(1<<STATUS_ANEG_COMPLETE) != 0
+
+	if !status.Link {
+		return
+	}
+
+	if status.Speed, status.FullDuplex, err = hw.resolveMode(); err != nil {
+		return
+	}
+
+	hw.speed = status.Speed
+
+	return
 }
 
 // Address returns the PHY address passed at [PHY.Init].
