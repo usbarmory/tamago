@@ -17,9 +17,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/phy"
 )
 
+// PHY registers
 const (
 	BASIC_CONTROL  = 0x00
 	BASIC_STATUS   = 0x01
@@ -104,10 +106,12 @@ func (hw *PHY) write(address int, data uint16) (err error) {
 
 func (hw *PHY) selectExtended(page int, address uint16) (err error) {
 	if page < 0 || page > 0x1f {
-		return errors.New("invalid LAN8804 extended page")
+		return errors.New("invalid extended page")
 	}
 
-	if err = hw.write(EP_ACCESS_CTRL, uint16(EP_ADDRESS<<EP_FUNCTION|page<<EP_INDEX)); err != nil {
+	ctrl := EP_ADDRESS<<EP_FUNCTION | page<<EP_INDEX
+
+	if err = hw.write(EP_ACCESS_CTRL, uint16(ctrl)); err != nil {
 		return
 	}
 
@@ -115,7 +119,9 @@ func (hw *PHY) selectExtended(page int, address uint16) (err error) {
 		return
 	}
 
-	return hw.write(EP_ACCESS_CTRL, uint16(EP_DATA<<EP_FUNCTION|page<<EP_INDEX))
+	ctrl = EP_DATA<<EP_FUNCTION | page<<EP_INDEX
+
+	return hw.write(EP_ACCESS_CTRL, uint16(ctrl))
 }
 
 // ReadExtendedRegister reads a vendor-specific Extended Page register.
@@ -151,12 +157,12 @@ func (hw *PHY) Reset() (err error) {
 			return
 		}
 
-		if control&(1<<CTRL_RESET) == 0 {
+		if bits.Get16(&control, CTRL_RESET) {
 			return
 		}
 
 		if time.Now().After(deadline) {
-			return errors.New("LAN8804 reset timeout")
+			return errors.New("reset timeout")
 		}
 
 		time.Sleep(time.Millisecond)
@@ -211,7 +217,7 @@ func (hw *PHY) Link() (up bool, err error) {
 		return
 	}
 
-	return basic&(1<<STATUS_LINK) != 0, nil
+	return bits.Get16(&basic, STATUS_LINK), nil
 }
 
 // Status returns link, auto-negotiation, speed, and duplex state.
@@ -224,8 +230,8 @@ func (hw *PHY) Status() (status Status, err error) {
 
 	hw.speed = 0
 
-	status.Link = basic&(1<<STATUS_LINK) != 0
-	status.AutoNegotiationComplete = basic&(1<<STATUS_ANEG_COMPLETE) != 0
+	status.Link = bits.Get16(&basic, STATUS_LINK)
+	status.AutoNegotiationComplete = bits.Get16(&basic, STATUS_ANEG_COMPLETE)
 
 	if !status.Link {
 		return
@@ -235,17 +241,17 @@ func (hw *PHY) Status() (status Status, err error) {
 		return
 	}
 
-	status.FullDuplex = control&(1<<CONTROL_DUPLEX) != 0
+	status.FullDuplex = bits.Get16(&control, CONTROL_DUPLEX)
 
 	switch {
-	case control&(1<<CONTROL_SPEED_1000) != 0:
+	case bits.Get16(&control, CONTROL_SPEED_1000):
 		status.Speed = 1000
-	case control&(1<<CONTROL_SPEED_100) != 0:
+	case bits.Get16(&control, CONTROL_SPEED_100):
 		status.Speed = 100
-	case control&(1<<CONTROL_SPEED_10) != 0:
+	case bits.Get16(&control, CONTROL_SPEED_10):
 		status.Speed = 10
 	default:
-		err = fmt.Errorf("invalid LAN8804 speed status %#x", control)
+		err = fmt.Errorf("invalid speed status %#x", control)
 	}
 
 	hw.speed = status.Speed
