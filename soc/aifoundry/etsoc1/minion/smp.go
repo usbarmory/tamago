@@ -39,7 +39,7 @@ var (
 // must be taken in defining the Workload function.
 //
 // A pure Go assembly Workload is recommended, though with extra care (and no
-// guarantees of backward/future compatiblity) simple freestanding Go code can
+// guarantees of backward/future compatibility) simple freestanding Go code can
 // be executed.
 type Workload func()
 
