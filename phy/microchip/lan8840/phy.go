@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/phy"
 )
 
@@ -34,17 +35,17 @@ const (
 	CTRL_ANEG_ENABLE  = 12
 	CTRL_ANEG_RESTART = 9
 
-	STATUS_LINK          = 2
 	STATUS_ANEG_COMPLETE = 5
+	STATUS_LINK          = 2
 
-	ANEG_ADV_10_HALF   = 1 << 5
-	ANEG_ADV_10_FULL   = 1 << 6
-	ANEG_ADV_100_HALF  = 1 << 7
-	ANEG_ADV_100_FULL  = 1 << 8
-	ANEG_ADV_1000_HALF = 1 << 8
-	ANEG_ADV_1000_FULL = 1 << 9
-	ANEG_LPA_1000_HALF = 1 << 10
-	ANEG_LPA_1000_FULL = 1 << 11
+	ANEG_LPA_1000_HALF = 10
+	ANEG_LPA_1000_FULL = 11
+	ANEG_ADV_1000_FULL = 9
+	ANEG_ADV_1000_HALF = 8
+	ANEG_ADV_100_FULL  = 8
+	ANEG_ADV_100_HALF  = 7
+	ANEG_ADV_10_FULL   = 6
+	ANEG_ADV_10_HALF   = 5
 )
 
 // Timeout is the default timeout for PHY operations.
@@ -116,12 +117,12 @@ func (hw *PHY) Reset() (err error) {
 			return
 		}
 
-		if control&(1<<CTRL_RESET) == 0 {
+		if bits.Get16(&control, CTRL_RESET) {
 			return
 		}
 
 		if time.Now().After(deadline) {
-			return errors.New("LAN8840 reset timeout")
+			return errors.New("reset timeout")
 		}
 
 		time.Sleep(time.Millisecond)
@@ -176,12 +177,12 @@ func (hw *PHY) Link() (up bool, err error) {
 		return
 	}
 
-	return basic&(1<<STATUS_LINK) != 0, nil
+	return bits.Get16(&basic, STATUS_LINK), nil
 }
 
 // Status returns link, auto-negotiation, speed, and duplex state.
 func (hw *PHY) Status() (status Status, err error) {
-	var basic uint16
+	var basic, local, partner uint16
 
 	if basic, err = hw.link(); err != nil {
 		return
@@ -189,14 +190,12 @@ func (hw *PHY) Status() (status Status, err error) {
 
 	hw.speed = 0
 
-	status.Link = basic&(1<<STATUS_LINK) != 0
-	status.AutoNegotiationComplete = basic&(1<<STATUS_ANEG_COMPLETE) != 0
+	status.Link = bits.Get16(&basic, STATUS_LINK)
+	status.AutoNegotiationComplete = bits.Get16(&basic, STATUS_ANEG_COMPLETE)
 
 	if !status.Link || !status.AutoNegotiationComplete {
 		return
 	}
-
-	var local, partner uint16
 
 	if local, err = hw.read(PHY_1000_CTRL); err != nil {
 		return status, fmt.Errorf("could not read 1000BASE-T control register, %w", err)
@@ -207,10 +206,10 @@ func (hw *PHY) Status() (status Status, err error) {
 	}
 
 	switch {
-	case local&ANEG_ADV_1000_FULL != 0 && partner&ANEG_LPA_1000_FULL != 0:
+	case bits.Get16(&local, ANEG_ADV_1000_FULL) && bits.Get16(&partner, ANEG_LPA_1000_FULL):
 		status.Speed = 1000
 		status.FullDuplex = true
-	case local&ANEG_ADV_1000_HALF != 0 && partner&ANEG_LPA_1000_HALF != 0:
+	case bits.Get16(&local, ANEG_ADV_1000_HALF) && bits.Get16(&partner, ANEG_LPA_1000_HALF):
 		status.Speed = 1000
 	default:
 		if local, err = hw.read(PHY_ANEG_ADV); err != nil {
@@ -224,15 +223,15 @@ func (hw *PHY) Status() (status Status, err error) {
 		common := local & partner
 
 		switch {
-		case common&ANEG_ADV_100_FULL != 0:
+		case bits.Get16(&common, ANEG_ADV_100_FULL):
 			status.Speed = 100
 			status.FullDuplex = true
-		case common&ANEG_ADV_100_HALF != 0:
+		case bits.Get16(&common, ANEG_ADV_100_HALF):
 			status.Speed = 100
-		case common&ANEG_ADV_10_FULL != 0:
+		case bits.Get16(&common, ANEG_ADV_10_FULL):
 			status.Speed = 10
 			status.FullDuplex = true
-		case common&ANEG_ADV_10_HALF != 0:
+		case bits.Get16(&common, ANEG_ADV_10_HALF):
 			status.Speed = 10
 		default:
 			return status, errors.New("PHY has no common advertised mode")

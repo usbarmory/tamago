@@ -5,8 +5,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// Package bits provides primitives for bitwise operations on 32/64 bit
-// registers.
+// Package bits provides primitives for bitwise operations on registers.
 package bits
 
 // Get returns whether a specific bit position is set at the pointed value.

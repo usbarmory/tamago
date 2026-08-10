@@ -23,9 +23,16 @@ const (
 	PHY_ADDR            = 0x03
 	MAC_FID             = 1
 	ManagementPortIndex = PORT29
+)
 
-	managementLinkTimeout      = 10 * time.Second
-	managementLinkPollInterval = 10 * time.Millisecond
+var (
+	// LinkTimeout represents the timeout for management port link
+	// establishment.
+	LinkTimeout = 10 * time.Second
+
+	// LinkPollInterval represents the grace time between management port
+	// link establishment attempts.
+	LinkPollInterval = 10 * time.Millisecond
 )
 
 // On the LAN969x 24-port EVB the management network interface is port D29,
@@ -56,7 +63,7 @@ func resetInjectionFlowControl(port uint32) {
 }
 
 func waitManagementLink(phy *lan8840.PHY) (status lan8840.Status, err error) {
-	deadline := time.Now().Add(managementLinkTimeout)
+	deadline := time.Now().Add(LinkTimeout)
 
 	for {
 		if status, err = phy.Status(); err != nil {
@@ -71,7 +78,7 @@ func waitManagementLink(phy *lan8840.PHY) (status lan8840.Status, err error) {
 			return status, fmt.Errorf("timed out waiting for management PHY link")
 		}
 
-		time.Sleep(managementLinkPollInterval)
+		time.Sleep(LinkPollInterval)
 	}
 
 	switch {
