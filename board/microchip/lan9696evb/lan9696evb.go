@@ -22,7 +22,7 @@ import (
 
 // Peripheral instances
 var (
-	FLEXCOM0 = lan969x.FLEXCOM0
+	UART = lan969x.FLEXCOM0.USART
 )
 
 // Init takes care of the lower level initialization triggered early in runtime
@@ -33,7 +33,7 @@ func Init() {
 	lan969x.Init()
 
 	// initialize console
-	lan969x.FLEXCOM0.Init()
+	lan969x.FLEXCOM0.InitUSART()
 }
 
 func init() {

@@ -171,6 +171,7 @@ var (
 		Index: 1,
 		Base:  FLEXCOM0_BASE,
 		IRQ:   FLEXCOM0_IRQ,
+		USART: &flexcom.USART{},
 	}
 
 	// Serial port 2

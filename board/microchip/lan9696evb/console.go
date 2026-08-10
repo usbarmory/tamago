@@ -12,8 +12,6 @@ package lan9696evb
 
 import (
 	_ "unsafe"
-
-	"github.com/usbarmory/tamago/soc/microchip/lan969x"
 )
 
 // On the LAN969x 24-port EVB FLEXCOM0 is connected as serial console through
@@ -22,5 +20,5 @@ import (
 
 //go:linkname printk runtime/goos.Printk
 func printk(c byte) {
-	lan969x.FLEXCOM0.Tx(c)
+	UART.Tx(c)
 }

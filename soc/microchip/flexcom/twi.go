@@ -12,12 +12,14 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
+// TWI registers
 const (
 	FLEX_TWI_OFFSET = 0x600
 
@@ -57,93 +59,113 @@ const (
 	TWI_IADRSZ_MAX = 3
 )
 
-// TWI_TIMEOUT is the default timeout for TWI operations.
-const TWI_TIMEOUT = 100 * time.Millisecond
+// TWITimeout is the default timeout for TWI operations.
+const TWITimeout = 100 * time.Millisecond
 
-// InitTWI configures and enables TWI initiator mode. Generic clock generation
-// and pin routing are configured separately by the SoC or board package.
-func (hw *FLEXCOM) InitTWI() (err error) {
-	hw.Lock()
-	defer hw.Unlock()
+// TWI represents the FLEXCOM TWI mode instance.
+type TWI struct {
+	sync.Mutex
 
-	switch {
-	case hw.Base == 0:
-		return errors.New("invalid FLEXCOM controller instance")
-	case hw.TWIClockDivider > TWI_CWGR_CKDIV_MASK:
-		return fmt.Errorf("invalid TWI clock divider %d", hw.TWIClockDivider)
-	case hw.TWITimeout < 0:
-		return fmt.Errorf("invalid TWI timeout %s", hw.TWITimeout)
-	}
+	// Base register
+	Base uint32
 
-	if hw.TWITimeout == 0 {
-		hw.TWITimeout = TWI_TIMEOUT
-	}
+	// ClockLowDivider configures the TWI low-period divider.
+	ClockLowDivider uint8
 
-	bits.SetN(&hw.twiClock, TWI_CWGR_CLDIV, TWI_CWGR_CLDIV_MASK, uint32(hw.TWIClockLowDivider))
-	bits.SetN(&hw.twiClock, TWI_CWGR_CHDIV, TWI_CWGR_CHDIV_MASK, uint32(hw.TWIClockHighDivider))
-	bits.SetN(&hw.twiClock, TWI_CWGR_CKDIV, TWI_CWGR_CKDIV_MASK, uint32(hw.TWIClockDivider))
-	bits.SetTo(&hw.twiClock, TWI_CWGR_GCK, hw.TWIGenericClock)
+	// ClockHighDivider configures the TWI high-period divider.
+	ClockHighDivider uint8
 
-	reg.SetN(hw.Base+FLEX_MR, MR_OPMODE, MR_OPMODE_MASK, MR_OPMODE_TWI)
-	hw.resetTWI()
+	// ClockDivider applies a 2^n scale to both TWI clock periods.
+	ClockDivider uint8
 
-	return
+	// GenericClock selects GCLK instead of the peripheral clock.
+	GenericClock bool
+
+	// Timeout bounds each wait for TWI controller progress. Zero selects 100 ms.
+	Timeout time.Duration
+
+	clock uint32
 }
 
-func (hw *FLEXCOM) resetTWI() {
+func (hw *TWI) reset() {
 	reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_CR, 1<<TWI_CR_SWRST)
-	reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_CWGR, hw.twiClock)
+	reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_CWGR, hw.clock)
 	reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_CR, 1<<TWI_CR_MSEN)
 }
 
-func (hw *FLEXCOM) configureTWI(address uint8, internal uint32, internalSize int, read bool) (err error) {
-	switch {
-	case hw.Base == 0:
-		return errors.New("invalid FLEXCOM controller instance")
-	case address > TWI_MMR_DADR_MASK:
-		return fmt.Errorf("invalid I2C address %#x", address)
-	case internalSize < 0 || internalSize > TWI_IADRSZ_MAX:
-		return fmt.Errorf("invalid I2C internal address size %d", internalSize)
-	case internalSize == 0 && internal != 0:
-		return fmt.Errorf("invalid I2C internal address %#x", internal)
-	case internalSize > 0 && internal >= 1<<uint(internalSize*8):
-		return fmt.Errorf("invalid I2C internal address %#x", internal)
+func (hw *TWI) init() (err error) {
+	if hw.ClockDivider > TWI_CWGR_CKDIV_MASK {
+		return fmt.Errorf("invalid TWI clock divider %d", hw.ClockDivider)
 	}
 
-	var mode uint32
-	bits.SetN(&mode, TWI_MMR_IADRSZ, TWI_MMR_IADRSZ_MASK, uint32(internalSize))
-	bits.SetTo(&mode, TWI_MMR_MREAD, read)
-	bits.SetN(&mode, TWI_MMR_DADR, TWI_MMR_DADR_MASK, uint32(address))
-	reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_MMR, mode)
-	reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_IADR, internal)
+	if hw.Timeout <= 0 {
+		hw.Timeout = TWITimeout
+	}
+
+	bits.SetN(&hw.clock, TWI_CWGR_CLDIV, TWI_CWGR_CLDIV_MASK, uint32(hw.ClockLowDivider))
+	bits.SetN(&hw.clock, TWI_CWGR_CHDIV, TWI_CWGR_CHDIV_MASK, uint32(hw.ClockHighDivider))
+	bits.SetN(&hw.clock, TWI_CWGR_CKDIV, TWI_CWGR_CKDIV_MASK, uint32(hw.ClockDivider))
+	bits.SetTo(&hw.clock, TWI_CWGR_GCK, hw.GenericClock)
+
+	hw.reset()
 
 	return
 }
 
-func (hw *FLEXCOM) waitTWI(bit int) (err error) {
+func (hw *TWI) configure(target uint8, addr uint32, alen int, read bool) (err error) {
+	switch {
+	case hw.Base == 0:
+		return errors.New("invalid FLEXCOM controller instance")
+	case target > TWI_MMR_DADR_MASK:
+		return fmt.Errorf("invalid device address %#x", target)
+	case alen < 0 || alen > TWI_IADRSZ_MAX:
+		return fmt.Errorf("invalid internal device address size %d", alen)
+	case alen == 0 && addr != 0,
+		alen > 0 && addr >= 1<<uint(alen*8):
+		return fmt.Errorf("invalid internal device address %#x", addr)
+	}
+
+	var mode uint32
+	bits.SetN(&mode, TWI_MMR_IADRSZ, TWI_MMR_IADRSZ_MASK, uint32(alen))
+	bits.SetTo(&mode, TWI_MMR_MREAD, read)
+	bits.SetN(&mode, TWI_MMR_DADR, TWI_MMR_DADR_MASK, uint32(target))
+	reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_MMR, mode)
+	reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_IADR, addr)
+
+	return
+}
+
+func (hw *TWI) wait(bit int) (err error) {
 	start := time.Now()
 
 	for {
 		status := reg.Read(hw.Base + FLEX_TWI_OFFSET + FLEX_TWI_SR)
 
 		switch {
-		case status&(1<<TWI_SR_NACK) != 0:
-			hw.resetTWI()
-			return errors.New("i2c target did not acknowledge")
-		case status&(1<<uint(bit)) != 0:
+		case bits.Get(&status, TWI_SR_NACK):
+			hw.reset()
+			return errors.New("target did not acknowledge")
+		case bits.Get(&status, bit):
 			return nil
-		case time.Since(start) >= hw.TWITimeout:
-			hw.resetTWI()
-			return fmt.Errorf("i2c timeout waiting for status bit %d (%#08x)", bit, status)
+		case time.Since(start) >= hw.Timeout:
+			hw.reset()
+			return fmt.Errorf("timeout waiting for status bit %d (%#08x)", bit, status)
 		}
 
 		runtime.Gosched()
 	}
 }
 
-// ReadTWI receives bytes from a 7-bit I2C target. internalSize selects zero to
-// three address bytes; internal must fit the selected width.
-func (hw *FLEXCOM) ReadTWI(address uint8, internal uint32, internalSize int, buf []byte) (err error) {
+// Read reads a sequence of bytes from a target device.
+//
+// The address length (`alen`) parameter should be set greater than 0 for
+// ordinary I2C reads (`TARGET W|ADDR|TARGET R|DATA`) and equal to 0 when not
+// sending a register address (`TARGET R|DATA`), values less than 0 or greater
+// than 3 are not valid.
+//
+// The buffer is filled to its full length, on error it may be partially
+// filled.
+func (hw *TWI) Read(target uint8, addr uint32, alen int, buf []byte) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
@@ -151,39 +173,44 @@ func (hw *FLEXCOM) ReadTWI(address uint8, internal uint32, internalSize int, buf
 		return
 	}
 
-	if err = hw.configureTWI(address, internal, internalSize, true); err != nil {
+	if err = hw.configure(target, addr, alen, true); err != nil {
 		return
 	}
 
 	reg.Read(hw.Base + FLEX_TWI_OFFSET + FLEX_TWI_SR)
 
-	if len(buf) == 1 {
-		reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_CR, 1<<TWI_CR_START|1<<TWI_CR_STOP)
-		if err = hw.waitTWI(TWI_SR_RXRDY); err != nil {
+	for i := range buf {
+		var cr uint32
+
+		if i == 0 {
+			bits.Set(&cr, TWI_CR_START)
+		}
+
+		if i == len(buf)-1 {
+			bits.Set(&cr, TWI_CR_STOP)
+		}
+
+		if cr != 0 {
+			reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_CR, cr)
+		}
+
+		if err = hw.wait(TWI_SR_RXRDY); err != nil {
 			return
 		}
-		buf[0] = byte(reg.Read(hw.Base + FLEX_TWI_OFFSET + FLEX_TWI_RHR))
-	} else {
-		reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_CR, 1<<TWI_CR_START)
-		for i := range buf {
-			if i == len(buf)-1 {
-				reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_CR, 1<<TWI_CR_STOP)
-			}
-			if err = hw.waitTWI(TWI_SR_RXRDY); err != nil {
-				return
-			}
-			buf[i] = byte(reg.Read(hw.Base + FLEX_TWI_OFFSET + FLEX_TWI_RHR))
-		}
+
+		buf[i] = byte(reg.Read(hw.Base + FLEX_TWI_OFFSET + FLEX_TWI_RHR))
 	}
 
-	err = hw.waitTWI(TWI_SR_TXCOMP)
-
-	return
+	return hw.wait(TWI_SR_TXCOMP)
 }
 
-// WriteTWI sends bytes to a 7-bit I2C target. internalSize selects zero to
-// three address bytes; internal must fit the selected width.
-func (hw *FLEXCOM) WriteTWI(address uint8, internal uint32, internalSize int, buf []byte) (err error) {
+// Write writes a sequence of bytes to a target device.
+//
+// The address length (`alen`) parameter should be set greater than 0 for
+// ordinary I2C writes (`TARGET W|ADDR|DATA`) and equal to 0 when not sending
+// a register address (`TARGET W|DATA`), values less than 0 or greater than 3
+// are not valid.
+func (hw *TWI) Write(target uint8, addr uint32, alen int, buf []byte) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
@@ -191,23 +218,23 @@ func (hw *FLEXCOM) WriteTWI(address uint8, internal uint32, internalSize int, bu
 		return
 	}
 
-	if err = hw.configureTWI(address, internal, internalSize, false); err != nil {
+	if err = hw.configure(target, addr, alen, false); err != nil {
 		return
 	}
 
 	reg.Read(hw.Base + FLEX_TWI_OFFSET + FLEX_TWI_SR)
 
-	for i, value := range buf {
-		reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_THR, uint32(value))
+	for i := range buf {
+		reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_THR, uint32(buf[i]))
+
 		if i == len(buf)-1 {
 			reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_CR, 1<<TWI_CR_STOP)
 		}
-		if err = hw.waitTWI(TWI_SR_TXRDY); err != nil {
+
+		if err = hw.wait(TWI_SR_TXRDY); err != nil {
 			return
 		}
 	}
 
-	err = hw.waitTWI(TWI_SR_TXCOMP)
-
-	return
+	return hw.wait(TWI_SR_TXCOMP)
 }
