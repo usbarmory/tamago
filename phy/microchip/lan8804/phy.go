@@ -105,7 +105,7 @@ func (hw *PHY) write(address int, data uint16) (err error) {
 
 func (hw *PHY) selectExtended(page int, address uint16) (err error) {
 	if page < 0 || page > 0x1f {
-		return errors.New("invalid LAN8804 extended page")
+		return errors.New("invalid extended page")
 	}
 
 	if err = hw.write(EP_ACCESS_CTRL, uint16(EP_ADDRESS<<EP_FUNCTION|page<<EP_INDEX)); err != nil {
@@ -157,7 +157,7 @@ func (hw *PHY) Reset() (err error) {
 		}
 
 		if time.Now().After(deadline) {
-			return errors.New("LAN8804 reset timeout")
+			return errors.New("reset timeout")
 		}
 
 		time.Sleep(time.Millisecond)
@@ -246,7 +246,7 @@ func (hw *PHY) Status() (status Status, err error) {
 	case control&(1<<CONTROL_SPEED_10) != 0:
 		status.Speed = 10
 	default:
-		err = fmt.Errorf("invalid LAN8804 speed status %#x", control)
+		err = fmt.Errorf("invalid speed status %#x", control)
 	}
 
 	hw.speed = status.Speed
