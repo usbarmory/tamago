@@ -37,7 +37,6 @@ const (
 	CLOCK_SIO_CLK_FREQ_MASK   = 0xfff
 
 	SIO_PORT_CFG             = 0x18
-	SIO_PORT_CFG_STRIDE      = 4
 	PORT_CFG_BIT_SOURCE      = 12
 	PORT_CFG_BIT_SOURCE_MASK = 0x7
 	BIT_SOURCE_FORCED_LOW    = 0
@@ -127,11 +126,12 @@ func (hw *SGPIO) SetBit(port, bit int, high bool) (err error) {
 	}
 
 	source := uint32(BIT_SOURCE_FORCED_LOW)
+
 	if high {
 		source = BIT_SOURCE_FORCED_HIGH
 	}
 
-	addr := hw.Base + SIO_PORT_CFG + uint32(port*SIO_PORT_CFG_STRIDE)
+	addr := hw.Base + SIO_PORT_CFG + uint32(port*4)
 	reg.SetN(addr, PORT_CFG_BIT_SOURCE+bit*3, PORT_CFG_BIT_SOURCE_MASK, source)
 
 	return
