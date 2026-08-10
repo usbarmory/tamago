@@ -29,6 +29,7 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/gpio"
 	"github.com/usbarmory/tamago/soc/microchip/miim"
 	"github.com/usbarmory/tamago/soc/microchip/otpc"
+	"github.com/usbarmory/tamago/soc/microchip/sgpio"
 	"github.com/usbarmory/tamago/soc/microchip/temp"
 	"github.com/usbarmory/tamago/soc/microchip/trng"
 	"github.com/usbarmory/tamago/soc/microchip/wdt"
@@ -126,6 +127,9 @@ const (
 	// Rewriter
 	REW_BASE = 0xe2600000
 
+	// Serial GPIO controller
+	SGPIO_BASE = GCB_BASE + 0x230
+
 	// Temperature sensor control
 	TEMP_SENSOR_BASE = 0xe2020100
 
@@ -213,6 +217,11 @@ var (
 	OTPC = &otpc.OTPC{
 		Base: OTPC_BASE,
 		Size: 16 * 1024,
+	}
+
+	// Serial GPIO controller
+	SGPIO = &sgpio.SGPIO{
+		Base: SGPIO_BASE,
 	}
 
 	// Temperature sensor

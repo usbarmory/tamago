@@ -42,7 +42,7 @@ Supported hardware
 
 | SoC               | Related board packages                                                                             | Peripheral drivers                                                                                                                                                                              |
 |-------------------|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Microchip LAN969x | [microchip/lan9696evb](https://github.com/usbarmory/tamago/tree/master/board/microchip/lan9696evb) | [ANA, DEVCPU, FAN, FLEXCOM, GPIO, MIIM, OTPC, TEMP, TRNG, WDT](https://github.com/usbarmory/tamago/tree/master/soc/microchip), [GIC](https://github.com/usbarmory/tamago/tree/master/arm64/gic) |
+| Microchip LAN969x | [microchip/lan9696evb](https://github.com/usbarmory/tamago/tree/master/board/microchip/lan9696evb) | [ANA, DEVCPU, FAN, FLEXCOM, GPIO, MIIM, OTPC, SGPIO, TEMP, TRNG, WDT](https://github.com/usbarmory/tamago/tree/master/soc/microchip), [GIC](https://github.com/usbarmory/tamago/tree/master/arm64/gic) |
 
 Build tags
 ==========
