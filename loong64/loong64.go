@@ -36,6 +36,9 @@ type CPU struct {
 	TimerMultiplier float64
 	// Timer offset in nanoseconds
 	TimerOffset int64
+
+	// see [CPU.Idle] and [CPU.IdleTime]
+	idle uint64
 }
 
 // defined in loong64.s
