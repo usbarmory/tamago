@@ -25,24 +25,28 @@ import (
 )
 
 const (
-	sioConfig       = 0x10
-	configWidth     = 3
-	configRepeat    = 6
-	sioClock        = 0x14
-	clockPeriod     = 0
-	clockPeriodMSK  = 0xff
-	clockDivider    = 8
-	clockDividerMSK = 0xfff
-	sioPortConfig   = 0x18
-	portStride      = 4
-	bitSource       = 12
-	bitSourceMSK    = 0x7
-	sioPortEnable   = 0x98
+	SIO_CFG                 = 0x10
+	CFG_SIO_PORT_WIDTH      = 3
+	CFG_SIO_PORT_WIDTH_MASK = 0x3
+	CFG_SIO_AUTO_REPEAT     = 6
 
-	ports            = 32
-	maximumPortWidth = 4
-	forcedLow        = 0
-	forcedHigh       = 1
+	SIO_CLOCK                 = 0x14
+	CLOCK_SYS_CLK_PERIOD      = 0
+	CLOCK_SYS_CLK_PERIOD_MASK = 0xff
+	CLOCK_SIO_CLK_FREQ        = 8
+	CLOCK_SIO_CLK_FREQ_MASK   = 0xfff
+
+	SIO_PORT_CFG             = 0x18
+	SIO_PORT_CFG_STRIDE      = 4
+	PORT_CFG_BIT_SOURCE      = 12
+	PORT_CFG_BIT_SOURCE_MASK = 0x7
+	BIT_SOURCE_FORCED_LOW    = 0
+	BIT_SOURCE_FORCED_HIGH   = 1
+
+	SIO_PORT_ENA = 0x98
+
+	PORT_COUNT     = 32
+	PORT_WIDTH_MAX = 4
 )
 
 // SGPIO represents a Microchip Serial GPIO controller instance.
@@ -64,29 +68,29 @@ type SGPIO struct {
 // Init configures the port width and shift clock. Pin routing is configured
 // separately through the GPIO controller.
 func (hw *SGPIO) Init() (err error) {
-	switch {
-	case hw.Base == 0:
-		return errors.New("invalid SGPIO controller instance")
-	case hw.PortWidth < 1 || hw.PortWidth > maximumPortWidth:
-		return fmt.Errorf("invalid SGPIO port width %d", hw.PortWidth)
-	case hw.ClockPeriod == 0 || hw.ClockPeriod > clockPeriodMSK:
-		return fmt.Errorf("invalid SGPIO clock period %d", hw.ClockPeriod)
-	case hw.ClockDivider == 0 || hw.ClockDivider > clockDividerMSK:
-		return fmt.Errorf("invalid SGPIO clock divider %d", hw.ClockDivider)
-	}
-
 	hw.Lock()
 	defer hw.Unlock()
 
+	switch {
+	case hw.Base == 0:
+		return errors.New("invalid SGPIO controller instance")
+	case hw.PortWidth < 1 || hw.PortWidth > PORT_WIDTH_MAX:
+		return fmt.Errorf("invalid SGPIO port width %d", hw.PortWidth)
+	case hw.ClockPeriod == 0 || hw.ClockPeriod > CLOCK_SYS_CLK_PERIOD_MASK:
+		return fmt.Errorf("invalid SGPIO clock period %d", hw.ClockPeriod)
+	case hw.ClockDivider == 0 || hw.ClockDivider > CLOCK_SIO_CLK_FREQ_MASK:
+		return fmt.Errorf("invalid SGPIO clock divider %d", hw.ClockDivider)
+	}
+
 	var config uint32
-	bits.SetN(&config, configWidth, 0x3, uint32(hw.PortWidth-1))
-	bits.SetTo(&config, configRepeat, hw.AutoRepeat)
-	reg.Write(hw.Base+sioConfig, config)
+	bits.SetN(&config, CFG_SIO_PORT_WIDTH, CFG_SIO_PORT_WIDTH_MASK, uint32(hw.PortWidth-1))
+	bits.SetTo(&config, CFG_SIO_AUTO_REPEAT, hw.AutoRepeat)
+	reg.Write(hw.Base+SIO_CFG, config)
 
 	var clock uint32
-	bits.SetN(&clock, clockPeriod, clockPeriodMSK, hw.ClockPeriod)
-	bits.SetN(&clock, clockDivider, clockDividerMSK, hw.ClockDivider)
-	reg.Write(hw.Base+sioClock, clock)
+	bits.SetN(&clock, CLOCK_SYS_CLK_PERIOD, CLOCK_SYS_CLK_PERIOD_MASK, hw.ClockPeriod)
+	bits.SetN(&clock, CLOCK_SIO_CLK_FREQ, CLOCK_SIO_CLK_FREQ_MASK, hw.ClockDivider)
+	reg.Write(hw.Base+SIO_CLOCK, clock)
 
 	return
 }
@@ -94,41 +98,41 @@ func (hw *SGPIO) Init() (err error) {
 // EnablePorts enables every port selected by mask without disabling ports that
 // are already active.
 func (hw *SGPIO) EnablePorts(mask uint32) (err error) {
+	hw.Lock()
+	defer hw.Unlock()
+
 	if hw.Base == 0 {
 		return errors.New("invalid SGPIO controller instance")
 	}
 
-	hw.Lock()
-	defer hw.Unlock()
-
-	reg.Or(hw.Base+sioPortEnable, mask)
+	reg.Or(hw.Base+SIO_PORT_ENA, mask)
 
 	return
 }
 
 // SetBit configures one port output as forced high or forced low.
 func (hw *SGPIO) SetBit(port, bit int, high bool) (err error) {
+	hw.Lock()
+	defer hw.Unlock()
+
 	switch {
 	case hw.Base == 0:
 		return errors.New("invalid SGPIO controller instance")
-	case port < 0 || port >= ports:
+	case port < 0 || port >= PORT_COUNT:
 		return fmt.Errorf("invalid SGPIO port %d", port)
-	case hw.PortWidth < 1 || hw.PortWidth > maximumPortWidth:
+	case hw.PortWidth < 1 || hw.PortWidth > PORT_WIDTH_MAX:
 		return fmt.Errorf("invalid SGPIO port width %d", hw.PortWidth)
 	case bit < 0 || bit >= hw.PortWidth:
 		return fmt.Errorf("invalid SGPIO bit %d", bit)
 	}
 
-	source := uint32(forcedLow)
+	source := uint32(BIT_SOURCE_FORCED_LOW)
 	if high {
-		source = forcedHigh
+		source = BIT_SOURCE_FORCED_HIGH
 	}
 
-	hw.Lock()
-	defer hw.Unlock()
-
-	addr := hw.Base + sioPortConfig + uint32(port*portStride)
-	reg.SetN(addr, bitSource+bit*3, bitSourceMSK, source)
+	addr := hw.Base + SIO_PORT_CFG + uint32(port*SIO_PORT_CFG_STRIDE)
+	reg.SetN(addr, PORT_CFG_BIT_SOURCE+bit*3, PORT_CFG_BIT_SOURCE_MASK, source)
 
 	return
 }

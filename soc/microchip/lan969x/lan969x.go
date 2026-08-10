@@ -112,9 +112,6 @@ const (
 	MIIM0_BASE = 0xe20101a8
 	MIIM1_BASE = 0xe20101cc
 
-	// Serial GPIO controller
-	SGPIO_BASE = GCB_BASE + 0x230
-
 	// One Time Programmable Controller
 	OTPC_BASE = 0xe0021000
 
@@ -129,6 +126,9 @@ const (
 
 	// Rewriter
 	REW_BASE = 0xe2600000
+
+	// Serial GPIO controller
+	SGPIO_BASE = GCB_BASE + 0x230
 
 	// Temperature sensor control
 	TEMP_SENSOR_BASE = 0xe2020100
