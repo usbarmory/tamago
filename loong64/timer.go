@@ -95,3 +95,16 @@ func (cpu *CPU) SetTimer(ns int64, periodic bool) {
 func (cpu *CPU) ClearTimerInterrupt() {
 	write_ticlr(1)
 }
+
+// Idle suspends execution until an interrupt is received tracking idle time
+// for reporting by [CPU.IdleTime].
+func (cpu *CPU) Idle() {
+	start := cpu.Counter()
+	idle()
+	cpu.idle += cpu.Counter() - start
+}
+
+// IdleTime returns the cumulative time spent halted, in nanoseconds. along
+func (cpu *CPU) IdleTime() int64 {
+	return int64(float64(cpu.idle) * cpu.TimerMultiplier)
+}

@@ -64,6 +64,9 @@ type CPU struct {
 
 	// vector base address register
 	vbar uint32
+
+	// see [CPU.Idle] and [CPU.IdleTime]
+	idle uint64
 }
 
 // defined in arm.s
