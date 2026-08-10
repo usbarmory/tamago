@@ -76,7 +76,7 @@ func (r *KeyResponse) unmarshal(buf []byte) (err error) {
 
 // DeriveKey sends an AMD SEV-SNP guest request for key derivation. The
 // arguments represent guest provided request parameters, the VM Communication
-// Key (see [SNPSecrets.VMPCK]) payload and index for encrypting the request.
+// Key (see [SecretsPage.VMPCK]) payload and index for encrypting the request.
 func (b *GHCB) DeriveKey(req *KeyRequest, key []byte, index int) (dk []byte, err error) {
 	var buf []byte
 

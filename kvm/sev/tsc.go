@@ -37,7 +37,7 @@ func (r *TSCInfo) unmarshal(buf []byte) (err error) {
 
 // TSCInfo sends an AMD SEV-SNP guest request for TSC information. The
 // arguments represent guest provided request parameters, the VM Communication
-// Key (see [SNPSecrets.VMPCK]) payload and index for encrypting the request.
+// Key (see [SecretsPage.VMPCK]) payload and index for encrypting the request.
 func (b *GHCB) TSCInfo(key []byte, index int) (res *TSCInfo, err error) {
 	var buf []byte
 

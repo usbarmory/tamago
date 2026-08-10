@@ -174,7 +174,7 @@ func (b *GHCB) Dump() (buf []byte) {
 // SEV-SNP firmware running inside the Platform Security Processor (PSP).
 //
 // The message is protected with authenticated AES-256 GCM encryption, using
-// the argument key index and value (see [SNPSecrets.VMPCK]).
+// the argument key index and value (see [SecretsPage.VMPCK]).
 //
 // See [SEV Secure Nested Paging Firmware ABI Specification - Chapter 7].
 func (b *GHCB) GuestRequest(index int, key, req []byte, messageType int) (res []byte, err error) {

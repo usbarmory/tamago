@@ -107,7 +107,7 @@ func (r *AttestationReport) Bytes() []byte {
 
 // GetAttestationReport sends a guest request for an AMD SEV-SNP attestation
 // report. The arguments represent guest provided data and the VM Communication
-// Key (see [SNPSecrets.VMPCK]) payload and index for encrypting the request.
+// Key (see [SecretsPage.VMPCK]) payload and index for encrypting the request.
 func (b *GHCB) GetAttestationReport(data, key []byte, index int) (r *AttestationReport, err error) {
 	var buf []byte
 
