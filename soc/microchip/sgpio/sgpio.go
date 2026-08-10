@@ -48,7 +48,7 @@ const (
 	PORT_WIDTH_MAX = 4
 )
 
-// SGPIO represents a Microchip Serial GPIO controller instance.
+// SGPIO represents a serial GPIO controller instance.
 type SGPIO struct {
 	sync.Mutex
 
