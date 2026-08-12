@@ -59,7 +59,6 @@ func (hw *FLEXCOM) mode(n int) {
 // mode, this is mutually exclusive with other modes.
 func (hw *FLEXCOM) InitUSART() {
 	hw.Lock()
-	defer hw.Unlock()
 
 	if hw.Base == 0 {
 		panic("invalid FLEXCOM controller instance")
@@ -82,6 +81,9 @@ func (hw *FLEXCOM) InitUSART() {
 	hw.USART.fmr = hw.Base + FLEX_USART_OFFSET + FLEX_US_FMR
 
 	hw.USART.init()
+
+	// no defer as goos.Hwinit1 might call us from system stack
+	hw.Unlock()
 }
 
 // InitTWI initializes and enables a FLEXCOM controller in TWI initiator mode,
