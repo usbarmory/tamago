@@ -61,7 +61,6 @@ func (hw *FLEXCOM) InitUSART() {
 	hw.Lock()
 
 	if hw.Base == 0 {
-		hw.Unlock()
 		panic("invalid FLEXCOM controller instance")
 	}
 
@@ -83,7 +82,7 @@ func (hw *FLEXCOM) InitUSART() {
 
 	hw.USART.init()
 
-	// Hwinit1 runs on the system stack.
+	// no defer as goos.Hwinit1 might call us from system stack
 	hw.Unlock()
 }
 
