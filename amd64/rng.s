@@ -8,9 +8,6 @@
 
 // func rdrand() uint32
 TEXT ·rdrand(SB),$0-4
-	// rdrand eax
-	BYTE	$0x0f
-	BYTE	$0xc7
-	BYTE	$0xf0
+	RDRANDL	AX
 	MOVL	AX, ret+0(FP)
 	RET

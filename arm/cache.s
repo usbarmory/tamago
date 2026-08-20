@@ -57,7 +57,7 @@ TEXT ·cache_enable(SB),$0
 //
 // func cache_flush_data()
 TEXT ·cache_flush_data(SB),$0
-	WORD	$0xf57ff05f			// DMB SY
+	DMB	MB_SY
 	MRC	15, 1, R0, C0, C0, 1		// read CLIDR
 	MOVW	R0>>23, R3			// move LoC into position
 	AND.S	$7<<1, R3, R3			// extract LoC*2 from clidr

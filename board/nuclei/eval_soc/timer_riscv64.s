@@ -10,6 +10,6 @@
 
 // func rdtime() uint64
 TEXT ·rdtime(SB),NOSPLIT,$0-8
-	WORD	$0xc0102573	// rdtime a0 (csrr a0, time)
+	RDTIME	X10
 	MOV	X10, ret+0(FP)
 	RET
