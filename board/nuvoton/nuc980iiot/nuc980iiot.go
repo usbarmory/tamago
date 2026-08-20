@@ -37,5 +37,5 @@ func Init() {
 	// Configure ETimer1 for periodic interrupt; start deferred
 	// until ServiceInterrupts is ready (see StartInterruptTimer).
 	nuc980.InitInterruptTimer(nuc980.ETMR1_PERIOD_US)
-	nuc980.AIC.EnableIRQ(nuc980.IRQ_ETMR1)
+	nuc980.AIC.EnableInterrupt(nuc980.IRQ_ETMR1)
 }
