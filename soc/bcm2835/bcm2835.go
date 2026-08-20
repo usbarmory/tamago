@@ -42,7 +42,7 @@ var ramStackOffset uint32 = 0x100000 // 1 MB
 
 //go:linkname nanotime runtime/goos.Nanotime
 func nanotime() int64 {
-	return read_systimer()*ARM.TimerMultiplier + ARM.TimerOffset
+	return int64(float64(read_systimer())*ARM.TimerMultiplier) + ARM.TimerOffset
 }
 
 // Init takes care of the lower level initialization triggered early in runtime
@@ -60,7 +60,7 @@ func Init(base uint32) {
 	ARM.InitMMU()
 	ARM.EnableCache()
 
-	ARM.TimerMultiplier = refFreq / SysTimerFreq
+	ARM.TimerMultiplier = float64(refFreq) / float64(SysTimerFreq)
 
 	// initialize serial console
 	MiniUART.Init()
