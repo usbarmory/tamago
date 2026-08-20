@@ -114,8 +114,8 @@ func (cpu *CPU) initL2Table(entry int, base uint32, section uint32) {
 	}
 }
 
-// InitMMU initializes the first-level translation tables for all available
-// memory with a flat mapping and privileged attribute flags.
+// InitMMU initializes translation tables for all available memory with a flat
+// mapping.
 //
 // The first 4096 bytes (0x00000000 - 0x00001000) are flagged as invalid to
 // trap null pointers, applications that need to make use of this memory space

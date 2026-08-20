@@ -12,6 +12,7 @@ import (
 	"runtime/goos"
 	"unsafe"
 
+	"github.com/usbarmory/tamago/internal/exception"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -53,6 +54,12 @@ func irqHandler()
 func fiqHandler()
 func nullHandler()
 
+var (
+	offset     int
+	eip        uintptr
+	isThrowing bool
+)
+
 type ExceptionHandler func()
 
 func vector(fn ExceptionHandler) uint32 {
@@ -71,9 +78,15 @@ type VectorTable struct {
 
 // DefaultExceptionHandler handles an exception by printing its vector and
 // processor mode before panicking.
-func DefaultExceptionHandler(off int) {
-	print("exception: vector ", off, " mode ", int(read_cpsr()&0x1f), "\n")
-	panic("unhandled exception")
+func DefaultExceptionHandler() {
+	if isThrowing {
+		goos.Exit(1)
+	}
+
+	isThrowing = true
+
+	print("exception: vector ", offset, " mode ", int(read_cpsr()&0x1f), "\n")
+	exception.Throw(eip)
 }
 
 // SystemExceptionHandler allows to override the default exception handler
@@ -81,10 +94,6 @@ func DefaultExceptionHandler(off int) {
 // which is used by default when initializing the CPU instance (e.g.
 // CPU.Init()).
 var SystemExceptionHandler = DefaultExceptionHandler
-
-func systemException(off int) {
-	SystemExceptionHandler(off)
-}
 
 // SystemVectorTable returns a vector table that, for all exceptions, switches
 // to system mode and calls the SystemExceptionHandler on the Go runtime stack

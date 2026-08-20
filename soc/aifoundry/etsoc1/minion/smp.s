@@ -47,3 +47,8 @@ done:
 	MOV	T2, (T0)
 
 	JMP	wfi
+
+// func getgp() (gp uintptr)
+TEXT ·getgp(SB),NOSPLIT|NOFRAME,$0-8
+	MOV	g, gp+0(FP)
+	RET

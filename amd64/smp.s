@@ -174,7 +174,7 @@ wait:
 	MOVQ	$0, task_pc(AX)
 
 	MOVQ	g, DI
-	CALL	runtime·settls(SB)
+	CALL	·settls(SB)
 	MOVQ	g, (TLS)
 
 	// enable LAPIC
@@ -187,3 +187,11 @@ wait:
 
 	// go back to idle state in case we return
 	JMP wait
+
+TEXT ·settls(SB),NOSPLIT,$0
+	ADDQ	$8, DI	// ELF wants to use -8(FS)
+	MOVQ	DI, AX
+	MOVQ	$MSR_FS_BASE, CX
+	MOVQ	$0x0, DX
+	WRMSR
+	RET

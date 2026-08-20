@@ -26,7 +26,7 @@ TEXT ·handleException(SB),NOSPLIT|NOFRAME,$0
 	MOVQ	$·SystemExceptionHandler(SB), AX
 	MOVQ	(AX), AX
 	PUSHQ	AX
-	CALL	runtime·systemstack(SB)
+	CALL	runtime·CallOnG0(SB)
 
 // To allow a single user-defined ISR for all vectors, a jump table of CALLs,
 // which save the vector PC on the stack, is built to use as IDT offsets.

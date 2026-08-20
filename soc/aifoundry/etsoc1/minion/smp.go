@@ -9,7 +9,6 @@
 package minion
 
 import (
-	"runtime"
 	"runtime/goos"
 	"time"
 	"unsafe"
@@ -30,6 +29,9 @@ var (
 	taskBase      = goos.RamStart + 4*2
 	taskStackSize = ramStackOffset / MaxTasks
 )
+
+// defined in smp.s
+func getgp() (gp uintptr)
 
 // Workload represents a function for execution on a target hardware thread
 // (hart) by [TaskWorkload].
@@ -93,7 +95,7 @@ func TaskWorkload(hart int, fn Workload, wait bool) {
 		return
 	}
 
-	gp := uint64(uintptr(runtime.GetG()))
+	gp := uint64(getgp())
 	pc := fn.vector()
 
 	schedule(hart, gp, pc, wait)

@@ -51,7 +51,7 @@ func alignUp(addr uint64, align uint64) uint64 {
 	return alignDown(addr+align-1, align)
 }
 
-func newMMUMap() (m mmuMap) {
+func (m *mmuMap) init() {
 	ramStart, ramEnd := runtime.MemRegion()
 	textStart, textEnd := runtime.TextRegion()
 
@@ -59,12 +59,10 @@ func newMMUMap() (m mmuMap) {
 		panic("RAM region not 4KB aligned")
 	}
 
-	m = mmuMap{
-		ramStart:  ramStart,
-		ramEnd:    ramEnd,
-		textStart: alignDown(textStart, pageTableSize),
-		textEnd:   alignUp(textEnd, pageTableSize),
-	}
+	m.ramStart = ramStart
+	m.ramEnd = ramEnd
+	m.textStart = alignDown(textStart, pageTableSize)
+	m.textEnd = alignUp(textEnd, pageTableSize)
 
 	if m.textStart < ramStart || m.textEnd > ramEnd {
 		panic("text region outside RAM")
@@ -291,7 +289,8 @@ func (m *mmuMap) initL3Table(entry int, base uint64, section uint64) {
 // All available memory is marked as non-executable except for the range
 // returned by runtime.TextRegion().
 func (cpu *CPU) InitMMU() {
-	m := newMMUMap()
+	m := &mmuMap{}
+	m.init()
 
 	l1pageTableStart := m.ramStart + l1pageTableOffset
 	l2pageTableStart := m.ramStart + l2pageTableOffset

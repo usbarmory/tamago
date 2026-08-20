@@ -6,7 +6,8 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-#define MSR_EFER 0xc0000080
+#define MSR_EFER    0xc0000080
+#define MSR_FS_BASE 0xc0000100
 
 #define PML4T 0x9000	// Page Map Level 4 Table       (512GB entries)
 #define PDPT  0xa000	// Page Directory Pointer Table   (1GB entries)
