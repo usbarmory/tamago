@@ -135,7 +135,9 @@ func (hw *GIC) irq(m int, enable bool) {
 		addr += GICD_ICENABLER
 	}
 
-	reg.SetTo(addr+4*n, i, true)
+	// ISENABLER and ICENABLER are write-1-to-act, a read-modify-write would
+	// act on every other set bit as well.
+	reg.Write(addr+4*n, 1<<i)
 }
 
 // EnableInterrupt enables forwarding of the corresponding interrupt to the CPU
