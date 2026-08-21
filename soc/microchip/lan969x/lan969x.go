@@ -86,7 +86,6 @@ const (
 	FLEXCOM1_BASE    = 0xe0044000
 	FLEXCOM2_BASE    = 0xe0060000
 	FLEXCOM3_BASE    = 0xe0064000
-	FLEXCOM3_GCK_CFG = CPU_BASE + 0xd8
 
 	// General Configuration Block
 	GCB_BASE = 0xe2010000
@@ -171,7 +170,6 @@ var (
 		Index: 1,
 		Base:  FLEXCOM0_BASE,
 		IRQ:   FLEXCOM0_IRQ,
-		USART: &flexcom.USART{},
 	}
 
 	// Serial port 2

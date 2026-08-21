@@ -17,12 +17,17 @@ package lan9696evb
 import (
 	_ "unsafe"
 
+	"github.com/usbarmory/tamago/soc/microchip/flexcom"
 	"github.com/usbarmory/tamago/soc/microchip/lan969x"
 )
 
 // Peripheral instances
 var (
-	UART = lan969x.FLEXCOM0.USART
+	USART0 = &flexcom.USART{
+		Index: lan969x.FLEXCOM0.Index,
+		Base:  lan969x.FLEXCOM0.Base,
+		IRQ:   lan969x.FLEXCOM0.IRQ,
+	}
 )
 
 // Init takes care of the lower level initialization triggered early in runtime
@@ -33,7 +38,7 @@ func Init() {
 	lan969x.Init()
 
 	// initialize console
-	lan969x.FLEXCOM0.InitUSART()
+	USART0.Init()
 }
 
 func init() {

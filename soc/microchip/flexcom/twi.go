@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/usbarmory/tamago/bits"
@@ -64,10 +63,7 @@ const TWITimeout = 100 * time.Millisecond
 
 // TWI represents the FLEXCOM TWI mode instance.
 type TWI struct {
-	sync.Mutex
-
-	// Base register
-	Base uint32
+	FLEXCOM
 
 	// ClockLowDivider configures the TWI low-period divider.
 	ClockLowDivider uint8
@@ -154,6 +150,21 @@ func (hw *TWI) wait(bit int) (err error) {
 
 		runtime.Gosched()
 	}
+}
+
+// Init initializes and enables a FLEXCOM controller in TWI initiator mode,
+// this is mutually exclusive with other modes.
+func (hw *TWI) Init() (err error) {
+	hw.Lock()
+	defer hw.Unlock()
+
+	if hw.Base == 0 {
+		return errors.New("invalid FLEXCOM controller instance")
+	}
+
+	hw.mode(MR_OPMODE_TWI)
+
+	return hw.init()
 }
 
 // Read reads a sequence of bytes from a target device.

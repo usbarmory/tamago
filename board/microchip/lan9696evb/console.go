@@ -20,5 +20,5 @@ import (
 
 //go:linkname printk runtime/goos.Printk
 func printk(c byte) {
-	UART.Tx(c)
+	USART0.Tx(c)
 }

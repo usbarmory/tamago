@@ -62,6 +62,8 @@ const (
 
 // USART represents the FLEXCOM USART mode instance.
 type USART struct {
+	FLEXCOM
+
 	// Baud rate
 	Baudrate uint32
 
@@ -116,6 +118,33 @@ func (hw *USART) init() {
 	// enable Tx and RX
 	reg.Write(hw.cr, 1<<US_CR_RXEN)
 	reg.Write(hw.cr, 1<<US_CR_TXEN)
+}
+
+// Init initializes and enables a FLEXCOM controller in USART mode, this is
+// mutually exclusive with other modes.
+func (hw *USART) Init() {
+	hw.Lock()
+
+	if hw.Base == 0 {
+		panic("invalid FLEXCOM controller instance")
+	}
+
+	hw.mode(MR_OPMODE_USART)
+
+	hw.cr = hw.Base + FLEX_USART_OFFSET + FLEX_US_CR
+	hw.mr = hw.Base + FLEX_USART_OFFSET + FLEX_US_MR
+	hw.ier = hw.Base + FLEX_USART_OFFSET + FLEX_US_IER
+	hw.idr = hw.Base + FLEX_USART_OFFSET + FLEX_US_IDR
+	hw.csr = hw.Base + FLEX_USART_OFFSET + FLEX_US_CSR
+	hw.rhr = hw.Base + FLEX_USART_OFFSET + FLEX_US_RHR
+	hw.thr = hw.Base + FLEX_USART_OFFSET + FLEX_US_THR
+	hw.brgr = hw.Base + FLEX_USART_OFFSET + FLEX_US_BRGR
+	hw.fmr = hw.Base + FLEX_USART_OFFSET + FLEX_US_FMR
+
+	hw.init()
+
+	// no defer as goos.Hwinit1 might call us from system stack
+	hw.Unlock()
 }
 
 // EnableInterrupt enables interrupt generation for receive FIFOs. Once enabled
