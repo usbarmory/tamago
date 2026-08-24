@@ -157,7 +157,7 @@ func (hw *PHY) Reset() (err error) {
 			return
 		}
 
-		if bits.Get16(&control, CTRL_RESET) {
+		if !bits.Get16(&control, CTRL_RESET) {
 			return
 		}
 
