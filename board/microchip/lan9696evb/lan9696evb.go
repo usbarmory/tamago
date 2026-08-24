@@ -24,9 +24,9 @@ import (
 // Peripheral instances
 var (
 	USART0 = &flexcom.USART{
-		Index: lan969x.FLEXCOM0.Index,
-		Base:  lan969x.FLEXCOM0.Base,
-		IRQ:   lan969x.FLEXCOM0.IRQ,
+		Index: 1,
+		Base:  lan969x.FLEXCOM0_BASE,
+		IRQ:   lan969x.FLEXCOM0_IRQ,
 	}
 )
 
