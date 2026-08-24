@@ -374,14 +374,13 @@ func (hw *USDHC) transferRPMB(dtd int, buf []byte, rel bool) (err error) {
 
 	defer func() {
 		hw.rpmb = false
+		hw.rel = false
 		hw.Unlock()
 	}()
 
 	if dtd == WRITE {
-		if rel {
-			// reliable write request
-			bits.Set(&blocks, 31)
-		}
+		// reliable write request
+		hw.rel = rel
 
 		// CMD25 - WRITE_MULTIPLE_BLOCK - write consecutive blocks
 		err = hw.transfer(25, WRITE, 0, blocks, 512, buf)

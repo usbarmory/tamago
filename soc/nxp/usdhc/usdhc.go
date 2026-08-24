@@ -278,6 +278,8 @@ type USDHC struct {
 
 	// eMMC Replay Protected Memory Block (RPMB) operation
 	rpmb bool
+	// eMMC RPMB reliable write request
+	rel bool
 
 	readTimeout  time.Duration
 	writeTimeout time.Duration
@@ -547,8 +549,15 @@ func (hw *USDHC) transfer(index uint32, dtd uint32, arg uint64, blocks uint32, b
 			return
 		}
 
+		cmd23Arg := blocks
+
+		if hw.rel {
+			// reliable write request
+			bits.Set(&cmd23Arg, 31)
+		}
+
 		// CMD23 - SET_BLOCK_COUNT - define read/write block count
-		if err = hw.cmd(23, blocks, 0, 0); err != nil {
+		if err = hw.cmd(23, cmd23Arg, 0, 0); err != nil {
 			return
 		}
 
