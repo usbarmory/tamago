@@ -128,7 +128,7 @@ func (cpu *CPU) ClearInterrupt() {
 		return
 	}
 
-	// ensure time.Sleep has been reached by parent
+	// ensure parent is waiting on channel
 	for !signal.Waiting() {
 		// stay on this M
 	}
