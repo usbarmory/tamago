@@ -53,7 +53,7 @@ var (
 
 // CPUInit handles immediate startup CPU initialization as it represents the
 // first instruction set executed.
-func CPUinit()
+func CPUInit()
 
 // Hwinit0 takes care of the lower level initialization triggered before
 // runtime setup (pre World start).
