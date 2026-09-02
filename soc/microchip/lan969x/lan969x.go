@@ -32,6 +32,7 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/sgpio"
 	"github.com/usbarmory/tamago/soc/microchip/temp"
 	"github.com/usbarmory/tamago/soc/microchip/trng"
+	"github.com/usbarmory/tamago/soc/microchip/uvov"
 	"github.com/usbarmory/tamago/soc/microchip/wdt"
 )
 
@@ -142,6 +143,9 @@ const (
 	// Versatile OAM MEP Processor (VOP) block
 	VOP_BASE = 0xe2a00000
 
+	// Under-voltage and over-voltage monitor
+	UVOV_BASE = 0xe0094000
+
 	// Watchdog Timer
 	WDT_BASE = 0xe0090000
 )
@@ -232,6 +236,11 @@ var (
 	// True Random Number Generator
 	TRNG = &trng.TRNG{
 		Base: TRNG_BASE,
+	}
+
+	// Under-voltage and over-voltage monitor
+	UVOV = &uvov.UVOV{
+		Base: UVOV_BASE,
 	}
 
 	// Watchdog Timer
