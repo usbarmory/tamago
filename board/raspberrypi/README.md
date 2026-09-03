@@ -184,8 +184,9 @@ used as an example implementation.
 In the examples, this code performs steps 1-5:
 
 ```sh
-$(CROSS_COMPILE)objcopy -j .text -j .rodata -j .shstrtab -j .typelink \
-    -j .itablink -j .gopclntab -j .go.buildinfo -j .go.module -j .noptrdata -j .data \
+$(CROSS_COMPILE)objcopy -j .text -j .rodata -j .shstrtab -j .typelink -j .itablink \
+    -j .gopclntab -j .go.type -j .go.func -j .go.buildinfo -j go.fipsinfo -j .go.module \
+    -j .noptrdata -j .data \
     -j .bss --set-section-flags .bss=alloc,load,contents \
     -j .noptrbss --set-section-flags .noptrbss=alloc,load,contents\
     main -O binary main.o
