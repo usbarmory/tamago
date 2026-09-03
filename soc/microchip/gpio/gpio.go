@@ -75,7 +75,7 @@ func (hw *GPIO) Init(num int) (pin *Pin, err error) {
 		clr: hw.Base + GPIO_OUT_CLR + bank(num, 4),
 		in:  hw.Base + GPIO_IN + bank(num, 4),
 		oe:  hw.Base + GPIO_OE + bank(num, 4),
-		alt: hw.Base + GPIO_ALT + bank(num, 12),
+		alt: hw.Base + GPIO_ALT + bank(num, 4),
 	}
 
 	return
@@ -106,6 +106,10 @@ func (pin *Pin) Value() (high bool) {
 	return reg.Get(pin.in, pin.pos)
 }
 
+func (pin *Pin) alternateFunctionRegister(bit int) uint32 {
+	return pin.alt + uint32(bit*banks*4)
+}
+
 // Function selects a GPIO line overlaid function.
 func (pin *Pin) Function(mode int) (err error) {
 	if mode < 0 || mode > 0b111 {
@@ -113,9 +117,9 @@ func (pin *Pin) Function(mode int) (err error) {
 	}
 
 	// Table 3-426: GPIO overlaid functions
-	reg.SetTo(pin.alt+(0*4), pin.pos, (mode&0b001) > 0)
-	reg.SetTo(pin.alt+(1*4), pin.pos, (mode&0b010) > 0)
-	reg.SetTo(pin.alt+(2*4), pin.pos, (mode&0b100) > 0)
+	reg.SetTo(pin.alternateFunctionRegister(0), pin.pos, (mode&0b001) > 0)
+	reg.SetTo(pin.alternateFunctionRegister(1), pin.pos, (mode&0b010) > 0)
+	reg.SetTo(pin.alternateFunctionRegister(2), pin.pos, (mode&0b100) > 0)
 
 	return
 }
