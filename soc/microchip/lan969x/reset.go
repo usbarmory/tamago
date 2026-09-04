@@ -27,21 +27,36 @@ type ResetTarget uint8
 
 const (
 	// Core0ColdReset stops the primary ARM core and its debug interface.
-	// Execution does not resume automatically and requires external recovery.
+	// Execution does not resume automatically and requires external
+	// recovery.
 	Core0ColdReset ResetTarget = 1 << iota
-	// WatchdogReset holds the watchdog in reset until a later Reset call clears it.
+
+	// WatchdogReset holds the watchdog in reset until a later Reset call
+	// clears it.
 	WatchdogReset
-	// DDRReset holds DDR memory in reset and stops programs that depend on it.
+
+	// DDRReset holds DDR memory in reset and stops programs that depend on
+	// it.
 	DDRReset
-	// L2CacheReset resets the ARM L2 cache and clears automatically when complete.
+
+	// L2CacheReset resets the ARM L2 cache and clears automatically when
+	// complete.
 	L2CacheReset
-	// JTAGReset holds the ARM JTAG controller in reset until a later Reset call clears it.
+
+	// JTAGReset holds the ARM JTAG controller in reset until a later Reset
+	// call clears it.
 	JTAGReset
-	// ProcessorDebugReset holds the ARM debug components in reset until a later Reset call clears it.
+
+	// ProcessorDebugReset holds the ARM debug components in reset until a
+	// later Reset call clears it.
 	ProcessorDebugReset
-	// Core0WarmReset restarts the primary ARM core without a full processor reboot.
+
+	// Core0WarmReset restarts the primary ARM core without a full
+	// processor reboot.
 	Core0WarmReset
-	// VCoreReset performs a full processor reboot without restarting the entire chip.
+
+	// VCoreReset performs a full processor reboot without restarting the
+	// entire chip.
 	VCoreReset
 )
 
@@ -49,18 +64,28 @@ const (
 type ResetProtection uint8
 
 const (
-	// PCIeProtection keeps the PCIe controller running during a VCore reset.
+	// PCIeProtection keeps the PCIe controller running during a VCore
+	// reset.
 	PCIeProtection ResetProtection = 1 << iota
-	// WatchdogResetStatus reports that a watchdog timeout reset VCore. It is not a protection setting.
+
+	// WatchdogResetStatus reports that a watchdog timeout reset VCore. It
+	// is not a protection setting.
 	WatchdogResetStatus
-	// WatchdogSelfProtection keeps the watchdog running when its own timeout resets VCore.
+
+	// WatchdogSelfProtection keeps the watchdog running when its own
+	// timeout resets VCore.
 	WatchdogSelfProtection
-	// WatchdogProtection keeps the watchdog running during VCore and watchdog-triggered resets.
-	WatchdogProtection
-	// AMBAProtection keeps the processor interconnect running during VCore and
+
+	// WatchdogProtection keeps the watchdog running during VCore and
 	// watchdog-triggered resets.
+	WatchdogProtection
+
+	// AMBAProtection keeps the processor interconnect running during VCore
+	// and watchdog-triggered resets.
 	AMBAProtection
-	// VCoreProtection keeps the processor subsystem running during switch-core soft reset.
+
+	// VCoreProtection keeps the processor subsystem running during
+	// switch-core soft reset.
 	VCoreProtection
 )
 
