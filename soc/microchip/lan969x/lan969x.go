@@ -29,6 +29,7 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/gpio"
 	"github.com/usbarmory/tamago/soc/microchip/miim"
 	"github.com/usbarmory/tamago/soc/microchip/otpc"
+	"github.com/usbarmory/tamago/soc/microchip/sdhci"
 	"github.com/usbarmory/tamago/soc/microchip/sgpio"
 	"github.com/usbarmory/tamago/soc/microchip/temp"
 	"github.com/usbarmory/tamago/soc/microchip/trng"
@@ -68,6 +69,10 @@ const (
 	// DDR base address
 	DDR_BASE = 0x60000000
 
+	// Flexible RAM
+	FLEXRAM_START = 0x00100000
+	FLEXRAM_SIZE  = 0x00200000
+
 	// CPU Device Queue System
 	DEVCPU_QS = 0xe2030000
 
@@ -82,10 +87,10 @@ const (
 	EACL_BASE = 0xe22c0000
 
 	// Serial ports
-	FLEXCOM0_BASE    = 0xe0040000
-	FLEXCOM1_BASE    = 0xe0044000
-	FLEXCOM2_BASE    = 0xe0060000
-	FLEXCOM3_BASE    = 0xe0064000
+	FLEXCOM0_BASE = 0xe0040000
+	FLEXCOM1_BASE = 0xe0044000
+	FLEXCOM2_BASE = 0xe0060000
+	FLEXCOM3_BASE = 0xe0064000
 
 	// General Configuration Block
 	GCB_BASE = 0xe2010000
@@ -126,6 +131,9 @@ const (
 
 	// Rewriter
 	REW_BASE = 0xe2600000
+
+	// Secure Digital Host Controller Interface
+	SDMMC0_BASE = 0xe0830000
 
 	// Serial GPIO controller
 	SGPIO_BASE = GCB_BASE + 0x230
@@ -217,6 +225,15 @@ var (
 	OTPC = &otpc.OTPC{
 		Base: OTPC_BASE,
 		Size: 16 * 1024,
+	}
+
+	// Secure Digital Host Controller Interface
+	SDMMC0 = &sdhci.SDHCI{
+		Base:          SDMMC0_BASE,
+		GCK:           CPU_BASE + gckConfigOffset + sdmmc0ClockID*4,
+		ParentClock:   sdmmc0ParentClock,
+		TargetClock:   sdmmc0TargetClock,
+		ConfigurePins: configureSDMMC0Pins,
 	}
 
 	// Serial GPIO controller
