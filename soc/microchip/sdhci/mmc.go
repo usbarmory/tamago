@@ -49,11 +49,13 @@ const (
 	BUS_WIDTH_8   = 2
 )
 
-// MMC constants
-const (
-	MMC_DETECT_TIMEOUT     = 1 * time.Second
-	MMC_POWER_UP_DELAY     = 10 * time.Millisecond
-	MMC_DEFAULT_BLOCK_SIZE = 512
+const MMC_DEFAULT_BLOCK_SIZE = 512
+
+var (
+	// MMCDetectTimeout controls how long card detection waits for power-up.
+	MMCDetectTimeout = 1 * time.Second
+	// MMCPowerUpDelay controls the initial delay before card detection.
+	MMCPowerUpDelay = 10 * time.Millisecond
 )
 
 func (hw *SDHCI) voltageValidationMMC() (ready bool) {
@@ -64,10 +66,10 @@ func (hw *SDHCI) voltageValidationMMC() (ready bool) {
 	// set HV range
 	bits.SetN(&arg, MMC_OCR_VDD_HV_MIN, 0x1ff, 0x1ff)
 
-	time.Sleep(MMC_POWER_UP_DELAY)
+	time.Sleep(MMCPowerUpDelay)
 	start := time.Now()
 
-	for time.Since(start) <= MMC_DETECT_TIMEOUT {
+	for time.Since(start) <= MMCDetectTimeout {
 		// CMD1 - SEND_OP_COND - send operating conditions
 		response, err := hw.cmd(1, arg)
 
@@ -104,9 +106,7 @@ func (hw *SDHCI) writeCardRegisterMMC(register uint32, value uint32, timeout tim
 		return
 	}
 
-	err = hw.waitState(CURRENT_STATE_TRAN, timeout)
-
-	return
+	return hw.waitState(CURRENT_STATE_TRAN, timeout)
 }
 
 func (hw *SDHCI) detectCapabilitiesMMC() (err error) {
@@ -126,7 +126,8 @@ func (hw *SDHCI) detectCapabilitiesMMC() (err error) {
 
 	hw.card.ExtCSDRev = extCSD[EXT_CSD_REV]
 	hw.card.DeviceType = extCSD[EXT_CSD_DEVICE_TYPE]
-	hw.card.CacheEnabled = extCSD[EXT_CSD_CACHE_CTRL]&1<<CACHE_ENABLED != 0
+	cacheControl := uint32(extCSD[EXT_CSD_CACHE_CTRL])
+	hw.card.CacheEnabled = bits.Get(&cacheControl, CACHE_ENABLED)
 
 	return
 }
@@ -163,22 +164,21 @@ func (hw *SDHCI) initMMC() (err error) {
 	}
 
 	// p223, 7.4.67 BUS_WIDTH [183], JESD84-B51
-	if err = hw.writeCardRegisterMMC(EXT_CSD_BUS_WIDTH, BUS_WIDTH_8, controllerSetupTimeout); err != nil {
+	if err = hw.writeCardRegisterMMC(EXT_CSD_BUS_WIDTH, BUS_WIDTH_8, ControllerSetupTimeout); err != nil {
 		return fmt.Errorf("CMD6 SWITCH bus width: %w", err)
 	}
 
-	hostControl := reg.Read8(hw.hc1r)
-	hostControl &^= 1 << HC1R_DW_4BIT
-	hostControl |= 1 << HC1R_EXTDW
-	reg.Write8(hw.hc1r, hostControl)
+	// select 8-bit bus width
+	hostControl := uint16(reg.Read8(hw.hc1r))
+	bits.Clear16(&hostControl, HC1R_DW_4BIT)
+	bits.Set16(&hostControl, HC1R_EXTDW)
+	reg.Write8(hw.hc1r, uint8(hostControl))
 
 	if err = hw.setClockFrequency(mmcLegacyClockHz); err != nil {
 		return
 	}
 
-	err = hw.detectCapabilitiesMMC()
-
-	return
+	return hw.detectCapabilitiesMMC()
 }
 
 // Detect initializes the eMMC card attached to an initialized controller.
@@ -225,17 +225,11 @@ func (hw *SDHCI) Detect() (err error) {
 // Ready reports whether Detect completed and no transfer failure has forced
 // controller reinitialization.
 func (hw *SDHCI) Ready() bool {
-	hw.Lock()
-	defer hw.Unlock()
-
 	return hw.ready
 }
 
 // Info returns detected card metadata.
 func (hw *SDHCI) Info() CardInfo {
-	hw.Lock()
-	defer hw.Unlock()
-
 	return hw.card
 }
 
@@ -270,14 +264,14 @@ func (hw *SDHCI) Sync() error {
 	}
 
 	if !hw.card.CacheEnabled {
-		if err := hw.waitState(CURRENT_STATE_TRAN, writeTimeout); err != nil {
+		if err := hw.waitState(CURRENT_STATE_TRAN, WriteTimeout); err != nil {
 			return hw.invalidateTransfer(err)
 		}
 
 		return nil
 	}
 
-	if err := hw.writeCardRegisterMMC(EXT_CSD_FLUSH_CACHE, 1, writeTimeout); err != nil {
+	if err := hw.writeCardRegisterMMC(EXT_CSD_FLUSH_CACHE, 1, WriteTimeout); err != nil {
 		return hw.invalidateTransfer(fmt.Errorf("CMD6 FLUSH_CACHE: %w", err))
 	}
 

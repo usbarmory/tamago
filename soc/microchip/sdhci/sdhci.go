@@ -16,21 +16,22 @@
 //
 // The driver supports sector-addressed eMMC devices in 8-bit legacy mode. It
 // initializes the controller and card, reports card metadata, and transfers
-// full 512-byte blocks. Callers supply a controller-accessible, non-cacheable
-// DMA region below 4 GiB. Multi-block reads are stopped explicitly with CMD12;
-// failed stop recovery invalidates the instance until it is initialized again.
+// full 512-byte blocks. DMA allocations use dma.Default() unless callers provide
+// a controller-specific region. The region must be controller-accessible,
+// non-cacheable, and below 4 GiB. Multi-block reads are stopped explicitly with
+// CMD12; failed stop recovery invalidates the instance until initialization.
 //
 // This package is only meant to be used with `GOOS=tamago` as supported by the
 // TamaGo framework for bare metal Go, see https://github.com/usbarmory/tamago.
 package sdhci
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
 	"time"
 
+	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 )
@@ -60,8 +61,10 @@ const (
 	CR_CMDICEN         = 4
 	CR_DPSEL           = 5
 	CR_CMDTYP          = 6
+	CR_CMDTYP_MASK     = 0x3
 	CR_CMDTYP_ABORT    = 0x3
 	CR_CMDIDX          = 8
+	CR_CMDIDX_MASK     = 0x3f
 
 	SDMMC_RR0 = 0x10
 
@@ -77,19 +80,22 @@ const (
 
 	DMASEL_ADMA2_32 = 0b10
 
-	SDMMC_PCR       = 0x29
-	PCR_SDBPWR      = 0
-	PCR_SDBVSEL     = 1
-	PCR_SDBVSEL_3V3 = 0x07
+	SDMMC_PCR        = 0x29
+	PCR_SDBPWR       = 0
+	PCR_SDBVSEL      = 1
+	PCR_SDBVSEL_MASK = 0x7
+	PCR_SDBVSEL_3V3  = 0x7
 
-	SDMMC_CCR           = 0x2c
-	CCR_INTCLKEN        = 0
-	CCR_INTCLKS         = 1
-	CCR_SDCLKEN         = 2
-	CCR_CLKGSEL         = 5
-	CCR_SDCLKFSEL_UPPER = 6
-	CCR_SDCLKFSEL_LOWER = 8
-	CCR_SDCLKFSEL_MASK  = 0x3ff
+	SDMMC_CCR                = 0x2c
+	CCR_INTCLKEN             = 0
+	CCR_INTCLKS              = 1
+	CCR_SDCLKEN              = 2
+	CCR_CLKGSEL              = 5
+	CCR_SDCLKFSEL_UPPER      = 6
+	CCR_SDCLKFSEL_UPPER_MASK = 0x3
+	CCR_SDCLKFSEL_LOWER      = 8
+	CCR_SDCLKFSEL_LOWER_MASK = 0xff
+	CCR_SDCLKFSEL_MASK       = 0x3ff
 
 	SDMMC_TCR = 0x2e
 
@@ -138,10 +144,6 @@ const (
 	WRITE = 0
 	READ  = 1
 
-	controllerSetupTimeout = 500 * time.Millisecond
-	clockSetupTimeout      = 100 * time.Millisecond
-	writeTimeout           = 30 * time.Second
-
 	// Maximum SDHCI data timeout exponent; 0xf is reserved.
 	dataTimeoutCounter = 0x0e
 	allInterrupts      = 0xffff
@@ -151,12 +153,25 @@ const (
 
 	r1ErrorMask uint32 = 0xfff9a080
 
+	// On arm64 Go `copy` built-in cannot be safely used on device memory
+	// as LDP/STP instructions require 8-byte alignment, for this reason
+	// all `copy` against DMA buffers are forced to 8-byte aligned slices.
+	copyAlign    = 8
+	dmaAlignment = max(admaAlignment, copyAlign)
+
 	// BlockSize is the size of a sector-addressed eMMC block.
 	BlockSize            = MMC_DEFAULT_BLOCK_SIZE
 	maxBlocksPerTransfer = 0xffff
 )
 
 var (
+	// ControllerSetupTimeout controls controller reset and setup waits.
+	ControllerSetupTimeout = 500 * time.Millisecond
+	// ClockSetupTimeout controls clock idle and stabilization waits.
+	ClockSetupTimeout = 100 * time.Millisecond
+	// WriteTimeout controls card write and cache synchronization waits.
+	WriteTimeout = 30 * time.Second
+
 	// ErrNotInitialized indicates that Detect has not completed successfully.
 	ErrNotInitialized = errors.New("sdhci: eMMC card is not initialized")
 	// ErrRange indicates that a transfer exceeds the detected card or LBA range.
@@ -200,8 +215,9 @@ type SDHCI struct {
 	TargetClock uint32
 	// Controller pin configuration, skipped when nil
 	ConfigurePins func() error
-	// DMA memory used for ADMA2 descriptors and data. It must be accessible
-	// by the controller, non-cacheable, and below 4 GiB.
+	// DMA memory used for ADMA2 descriptors and data. It defaults to
+	// dma.Default() and must be controller-accessible, non-cacheable, and below
+	// 4 GiB.
 	DMA *dma.Region
 
 	// control registers
@@ -237,6 +253,21 @@ type SDHCI struct {
 	maxBlocks int
 }
 
+func (hw *SDHCI) dumpRegisters() string {
+	return fmt.Sprintf(
+		"GCK=0x%08x PSR=0x%08x CCR=0x%04x SRR=0x%02x NISTR=0x%04x EISTR=0x%04x AESR=0x%02x TMR=0x%04x BCR=0x%04x",
+		reg.Read(hw.GCK),
+		reg.Read(hw.psr),
+		reg.Read16(hw.ccr),
+		reg.Read8(hw.srr),
+		reg.Read16(hw.nistr),
+		reg.Read16(hw.eistr),
+		reg.Read8(hw.aesr),
+		reg.Read16(hw.tmr),
+		reg.Read16(hw.bcr),
+	)
+}
+
 func genericClockPrescaler(parent uint32, target uint32) (uint32, error) {
 	if parent == 0 || target == 0 {
 		return 0, errors.New("sdhci: invalid clock frequency")
@@ -252,24 +283,27 @@ func genericClockPrescaler(parent uint32, target uint32) (uint32, error) {
 }
 
 func gckConfigurationMatches(value uint32, prescaler uint32) bool {
-	desired := prescaler << GCK_PRESCALER
-	mask := uint32(GCK_SRC_SEL_MASK<<GCK_SRC_SEL | GCK_PRESCALER_MASK<<GCK_PRESCALER)
-
-	return value&1<<GCK_ENA != 0 && value&mask == desired
+	return bits.Get(&value, GCK_ENA) &&
+		bits.GetN(&value, GCK_SRC_SEL, GCK_SRC_SEL_MASK) == 0 &&
+		bits.GetN(&value, GCK_PRESCALER, GCK_PRESCALER_MASK) == prescaler
 }
 
 func (hw *SDHCI) enableGenericClock(prescaler uint32) error {
 	value := reg.Read(hw.GCK)
 
-	if value&1<<GCK_ENA != 0 {
+	if bits.Get(&value, GCK_ENA) {
 		// A previous firmware stage may leave SDCLK running. Stop it only
 		// after the command and data paths become idle, while the inherited
 		// functional clock is still available.
-		inhibitMask := 1<<PSR_CMDINHC | 1<<PSR_CMDINHD
-		if !reg.WaitFor(controllerSetupTimeout, hw.psr, 0, inhibitMask, 0) {
-			return fmt.Errorf("sdhci: inherited controller busy gck=0x%08x psr=0x%08x ccr=0x%04x", value, reg.Read(hw.psr), reg.Read16(hw.ccr))
+		var inhibitMask uint32
+		bits.Set(&inhibitMask, PSR_CMDINHC)
+		bits.Set(&inhibitMask, PSR_CMDINHD)
+
+		if !reg.WaitFor(ControllerSetupTimeout, hw.psr, 0, int(inhibitMask), 0) {
+			return fmt.Errorf("sdhci: inherited controller busy (%s)", hw.dumpRegisters())
 		}
 
+		// stop card clock
 		reg.Clear16(hw.ccr, CCR_SDCLKEN)
 
 		if gckConfigurationMatches(value, prescaler) {
@@ -277,6 +311,7 @@ func (hw *SDHCI) enableGenericClock(prescaler uint32) error {
 		}
 	}
 
+	// select source 0 and configure the functional clock
 	reg.Clear(hw.GCK, GCK_ENA)
 	reg.SetN(hw.GCK, GCK_SRC_SEL, GCK_SRC_SEL_MASK, 0)
 	reg.SetN(hw.GCK, GCK_PRESCALER, GCK_PRESCALER_MASK, prescaler)
@@ -304,24 +339,30 @@ func (hw *SDHCI) setClockFrequency(frequencyHz uint32) error {
 
 	divider := uint16(divisor - 1)
 
-	inhibitMask := 1<<PSR_CMDINHC | 1<<PSR_CMDINHD
-	if !reg.WaitFor(clockSetupTimeout, hw.psr, 0, inhibitMask, 0) {
-		return errors.New("sdhci: clock change timeout waiting for idle")
+	var inhibitMask uint32
+	bits.Set(&inhibitMask, PSR_CMDINHC)
+	bits.Set(&inhibitMask, PSR_CMDINHD)
+
+	if !reg.WaitFor(ClockSetupTimeout, hw.psr, 0, int(inhibitMask), 0) {
+		return fmt.Errorf("sdhci: clock change timeout (%s)", hw.dumpRegisters())
 	}
 
+	// stop card clock
 	reg.Clear16(hw.ccr, CCR_SDCLKEN)
 
+	// configure and start the internal programmable clock
 	var clock uint16
-	clock |= 1 << CCR_INTCLKEN
-	clock |= 1 << CCR_CLKGSEL
-	clock |= (divider >> 8) << CCR_SDCLKFSEL_UPPER
-	clock |= (divider & 0xff) << CCR_SDCLKFSEL_LOWER
+	bits.Set16(&clock, CCR_INTCLKEN)
+	bits.Set16(&clock, CCR_CLKGSEL)
+	bits.SetN16(&clock, CCR_SDCLKFSEL_UPPER, CCR_SDCLKFSEL_UPPER_MASK, divider>>8)
+	bits.SetN16(&clock, CCR_SDCLKFSEL_LOWER, CCR_SDCLKFSEL_LOWER_MASK, divider&CCR_SDCLKFSEL_LOWER_MASK)
 	reg.Write16(hw.ccr, clock)
 
-	if !reg.WaitFor16(clockSetupTimeout, hw.ccr, CCR_INTCLKS, 1, 1) {
-		return errors.New("sdhci: internal clock did not stabilize")
+	if !reg.WaitFor16(ClockSetupTimeout, hw.ccr, CCR_INTCLKS, 1, 1) {
+		return fmt.Errorf("sdhci: internal clock did not stabilize (%s)", hw.dumpRegisters())
 	}
 
+	// start card clock
 	reg.Set16(hw.ccr, CCR_SDCLKEN)
 
 	return nil
@@ -331,7 +372,7 @@ func (hw *SDHCI) reset(mask uint8, timeout time.Duration) error {
 	reg.Write8(hw.srr, mask)
 
 	if !reg.WaitFor8(timeout, hw.srr, 0, int(mask), 0) {
-		return fmt.Errorf("sdhci: controller reset timeout mask=0x%02x srr=0x%02x psr=0x%08x", mask, reg.Read8(hw.srr), reg.Read(hw.psr))
+		return fmt.Errorf("sdhci: controller reset 0x%02x timeout (%s)", mask, hw.dumpRegisters())
 	}
 
 	return nil
@@ -348,13 +389,26 @@ func (hw *SDHCI) initController(prescaler uint32) error {
 		return err
 	}
 
-	if err := hw.reset(1<<SRR_SWRSTALL, controllerSetupTimeout); err != nil {
-		return fmt.Errorf("%w gck=0x%08x ccr=0x%04x nistr=0x%04x eistr=0x%04x", err, reg.Read(hw.GCK), reg.Read16(hw.ccr), reg.Read16(hw.nistr), reg.Read16(hw.eistr))
+	// reset all host circuits
+	if err := hw.reset(1<<SRR_SWRSTALL, ControllerSetupTimeout); err != nil {
+		return err
 	}
 
+	// use the maximum data timeout
 	reg.Write8(hw.tcr, dataTimeoutCounter)
-	reg.Write8(hw.pcr, PCR_SDBVSEL_3V3<<PCR_SDBVSEL|1<<PCR_SDBPWR)
-	reg.Write8(hw.mc1r, reg.Read8(hw.mc1r)|1<<MC1R_FCD)
+
+	// enable 3.3 V bus power
+	var power uint16
+	bits.SetN16(&power, PCR_SDBVSEL, PCR_SDBVSEL_MASK, PCR_SDBVSEL_3V3)
+	bits.Set16(&power, PCR_SDBPWR)
+	reg.Write8(hw.pcr, uint8(power))
+
+	// force card insertion
+	cardDetect := uint16(reg.Read8(hw.mc1r))
+	bits.Set16(&cardDetect, MC1R_FCD)
+	reg.Write8(hw.mc1r, uint8(cardDetect))
+
+	// enable all status events
 	reg.Write16(hw.nister, allInterrupts)
 	reg.Write16(hw.eister, allInterrupts)
 
@@ -362,7 +416,7 @@ func (hw *SDHCI) initController(prescaler uint32) error {
 }
 
 func (hw *SDHCI) dmaBlockLimit() int {
-	available := int(hw.DMA.Size()) - 2*(admaAlignment-1)
+	available := int(hw.DMA.Size()) - 2*(dmaAlignment-1)
 	blocks := min(available/BlockSize, maxBlocksPerTransfer)
 
 	for blocks > 0 {
@@ -395,6 +449,10 @@ func (hw *SDHCI) Init() error {
 
 	if hw.GCK == 0 {
 		return errors.New("sdhci: invalid Generic Clock register")
+	}
+
+	if hw.DMA == nil {
+		hw.DMA = dma.Default()
 	}
 
 	if hw.DMA == nil {
@@ -448,10 +506,10 @@ func (hw *SDHCI) Init() error {
 		return errors.New("sdhci: controller does not support ADMA2")
 	}
 
-	hostControl := reg.Read8(hw.hc1r)
-	hostControl &^= HC1R_DMASEL_MASK << HC1R_DMASEL
-	hostControl |= DMASEL_ADMA2_32 << HC1R_DMASEL
-	reg.Write8(hw.hc1r, hostControl)
+	// select 32-bit ADMA2
+	hostControl := uint16(reg.Read8(hw.hc1r))
+	bits.SetN16(&hostControl, HC1R_DMASEL, HC1R_DMASEL_MASK, DMASEL_ADMA2_32)
+	reg.Write8(hw.hc1r, uint8(hostControl))
 
 	hw.controllerReady = true
 
@@ -491,7 +549,7 @@ func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) (
 				return
 			}
 
-			if err = hw.waitState(CURRENT_STATE_TRAN, writeTimeout); err != nil {
+			if err = hw.waitState(CURRENT_STATE_TRAN, WriteTimeout); err != nil {
 				err = hw.invalidateTransfer(err)
 				return
 			}
@@ -562,53 +620,64 @@ func (hw *SDHCI) writeBlock(index uint16, lba uint32, buf []byte) error {
 	return hw.transferDMA(index, WRITE, lba, buf, 1)
 }
 
-// The DMA region can be mapped as Device memory, which requires aligned accesses.
-func writeDMAWords(address uint, buf []byte) {
-	for offset := 0; offset < len(buf); offset += 4 {
-		reg.Write(uint32(address+uint(offset)), binary.LittleEndian.Uint32(buf[offset:]))
+func copyAlignedDMABuffer(dst []byte, src []byte) {
+	n := len(src)
+	r := n % copyAlign
+	n -= r
+
+	copy(dst[:n], src[:n])
+
+	for i := range r {
+		dst[n+i] = src[n+i]
 	}
 }
 
-func readDMAWords(buf []byte, address uint) {
-	for offset := 0; offset < len(buf); offset += 4 {
-		binary.LittleEndian.PutUint32(buf[offset:], reg.Read(uint32(address+uint(offset))))
-	}
+func writeDMABuffer(dst []byte, src []byte) {
+	staging := make([]byte, len(src))
+	copy(staging, src)
+	copyAlignedDMABuffer(dst, staging)
+}
+
+func readDMABuffer(dst []byte, src []byte) {
+	staging := make([]byte, len(src))
+	copyAlignedDMABuffer(staging, src)
+	copy(dst, staging)
 }
 
 func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []byte, blocks uint16) (err error) {
-	dmaAddress, _ := hw.DMA.Reserve(len(buf), admaAlignment)
+	dmaAddress, dmaBuffer := hw.DMA.Reserve(len(buf), dmaAlignment)
 	defer hw.DMA.Release(dmaAddress)
 
 	if direction == WRITE {
-		writeDMAWords(dmaAddress, buf)
+		writeDMABuffer(dmaBuffer, buf)
 	}
 
 	descriptors := admaTable(dmaAddress, len(buf))
-	descriptorAddress, _ := hw.DMA.Reserve(len(descriptors), admaAlignment)
+	descriptorAddress, descriptorBuffer := hw.DMA.Reserve(len(descriptors), dmaAlignment)
 	defer hw.DMA.Release(descriptorAddress)
-	writeDMAWords(descriptorAddress, descriptors)
+	writeDMABuffer(descriptorBuffer, descriptors)
 
+	// program the ADMA table
 	reg.Write(hw.asar0, uint32(descriptorAddress))
 	reg.Write(hw.asar1, 0)
+
+	// program block geometry
 	reg.Write16(hw.bsr, BlockSize)
 	reg.Write16(hw.bcr, blocks)
 
 	multi := blocks > 1
-	transferMode := uint16(1<<TMR_DMAEN | 1<<TMR_BCEN)
 
-	if direction == READ {
-		transferMode |= 1 << TMR_DTDSEL
-	}
-
-	if multi {
-		transferMode |= 1 << TMR_MSBSEL
-	}
-
+	// enable ADMA and block-count termination
+	var transferMode uint16
+	bits.Set16(&transferMode, TMR_DMAEN)
+	bits.Set16(&transferMode, TMR_BCEN)
+	bits.SetTo16(&transferMode, TMR_DTDSEL, direction == READ)
+	bits.SetTo16(&transferMode, TMR_MSBSEL, multi)
 	reg.Write16(hw.tmr, transferMode)
 
 	command := index
 	if index == 18 && !multi {
-		// CMD17 - READ_SINGLE_BLOCK - read one block.
+		// CMD17 - READ_SINGLE_BLOCK - read one block
 		command = 17
 	}
 
@@ -639,9 +708,9 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 		return
 	}
 
-	transferTimeout := commandTimeout
+	transferTimeout := CommandTimeout
 	if direction == WRITE {
-		transferTimeout = writeTimeout
+		transferTimeout = WriteTimeout
 	}
 
 	if _, statusErr := hw.pollStatus(1<<NISTR_TRFC, transferTimeout); statusErr != nil {
@@ -655,7 +724,7 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	}
 
 	if direction == READ {
-		readDMAWords(buf, dmaAddress)
+		readDMABuffer(buf, dmaBuffer)
 	}
 
 	return
