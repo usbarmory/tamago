@@ -20,6 +20,8 @@
 package lan969x
 
 import (
+	"github.com/usbarmory/tamago/internal/reg"
+
 	"github.com/usbarmory/tamago/arm/gic"
 	"github.com/usbarmory/tamago/arm64"
 
@@ -33,6 +35,22 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/temp"
 	"github.com/usbarmory/tamago/soc/microchip/trng"
 	"github.com/usbarmory/tamago/soc/microchip/wdt"
+)
+
+// LAN969x part identifiers
+const (
+	LAN9691VAO = 0x9691
+	LAN9692VAO = 0x9692
+	LAN9693VAO = 0x9693
+	LAN9694    = 0x9694
+	LAN9694TSN = 0x9695
+	LAN9696    = 0x9696
+	LAN9696TSN = 0x9697
+	LAN9698    = 0x9698
+	LAN9698TSN = 0x9699
+	LAN9694RED = 0x969a
+	LAN9696RED = 0x969b
+	LAN9698RED = 0x969c
 )
 
 // Ports defines the number of available Ethernet ports
@@ -88,7 +106,8 @@ const (
 	FLEXCOM3_BASE    = 0xe0064000
 
 	// General Configuration Block
-	GCB_BASE = 0xe2010000
+	GCB_BASE    = 0xe2010000
+	GCB_CHIP_ID = GCB_BASE + 0x00
 
 	// Fan controller
 	FAN_BASE = GCB_BASE + 0x348
@@ -239,3 +258,50 @@ var (
 		Base: WDT_BASE,
 	}
 )
+
+// SiliconVersion returns the SoC silicon version information.
+func SiliconVersion() (sv, manufacturerID, partID, revisionID uint32) {
+	sv = reg.Read(GCB_CHIP_ID)
+
+	manufacturerID = (sv >> 1) & 0x7ff
+	partID = (sv >> 12) & 0xffff
+	revisionID = (sv >> 28) & 0xf
+
+	return
+}
+
+// Model returns the SoC model name.
+func Model() (model string) {
+	_, _, partID, _ := SiliconVersion()
+
+	switch partID {
+	case LAN9691VAO:
+		model = "LAN9691VAO"
+	case LAN9692VAO:
+		model = "LAN9692VAO"
+	case LAN9693VAO:
+		model = "LAN9693VAO"
+	case LAN9694:
+		model = "LAN9694"
+	case LAN9694TSN:
+		model = "LAN9694TSN"
+	case LAN9696:
+		model = "LAN9696"
+	case LAN9696TSN:
+		model = "LAN9696TSN"
+	case LAN9698:
+		model = "LAN9698"
+	case LAN9698TSN:
+		model = "LAN9698TSN"
+	case LAN9694RED:
+		model = "LAN9694RED"
+	case LAN9696RED:
+		model = "LAN9696RED"
+	case LAN9698RED:
+		model = "LAN9698RED"
+	default:
+		model = "unknown"
+	}
+
+	return
+}
