@@ -210,12 +210,10 @@ type SDHCI struct {
 	ParentClock uint32
 	// Requested Generic Clock frequency in Hz
 	TargetClock uint32
-	// Controller pin configuration, skipped when nil
-	ConfigurePins func() error
-	// DMA memory used for ADMA2 descriptors and data. It defaults to
-	// dma.Default() and must be controller-accessible, non-cacheable, and below
-	// 4 GiB.
-	DMA *dma.Region
+	// Region represents the memory used for ADMA2 descriptors and data. It
+	// defaults to dma.Default() and must be controller-accessible,
+	// non-cacheable, and below 4 GiB.
+	Region *dma.Region
 
 	// control registers
 	bsr    uint32
@@ -250,21 +248,6 @@ type SDHCI struct {
 	maxBlocks int
 }
 
-func (hw *SDHCI) dumpRegisters() string {
-	return fmt.Sprintf(
-		"GCK=0x%08x PSR=0x%08x CCR=0x%04x SRR=0x%02x NISTR=0x%04x EISTR=0x%04x AESR=0x%02x TMR=0x%04x BCR=0x%04x",
-		reg.Read(hw.GCK),
-		reg.Read(hw.psr),
-		reg.Read16(hw.ccr),
-		reg.Read8(hw.srr),
-		reg.Read16(hw.nistr),
-		reg.Read16(hw.eistr),
-		reg.Read8(hw.aesr),
-		reg.Read16(hw.tmr),
-		reg.Read16(hw.bcr),
-	)
-}
-
 func genericClockPrescaler(parent uint32, target uint32) (uint32, error) {
 	if parent == 0 || target == 0 {
 		return 0, errors.New("sdhci: invalid clock frequency")
@@ -297,7 +280,7 @@ func (hw *SDHCI) enableGenericClock(prescaler uint32) error {
 		bits.Set(&inhibitMask, PSR_CMDINHD)
 
 		if !reg.WaitFor(ControllerSetupTimeout, hw.psr, 0, int(inhibitMask), 0) {
-			return fmt.Errorf("sdhci: inherited controller busy (%s)", hw.dumpRegisters())
+			return errors.New("sdhci: inherited controller busy")
 		}
 
 		// stop card clock
@@ -341,7 +324,7 @@ func (hw *SDHCI) setClockFrequency(frequencyHz uint32) error {
 	bits.Set(&inhibitMask, PSR_CMDINHD)
 
 	if !reg.WaitFor(ClockSetupTimeout, hw.psr, 0, int(inhibitMask), 0) {
-		return fmt.Errorf("sdhci: clock change timeout (%s)", hw.dumpRegisters())
+		return errors.New("sdhci: clock change timeout")
 	}
 
 	// stop card clock
@@ -356,7 +339,7 @@ func (hw *SDHCI) setClockFrequency(frequencyHz uint32) error {
 	reg.Write16(hw.ccr, clock)
 
 	if !reg.WaitFor16(ClockSetupTimeout, hw.ccr, CCR_INTCLKS, 1, 1) {
-		return fmt.Errorf("sdhci: internal clock did not stabilize (%s)", hw.dumpRegisters())
+		return errors.New("sdhci: internal clock did not stabilize")
 	}
 
 	// start card clock
@@ -369,19 +352,13 @@ func (hw *SDHCI) reset(mask uint8, timeout time.Duration) error {
 	reg.Write8(hw.srr, mask)
 
 	if !reg.WaitFor8(timeout, hw.srr, 0, int(mask), 0) {
-		return fmt.Errorf("sdhci: controller reset 0x%02x timeout (%s)", mask, hw.dumpRegisters())
+		return fmt.Errorf("sdhci: controller reset 0x%02x timeout", mask)
 	}
 
 	return nil
 }
 
 func (hw *SDHCI) initController(prescaler uint32) error {
-	if hw.ConfigurePins != nil {
-		if err := hw.ConfigurePins(); err != nil {
-			return fmt.Errorf("sdhci: pin configuration failed: %w", err)
-		}
-	}
-
 	if err := hw.enableGenericClock(prescaler); err != nil {
 		return err
 	}
@@ -413,7 +390,7 @@ func (hw *SDHCI) initController(prescaler uint32) error {
 }
 
 func (hw *SDHCI) dmaBlockLimit() int {
-	available := int(hw.DMA.Size()) - 2*(dmaAlignment-1)
+	available := int(hw.Region.Size()) - 2*(dmaAlignment-1)
 	blocks := min(available/BlockSize, maxBlocksPerTransfer)
 
 	for blocks > 0 {
@@ -438,7 +415,6 @@ func (hw *SDHCI) Init() error {
 	hw.controllerReady = false
 	hw.ready = false
 	hw.card = CardInfo{}
-	hw.maxBlocks = 0
 
 	if hw.Base == 0 {
 		return errors.New("sdhci: invalid controller base")
@@ -448,15 +424,15 @@ func (hw *SDHCI) Init() error {
 		return errors.New("sdhci: invalid Generic Clock register")
 	}
 
-	if hw.DMA == nil {
-		hw.DMA = dma.Default()
+	if hw.Region == nil {
+		hw.Region = dma.Default()
 	}
 
-	if hw.DMA == nil {
+	if hw.Region == nil {
 		return errors.New("sdhci: DMA memory is not configured")
 	}
 
-	if hw.DMA.End() > 1<<32 {
+	if hw.Region.End() > 1<<32 {
 		return errors.New("sdhci: DMA memory exceeds ADMA2 address range")
 	}
 
@@ -531,24 +507,23 @@ func (hw *SDHCI) validateTransfer(lba int, length int) error {
 	return nil
 }
 
-func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) (err error) {
+func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) error {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if err = hw.validateTransfer(lba, len(buf)); err != nil {
-		return
+	if err := hw.validateTransfer(lba, len(buf)); err != nil {
+		return err
 	}
 
 	switch dtd {
 	case WRITE:
 		for len(buf) > 0 {
-			if err = hw.writeBlock(index, uint32(lba), buf[:BlockSize]); err != nil {
-				return
+			if err := hw.writeBlock(index, uint32(lba), buf[:BlockSize]); err != nil {
+				return err
 			}
 
-			if err = hw.waitState(CURRENT_STATE_TRAN, WriteTimeout); err != nil {
-				err = hw.invalidateTransfer(err)
-				return
+			if err := hw.waitState(CURRENT_STATE_TRAN, WriteTimeout); err != nil {
+				return hw.invalidateTransfer(err)
 			}
 
 			buf = buf[BlockSize:]
@@ -557,32 +532,31 @@ func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) (
 	case READ:
 		for len(buf) > 0 {
 			blocks := min(len(buf)/BlockSize, hw.maxBlocks)
-
 			length := blocks * BlockSize
 
-			if err = hw.readBlocks(index, uint32(lba), buf[:length], uint16(blocks)); err != nil {
-				return
+			if err := hw.readBlocks(index, uint32(lba), buf[:length], uint16(blocks)); err != nil {
+				return err
 			}
 
 			buf = buf[length:]
 			lba += blocks
 		}
 	default:
-		err = errors.New("sdhci: invalid transfer direction")
+		return errors.New("sdhci: invalid transfer direction")
 	}
 
-	return
+	return nil
 }
 
 // WriteBlocks transfers full blocks of data to the card. Each block uses
 // CMD24 so a failure cannot make the completion of later blocks ambiguous.
-func (hw *SDHCI) WriteBlocks(lba int, buf []byte) (err error) {
+func (hw *SDHCI) WriteBlocks(lba int, buf []byte) error {
 	// CMD24 - WRITE_BLOCK - write one block at a time
 	return hw.transferBlocks(24, WRITE, lba, buf)
 }
 
 // ReadBlocks transfers full blocks of data from the card.
-func (hw *SDHCI) ReadBlocks(lba int, buf []byte) (err error) {
+func (hw *SDHCI) ReadBlocks(lba int, buf []byte) error {
 	// CMD18 - READ_MULTIPLE_BLOCK - read consecutive blocks (CMD17 for one)
 	return hw.transferBlocks(18, READ, lba, buf)
 }
@@ -631,16 +605,16 @@ func copyDMABuffer(dst []byte, src []byte) {
 }
 
 func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []byte, blocks uint16) (err error) {
-	dmaAddress, dmaBuffer := hw.DMA.Reserve(len(buf), dmaAlignment)
-	defer hw.DMA.Release(dmaAddress)
+	dmaAddress, dmaBuffer := hw.Region.Reserve(len(buf), dmaAlignment)
+	defer hw.Region.Release(dmaAddress)
 
 	if direction == WRITE {
 		copyDMABuffer(dmaBuffer, buf)
 	}
 
 	descriptors := admaTable(dmaAddress, len(buf))
-	descriptorAddress, descriptorBuffer := hw.DMA.Reserve(len(descriptors), dmaAlignment)
-	defer hw.DMA.Release(descriptorAddress)
+	descriptorAddress, descriptorBuffer := hw.Region.Reserve(len(descriptors), dmaAlignment)
+	defer hw.Region.Release(descriptorAddress)
 	copyDMABuffer(descriptorBuffer, descriptors)
 
 	// program the ADMA table

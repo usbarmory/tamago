@@ -12,7 +12,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"runtime"
 	"time"
 
 	"github.com/usbarmory/tamago/bits"
@@ -58,7 +57,7 @@ var (
 	MMCPowerUpDelay = 10 * time.Millisecond
 )
 
-func (hw *SDHCI) voltageValidationMMC() (ready bool) {
+func (hw *SDHCI) voltageValidationMMC() bool {
 	var arg uint32
 
 	// sector mode supported
@@ -75,14 +74,11 @@ func (hw *SDHCI) voltageValidationMMC() (ready bool) {
 
 		if err == nil && bits.GetN(&response, MMC_OCR_BUSY, 1) == 1 {
 			hw.card.OCR = response
-			ready = bits.GetN(&response, MMC_OCR_ACCESS_MODE, 0b11) == ACCESS_MODE_SECTOR
-			break
+			return bits.GetN(&response, MMC_OCR_ACCESS_MODE, 0b11) == ACCESS_MODE_SECTOR
 		}
-
-		runtime.Gosched()
 	}
 
-	return
+	return false
 }
 
 func (hw *SDHCI) writeCardRegisterMMC(register uint32, value uint32, timeout time.Duration) (err error) {
@@ -197,6 +193,8 @@ func (hw *SDHCI) Detect() (err error) {
 		if err != nil {
 			hw.controllerReady = false
 			hw.card = CardInfo{}
+		} else {
+			hw.ready = true
 		}
 	}()
 
@@ -213,13 +211,7 @@ func (hw *SDHCI) Detect() (err error) {
 		return errors.New("CMD1 SEND_OP_COND: card did not power up")
 	}
 
-	if err = hw.initMMC(); err != nil {
-		return
-	}
-
-	hw.ready = true
-
-	return
+	return hw.initMMC()
 }
 
 // Ready reports whether Detect completed and no transfer failure has forced

@@ -248,11 +248,10 @@ var (
 
 	// Secure Digital Host Controller Interface
 	SDMMC0 = &sdhci.SDHCI{
-		Base:          SDMMC0_BASE,
-		GCK:           CPU_BASE + gckConfigOffset + sdmmc0ClockID*4,
-		ParentClock:   sdmmc0ParentClock,
-		TargetClock:   sdmmc0TargetClock,
-		ConfigurePins: configureSDMMC0Pins,
+		Base:        SDMMC0_BASE,
+		GCK:         CPU_BASE + gckConfigOffset + sdmmc0ClockID*4,
+		ParentClock: sdmmc0ParentClock,
+		TargetClock: sdmmc0TargetClock,
 	}
 
 	// Serial GPIO controller

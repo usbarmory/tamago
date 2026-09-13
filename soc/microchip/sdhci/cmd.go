@@ -10,7 +10,6 @@ package sdhci
 
 import (
 	"fmt"
-	"runtime"
 	"time"
 
 	"github.com/usbarmory/tamago/bits"
@@ -163,7 +162,7 @@ func (hw *SDHCI) pollStatusIgnoring(expected uint16, timeout time.Duration, igno
 
 			if errorStatus&^ignoredErrors != 0 {
 				if bits.Get16(&errorStatus, EISTR_ADMA) {
-					return 0, ignored, fmt.Errorf("sdhci: ADMA2 interrupt 0x%04x (%s)", errorStatus|ignored, hw.dumpRegisters())
+					return 0, ignored, fmt.Errorf("sdhci: ADMA2 interrupt 0x%04x", errorStatus|ignored)
 				}
 
 				return 0, ignored, fmt.Errorf("sdhci: interrupt error 0x%04x", errorStatus|ignored)
@@ -178,10 +177,8 @@ func (hw *SDHCI) pollStatusIgnoring(expected uint16, timeout time.Duration, igno
 		}
 
 		if time.Now().After(deadline) {
-			return 0, ignored, fmt.Errorf("sdhci: status 0x%04x timeout (%s)", expected, hw.dumpRegisters())
+			return 0, ignored, fmt.Errorf("sdhci: status 0x%04x timeout", expected)
 		}
-
-		runtime.Gosched()
 	}
 }
 
@@ -258,8 +255,6 @@ func (hw *SDHCI) waitState(state int, timeout time.Duration) error {
 		if time.Now().After(deadline) {
 			return fmt.Errorf("sdhci: card ready timeout status=0x%08x", status)
 		}
-
-		runtime.Gosched()
 	}
 }
 

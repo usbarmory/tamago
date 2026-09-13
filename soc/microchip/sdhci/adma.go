@@ -8,7 +8,10 @@
 
 package sdhci
 
-import "encoding/binary"
+import (
+	"bytes"
+	"encoding/binary"
+)
 
 const (
 	// ADMA2 data and descriptor addresses are word aligned.
@@ -23,28 +26,58 @@ const (
 	admaTransfer = 0b10 << 4
 )
 
+type admaDescriptor struct {
+	Attribute uint16
+	Length    uint16
+	Address   uint32
+
+	next *admaDescriptor
+}
+
+func (descriptor *admaDescriptor) init(address uint, size int) {
+	for size > 0 {
+		length := min(size, admaMaxLength)
+
+		descriptor.Attribute = admaValid | admaTransfer
+		descriptor.Length = uint16(length)
+		descriptor.Address = uint32(address)
+
+		if length == size {
+			descriptor.Attribute |= admaEnd
+			return
+		}
+
+		address += uint(length)
+		size -= length
+		descriptor.next = &admaDescriptor{}
+		descriptor = descriptor.next
+	}
+}
+
+// Bytes converts the descriptor chain to its ADMA2 byte representation.
+func (descriptor *admaDescriptor) Bytes() []byte {
+	buf := new(bytes.Buffer)
+
+	for descriptor != nil {
+		binary.Write(buf, binary.LittleEndian, descriptor.Attribute)
+		binary.Write(buf, binary.LittleEndian, descriptor.Length)
+		binary.Write(buf, binary.LittleEndian, descriptor.Address)
+		descriptor = descriptor.next
+	}
+
+	return buf.Bytes()
+}
+
 func admaTableSize(size int) int {
 	return (size + admaMaxLength - 1) / admaMaxLength * admaDescriptorSize
 }
 
 func admaTable(address uint, size int) []byte {
-	table := make([]byte, admaTableSize(size))
-
-	for offset := 0; size > 0; offset += admaDescriptorSize {
-		length := min(size, admaMaxLength)
-		attribute := uint16(admaValid | admaTransfer)
-
-		if length == size {
-			attribute |= admaEnd
-		}
-
-		binary.LittleEndian.PutUint16(table[offset:], attribute)
-		binary.LittleEndian.PutUint16(table[offset+2:], uint16(length))
-		binary.LittleEndian.PutUint32(table[offset+4:], uint32(address))
-
-		address += uint(length)
-		size -= length
+	if size <= 0 {
+		return nil
 	}
 
-	return table
+	descriptor := &admaDescriptor{}
+	descriptor.init(address, size)
+	return descriptor.Bytes()
 }
