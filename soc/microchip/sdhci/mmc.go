@@ -74,8 +74,7 @@ func (hw *SDHCI) voltageValidationMMC() (ready bool) {
 
 		if err == nil && bits.GetN(&response, MMC_OCR_BUSY, 1) == 1 {
 			hw.card.OCR = response
-			ready = bits.GetN(&response, MMC_OCR_ACCESS_MODE, 0b11) == ACCESS_MODE_SECTOR
-			return
+			return bits.GetN(&response, MMC_OCR_ACCESS_MODE, 0b11) == ACCESS_MODE_SECTOR
 		}
 	}
 
