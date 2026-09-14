@@ -31,6 +31,7 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/gpio"
 	"github.com/usbarmory/tamago/soc/microchip/miim"
 	"github.com/usbarmory/tamago/soc/microchip/otpc"
+	"github.com/usbarmory/tamago/soc/microchip/qspi"
 	"github.com/usbarmory/tamago/soc/microchip/sdhci"
 	"github.com/usbarmory/tamago/soc/microchip/sgpio"
 	"github.com/usbarmory/tamago/soc/microchip/temp"
@@ -145,6 +146,10 @@ const (
 	// Queue Forwarding
 	QFWD_BASE = 0xe20b0000
 
+	// Quad SPI controller and memory-mapped aperture
+	QSPI0_BASE = 0xe0804000
+	QSPI0_MMAP = 0x20000000
+
 	// Queue System Configuration
 	QSYS_BASE = 0xe20a0000
 
@@ -244,6 +249,16 @@ var (
 	OTPC = &otpc.OTPC{
 		Base: OTPC_BASE,
 		Size: 16 * 1024,
+	}
+
+	// Quad SPI controller 0
+	QSPI0 = &qspi.QSPI{
+		Base:        QSPI0_BASE,
+		MMAP:        QSPI0_MMAP,
+		MMAPSize:    0x08000000,
+		GCK:         CPU_QSPI0_GCK,
+		ParentClock: qspi0ParentClock,
+		TargetClock: qspi0TargetClock,
 	}
 
 	// Secure Digital Host Controller Interface
