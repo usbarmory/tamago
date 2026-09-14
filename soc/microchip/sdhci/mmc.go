@@ -57,7 +57,7 @@ var (
 	MMCPowerUpDelay = 10 * time.Millisecond
 )
 
-func (hw *SDHCI) voltageValidationMMC() bool {
+func (hw *SDHCI) voltageValidationMMC() (ready bool) {
 	var arg uint32
 
 	// sector mode supported
@@ -74,11 +74,12 @@ func (hw *SDHCI) voltageValidationMMC() bool {
 
 		if err == nil && bits.GetN(&response, MMC_OCR_BUSY, 1) == 1 {
 			hw.card.OCR = response
-			return bits.GetN(&response, MMC_OCR_ACCESS_MODE, 0b11) == ACCESS_MODE_SECTOR
+			ready = bits.GetN(&response, MMC_OCR_ACCESS_MODE, 0b11) == ACCESS_MODE_SECTOR
+			return
 		}
 	}
 
-	return false
+	return
 }
 
 func (hw *SDHCI) writeCardRegisterMMC(register uint32, value uint32, timeout time.Duration) (err error) {
