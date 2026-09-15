@@ -54,13 +54,13 @@ func (msix *CapabilityMSIX) TableSize() int {
 // EnableInterrupt configures an MSI-X interrupt entry and enables the MSI-X
 // table.
 func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) (err error) {
-	if n > msix.TableSize() || msix.device == nil {
+	if n >= msix.TableSize() || msix.device == nil {
 		return errors.New("invalid capability instance")
 	}
 
-	bir := int(msix.TableOffset & 0b11)
-	bar := uint64(msix.device.BaseAddress(bir))
-	table := bar + uint64(msix.TableOffset)&0xfffffffc
+	bir := int(msix.TableOffset & 0b111)
+	bar := uint64(msix.device.BaseAddress(bir)) &^ 0xf
+	table := bar + uint64(msix.TableOffset&^0b111)
 
 	size := 16
 	off := uint64(size * n)
