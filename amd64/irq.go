@@ -36,6 +36,11 @@ const (
 	// interrupts.
 	IRQ_SIGNAL = syscall.SIGTRAP
 
+	// IRQ_RELAY represents the interrupt vector raised by
+	// [CPU.ClearInterrupt] to signal the end of an interrupt handling
+	// routine to the BSP.
+	IRQ_RELAY = 254
+
 	// IRQ_WAKEUP represents the interrupt vector raised by [CPU.SetAlarm],
 	// it cannot be serviced by [CPU.ServiceInterrupt] as the IRQ is
 	// handled internally to resume halted processors.
@@ -139,7 +144,7 @@ func (cpu *CPU) ClearInterrupt() {
 	}
 
 	// IRQs are always handled by the BSP
-	cpu.LAPIC.IPI(0, 0, lapic.ICR_DLV_NMI)
+	cpu.LAPIC.IPI(0, IRQ_RELAY, lapic.ICR_DLV_IRQ)
 }
 
 // WaitInterrupt suspends execution on the current processor until an interrupt
