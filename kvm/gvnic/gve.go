@@ -15,6 +15,7 @@
 package gvnic
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/bits"
@@ -60,9 +61,6 @@ const (
 	MSIXTableBAR = 1
 	doorbellsBAR = 2
 
-	txID = 0
-	rxID = 1
-
 	descSize = 64
 )
 
@@ -72,7 +70,7 @@ type GVE struct {
 
 	// Controller index
 	Index int
-	// Interrupt ID
+	// Interrupt ID (placeholder for caller use)
 	IRQ int
 
 	// Device represents the probed PCI device.
@@ -101,6 +99,8 @@ type GVE struct {
 	// DMA buffers
 	counters []byte
 	irqs     []byte
+
+	msix *pci.CapabilityMSIX
 }
 
 func (hw *GVE) set(off uint32, val any) {
@@ -132,6 +132,12 @@ func (hw *GVE) Init() (err error) {
 		return errors.New("unexpected PCI BAR type, expected memory")
 	}
 
+	for off, hdr := range hw.Device.Capabilities() {
+		if err = hw.addCapability(off, hdr); err != nil {
+			return
+		}
+	}
+
 	hw.set(DEVICE_STATUS, uint32(DEVICE_STATUS_RESET))
 
 	if err := hw.initAdminQueue(); err != nil {
@@ -148,13 +154,93 @@ func (hw *GVE) Init() (err error) {
 		return fmt.Errorf("failed to configure device resources, %v", err)
 	}
 
-	if err = hw.initTxQueue(txID); err != nil {
+	if err = hw.initTxQueue(int(TX)); err != nil {
 		return fmt.Errorf("failed to initialize tx queue, %v", err)
 	}
 
-	if err = hw.initRxQueue(rxID); err != nil {
+	if err = hw.initRxQueue(int(RX)); err != nil {
 		return fmt.Errorf("failed to initialize rx queue, %v", err)
 	}
 
 	return
+}
+
+// ClearInterrupt acknowledges an [Interrupt] re-enabling event delivery.
+func (hw *GVE) ClearInterrupt(kind Interrupt) {
+	switch kind {
+	case TX:
+		hw.tx.ack()
+	case RX:
+		hw.rx.ack()
+	}
+}
+
+// Receive receives a single Ethernet frame.
+func (hw *GVE) Receive(buf []byte) (n int, err error) {
+	if len(buf) == 0 {
+		return
+	}
+
+	idx := hw.rx.cnt % hw.rx.size
+	off := uint(idx) * rxDescSize
+
+	length := binary.BigEndian.Uint16(hw.rx.desc[off+rxLen:])
+	flagsSeq := binary.BigEndian.Uint16(hw.rx.desc[off+rxFlagsSeq:])
+
+	if flagsSeq&flagsMask != hw.rx.seqno {
+		return 0, nil
+	}
+
+	defer hw.rx.next()
+
+	if length <= rxPadLen {
+		return 0, nil
+	}
+
+	// the data ring holds 64-bit QPL offsets pointing to the actual data
+	qplOff := uint(binary.BigEndian.Uint64(hw.rx.data[idx*8:]))
+	data := hw.rx.qpl[qplOff+rxPadLen : qplOff+uint(length)]
+
+	n = copy(buf, data)
+
+	return n, nil
+}
+
+// Transmit transmits a single Ethernet frame.
+func (hw *GVE) Transmit(buf []byte) (err error) {
+	if len(buf) > pageSize {
+		return errors.New("frame too large")
+	}
+
+	txPages := uint32(hw.Info.TxPagesPerQpl)
+	idx := hw.tx.head % hw.tx.size
+	qplOff := (hw.tx.head % txPages) * pageSize
+
+	cntIndex := hw.tx.Resources.CounterIndex * 4
+	hw.tx.tail = binary.BigEndian.Uint32(hw.counters[cntIndex:])
+
+	inflight := hw.tx.head - hw.tx.tail
+
+	if inflight >= hw.tx.size || inflight >= txPages {
+		return errors.New("tx queue full")
+	}
+
+	// copy the frame into the TX QPL
+	copy(hw.tx.qpl[qplOff:qplOff+uint32(len(buf))], buf)
+
+	off := uint(idx) * txDescSize
+	tx := hw.tx.desc
+
+	tx[off+txTypeFlags] = GVE_TXD_STD
+	tx[off+txCsumOff] = 0
+	tx[off+txHdrOff] = 0
+	tx[off+txDescCnt] = 1
+
+	binary.BigEndian.PutUint16(tx[off+txLen:], uint16(len(buf)))
+	binary.BigEndian.PutUint16(tx[off+txSegLen:], uint16(len(buf)))
+	binary.BigEndian.PutUint64(tx[off+txSegAddr:], uint64(qplOff))
+
+	hw.tx.next()
+
+	return nil
 }

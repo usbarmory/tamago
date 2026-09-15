@@ -10,7 +10,6 @@ package gvnic
 
 import (
 	"encoding/binary"
-	"errors"
 	"math/bits"
 
 	"github.com/usbarmory/tamago/internal/reg"
@@ -29,8 +28,7 @@ const (
 	flagsMask = 0b111
 	rxPadLen  = 2
 
-	irqAck   = 1 << 31
-	irqEvent = 1 << 29
+	irqAck = 1 << 31
 )
 
 // TX descriptor offsets
@@ -110,13 +108,14 @@ func (q *queue) setDoorbells(hw *GVE) {
 	binary.Decode(q.res, binary.BigEndian, q.Resources)
 	q.Doorbell = hw.doorbells + q.Resources.DBIndex*4
 
-	irqIndex := binary.BigEndian.Uint32(hw.irqs[q.id*descSize:])
-	q.DoorbellIRQ = hw.doorbells + irqIndex*4
+	off := q.id * descSize
+	dbIdx := binary.BigEndian.Uint32(hw.irqs[off : off+4])
+	q.DoorbellIRQ = hw.doorbells + dbIdx*4
 }
 
 func (q *queue) ack() {
-	// ack IRQ, re-enable event delivery
-	reg.Write(q.DoorbellIRQ, bits.ReverseBytes32(irqAck|irqEvent))
+	v := bits.ReverseBytes32(irqAck)
+	reg.Write(q.DoorbellIRQ, v)
 }
 
 type txQueue struct {
@@ -308,72 +307,4 @@ func (hw *GVE) initRxQueue(id int) (err error) {
 	reg.Write(hw.rx.Doorbell, cnt)
 
 	return
-}
-
-func (hw *GVE) Receive(buf []byte) (n int, err error) {
-	if len(buf) == 0 {
-		return
-	}
-
-	idx := hw.rx.cnt % hw.rx.size
-	off := uint(idx) * rxDescSize
-
-	length := binary.BigEndian.Uint16(hw.rx.desc[off+rxLen:])
-	flagsSeq := binary.BigEndian.Uint16(hw.rx.desc[off+rxFlagsSeq:])
-
-	if flagsSeq&flagsMask != hw.rx.seqno {
-		return 0, nil
-	}
-
-	defer hw.rx.next()
-
-	if length <= rxPadLen {
-		return 0, nil
-	}
-
-	// the data ring holds 64-bit QPL offsets pointing to the actual data
-	qplOff := uint(binary.BigEndian.Uint64(hw.rx.data[idx*8:]))
-	data := hw.rx.qpl[qplOff+rxPadLen : qplOff+uint(length)]
-
-	n = copy(buf, data)
-
-	return n, nil
-}
-
-func (hw *GVE) Transmit(buf []byte) (err error) {
-	if len(buf) > pageSize {
-		return errors.New("frame too large")
-	}
-
-	txPages := uint32(hw.Info.TxPagesPerQpl)
-	idx := hw.tx.head % hw.tx.size
-	qplOff := (hw.tx.head % txPages) * pageSize
-
-	cntIndex := hw.tx.Resources.CounterIndex * 4
-	hw.tx.tail = binary.BigEndian.Uint32(hw.counters[cntIndex:])
-
-	inflight := hw.tx.head - hw.tx.tail
-
-	if inflight >= hw.tx.size || inflight >= txPages {
-		return errors.New("tx queue full")
-	}
-
-	// copy the frame into the TX QPL
-	copy(hw.tx.qpl[qplOff:qplOff+uint32(len(buf))], buf)
-
-	off := uint(idx) * txDescSize
-	tx := hw.tx.desc
-
-	tx[off+txTypeFlags] = GVE_TXD_STD
-	tx[off+txCsumOff] = 0
-	tx[off+txHdrOff] = 0
-	tx[off+txDescCnt] = 1
-
-	binary.BigEndian.PutUint16(tx[off+txLen:], uint16(len(buf)))
-	binary.BigEndian.PutUint16(tx[off+txSegLen:], uint16(len(buf)))
-	binary.BigEndian.PutUint64(tx[off+txSegAddr:], uint64(qplOff))
-
-	hw.tx.next()
-
-	return nil
 }
