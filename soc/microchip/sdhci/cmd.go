@@ -20,6 +20,7 @@ var (
 	// CommandInhibitTimeout controls how long a command waits for the host
 	// command and data paths to become idle.
 	CommandInhibitTimeout = 200 * time.Millisecond
+
 	// CommandTimeout controls how long a command waits for completion.
 	CommandTimeout = 500 * time.Millisecond
 )
@@ -75,14 +76,14 @@ func commandValue(index uint16, params cmdParams) (command uint16) {
 
 func (hw *SDHCI) cmd(index uint16, argument uint32) (uint32, error) {
 	value, _, _, err := hw.runCommand(index, argument, 0)
-
 	return value, err
 }
 
 func (hw *SDHCI) runCommand(index uint16, argument uint32, ignoredErrors uint16) (value uint32, ignored uint16, issued bool, err error) {
 	params, ok := cmds[index]
+
 	if !ok {
-		return 0, 0, false, fmt.Errorf("sdhci: unsupported command CMD%d", index)
+		return 0, 0, false, fmt.Errorf("unsupported command CMD%d", index)
 	}
 
 	// clear pending status
@@ -92,6 +93,8 @@ func (hw *SDHCI) runCommand(index uint16, argument uint32, ignoredErrors uint16)
 	usesDataLine := params.responseType == CR_RESPTYP_RL48BSY || params.dataPresent
 
 	var inhibitMask uint32
+	var resetMask uint16
+
 	bits.Set(&inhibitMask, PSR_CMDINHC)
 
 	if params.commandType != CR_CMDTYP_ABORT && usesDataLine {
@@ -99,7 +102,6 @@ func (hw *SDHCI) runCommand(index uint16, argument uint32, ignoredErrors uint16)
 	}
 
 	if !reg.WaitFor(CommandInhibitTimeout, hw.psr, 0, int(inhibitMask), 0) {
-		var resetMask uint16
 		bits.Set16(&resetMask, SRR_SWRSTCMD)
 
 		if usesDataLine {
@@ -107,7 +109,7 @@ func (hw *SDHCI) runCommand(index uint16, argument uint32, ignoredErrors uint16)
 		}
 
 		if resetErr := hw.reset(uint8(resetMask), ControllerSetupTimeout); resetErr != nil {
-			return 0, 0, false, fmt.Errorf("sdhci: command inhibit timeout (recovery failed: %v)", resetErr)
+			return 0, 0, false, fmt.Errorf("command inhibit timeout (recovery failed: %v)", resetErr)
 		}
 
 		return 0, 0, false, fmt.Errorf("CMD%d command inhibit timeout", index)
@@ -124,9 +126,7 @@ func (hw *SDHCI) runCommand(index uint16, argument uint32, ignoredErrors uint16)
 	reg.Write(hw.arg1r, argument)
 	reg.Write16(hw.cr, commandValue(index, params))
 
-	value, ignored, err = hw.pollStatusIgnoring(1<<NISTR_CMDC, CommandTimeout, ignoredErrors)
-	if err != nil {
-		var resetMask uint16
+	if value, ignored, err = hw.pollStatusIgnoring(1<<NISTR_CMDC, CommandTimeout, ignoredErrors); err != nil {
 		bits.Set16(&resetMask, SRR_SWRSTCMD)
 
 		if usesDataLine {
@@ -134,7 +134,7 @@ func (hw *SDHCI) runCommand(index uint16, argument uint32, ignoredErrors uint16)
 		}
 
 		if resetErr := hw.reset(uint8(resetMask), ControllerSetupTimeout); resetErr != nil {
-			err = fmt.Errorf("%w (command recovery failed: %v)", err, resetErr)
+			return value, ignored, true, fmt.Errorf("%w (command recovery failed: %v)", err, resetErr)
 		}
 	}
 
@@ -143,7 +143,6 @@ func (hw *SDHCI) runCommand(index uint16, argument uint32, ignoredErrors uint16)
 
 func (hw *SDHCI) pollStatus(expected uint16, timeout time.Duration) (uint32, error) {
 	value, _, err := hw.pollStatusIgnoring(expected, timeout, 0)
-
 	return value, err
 }
 
@@ -162,10 +161,10 @@ func (hw *SDHCI) pollStatusIgnoring(expected uint16, timeout time.Duration, igno
 
 			if errorStatus&^ignoredErrors != 0 {
 				if bits.Get16(&errorStatus, EISTR_ADMA) {
-					return 0, ignored, fmt.Errorf("sdhci: ADMA2 interrupt 0x%04x", errorStatus|ignored)
+					return 0, ignored, fmt.Errorf("ADMA2 interrupt 0x%04x", errorStatus|ignored)
 				}
 
-				return 0, ignored, fmt.Errorf("sdhci: interrupt error 0x%04x", errorStatus|ignored)
+				return 0, ignored, fmt.Errorf("interrupt error 0x%04x", errorStatus|ignored)
 			}
 
 			ignored |= errorStatus
@@ -177,7 +176,7 @@ func (hw *SDHCI) pollStatusIgnoring(expected uint16, timeout time.Duration, igno
 		}
 
 		if time.Now().After(deadline) {
-			return 0, ignored, fmt.Errorf("sdhci: status 0x%04x timeout", expected)
+			return 0, ignored, fmt.Errorf("status 0x%04x timeout", expected)
 		}
 	}
 }
@@ -214,6 +213,7 @@ func (hw *SDHCI) invalidateStop(transferErr error, stopErr error) error {
 
 func (hw *SDHCI) stopTransmission(transferErr error) error {
 	status, ignored, _, stopErr := hw.runCommand(12, 0, EISTR_DAT_LINE_ERROR_MASK)
+
 	if stopErr != nil {
 		return hw.invalidateStop(transferErr, stopErr)
 	}
@@ -240,6 +240,7 @@ func (hw *SDHCI) waitState(state int, timeout time.Duration) error {
 
 	for {
 		status, err := hw.cmd(13, uint32(hw.card.RCA)<<16)
+
 		if err != nil {
 			return fmt.Errorf("CMD13 SEND_STATUS failed: %w", err)
 		}
@@ -253,7 +254,7 @@ func (hw *SDHCI) waitState(state int, timeout time.Duration) error {
 		}
 
 		if time.Now().After(deadline) {
-			return fmt.Errorf("sdhci: card ready timeout status=0x%08x", status)
+			return fmt.Errorf("card ready timeout status=0x%08x", status)
 		}
 	}
 }

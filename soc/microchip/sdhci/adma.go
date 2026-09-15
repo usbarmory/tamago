@@ -79,5 +79,6 @@ func admaTable(address uint, size int) []byte {
 
 	descriptor := &admaDescriptor{}
 	descriptor.init(address, size)
+
 	return descriptor.Bytes()
 }

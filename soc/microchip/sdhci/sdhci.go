@@ -170,11 +170,11 @@ var (
 	WriteTimeout = 30 * time.Second
 
 	// ErrNotInitialized indicates that Detect has not completed successfully.
-	ErrNotInitialized = errors.New("sdhci: eMMC card is not initialized")
+	ErrNotInitialized = errors.New("eMMC card is not initialized")
 	// ErrRange indicates that a transfer exceeds the detected card or LBA range.
-	ErrRange = errors.New("sdhci: LBA range overflows")
+	ErrRange = errors.New("LBA range overflows")
 	// ErrAlignment indicates that a transfer is empty or not block-aligned.
-	ErrAlignment = errors.New("sdhci: buffer size must be a non-zero multiple of 512")
+	ErrAlignment = errors.New("buffer size must be a non-zero multiple of 512")
 )
 
 // CardInfo describes the detected eMMC card.
@@ -250,13 +250,13 @@ type SDHCI struct {
 
 func genericClockPrescaler(parent uint32, target uint32) (uint32, error) {
 	if parent == 0 || target == 0 {
-		return 0, errors.New("sdhci: invalid clock frequency")
+		return 0, errors.New("invalid clock frequency")
 	}
 
 	divider := (uint64(parent) + uint64(target) - 1) / uint64(target)
 
 	if divider > GCK_PRESCALER_MASK+1 {
-		return 0, errors.New("sdhci: clock prescaler out of range")
+		return 0, errors.New("clock prescaler out of range")
 	}
 
 	return uint32(divider - 1), nil
@@ -280,7 +280,7 @@ func (hw *SDHCI) enableGenericClock(prescaler uint32) error {
 		bits.Set(&inhibitMask, PSR_CMDINHD)
 
 		if !reg.WaitFor(ControllerSetupTimeout, hw.psr, 0, int(inhibitMask), 0) {
-			return errors.New("sdhci: inherited controller busy")
+			return errors.New("inherited controller busy")
 		}
 
 		// stop card clock
@@ -300,21 +300,22 @@ func (hw *SDHCI) enableGenericClock(prescaler uint32) error {
 	return nil
 }
 
-func (hw *SDHCI) setClockFrequency(frequencyHz uint32) error {
+func (hw *SDHCI) setClockFrequency(frequencyHz uint32) (err error) {
 	if frequencyHz == 0 {
-		return errors.New("sdhci: invalid SD clock frequency")
+		return errors.New("invalid SD clock frequency")
 	}
 
 	prescaler, err := genericClockPrescaler(hw.ParentClock, hw.TargetClock)
+
 	if err != nil {
-		return err
+		return
 	}
 
 	sourceHz := hw.ParentClock / (prescaler + 1)
 	divisor := (uint64(sourceHz) + uint64(frequencyHz) - 1) / uint64(frequencyHz)
 
 	if divisor > CCR_SDCLKFSEL_MASK+1 {
-		return errors.New("sdhci: SD clock divider out of range")
+		return errors.New("SD clock divider out of range")
 	}
 
 	divider := uint16(divisor - 1)
@@ -324,7 +325,7 @@ func (hw *SDHCI) setClockFrequency(frequencyHz uint32) error {
 	bits.Set(&inhibitMask, PSR_CMDINHD)
 
 	if !reg.WaitFor(ClockSetupTimeout, hw.psr, 0, int(inhibitMask), 0) {
-		return errors.New("sdhci: clock change timeout")
+		return errors.New("clock change timeout")
 	}
 
 	// stop card clock
@@ -339,7 +340,7 @@ func (hw *SDHCI) setClockFrequency(frequencyHz uint32) error {
 	reg.Write16(hw.ccr, clock)
 
 	if !reg.WaitFor16(ClockSetupTimeout, hw.ccr, CCR_INTCLKS, 1, 1) {
-		return errors.New("sdhci: internal clock did not stabilize")
+		return errors.New("internal clock did not stabilize")
 	}
 
 	// start card clock
@@ -352,20 +353,20 @@ func (hw *SDHCI) reset(mask uint8, timeout time.Duration) error {
 	reg.Write8(hw.srr, mask)
 
 	if !reg.WaitFor8(timeout, hw.srr, 0, int(mask), 0) {
-		return fmt.Errorf("sdhci: controller reset 0x%02x timeout", mask)
+		return fmt.Errorf("controller reset 0x%02x timeout", mask)
 	}
 
 	return nil
 }
 
-func (hw *SDHCI) initController(prescaler uint32) error {
-	if err := hw.enableGenericClock(prescaler); err != nil {
-		return err
+func (hw *SDHCI) initController(prescaler uint32) (err error) {
+	if err = hw.enableGenericClock(prescaler); err != nil {
+		return
 	}
 
 	// reset all host circuits
-	if err := hw.reset(1<<SRR_SWRSTALL, ControllerSetupTimeout); err != nil {
-		return err
+	if err = hw.reset(1<<SRR_SWRSTALL, ControllerSetupTimeout); err != nil {
+		return
 	}
 
 	// use the maximum data timeout
@@ -408,7 +409,7 @@ func (hw *SDHCI) dmaBlockLimit() int {
 
 // Init initializes the controller. Detect must be called afterward to
 // initialize the eMMC card.
-func (hw *SDHCI) Init() error {
+func (hw *SDHCI) Init() (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
@@ -417,11 +418,11 @@ func (hw *SDHCI) Init() error {
 	hw.card = CardInfo{}
 
 	if hw.Base == 0 {
-		return errors.New("sdhci: invalid controller base")
+		return errors.New("invalid controller base")
 	}
 
 	if hw.GCK == 0 {
-		return errors.New("sdhci: invalid Generic Clock register")
+		return errors.New("invalid Generic Clock register")
 	}
 
 	if hw.Region == nil {
@@ -429,17 +430,18 @@ func (hw *SDHCI) Init() error {
 	}
 
 	if hw.Region.End() > 1<<32 {
-		return errors.New("sdhci: DMA memory exceeds ADMA2 address range")
+		return errors.New("DMA memory exceeds ADMA2 address range")
 	}
 
 	hw.maxBlocks = hw.dmaBlockLimit()
 	if hw.maxBlocks == 0 {
-		return errors.New("sdhci: DMA memory is too small")
+		return errors.New("DMA memory is too small")
 	}
 
 	prescaler, err := genericClockPrescaler(hw.ParentClock, hw.TargetClock)
+
 	if err != nil {
-		return err
+		return
 	}
 
 	hw.bsr = hw.Base + SDMMC_BSR
@@ -464,15 +466,12 @@ func (hw *SDHCI) Init() error {
 	hw.asar1 = hw.Base + SDMMC_ASAR1
 	hw.mc1r = hw.Base + SDMMC_MC1R
 
-	if err := hw.initController(prescaler); err != nil {
+	if err = hw.initController(prescaler); err != nil {
 		return err
 	}
 
-	// LAN969x implements the SDHCI ADMA2 interface. Require the advertised
-	// capability, then select its 32-bit descriptor format because DMA memory
-	// is constrained below 4 GiB.
 	if !reg.Get(hw.capr, CAPR_ADMA2) {
-		return errors.New("sdhci: controller does not support ADMA2")
+		return errors.New("controller does not support ADMA2")
 	}
 
 	// select 32-bit ADMA2
@@ -503,22 +502,22 @@ func (hw *SDHCI) validateTransfer(lba int, length int) error {
 	return nil
 }
 
-func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) error {
+func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if err := hw.validateTransfer(lba, len(buf)); err != nil {
-		return err
+	if err = hw.validateTransfer(lba, len(buf)); err != nil {
+		return
 	}
 
 	switch dtd {
 	case WRITE:
 		for len(buf) > 0 {
-			if err := hw.writeBlock(index, uint32(lba), buf[:BlockSize]); err != nil {
-				return err
+			if err = hw.writeBlock(index, uint32(lba), buf[:BlockSize]); err != nil {
+				return
 			}
 
-			if err := hw.waitState(CURRENT_STATE_TRAN, WriteTimeout); err != nil {
+			if err = hw.waitState(CURRENT_STATE_TRAN, WriteTimeout); err != nil {
 				return hw.invalidateTransfer(err)
 			}
 
@@ -530,15 +529,15 @@ func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) e
 			blocks := min(len(buf)/BlockSize, hw.maxBlocks)
 			length := blocks * BlockSize
 
-			if err := hw.readBlocks(index, uint32(lba), buf[:length], uint16(blocks)); err != nil {
-				return err
+			if err = hw.readBlocks(index, uint32(lba), buf[:length], uint16(blocks)); err != nil {
+				return
 			}
 
 			buf = buf[length:]
 			lba += blocks
 		}
 	default:
-		return errors.New("sdhci: invalid transfer direction")
+		return errors.New("invalid transfer direction")
 	}
 
 	return nil
@@ -632,12 +631,14 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	reg.Write16(hw.tmr, transferMode)
 
 	command := index
+
 	if index == 18 && !multi {
 		// CMD17 - READ_SINGLE_BLOCK - read one block
 		command = 17
 	}
 
 	status, _, issued, commandErr := hw.runCommand(command, lba, 0)
+
 	if command == 18 && issued {
 		defer func() {
 			err = hw.stopTransmission(err)

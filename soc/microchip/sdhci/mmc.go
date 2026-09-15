@@ -53,6 +53,7 @@ const MMC_DEFAULT_BLOCK_SIZE = 512
 var (
 	// MMCDetectTimeout controls how long card detection waits for power-up.
 	MMCDetectTimeout = 1 * time.Second
+
 	// MMCPowerUpDelay controls the initial delay before card detection.
 	MMCPowerUpDelay = 10 * time.Millisecond
 )
@@ -186,7 +187,7 @@ func (hw *SDHCI) Detect() (err error) {
 	hw.card = CardInfo{}
 
 	if !hw.controllerReady {
-		return errors.New("sdhci: controller is not initialized")
+		return errors.New("controller is not initialized")
 	}
 
 	defer func() {
@@ -239,7 +240,7 @@ func (hw *SDHCI) ExtCSD(buf []byte) error {
 
 func (hw *SDHCI) readExtCSD(buf []byte) error {
 	if len(buf) != BlockSize {
-		return errors.New("sdhci: Extended CSD buffer must be 512 bytes")
+		return errors.New("Extended CSD buffer must be 512 bytes")
 	}
 
 	// CMD8 - SEND_EXT_CSD - read extended device data
