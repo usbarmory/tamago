@@ -39,12 +39,12 @@ const (
 	// IRQ_RELAY represents the interrupt vector raised by
 	// [CPU.ClearInterrupt] to signal the end of an interrupt handling
 	// routine to the BSP.
-	IRQ_RELAY = 254
+	IRQ_RELAY = 239 // priority 14
 
 	// IRQ_WAKEUP represents the interrupt vector raised by [CPU.SetAlarm],
 	// it cannot be serviced by [CPU.ServiceInterrupt] as the IRQ is
 	// handled internally to resume halted processors.
-	IRQ_WAKEUP = 255
+	IRQ_WAKEUP = 255 // priority 15
 )
 
 var (
@@ -155,8 +155,9 @@ func (cpu *CPU) WaitInterrupt() {
 
 // ServiceInterrupts puts the calling goroutine in wait state, its execution is
 // resumed when a user defined interrupt is received, an argument function can
-// be set for servicing.
-func (cpu *CPU) ServiceInterrupts(isr func(int)) {
+// be set for servicing. It must only be called from a single goroutine at a
+// time.
+func (cpu *CPU) ServiceInterrupts(isr func(int)) (err error) {
 	if isr == nil {
 		isr = func(_ int) { return }
 	}
