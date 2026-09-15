@@ -41,7 +41,7 @@ type FLEXCOM struct {
 	Index int
 	// Base register
 	Base uint32
-	// Interrupt ID
+	// Interrupt ID (placeholder for caller use)
 	IRQ int
 }
 

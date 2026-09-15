@@ -122,7 +122,7 @@ type ENET struct {
 	CG int
 	// Clock retrieval function
 	Clock func() uint32
-	// Interrupt ID
+	// Interrupt ID (placeholder for caller use)
 	IRQ int
 	// PLL enable function
 	EnablePLL func(index int) error

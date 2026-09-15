@@ -64,7 +64,7 @@ type WDOG struct {
 	CCGR uint32
 	// Clock gate
 	CG int
-	// Interrupt ID
+	// Interrupt ID (placeholder for caller use)
 	IRQ int
 
 	// control registers

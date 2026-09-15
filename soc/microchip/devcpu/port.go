@@ -58,7 +58,7 @@ type Port struct {
 	Index int
 	// Group index
 	Group int
-	// Interrupt ID
+	// Interrupt ID (placeholder for caller use)
 	IRQ int
 
 	// Queue System Base register

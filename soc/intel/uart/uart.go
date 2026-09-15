@@ -50,7 +50,7 @@ type UART struct {
 	Index int
 	// Base register
 	Base uint16
-	// Interrupt ID
+	// Interrupt ID (placeholder for caller use)
 	IRQ int
 
 	// Data Terminal Ready

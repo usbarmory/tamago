@@ -140,7 +140,7 @@ type USB struct {
 	Analog uint32
 	// PHY base register
 	PHY uint32
-	// Interrupt ID
+	// Interrupt ID (placeholder for caller use)
 	IRQ int
 	// PLL enable function
 	EnablePLL func(index int) error
