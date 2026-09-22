@@ -161,7 +161,7 @@ func (cpu *CPU) initVectorTable() {
 
 	// initialize jump table
 	// Table 11-1 ARM® Cortex™ -A Series Programmer’s Guide
-	for i := uint32(0); i < 8; i++ {
+	for i := range uint32(8) {
 		reg.Write(cpu.vbar+4*i, vecTableJump)
 	}
 

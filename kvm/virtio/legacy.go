@@ -132,7 +132,7 @@ func (io *LegacyPCI) Config(size int) (config []byte) {
 
 	config = make([]byte, size)
 
-	for i := 0; i < size; i += 1 {
+	for i := range size {
 		config[i] = reg.In8(io.config + uint16(off+i))
 	}
 
