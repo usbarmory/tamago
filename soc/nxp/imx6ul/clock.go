@@ -166,11 +166,7 @@ func setOperatingPoint(uV uint32) {
 	}
 
 	// VDD_SOC_CAP Min is 1150000 (targ == 18)
-	if reg0Targ < 18 {
-		reg2Targ = 18
-	} else {
-		reg2Targ = reg0Targ
-	}
+	reg2Targ = max(reg0Targ, 18)
 
 	r := reg.Read(PMU_REG_CORE)
 
