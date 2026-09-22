@@ -157,7 +157,7 @@ func (cpu *CPU) WaitInterrupt() {
 // resumed when a user defined interrupt is received, an argument function can
 // be set for servicing. It must only be called from a single goroutine at a
 // time.
-func (cpu *CPU) ServiceInterrupts(isr func(int)) (err error) {
+func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	if isr == nil {
 		isr = func(_ int) { return }
 	}
