@@ -337,7 +337,7 @@ func (hw *SDHCI) readExtCSD(buf []byte) error {
 	}
 
 	// CMD8 - SEND_EXT_CSD - read extended device data
-	return hw.readBlocks(8, 0, buf, 1)
+	return hw.transferDMA(8, READ, 0, buf, 1)
 }
 
 // Sync flushes an enabled eMMC write cache to non-volatile storage.

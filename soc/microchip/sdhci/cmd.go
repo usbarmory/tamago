@@ -62,6 +62,8 @@ var cmds = map[uint16]cmdParams{
 	18: {responseType: CR_RESPTYP_RL48, indexCheck: true, crcCheck: true, dataPresent: true},
 	// CMD24 - WRITE_BLOCK - write one block
 	24: {responseType: CR_RESPTYP_RL48, indexCheck: true, crcCheck: true, dataPresent: true},
+	// CMD25 - WRITE_MULTIPLE_BLOCK - write consecutive blocks
+	25: {responseType: CR_RESPTYP_RL48, indexCheck: true, crcCheck: true, dataPresent: true},
 }
 
 func commandValue(index uint16, params cmdParams) (command uint16) {
@@ -218,7 +220,7 @@ func (hw *SDHCI) invalidateStop(transferErr error, stopErr error) error {
 	return hw.invalidateTransfer(recoveryErr)
 }
 
-func (hw *SDHCI) stopTransmission(transferErr error) error {
+func (hw *SDHCI) stopTransmission(transferErr error, timeout time.Duration) error {
 	status, _, _, stopErr := hw.runCommand(12, 0, EISTR_DAT_LINE_ERROR_MASK)
 
 	if stopErr != nil {
@@ -235,7 +237,7 @@ func (hw *SDHCI) stopTransmission(transferErr error) error {
 		return hw.invalidateStop(transferErr, stopErr)
 	}
 
-	if stopErr = hw.waitState(CURRENT_STATE_TRAN, ControllerSetupTimeout); stopErr != nil {
+	if stopErr = hw.waitState(CURRENT_STATE_TRAN, timeout); stopErr != nil {
 		return hw.invalidateStop(transferErr, stopErr)
 	}
 
