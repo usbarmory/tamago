@@ -287,13 +287,7 @@ func (p *Port) Receive(buf []byte) (n int, err error) {
 	padded := 0
 
 	for {
-		dst := scratch[:]
-
-		if len(buf)-padded >= len(scratch) {
-			dst = buf[padded : padded+len(scratch)]
-		}
-
-		eof, unused, err := p.recv(dst)
+		eof, unused, err := p.recv(scratch[:])
 
 		if err != nil {
 			return 0, err
@@ -315,6 +309,11 @@ func (p *Port) Receive(buf []byte) (n int, err error) {
 			default:
 				return length, nil
 			}
+		}
+
+		// copy the part of the word that fits, including a partial tail
+		if padded < len(buf) {
+			copy(buf[padded:], scratch[:])
 		}
 
 		padded += len(scratch)
