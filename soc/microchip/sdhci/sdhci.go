@@ -34,6 +34,7 @@ import (
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
+	"github.com/usbarmory/tamago/soc/microchip/gck"
 )
 
 // SDMMC registers
@@ -127,15 +128,6 @@ const (
 	MC1R_CMDTYP_MASK = 0x3
 	MC1R_OPD         = 4
 	MC1R_FCD         = 7
-)
-
-// Generic Clock Configuration register fields
-const (
-	GCK_ENA            = 0
-	GCK_SRC_SEL        = 8
-	GCK_SRC_SEL_MASK   = 0x3
-	GCK_PRESCALER      = 16
-	GCK_PRESCALER_MASK = 0xff
 )
 
 // SDHCI constants
@@ -251,30 +243,10 @@ type SDHCI struct {
 	maxBlocks int
 }
 
-func genericClockPrescaler(parent uint32, target uint32) (uint32, error) {
-	if parent == 0 || target == 0 {
-		return 0, errors.New("invalid clock frequency")
-	}
-
-	divider := (uint64(parent) + uint64(target) - 1) / uint64(target)
-
-	if divider > GCK_PRESCALER_MASK+1 {
-		return 0, errors.New("clock prescaler out of range")
-	}
-
-	return uint32(divider - 1), nil
-}
-
-func gckConfigurationMatches(value uint32, prescaler uint32) bool {
-	return bits.Get(&value, GCK_ENA) &&
-		bits.GetN(&value, GCK_SRC_SEL, GCK_SRC_SEL_MASK) == 0 &&
-		bits.GetN(&value, GCK_PRESCALER, GCK_PRESCALER_MASK) == prescaler
-}
-
 func (hw *SDHCI) enableGenericClock(prescaler uint32) error {
 	value := reg.Read(hw.GCK)
 
-	if bits.Get(&value, GCK_ENA) {
+	if bits.Get(&value, gck.GCK_ENA) {
 		// A previous firmware stage may leave SDCLK running. Stop it only
 		// after the command and data paths become idle, while the inherited
 		// functional clock is still available.
@@ -289,16 +261,13 @@ func (hw *SDHCI) enableGenericClock(prescaler uint32) error {
 		// stop card clock
 		reg.Clear16(hw.ccr, CCR_SDCLKEN)
 
-		if gckConfigurationMatches(value, prescaler) {
+		if gck.Matches(value, prescaler) {
 			return nil
 		}
 	}
 
 	// select source 0 and configure the functional clock
-	reg.Clear(hw.GCK, GCK_ENA)
-	reg.SetN(hw.GCK, GCK_SRC_SEL, GCK_SRC_SEL_MASK, 0)
-	reg.SetN(hw.GCK, GCK_PRESCALER, GCK_PRESCALER_MASK, prescaler)
-	reg.Set(hw.GCK, GCK_ENA)
+	gck.Enable(hw.GCK, prescaler)
 
 	return nil
 }
@@ -308,7 +277,7 @@ func (hw *SDHCI) setClockFrequency(frequencyHz uint32) (err error) {
 		return errors.New("invalid SD clock frequency")
 	}
 
-	prescaler, err := genericClockPrescaler(hw.ParentClock, hw.TargetClock)
+	prescaler, err := gck.Prescaler(hw.ParentClock, hw.TargetClock)
 
 	if err != nil {
 		return
@@ -445,7 +414,7 @@ func (hw *SDHCI) Init() (err error) {
 		return errors.New("DMA memory is too small")
 	}
 
-	prescaler, err := genericClockPrescaler(hw.ParentClock, hw.TargetClock)
+	prescaler, err := gck.Prescaler(hw.ParentClock, hw.TargetClock)
 
 	if err != nil {
 		return
