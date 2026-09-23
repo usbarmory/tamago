@@ -429,6 +429,10 @@ func (hw *SDHCI) Init() (err error) {
 		hw.Region = dma.Default()
 	}
 
+	if hw.Region == nil {
+		return errors.New("invalid DMA region")
+	}
+
 	if hw.Region.End() > 1<<32 {
 		return errors.New("DMA memory exceeds ADMA2 address range")
 	}
