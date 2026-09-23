@@ -94,7 +94,7 @@ func (cpu *CPU) SetAlarm(ns int64) {
 		return
 	}
 
-	set := uint64(ns) / uint64(cpu.TimerMultiplier)
+	set := uint64(float64(ns-cpu.TimerOffset) / cpu.TimerMultiplier)
 	now := read_cntpct()
 	cnt := set - now
 
