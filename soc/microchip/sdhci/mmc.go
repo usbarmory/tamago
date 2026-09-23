@@ -41,12 +41,15 @@ const (
 	EXT_CSD_SEC_COUNT   = 212
 	EXT_CSD_DEVICE_TYPE = 196
 	EXT_CSD_REV         = 192
+	EXT_CSD_HS_TIMING   = 185
 	EXT_CSD_BUS_WIDTH   = 183
 	EXT_CSD_CACHE_CTRL  = 33
 	EXT_CSD_FLUSH_CACHE = 32
 
-	CACHE_ENABLED = 0
-	BUS_WIDTH_8   = 2
+	CACHE_ENABLED    = 0
+	BUS_WIDTH_8      = 2
+	DEVICE_TYPE_HS52 = 1
+	HS_TIMING_HS     = 1
 )
 
 const MMC_DEFAULT_BLOCK_SIZE = 512
@@ -132,6 +135,29 @@ func (hw *SDHCI) detectCapabilitiesMMC() (err error) {
 	return
 }
 
+func (hw *SDHCI) enableHighSpeedMMC() (err error) {
+	deviceType := uint32(hw.card.DeviceType)
+
+	// p220, Table 137, Device types, JESD84-B51
+	if !bits.Get(&deviceType, DEVICE_TYPE_HS52) || !reg.Get(hw.capr, CAPR_HSSUP) {
+		return
+	}
+
+	// p222, 7.4.65 HS_TIMING [185], JESD84-B51
+	if err = hw.writeCardRegisterMMC(EXT_CSD_HS_TIMING, HS_TIMING_HS, ControllerSetupTimeout); err != nil {
+		return fmt.Errorf("CMD6 SWITCH high-speed timing: %w", err)
+	}
+
+	// stop the card clock while moving output to the rising edge
+	reg.Clear16(hw.ccr, CCR_SDCLKEN)
+
+	hostControl := uint16(reg.Read8(hw.hc1r))
+	bits.Set16(&hostControl, HC1R_HSEN)
+	reg.Write8(hw.hc1r, uint8(hostControl))
+
+	return hw.setClockFrequency(mmcHighSpeedClockHz)
+}
+
 func (hw *SDHCI) initMMC() (err error) {
 	// CMD2 - ALL_SEND_CID - get unique card identification
 	if _, err = hw.cmd(2, 0); err != nil {
@@ -178,7 +204,11 @@ func (hw *SDHCI) initMMC() (err error) {
 		return
 	}
 
-	return hw.detectCapabilitiesMMC()
+	if err = hw.detectCapabilitiesMMC(); err != nil {
+		return
+	}
+
+	return hw.enableHighSpeedMMC()
 }
 
 // Detect initializes the eMMC card attached to an initialized controller.

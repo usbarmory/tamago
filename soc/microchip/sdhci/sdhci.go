@@ -14,7 +14,7 @@
 //   - SD Host Controller Simplified Specification - Version 3.00
 //   - JESD84-B51 - Embedded Multi-Media Card (eMMC) Electrical Standard (5.1) - 2015/02
 //
-// The driver supports sector-addressed eMMC devices in 8-bit legacy mode. It
+// The driver supports sector-addressed 8-bit eMMC devices up to high speed. It
 // initializes the controller and card, reports card metadata, and transfers
 // full 512-byte blocks. DMA allocations use dma.Default() unless callers provide
 // a controller-specific region. The region must be controller-accessible,
@@ -74,6 +74,7 @@ const (
 
 	SDMMC_HC1R       = 0x28
 	HC1R_DW_4BIT     = 1
+	HC1R_HSEN        = 2
 	HC1R_DMASEL      = 3
 	HC1R_DMASEL_MASK = 0x3
 	HC1R_EXTDW       = 5
@@ -118,6 +119,7 @@ const (
 
 	SDMMC_CAPR  = 0x40
 	CAPR_ADMA2  = 19
+	CAPR_HSSUP  = 21
 	SDMMC_AESR  = 0x54
 	SDMMC_ASAR0 = 0x58
 	SDMMC_ASAR1 = 0x5c
@@ -150,6 +152,7 @@ const (
 
 	mmcIdentificationClockHz = 400_000
 	mmcLegacyClockHz         = 25_000_000
+	mmcHighSpeedClockHz      = 50_000_000
 
 	r1ErrorMask uint32 = 0xfff9a080
 
