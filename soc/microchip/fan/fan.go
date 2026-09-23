@@ -117,6 +117,10 @@ func (hw *FAN) Init() (err error) {
 
 // SetDuty sets the PWM duty cycle, where 0 is always off and 255 is always on.
 func (hw *FAN) SetDuty(duty uint8) {
+	if hw.Base == 0 {
+		return
+	}
+
 	reg.SetN(hw.Base+FAN_CFG, CFG_DUTY_CYCLE, CFG_DUTY_CYCLE_MASK, uint32(duty))
 }
 
