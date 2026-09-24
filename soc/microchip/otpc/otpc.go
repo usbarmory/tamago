@@ -75,24 +75,20 @@ type OTPC struct {
 
 func (hw *OTPC) timeout() time.Duration {
 	if hw.Timeout == 0 {
-		return Timeout
+		hw.Timeout = Timeout
 	}
 
 	return hw.Timeout
 }
 
-func (hw *OTPC) powerUp() (err error) {
-	reg.Clear(hw.Base+OTP_PWR_DN, PWR_DN_N)
+func (hw *OTPC) power(up bool) (err error) {
+	reg.SetTo(hw.Base+OTP_PWR_DN, PWR_DN_N, !up)
 
-	if !reg.WaitFor(hw.timeout(), hw.Base+OTP_STATUS, STATUS_CPUMPEN, 1, 0) {
+	if up && !reg.WaitFor(hw.timeout(), hw.Base+OTP_STATUS, STATUS_CPUMPEN, 1, 0) {
 		return errors.New("power up timeout")
 	}
 
 	return
-}
-
-func (hw *OTPC) powerDown() {
-	reg.Set(hw.Base+OTP_PWR_DN, PWR_DN_N)
 }
 
 func (hw *OTPC) command(addr uint32, cmd int, access int) (err error) {
@@ -147,11 +143,10 @@ func (hw *OTPC) Read(off int, b []byte) (err error) {
 		return errors.New("address out of range")
 	}
 
-	defer hw.powerDown()
-
-	if err = hw.powerUp(); err != nil {
+	if err = hw.power(true); err != nil {
 		return
 	}
+	defer hw.power(false)
 
 	for i := range b {
 		if b[i], err = hw.read(uint32(off + i)); err != nil {
@@ -178,11 +173,10 @@ func (hw *OTPC) Blow(off int, b []byte) (err error) {
 		return errors.New("address out of range")
 	}
 
-	defer hw.powerDown()
-
-	if err = hw.powerUp(); err != nil {
+	if err = hw.power(true); err != nil {
 		return
 	}
+	defer hw.power(false)
 
 	for i := range b {
 		if err = hw.write(uint32(off+i), b[i]); err != nil {
