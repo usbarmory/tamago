@@ -165,6 +165,10 @@ func (hw *SDHCI) pollStatusIgnoring(expected uint16, timeout time.Duration, igno
 					return 0, ignored, fmt.Errorf("ADMA2 interrupt 0x%04x", errorStatus|ignored)
 				}
 
+				if bits.Get16(&errorStatus, EISTR_ACMD) {
+					return 0, ignored, fmt.Errorf("auto command interrupt 0x%04x status 0x%04x", errorStatus|ignored, reg.Read16(hw.acesr))
+				}
+
 				return 0, ignored, fmt.Errorf("interrupt error 0x%04x", errorStatus|ignored)
 			}
 
@@ -215,16 +219,16 @@ func (hw *SDHCI) invalidateStop(transferErr error, stopErr error) error {
 }
 
 func (hw *SDHCI) stopTransmission(transferErr error) error {
-	status, ignored, _, stopErr := hw.runCommand(12, 0, EISTR_DAT_LINE_ERROR_MASK)
+	status, _, _, stopErr := hw.runCommand(12, 0, EISTR_DAT_LINE_ERROR_MASK)
 
 	if stopErr != nil {
 		return hw.invalidateStop(transferErr, stopErr)
 	}
 
-	if ignored != 0 {
-		if stopErr = hw.reset(1<<SRR_SWRSTDAT, ControllerSetupTimeout); stopErr != nil {
-			return hw.invalidateStop(transferErr, stopErr)
-		}
+	// The CMD12 busy end completes the command but not the aborted data
+	// transfer; only a data line reset clears its data inhibit.
+	if stopErr = hw.reset(1<<SRR_SWRSTDAT, ControllerSetupTimeout); stopErr != nil {
+		return hw.invalidateStop(transferErr, stopErr)
 	}
 
 	if stopErr = checkR1(status); stopErr != nil {

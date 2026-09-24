@@ -18,8 +18,9 @@
 // initializes the controller and card, reports card metadata, and transfers
 // full 512-byte blocks. DMA allocations use dma.Default() unless callers provide
 // a controller-specific region. The region must be controller-accessible,
-// non-cacheable, and below 4 GiB. Multi-block reads are stopped explicitly with
-// CMD12; failed stop recovery invalidates the instance until initialization.
+// non-cacheable, and below 4 GiB. Multi-block reads predefine their block count
+// with Auto CMD23 and are aborted with CMD12 only after an error; failed stop
+// recovery invalidates the instance until initialization.
 //
 // This package is only meant to be used with `GOOS=tamago` as supported by the
 // TamaGo framework for bare metal Go, see https://github.com/usbarmory/tamago.
@@ -38,16 +39,21 @@ import (
 
 // SDMMC registers
 const (
+	SDMMC_SSAR = 0x00
+
 	SDMMC_BSR = 0x04
 	SDMMC_BCR = 0x06
 
 	SDMMC_ARG1R = 0x08
 
-	SDMMC_TMR  = 0x0c
-	TMR_DMAEN  = 0
-	TMR_BCEN   = 1
-	TMR_DTDSEL = 4
-	TMR_MSBSEL = 5
+	SDMMC_TMR        = 0x0c
+	TMR_DMAEN        = 0
+	TMR_BCEN         = 1
+	TMR_ACMDEN       = 2
+	TMR_ACMDEN_MASK  = 0x3
+	TMR_ACMDEN_CMD23 = 0x2
+	TMR_DTDSEL       = 4
+	TMR_MSBSEL       = 5
 
 	SDMMC_CR = 0x0e
 
@@ -111,11 +117,14 @@ const (
 	NISTR_ERRINT = 15
 
 	SDMMC_EISTR                      = 0x32
+	EISTR_ACMD                       = 8
 	EISTR_ADMA                       = 9
 	EISTR_DAT_LINE_ERROR_MASK uint16 = 0x0070
 
 	SDMMC_NISTER = 0x34
 	SDMMC_EISTER = 0x36
+
+	SDMMC_ACESR = 0x3c
 
 	SDMMC_CAPR = 0x40
 	CAPR_ADMA2 = 19
@@ -231,6 +240,7 @@ type SDHCI struct {
 	Region *dma.Region
 
 	// control registers
+	ssar   uint32
 	bsr    uint32
 	bcr    uint32
 	arg1r  uint32
@@ -247,6 +257,7 @@ type SDHCI struct {
 	eistr  uint32
 	nister uint32
 	eister uint32
+	acesr  uint32
 	capr   uint32
 	ca1r   uint32
 	aesr   uint32
@@ -465,6 +476,7 @@ func (hw *SDHCI) Init() (err error) {
 		return
 	}
 
+	hw.ssar = hw.Base + SDMMC_SSAR
 	hw.bsr = hw.Base + SDMMC_BSR
 	hw.bcr = hw.Base + SDMMC_BCR
 	hw.arg1r = hw.Base + SDMMC_ARG1R
@@ -481,6 +493,7 @@ func (hw *SDHCI) Init() (err error) {
 	hw.eistr = hw.Base + SDMMC_EISTR
 	hw.nister = hw.Base + SDMMC_NISTER
 	hw.eister = hw.Base + SDMMC_EISTER
+	hw.acesr = hw.Base + SDMMC_ACESR
 	hw.capr = hw.Base + SDMMC_CAPR
 	hw.ca1r = hw.Base + SDMMC_CA1R
 	hw.aesr = hw.Base + SDMMC_AESR
@@ -650,6 +663,13 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	bits.Set16(&transferMode, TMR_BCEN)
 	bits.SetTo16(&transferMode, TMR_DTDSEL, direction == READ)
 	bits.SetTo16(&transferMode, TMR_MSBSEL, multi)
+
+	if multi {
+		// predefine the block count so that the card ends the transfer itself
+		reg.Write(hw.ssar, uint32(blocks))
+		bits.SetN16(&transferMode, TMR_ACMDEN, TMR_ACMDEN_MASK, TMR_ACMDEN_CMD23)
+	}
+
 	reg.Write16(hw.tmr, transferMode)
 
 	command := index
@@ -661,9 +681,12 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 
 	status, _, issued, commandErr := hw.runCommand(command, lba, 0)
 
+	// multiple-block reads need CMD12 only to abort after an error
 	if command == 18 && issued {
 		defer func() {
-			err = hw.stopTransmission(err)
+			if err != nil {
+				err = hw.stopTransmission(err)
+			}
 		}()
 	}
 
