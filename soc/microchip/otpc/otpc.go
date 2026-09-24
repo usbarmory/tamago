@@ -73,26 +73,36 @@ type OTPC struct {
 	Size int
 }
 
-func (hw *OTPC) power(up bool) {
-	reg.SetTo(hw.Base+OTP_PWR_DN, PWR_DN_N, !up)
-
-	if up {
-		reg.Wait(hw.Base+OTP_STATUS, STATUS_CPUMPEN, 1, 0)
+func (hw *OTPC) timeout() time.Duration {
+	if hw.Timeout == 0 {
+		return Timeout
 	}
+
+	return hw.Timeout
+}
+
+func (hw *OTPC) powerUp() (err error) {
+	reg.Clear(hw.Base+OTP_PWR_DN, PWR_DN_N)
+
+	if !reg.WaitFor(hw.timeout(), hw.Base+OTP_STATUS, STATUS_CPUMPEN, 1, 0) {
+		return errors.New("power up timeout")
+	}
+
+	return
+}
+
+func (hw *OTPC) powerDown() {
+	reg.Set(hw.Base+OTP_PWR_DN, PWR_DN_N)
 }
 
 func (hw *OTPC) command(addr uint32, cmd int, access int) (err error) {
 	reg.Write(hw.Base+OTP_ADDR_HI, addr>>8)
 	reg.Write(hw.Base+OTP_ADDR_LO, addr&0xff)
 
-	reg.Set(hw.Base+OTP_FUNC_CMD, cmd)
+	reg.Write(hw.Base+OTP_FUNC_CMD, 1<<cmd)
 	reg.Write(hw.Base+OTP_CMD_GO, 1)
 
-	timeout := hw.Timeout
-
-	if timeout == 0 {
-		timeout = Timeout
-	}
+	timeout := hw.timeout()
 
 	if !reg.WaitFor(timeout, hw.Base+OTP_CMD_GO, 0, 1, 0) {
 		return errors.New("command timeout")
@@ -133,12 +143,15 @@ func (hw *OTPC) Read(off int, b []byte) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if off+len(b) >= hw.Size {
+	if off < 0 || off+len(b) > hw.Size {
 		return errors.New("address out of range")
 	}
 
-	hw.power(true)
-	defer hw.power(false)
+	defer hw.powerDown()
+
+	if err = hw.powerUp(); err != nil {
+		return
+	}
 
 	for i := range b {
 		if b[i], err = hw.read(uint32(off + i)); err != nil {
@@ -161,12 +174,15 @@ func (hw *OTPC) Blow(off int, b []byte) (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
-	if off+len(b) >= hw.Size {
+	if off < 0 || off+len(b) > hw.Size {
 		return errors.New("address out of range")
 	}
 
-	hw.power(true)
-	defer hw.power(false)
+	defer hw.powerDown()
+
+	if err = hw.powerUp(); err != nil {
+		return
+	}
 
 	for i := range b {
 		if err = hw.write(uint32(off+i), b[i]); err != nil {
