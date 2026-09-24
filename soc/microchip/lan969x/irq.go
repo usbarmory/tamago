@@ -12,30 +12,33 @@ import (
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
-// Interrupt controller registers
+// Outbound interrupt controller registers
 const (
-	INTR             = 0x128
-	INTR_STICKY_BASE = INTR + 0x40
-	INTR_ENA_BASE    = INTR + 0x60
+	INTR              = 0x128
+	INTR_STICKY_BASE  = INTR + 0x40
+	INTR_ENA_BASE     = INTR + 0x60
+	INTR_ENA_CLR_BASE = INTR + 0x70
+	INTR_ENA_SET_BASE = INTR + 0x80
 )
 
-// EnableInterrupt enables propagation of an individual interrupt source.
+// EnableInterrupt enables an outbound interrupt controller source.
 func EnableInterrupt(id int) {
 	group := id / 32
 	index := id % 32
-	reg.Set(CPU_BASE+INTR_ENA_BASE+uint32(group*4), index)
+	reg.Write(CPU_BASE+INTR_ENA_SET_BASE+uint32(group*4), 1<<index)
 }
 
-// DisableInterrupt disables propagation of an individual interrupt source.
+// DisableInterrupt disables an outbound interrupt controller source.
 func DisableInterrupt(id int) {
 	group := id / 32
 	index := id % 32
-	reg.Clear(CPU_BASE+INTR_ENA_BASE+uint32(group*4), index)
+	reg.Write(CPU_BASE+INTR_ENA_CLR_BASE+uint32(group*4), 1<<index)
 }
 
-// ClearInterrupt signals the end of an interrupt handling routine.
+// ClearInterrupt clears the sticky event of an outbound interrupt controller
+// source.
 func ClearInterrupt(id int) {
 	group := id / 32
 	index := id % 32
-	reg.Set(CPU_BASE+INTR_STICKY_BASE+uint32(group*4), index)
+	reg.Write(CPU_BASE+INTR_STICKY_BASE+uint32(group*4), 1<<index)
 }
