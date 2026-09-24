@@ -176,6 +176,9 @@ const (
 	// BlockSize is the size of a sector-addressed eMMC block.
 	BlockSize            = MMC_DEFAULT_BLOCK_SIZE
 	maxBlocksPerTransfer = 0xffff
+
+	// write command boundary in blocks
+	writeAlignment = 0x4000 / BlockSize
 )
 
 var (
@@ -551,6 +554,13 @@ func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) (
 
 	for len(buf) > 0 {
 		blocks := min(len(buf)/BlockSize, hw.maxBlocks)
+
+		// end each write command on a 16 KiB boundary
+		if dtd == WRITE && writeAlignment <= hw.maxBlocks {
+			limit := hw.maxBlocks - hw.maxBlocks%writeAlignment
+			blocks = min(len(buf)/BlockSize, limit-lba%writeAlignment)
+		}
+
 		length := blocks * BlockSize
 
 		if err = hw.transferDMA(index, dtd, uint32(lba), buf[:length], uint16(blocks)); err != nil {
