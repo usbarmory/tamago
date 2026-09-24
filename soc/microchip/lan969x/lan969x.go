@@ -68,6 +68,9 @@ const (
 	FLEXCOM1_IRQ = 79
 	FLEXCOM2_IRQ = 80
 	FLEXCOM3_IRQ = 81
+
+	// Secure Digital Host Controller Interface
+	SDMMC0_IRQ = 96
 )
 
 // Peripheral registers
@@ -249,6 +252,7 @@ var (
 	// Secure Digital Host Controller Interface
 	SDMMC0 = &sdhci.SDHCI{
 		Base:        SDMMC0_BASE,
+		IRQ:         SDMMC0_IRQ,
 		GCK:         CPU_BASE + gckConfigOffset + sdmmc0ClockID*4,
 		ParentClock: sdmmc0ParentClock,
 		TargetClock: sdmmc0TargetClock,

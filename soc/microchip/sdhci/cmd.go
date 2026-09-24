@@ -149,8 +149,59 @@ func (hw *SDHCI) pollStatus(expected uint16, timeout time.Duration) (uint32, err
 	return value, err
 }
 
+// EnableInterrupt makes transfer and busy waits that outlast a short spin
+// sleep until ServiceInterrupts wakes them, instead of polling. Call it before
+// servicing the controller interrupt.
+func (hw *SDHCI) EnableInterrupt() {
+	hw.Lock()
+	defer hw.Unlock()
+
+	hw.event = make(chan struct{}, 1)
+}
+
+// ServiceInterrupts services the controller interrupt. It masks the interrupt
+// signals and wakes a waiting transfer, which reads and clears the status.
+// Enable the controller interrupt only after Init.
+func (hw *SDHCI) ServiceInterrupts() {
+	if hw.event == nil {
+		return
+	}
+
+	reg.Write16(hw.nisier, 0)
+	reg.Write16(hw.eisier, 0)
+
+	select {
+	case hw.event <- struct{}{}:
+	default:
+	}
+}
+
+func (hw *SDHCI) waitInterrupt(expected uint16, deadline time.Time) {
+	// discard a wakeup left by an earlier wait
+	select {
+	case <-hw.event:
+	default:
+	}
+
+	reg.Write16(hw.eisier, allInterrupts)
+	reg.Write16(hw.nisier, expected)
+
+	timer := time.NewTimer(max(min(time.Until(deadline), InterruptPollInterval), 0))
+
+	select {
+	case <-hw.event:
+	case <-timer.C:
+	}
+
+	timer.Stop()
+
+	reg.Write16(hw.nisier, 0)
+	reg.Write16(hw.eisier, 0)
+}
+
 func (hw *SDHCI) pollStatusIgnoring(expected uint16, timeout time.Duration, ignoredErrors uint16) (value uint32, ignored uint16, err error) {
-	deadline := time.Now().Add(timeout)
+	started := time.Now()
+	deadline := started.Add(timeout)
 
 	for {
 		status := reg.Read16(hw.nistr)
@@ -182,11 +233,18 @@ func (hw *SDHCI) pollStatusIgnoring(expected uint16, timeout time.Duration, igno
 			return reg.Read(hw.rr), ignored, nil
 		}
 
-		if time.Now().After(deadline) {
+		now := time.Now()
+
+		if now.After(deadline) {
 			return 0, ignored, fmt.Errorf("status 0x%04x timeout", expected)
 		}
 
-		runtime.Gosched()
+		// transfers and busy periods sleep once they outlast a short spin
+		if hw.event != nil && expected&(1<<NISTR_TRFC) != 0 && now.Sub(started) > interruptWaitThreshold {
+			hw.waitInterrupt(expected, deadline)
+		} else {
+			runtime.Gosched()
+		}
 	}
 }
 
@@ -221,10 +279,15 @@ func (hw *SDHCI) invalidateStop(transferErr error, stopErr error) error {
 }
 
 func (hw *SDHCI) stopTransmission(transferErr error, timeout time.Duration) error {
-	status, _, _, stopErr := hw.runCommand(12, 0, EISTR_DAT_LINE_ERROR_MASK)
+	status, ignored, _, stopErr := hw.runCommand(12, 0, EISTR_DAT_LINE_ERROR_MASK)
 
 	if stopErr != nil {
 		return hw.invalidateStop(transferErr, stopErr)
+	}
+
+	// without a data line error, wait for the card to release busy
+	if ignored == 0 {
+		hw.waitBusy(timeout)
 	}
 
 	// The CMD12 busy end completes the command but not the aborted data
@@ -245,7 +308,8 @@ func (hw *SDHCI) stopTransmission(transferErr error, timeout time.Duration) erro
 }
 
 func (hw *SDHCI) waitState(state int, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
+	started := time.Now()
+	deadline := started.Add(timeout)
 
 	for {
 		status, err := hw.cmd(13, uint32(hw.card.RCA)<<16)
@@ -262,11 +326,24 @@ func (hw *SDHCI) waitState(state int, timeout time.Duration) error {
 			return nil
 		}
 
-		if time.Now().After(deadline) {
+		now := time.Now()
+
+		if now.After(deadline) {
 			return fmt.Errorf("card ready timeout status=0x%08x", status)
 		}
 
-		runtime.Gosched()
+		// long busy periods sleep between polls once they outlast a short spin
+		if hw.event == nil || now.Sub(started) < interruptWaitThreshold {
+			runtime.Gosched()
+		} else {
+			time.Sleep(InterruptPollInterval)
+		}
+	}
+}
+
+func (hw *SDHCI) waitBusy(timeout time.Duration) {
+	if _, err := hw.pollStatus(1<<NISTR_TRFC, timeout); err != nil {
+		hw.reset(1<<SRR_SWRSTDAT, ControllerSetupTimeout)
 	}
 }
 
