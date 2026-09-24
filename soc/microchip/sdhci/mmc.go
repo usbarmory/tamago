@@ -46,10 +46,12 @@ const (
 	EXT_CSD_CACHE_CTRL  = 33
 	EXT_CSD_FLUSH_CACHE = 32
 
-	CACHE_ENABLED    = 0
-	BUS_WIDTH_8      = 2
-	DEVICE_TYPE_HS52 = 1
-	HS_TIMING_HS     = 1
+	CACHE_ENABLED        = 0
+	BUS_WIDTH_8          = 2
+	BUS_WIDTH_8_DDR      = 6
+	DEVICE_TYPE_HS52     = 1
+	DEVICE_TYPE_HS_DDR52 = 2
+	HS_TIMING_HS         = 1
 )
 
 const MMC_DEFAULT_BLOCK_SIZE = 512
@@ -158,6 +160,45 @@ func (hw *SDHCI) enableHighSpeedMMC() (err error) {
 	return hw.setClockFrequency(mmcHighSpeedClockHz)
 }
 
+func (hw *SDHCI) enableDualDataRateMMC() (err error) {
+	deviceType := uint32(hw.card.DeviceType)
+	hostControl := uint32(reg.Read8(hw.hc1r))
+
+	// p220, Table 137, Device types, JESD84-B51
+	if !hw.DualDataRate || !bits.Get(&hostControl, HC1R_HSEN) ||
+		!bits.Get(&deviceType, DEVICE_TYPE_HS_DDR52) || !reg.Get(hw.ca1r, CA1R_DDR50SUP) {
+		return
+	}
+
+	// p223, 7.4.67 BUS_WIDTH [183], JESD84-B51
+	if err = hw.writeCardRegisterMMC(EXT_CSD_BUS_WIDTH, BUS_WIDTH_8_DDR, ControllerSetupTimeout); err != nil {
+		return fmt.Errorf("CMD6 SWITCH dual data rate bus width: %w", err)
+	}
+
+	// stop the card clock while selecting dual data rate sampling
+	reg.Clear16(hw.ccr, CCR_SDCLKEN)
+
+	mode := uint16(reg.Read8(hw.mc1r))
+	bits.Set16(&mode, MC1R_DDR)
+	reg.Write8(hw.mc1r, uint8(mode))
+	reg.SetN16(hw.hc2r, HC2R_UHSMS, HC2R_UHSMS_MASK, UHSMS_DDR50)
+
+	reg.Set16(hw.ccr, CCR_SDCLKEN)
+
+	extCSD := make([]byte, MMC_DEFAULT_BLOCK_SIZE)
+
+	if err = hw.readExtCSD(extCSD); err != nil {
+		return fmt.Errorf("dual data rate EXT_CSD read: %w", err)
+	}
+
+	if extCSD[EXT_CSD_BUS_WIDTH] != BUS_WIDTH_8_DDR ||
+		int(binary.LittleEndian.Uint32(extCSD[EXT_CSD_SEC_COUNT:])) != hw.card.Blocks {
+		return errors.New("dual data rate EXT_CSD mismatch")
+	}
+
+	return
+}
+
 func (hw *SDHCI) initMMC() (err error) {
 	// CMD2 - ALL_SEND_CID - get unique card identification
 	if _, err = hw.cmd(2, 0); err != nil {
@@ -208,7 +249,11 @@ func (hw *SDHCI) initMMC() (err error) {
 		return
 	}
 
-	return hw.enableHighSpeedMMC()
+	if err = hw.enableHighSpeedMMC(); err != nil {
+		return
+	}
+
+	return hw.enableDualDataRateMMC()
 }
 
 // Detect initializes the eMMC card attached to an initialized controller.

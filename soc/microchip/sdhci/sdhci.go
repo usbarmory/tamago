@@ -14,7 +14,7 @@
 //   - SD Host Controller Simplified Specification - Version 3.00
 //   - JESD84-B51 - Embedded Multi-Media Card (eMMC) Electrical Standard (5.1) - 2015/02
 //
-// The driver supports sector-addressed 8-bit eMMC devices up to high speed. It
+// The driver supports sector-addressed 8-bit eMMC devices up to HS_DDR. It
 // initializes the controller and card, reports card metadata, and transfers
 // full 512-byte blocks. DMA allocations use dma.Default() unless callers provide
 // a controller-specific region. The region must be controller-accessible,
@@ -117,16 +117,24 @@ const (
 	SDMMC_NISTER = 0x34
 	SDMMC_EISTER = 0x36
 
-	SDMMC_CAPR  = 0x40
-	CAPR_ADMA2  = 19
-	CAPR_HSSUP  = 21
-	SDMMC_AESR  = 0x54
-	SDMMC_ASAR0 = 0x58
-	SDMMC_ASAR1 = 0x5c
+	SDMMC_HC2R      = 0x3e
+	HC2R_UHSMS      = 0
+	HC2R_UHSMS_MASK = 0x7
+	UHSMS_DDR50     = 4
+
+	SDMMC_CAPR    = 0x40
+	CAPR_ADMA2    = 19
+	CAPR_HSSUP    = 21
+	SDMMC_CA1R    = 0x44
+	CA1R_DDR50SUP = 2
+	SDMMC_AESR    = 0x54
+	SDMMC_ASAR0   = 0x58
+	SDMMC_ASAR1   = 0x5c
 
 	SDMMC_MC1R       = 0x204
 	MC1R_CMDTYP      = 0
 	MC1R_CMDTYP_MASK = 0x3
+	MC1R_DDR         = 3
 	MC1R_OPD         = 4
 	MC1R_FCD         = 7
 )
@@ -220,6 +228,10 @@ type SDHCI struct {
 	// defaults to dma.Default() and must be controller-accessible,
 	// non-cacheable, and below 4 GiB.
 	Region *dma.Region
+	// DualDataRate enables 8-bit dual data rate (HS_DDR) transfers at the
+	// high-speed clock when the card and the host support it. Boards opt in
+	// once their bus is qualified for dual data rate signaling.
+	DualDataRate bool
 
 	// control registers
 	bsr    uint32
@@ -238,7 +250,9 @@ type SDHCI struct {
 	eistr  uint32
 	nister uint32
 	eister uint32
+	hc2r   uint32
 	capr   uint32
+	ca1r   uint32
 	aesr   uint32
 	asar0  uint32
 	asar1  uint32
@@ -384,9 +398,10 @@ func (hw *SDHCI) initController(prescaler uint32) (err error) {
 	bits.Set16(&power, PCR_SDBPWR)
 	reg.Write8(hw.pcr, uint8(power))
 
-	// force card insertion
+	// force card insertion with single data rate sampling
 	cardDetect := uint16(reg.Read8(hw.mc1r))
 	bits.Set16(&cardDetect, MC1R_FCD)
+	bits.Clear16(&cardDetect, MC1R_DDR)
 	reg.Write8(hw.mc1r, uint8(cardDetect))
 
 	// enable all status events
@@ -470,7 +485,9 @@ func (hw *SDHCI) Init() (err error) {
 	hw.eistr = hw.Base + SDMMC_EISTR
 	hw.nister = hw.Base + SDMMC_NISTER
 	hw.eister = hw.Base + SDMMC_EISTER
+	hw.hc2r = hw.Base + SDMMC_HC2R
 	hw.capr = hw.Base + SDMMC_CAPR
+	hw.ca1r = hw.Base + SDMMC_CA1R
 	hw.aesr = hw.Base + SDMMC_AESR
 	hw.asar0 = hw.Base + SDMMC_ASAR0
 	hw.asar1 = hw.Base + SDMMC_ASAR1
