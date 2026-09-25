@@ -22,6 +22,9 @@ const (
 
 	entriesPerTable = 512
 	pageTableSize   = entriesPerTable * 8
+
+	// descriptor output address, bits [47:12]
+	outputAddressMask uint64 = 0x0000_ffff_ffff_f000
 )
 
 type mmuMap struct {
@@ -33,6 +36,10 @@ type mmuMap struct {
 	arenaNext uint64
 	arenaEnd  uint64
 }
+
+// mmu describes the translation tables, which every CPU instance shares:
+// Init builds them in hwinit0 before any application CPU instance exists.
+var mmu mmuMap
 
 type mappingAction uint8
 
@@ -163,8 +170,12 @@ const (
 	deviceAttributeIndex = 0
 	memoryAttributeIndex = 1
 
-	deviceAttributes = 1<<TTE_AF | TTE_OUTER_SH | TTE_AP_00<<TTE_AP | deviceAttributeIndex<<TTE_ATTR
-	memoryAttributes = 1<<TTE_AF | TTE_INNER_SH | TTE_AP_00<<TTE_AP | memoryAttributeIndex<<TTE_ATTR
+	// DeviceAttributes are the descriptor attributes of Device-nGnRnE
+	// mappings.
+	DeviceAttributes = 1<<TTE_AF | TTE_OUTER_SH | TTE_AP_00<<TTE_AP | deviceAttributeIndex<<TTE_ATTR
+	// MemoryAttributes are the descriptor attributes of Normal write-back
+	// mappings.
+	MemoryAttributes = 1<<TTE_AF | TTE_INNER_SH | TTE_AP_00<<TTE_AP | memoryAttributeIndex<<TTE_ATTR
 )
 
 // MMU access permissions
@@ -221,8 +232,8 @@ func set_ttbr0_el1(addr uint64)
 func (m *mmuMap) initL1Table(entry int, ttbr uint64, section uint64) {
 	n := 30 // 1GB
 
-	memoryRegion := memoryAttributes | TTE_BLOCK
-	deviceRegion := deviceAttributes | TTE_BLOCK
+	memoryRegion := MemoryAttributes | TTE_BLOCK
+	deviceRegion := DeviceAttributes | TTE_BLOCK
 
 	for i := uint64(entry); i < entriesPerTable; i++ {
 		page := ttbr + 8*i
@@ -245,8 +256,8 @@ func (m *mmuMap) initL1Table(entry int, ttbr uint64, section uint64) {
 func (m *mmuMap) initL2Table(entry int, base uint64, section uint64) {
 	n := 21 // 2MB
 
-	memoryRegion := memoryAttributes | TTE_BLOCK
-	deviceRegion := deviceAttributes | TTE_BLOCK
+	memoryRegion := MemoryAttributes | TTE_BLOCK
+	deviceRegion := DeviceAttributes | TTE_BLOCK
 
 	for i := uint64(entry); i < entriesPerTable; i++ {
 		page := base + 8*i
@@ -269,8 +280,8 @@ func (m *mmuMap) initL2Table(entry int, base uint64, section uint64) {
 func (m *mmuMap) initL3Table(entry int, base uint64, section uint64) {
 	n := 12 // 4KB
 
-	memoryRegion := memoryAttributes | TTE_PAGE
-	deviceRegion := deviceAttributes | TTE_PAGE
+	memoryRegion := MemoryAttributes | TTE_PAGE
+	deviceRegion := DeviceAttributes | TTE_PAGE
 
 	for i := uint64(entry); i < entriesPerTable; i++ {
 		page := base + 8*i
@@ -289,7 +300,7 @@ func (m *mmuMap) initL3Table(entry int, base uint64, section uint64) {
 // All available memory is marked as non-executable except for the range
 // returned by runtime.TextRegion().
 func (cpu *CPU) InitMMU() {
-	m := &mmuMap{}
+	m := &mmu
 	m.init()
 
 	l1pageTableStart := m.ramStart + l1pageTableOffset
@@ -325,4 +336,81 @@ func (cpu *CPU) InitMMU() {
 
 	// enable MMU
 	set_ttbr0_el1(l1pageTableStart)
+}
+
+// l2Entry returns the second-level descriptor address for the argument
+// address, splitting a first-level block into second-level blocks with the
+// same attributes if needed.
+func (m *mmuMap) l2Entry(addr uint64) uint64 {
+	l1 := m.ramStart + l1pageTableOffset + 8*(addr>>30)
+	tte := reg.Read64(l1)
+
+	if tte&TTE_TABLE != TTE_TABLE {
+		next := m.alloc()
+		section := alignDown(addr, 1<<30)
+
+		for i := uint64(0); i < entriesPerTable; i++ {
+			if tte&TTE_TABLE == TTE_BLOCK {
+				reg.Write64(next+8*i, (tte&^outputAddressMask)|(section+i<<21))
+			} else {
+				reg.Write64(next+8*i, 0)
+			}
+		}
+
+		// break-before-make
+		reg.Write64(l1, 0)
+		flush_tlb()
+		reg.Write64(l1, next|TTE_TABLE)
+
+		tte = next | TTE_TABLE
+	}
+
+	return (tte & outputAddressMask) + 8*((addr>>21)&(entriesPerTable-1))
+}
+
+// ConfigureMMU (re)configures the second-level translation tables for the
+// provided memory range with the argument attribute flags. An alias argument
+// greater than zero specifies the physical address corresponding to the start
+// argument in case virtual memory is required, otherwise a flat 1:1 mapping is
+// set.
+//
+// The range is configured in 2MB blocks, the argument flags must include
+// TTE_BLOCK. A first-level 1GB block covering part of the range is first split
+// into second-level blocks with its existing attributes. Each 2MB block
+// replaces any finer mapping set by InitMMU within it.
+//
+// The range, and any 1GB block being split, must not be accessed while it is
+// reconfigured. Cacheable memory changed to a non-cacheable type must be
+// cleaned and invalidated from the data cache first.
+func (cpu *CPU) ConfigureMMU(start, end, alias, flags uint64) {
+	if end > entriesPerTable<<30 {
+		panic("MMU range above 512GB")
+	}
+
+	start = start >> 21
+	end = end >> 21
+	alias = alias >> 21
+
+	var pa uint64
+
+	// break-before-make
+	for i := start; i < end; i++ {
+		reg.Write64(mmu.l2Entry(i<<21), 0)
+	}
+
+	cpu.FlushTLBs()
+
+	for i := start; i < end; i++ {
+		page := mmu.l2Entry(i << 21)
+
+		if alias > 0 {
+			pa = (alias + i - start) << 21
+		} else {
+			pa = i << 21
+		}
+
+		reg.Write64(page, pa|flags)
+	}
+
+	cpu.FlushTLBs()
 }
