@@ -12,6 +12,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/usbarmory/tamago/bits"
@@ -77,6 +78,8 @@ func (hw *SDHCI) voltageValidationMMC() (ready bool) {
 			hw.card.OCR = response
 			return bits.GetN(&response, MMC_OCR_ACCESS_MODE, 0b11) == ACCESS_MODE_SECTOR
 		}
+
+		runtime.Gosched()
 	}
 
 	return

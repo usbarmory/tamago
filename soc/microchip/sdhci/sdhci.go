@@ -168,6 +168,9 @@ var (
 	ClockSetupTimeout = 100 * time.Millisecond
 	// WriteTimeout controls card write and cache synchronization waits.
 	WriteTimeout = 30 * time.Second
+	// ReadBlockTimeout is added to CommandTimeout for each block of a read
+	// transfer.
+	ReadBlockTimeout = 1 * time.Millisecond
 
 	// ErrNotInitialized indicates that Detect has not completed successfully.
 	ErrNotInitialized = errors.New("eMMC card is not initialized")
@@ -669,7 +672,7 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 		return
 	}
 
-	transferTimeout := CommandTimeout
+	transferTimeout := CommandTimeout + ReadBlockTimeout*time.Duration(blocks)
 	if direction == WRITE {
 		transferTimeout = WriteTimeout
 	}
