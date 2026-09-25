@@ -205,6 +205,10 @@ type CardInfo struct {
 	DeviceType byte
 	// Write cache state
 	CacheEnabled bool
+	// High Speed
+	HS bool
+	// Dual Data Rate
+	DDR bool
 
 	// Block size
 	BlockSize int
@@ -228,10 +232,6 @@ type SDHCI struct {
 	// defaults to dma.Default() and must be controller-accessible,
 	// non-cacheable, and below 4 GiB.
 	Region *dma.Region
-	// DualDataRate enables 8-bit dual data rate (HS_DDR) transfers at the
-	// high-speed clock when the card and the host support it. Boards opt in
-	// once their bus is qualified for dual data rate signaling.
-	DualDataRate bool
 
 	// control registers
 	bsr    uint32
@@ -673,7 +673,7 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	}
 
 	if commandErr != nil {
-		err = fmt.Errorf("CMD%d transfer failed: %w", command, commandErr)
+		err = fmt.Errorf("CMD%d transfer failed, %w", command, commandErr)
 
 		if command != 18 || !issued {
 			err = hw.invalidateTransfer(err)
@@ -683,7 +683,7 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	}
 
 	if responseErr := checkR1(status); responseErr != nil {
-		err = fmt.Errorf("CMD%d transfer: %w", command, responseErr)
+		err = fmt.Errorf("CMD%d transfer, %w", command, responseErr)
 
 		if command != 18 {
 			err = hw.invalidateTransfer(err)
@@ -698,7 +698,7 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	}
 
 	if _, statusErr := hw.pollStatus(1<<NISTR_TRFC, transferTimeout); statusErr != nil {
-		err = fmt.Errorf("CMD%d transfer: %w", command, statusErr)
+		err = fmt.Errorf("CMD%d transfer, %w", command, statusErr)
 
 		if command != 18 {
 			err = hw.invalidateTransfer(err)
