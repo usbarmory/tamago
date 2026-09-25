@@ -117,11 +117,6 @@ const (
 	SDMMC_NISTER = 0x34
 	SDMMC_EISTER = 0x36
 
-	SDMMC_HC2R      = 0x3e
-	HC2R_UHSMS      = 0
-	HC2R_UHSMS_MASK = 0x7
-	UHSMS_DDR50     = 4
-
 	SDMMC_CAPR    = 0x40
 	CAPR_ADMA2    = 19
 	CAPR_HSSUP    = 21
@@ -250,7 +245,6 @@ type SDHCI struct {
 	eistr  uint32
 	nister uint32
 	eister uint32
-	hc2r   uint32
 	capr   uint32
 	ca1r   uint32
 	aesr   uint32
@@ -485,7 +479,6 @@ func (hw *SDHCI) Init() (err error) {
 	hw.eistr = hw.Base + SDMMC_EISTR
 	hw.nister = hw.Base + SDMMC_NISTER
 	hw.eister = hw.Base + SDMMC_EISTER
-	hw.hc2r = hw.Base + SDMMC_HC2R
 	hw.capr = hw.Base + SDMMC_CAPR
 	hw.ca1r = hw.Base + SDMMC_CA1R
 	hw.aesr = hw.Base + SDMMC_AESR

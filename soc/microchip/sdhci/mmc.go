@@ -150,14 +150,15 @@ func (hw *SDHCI) enableHighSpeedMMC() (err error) {
 		return fmt.Errorf("CMD6 SWITCH high-speed timing, %w", err)
 	}
 
-	// Select high-speed host timing: stop the card clock, move host output
-	// to the rising edge (HC1R.HSEN), then restart the clock at 50 MHz.
+	// Stop SDCLK before changing host timing.
 	reg.Clear16(hw.ccr, CCR_SDCLKEN)
 
+	// Drive CMD and DAT on the rising SDCLK edge.
 	hostControl := uint16(reg.Read8(hw.hc1r))
 	bits.Set16(&hostControl, HC1R_HSEN)
 	reg.Write8(hw.hc1r, uint8(hostControl))
 
+	// Restart SDCLK at 50 MHz.
 	if err = hw.setClockFrequency(mmcHighSpeedClockHz); err != nil {
 		return
 	}
@@ -180,17 +181,18 @@ func (hw *SDHCI) enableDDRMMC() (err error) {
 		return fmt.Errorf("CMD6 SWITCH dual data rate bus width, %w", err)
 	}
 
-	// Select dual data rate host sampling: stop the card clock, sample on
-	// both edges (MC1R.DDR) in DDR50 mode (HC2R.UHSMS), then restart it.
+	// Stop SDCLK before changing the host transfer mode.
 	reg.Clear16(hw.ccr, CCR_SDCLKEN)
 
+	// Select e.MMC high-speed DDR mode.
 	mode := uint16(reg.Read8(hw.mc1r))
 	bits.Set16(&mode, MC1R_DDR)
 	reg.Write8(hw.mc1r, uint8(mode))
-	reg.SetN16(hw.hc2r, HC2R_UHSMS, HC2R_UHSMS_MASK, UHSMS_DDR50)
+
+	// Restart SDCLK with the host in DDR mode.
 	reg.Set16(hw.ccr, CCR_SDCLKEN)
 
-	// verify the bus with an EXT_CSD read
+	// Verify the new bus mode with an EXT_CSD read.
 	extCSD := make([]byte, MMC_DEFAULT_BLOCK_SIZE)
 
 	if err = hw.readExtCSD(extCSD); err != nil {
