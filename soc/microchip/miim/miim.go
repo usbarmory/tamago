@@ -130,7 +130,7 @@ func (hw *MIIM) MDIO22(op, pa, ra int, data uint16) (rddata uint16, err error) {
 	read := op == mdio.OP_READ
 
 	if rddata, err = hw.mdio(uint32(pa), uint32(ra), uint32(data), uint32(op), read); err != nil {
-		return 0, fmt.Errorf("clause 22 PHY %d register %d: %w", pa, ra, err)
+		return 0, fmt.Errorf("clause 22 PHY %d register %d, %w", pa, ra, err)
 	}
 
 	return
@@ -150,7 +150,7 @@ func (hw *MIIM) MDIO45(op, prtad, devad int, data uint16) (rddata uint16, err er
 	read := op == mdio.OP_READ_INC || op == mdio.OP_READ_45
 
 	if rddata, err = hw.mdio(uint32(prtad), uint32(devad), uint32(data), uint32(op), read); err != nil {
-		return 0, fmt.Errorf("clause 45 port %d device %d: %w", prtad, devad, err)
+		return 0, fmt.Errorf("clause 45 port %d device %d, %w", prtad, devad, err)
 	}
 
 	return
