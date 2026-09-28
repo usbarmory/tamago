@@ -44,15 +44,15 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 
 	// PDPT[1]: 0x40000000 - 0x7fffffff (1GB) cacheable physical page (1GB PDPE)
 	ADDL	$8, DI
-	MOVL	$(1<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+	MOVL	$(1<<30 | const_MemoryRegion), (DI)		// set PS, R/W, P
 
 	// PDPT[2]: 0x80000000 - 0xbfffffff (1GB) cacheable physical page (1GB PDPE)
 	ADDL	$8, DI
-	MOVL	$(2<<30 | 1<<7 | 1<<1 | 1<<0), (DI)		// set PS, R/W, P
+	MOVL	$(2<<30 | const_MemoryRegion), (DI)		// set PS, R/W, P
 
 	// PDPT[3]: 0xc0000000 - 0xffffffff (1GB) uncacheable physical page (1GB PDPE)
 	ADDL	$8, DI
-	MOVL	$(3<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), (DI)	// set PS, PCD, R/W, P
+	MOVL	$(3<<30 | const_DeviceRegion), (DI)	// set PS, PCD, R/W, P
 
 	// PDT[..]: 0x00000000 - 0x3fffffff (1GB) cacheable physical page (2MB PDTEs)
 	MOVL	$PDT, DI
@@ -61,7 +61,7 @@ add_pdt_entries:
 	CMPL	AX, $(1 << 30)
 	JAE	check_long_mode
 
-	ORL	$(1<<7 | 1<<1 | 1<<0), AX			// set PS, R/W, P
+	ORL	$(const_MemoryRegion), AX			// set PS, R/W, P
 	MOVL	AX, (DI)
 
 	ADDL	$(2<<20), AX
@@ -151,12 +151,12 @@ add_ext_entries:
 
 	// PDPT[4]: 0x100000000 - 0x13fffffff (1GB) uncacheable physical page (1GB PDPE)
 	ADDL	$(8*4), DI
-	MOVQ	$(4<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), AX	// set PS, PCD, R/W, P
+	MOVQ	$(4<<30 | const_DeviceRegion), AX		// set PS, PCD, R/W, P
 	MOVQ	AX, (DI)
 
 	// PDPT[5]: 0x140000000 - 0x17fffffff (1GB) uncacheable physical page (1GB PDPE)
 	ADDL	$8, DI
-	MOVQ	$(5<<30 | 1<<7 | 1<<4 | 1<<1 | 1<<0), AX	// set PS, PCD, R/W, P
+	MOVQ	$(5<<30 | const_DeviceRegion), AX		// set PS, PCD, R/W, P
 	MOVQ	AX, (DI)
 
 	// flush TLBs

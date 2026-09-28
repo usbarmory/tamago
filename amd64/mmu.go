@@ -19,8 +19,13 @@ const CR0_WP = 16
 
 // Memory region attributes
 const (
-	TTE_P  uint64 = (1 << 0)
-	TTE_PS uint64 = (1 << 7)
+	TTE_P   uint64 = (1 << 0)
+	TTE_RW  uint64 = (1 << 1)
+	TTE_PCD uint64 = (1 << 4)
+	TTE_PS  uint64 = (1 << 7)
+
+	MemoryRegion = TTE_PS | TTE_RW | TTE_P
+	DeviceRegion = TTE_PS | TTE_PCD | TTE_RW | TTE_P
 )
 
 // Page levels
@@ -45,6 +50,8 @@ const (
 func read_cr0() uint64
 func write_cr0(val uint64)
 func read_cr3() uint64
+func set_ext_pdpt(index int, flags uint64)
+func flush_tlb()
 
 // SetWriteProtect configures the Write Protect (WP) bit in Control Register 0
 // (CR0).
@@ -120,4 +127,29 @@ func (cpu *CPU) SetEncryptedBit(start uint64, end uint64, cbit int, private bool
 	}
 
 	return
+}
+
+// ConfigurePDPT (re)configures the third-level translation tables (PDPT) for
+// the provided extended memory range (i.e. above 4 GiB, range must be 1 GiB
+// aligned) with the argument attribute flags, a flat 1:1 mapping is set.
+func (cpu *CPU) ConfigurePDPT(start, end, flags uint64) {
+	var index int
+
+	// ensure extended memory range
+	if start < (1 << 32) {
+		return
+	}
+
+	// force lowest level of the page-translation hierarchy
+	flags |= TTE_PS
+
+	for base := start; base < end; base += 1 << 30 {
+		if index = int(base >> 30); index >= tableEntries {
+			break
+		}
+
+		set_ext_pdpt(index, flags)
+	}
+
+	flush_tlb()
 }
