@@ -133,7 +133,11 @@ marker:
 	WORD	$doneMarker
 
 TEXT ·apstart<>(SB),NOSPLIT|NOFRAME,$0
+	// enable SSE
 	CALL	sse_enable(SB)
+
+	// enable extended processor state management to support SIMD
+	CALL	xsave_enable(SB)
 
 	// apply BSP GDT
 	MOVQ	$·gdtptr(SB), AX

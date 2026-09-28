@@ -31,3 +31,24 @@ TEXT sse_enable(SB),NOSPLIT|NOFRAME,$0
 	MOVL	BX, CR4
 
 	RET
+
+TEXT xsave_enable(SB),NOSPLIT|NOFRAME,$0
+	MOVL	$1, AX			// Processor Info and Feature Bits
+	MOVL	$0, CX
+	CPUID
+	BTL	$26, CX			// check ECX.XSAVE
+	JCC	done
+
+	MOVL	CR4, BX
+	ORL	$(1<<18), BX		// set CR4.OSXSAVE
+	MOVL	BX, CR4
+
+	MOVL	$0xd, AX		// XSAVE features
+	MOVL	$0, CX
+	CPUID
+	ANDL	$0xe7, AX		// x87|SSE|AVX|opmask|ZMM_Hi256|Hi16_ZMM
+	MOVL	$0, DX
+	MOVL	$0, CX			// XCR0
+	XSETBV				// Set Extended Control Register
+done:
+	RET

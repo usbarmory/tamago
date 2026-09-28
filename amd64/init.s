@@ -120,6 +120,9 @@ TEXT ·start<>(SB),NOSPLIT|NOFRAME,$0
 	// enable SSE
 	CALL	sse_enable(SB)
 
+	// enable extended processor state management to support SIMD
+	CALL	xsave_enable(SB)
+
 	// PT[0]:  0x00000000 - 0x00001000 inaccessible (zero page)
 	MOVL	$PT, DI
 	ANDL	$~(1<<1 | 1<<0), (DI)				// clear R/W, P
