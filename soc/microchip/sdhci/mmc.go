@@ -54,7 +54,7 @@ const (
 	BUS_WIDTH_8_DDR   = 6
 
 	EXT_CSD_CACHE_CTRL = 33
-	CACHE_ENABLE       = 0
+	CACHE_ENABLED      = 0
 
 	EXT_CSD_FLUSH_CACHE = 32
 )
