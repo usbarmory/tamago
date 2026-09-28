@@ -21,3 +21,15 @@ import (
 
 //go:linkname ramSize runtime/goos.RamSize
 var ramSize uint64 = 0xb0000000 - dmaSize // 2560 MiB
+
+// On amd64 memory above 4 GiB can be accessed by relocating the heap memory
+// start address, the following example enables 8 GiB memory allocation in
+// extended memory and must be hooked in goos.Hwinit0:
+//
+//   goos.RamStart = 0x1_0000_0000
+//   goos.RamSize  = 8 << 30
+//   goos.Bloc     = uintptr(goos.RamStart)
+//   goos.BlocMax  = uintptr(goos.RamStart + goos.RamSize)
+//
+// Note that this does not cover any MMU re-configuration that might be
+// required depending on the boot state of PDPT entries (see amd64/init.s).
