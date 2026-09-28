@@ -41,12 +41,17 @@ const (
 	EXT_CSD_SEC_COUNT   = 212
 	EXT_CSD_DEVICE_TYPE = 196
 	EXT_CSD_REV         = 192
+	EXT_CSD_HS_TIMING   = 185
 	EXT_CSD_BUS_WIDTH   = 183
 	EXT_CSD_CACHE_CTRL  = 33
 	EXT_CSD_FLUSH_CACHE = 32
 
-	CACHE_ENABLED = 0
-	BUS_WIDTH_8   = 2
+	CACHE_ENABLED        = 0
+	BUS_WIDTH_8          = 2
+	BUS_WIDTH_8_DDR      = 6
+	DEVICE_TYPE_HS52     = 1
+	DEVICE_TYPE_HS_DDR52 = 2
+	HS_TIMING_HS         = 1
 )
 
 const MMC_DEFAULT_BLOCK_SIZE = 512
@@ -132,10 +137,82 @@ func (hw *SDHCI) detectCapabilitiesMMC() (err error) {
 	return
 }
 
+func (hw *SDHCI) enableHighSpeedMMC() (err error) {
+	deviceType := uint32(hw.card.DeviceType)
+
+	// p220, Table 137, Device types, JESD84-B51
+	if !bits.Get(&deviceType, DEVICE_TYPE_HS52) || !reg.Get(hw.capr, CAPR_HSSUP) {
+		return
+	}
+
+	// p222, 7.4.65 HS_TIMING [185], JESD84-B51
+	if err = hw.writeCardRegisterMMC(EXT_CSD_HS_TIMING, HS_TIMING_HS, ControllerSetupTimeout); err != nil {
+		return fmt.Errorf("CMD6 SWITCH high-speed timing, %w", err)
+	}
+
+	// Stop SDCLK before changing host timing.
+	reg.Clear16(hw.ccr, CCR_SDCLKEN)
+
+	// Drive CMD and DAT on the rising SDCLK edge.
+	hostControl := uint16(reg.Read8(hw.hc1r))
+	bits.Set16(&hostControl, HC1R_HSEN)
+	reg.Write8(hw.hc1r, uint8(hostControl))
+
+	// Restart SDCLK at 50 MHz.
+	if err = hw.setClockFrequency(mmcHighSpeedClockHz); err != nil {
+		return
+	}
+
+	hw.card.HS = true
+
+	return
+}
+
+func (hw *SDHCI) enableDDRMMC() (err error) {
+	deviceType := uint32(hw.card.DeviceType)
+
+	// p220, Table 137, Device types, JESD84-B51
+	if !hw.card.HS || !bits.Get(&deviceType, DEVICE_TYPE_HS_DDR52) || !reg.Get(hw.ca1r, CA1R_DDR50SUP) {
+		return
+	}
+
+	// p223, 7.4.67 BUS_WIDTH [183], JESD84-B51
+	if err = hw.writeCardRegisterMMC(EXT_CSD_BUS_WIDTH, BUS_WIDTH_8_DDR, ControllerSetupTimeout); err != nil {
+		return fmt.Errorf("CMD6 SWITCH dual data rate bus width, %w", err)
+	}
+
+	// Stop SDCLK before changing the host transfer mode.
+	reg.Clear16(hw.ccr, CCR_SDCLKEN)
+
+	// Select e.MMC high-speed DDR mode.
+	mode := uint16(reg.Read8(hw.mc1r))
+	bits.Set16(&mode, MC1R_DDR)
+	reg.Write8(hw.mc1r, uint8(mode))
+
+	// Restart SDCLK with the host in DDR mode.
+	reg.Set16(hw.ccr, CCR_SDCLKEN)
+
+	// Verify the new bus mode with an EXT_CSD read.
+	extCSD := make([]byte, MMC_DEFAULT_BLOCK_SIZE)
+
+	if err = hw.readExtCSD(extCSD); err != nil {
+		return fmt.Errorf("dual data rate EXT_CSD read, %w", err)
+	}
+
+	if extCSD[EXT_CSD_BUS_WIDTH] != BUS_WIDTH_8_DDR ||
+		int(binary.LittleEndian.Uint32(extCSD[EXT_CSD_SEC_COUNT:])) != hw.card.Blocks {
+		return errors.New("dual data rate EXT_CSD mismatch")
+	}
+
+	hw.card.DDR = true
+
+	return
+}
+
 func (hw *SDHCI) initMMC() (err error) {
 	// CMD2 - ALL_SEND_CID - get unique card identification
 	if _, err = hw.cmd(2, 0); err != nil {
-		return fmt.Errorf("CMD2 ALL_SEND_CID failed: %w", err)
+		return fmt.Errorf("CMD2 ALL_SEND_CID failed, %w", err)
 	}
 
 	hw.card.CID = hw.response136()
@@ -145,27 +222,27 @@ func (hw *SDHCI) initMMC() (err error) {
 	status, err := hw.cmd(3, uint32(hw.card.RCA)<<16)
 
 	if err != nil {
-		return fmt.Errorf("CMD3 SET_RELATIVE_ADDR failed: %w", err)
+		return fmt.Errorf("CMD3 SET_RELATIVE_ADDR failed, %w", err)
 	}
 
 	if err = checkR1(status); err != nil {
-		return fmt.Errorf("CMD3 SET_RELATIVE_ADDR: %w", err)
+		return fmt.Errorf("CMD3 SET_RELATIVE_ADDR, %w", err)
 	}
 
 	// CMD7 - SELECT/DESELECT CARD - enter transfer state
 	status, err = hw.cmd(7, uint32(hw.card.RCA)<<16)
 
 	if err != nil {
-		return fmt.Errorf("CMD7 SELECT_CARD failed: %w", err)
+		return fmt.Errorf("CMD7 SELECT_CARD failed, %w", err)
 	}
 
 	if err = checkR1(status); err != nil {
-		return fmt.Errorf("CMD7 SELECT_CARD: %w", err)
+		return fmt.Errorf("CMD7 SELECT_CARD, %w", err)
 	}
 
 	// p223, 7.4.67 BUS_WIDTH [183], JESD84-B51
 	if err = hw.writeCardRegisterMMC(EXT_CSD_BUS_WIDTH, BUS_WIDTH_8, ControllerSetupTimeout); err != nil {
-		return fmt.Errorf("CMD6 SWITCH bus width: %w", err)
+		return fmt.Errorf("CMD6 SWITCH bus width, %w", err)
 	}
 
 	// select 8-bit bus width
@@ -178,7 +255,15 @@ func (hw *SDHCI) initMMC() (err error) {
 		return
 	}
 
-	return hw.detectCapabilitiesMMC()
+	if err = hw.detectCapabilitiesMMC(); err != nil {
+		return
+	}
+
+	if err = hw.enableHighSpeedMMC(); err != nil {
+		return
+	}
+
+	return hw.enableDDRMMC()
 }
 
 // Detect initializes the eMMC card attached to an initialized controller.
@@ -204,7 +289,7 @@ func (hw *SDHCI) Detect() (err error) {
 
 	// CMD0 - GO_IDLE_STATE - reset card
 	if _, err = hw.cmd(0, 0); err != nil {
-		return fmt.Errorf("CMD0 GO_IDLE_STATE failed: %w", err)
+		return fmt.Errorf("CMD0 GO_IDLE_STATE failed, %w", err)
 	}
 
 	if !hw.voltageValidationMMC() {
@@ -268,7 +353,7 @@ func (hw *SDHCI) Sync() error {
 	}
 
 	if err := hw.writeCardRegisterMMC(EXT_CSD_FLUSH_CACHE, 1, WriteTimeout); err != nil {
-		return hw.invalidateTransfer(fmt.Errorf("CMD6 FLUSH_CACHE: %w", err))
+		return hw.invalidateTransfer(fmt.Errorf("CMD6 FLUSH_CACHE, %w", err))
 	}
 
 	return nil

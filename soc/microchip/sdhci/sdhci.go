@@ -14,7 +14,7 @@
 //   - SD Host Controller Simplified Specification - Version 3.00
 //   - JESD84-B51 - Embedded Multi-Media Card (eMMC) Electrical Standard (5.1) - 2015/02
 //
-// The driver supports sector-addressed eMMC devices in 8-bit legacy mode. It
+// The driver supports sector-addressed 8-bit eMMC devices up to HS_DDR. It
 // initializes the controller and card, reports card metadata, and transfers
 // full 512-byte blocks. DMA allocations use dma.Default() unless callers provide
 // a controller-specific region. The region must be controller-accessible,
@@ -74,6 +74,7 @@ const (
 
 	SDMMC_HC1R       = 0x28
 	HC1R_DW_4BIT     = 1
+	HC1R_HSEN        = 2
 	HC1R_DMASEL      = 3
 	HC1R_DMASEL_MASK = 0x3
 	HC1R_EXTDW       = 5
@@ -116,15 +117,19 @@ const (
 	SDMMC_NISTER = 0x34
 	SDMMC_EISTER = 0x36
 
-	SDMMC_CAPR  = 0x40
-	CAPR_ADMA2  = 19
-	SDMMC_AESR  = 0x54
-	SDMMC_ASAR0 = 0x58
-	SDMMC_ASAR1 = 0x5c
+	SDMMC_CAPR    = 0x40
+	CAPR_ADMA2    = 19
+	CAPR_HSSUP    = 21
+	SDMMC_CA1R    = 0x44
+	CA1R_DDR50SUP = 2
+	SDMMC_AESR    = 0x54
+	SDMMC_ASAR0   = 0x58
+	SDMMC_ASAR1   = 0x5c
 
 	SDMMC_MC1R       = 0x204
 	MC1R_CMDTYP      = 0
 	MC1R_CMDTYP_MASK = 0x3
+	MC1R_DDR         = 3
 	MC1R_OPD         = 4
 	MC1R_FCD         = 7
 )
@@ -150,6 +155,7 @@ const (
 
 	mmcIdentificationClockHz = 400_000
 	mmcLegacyClockHz         = 25_000_000
+	mmcHighSpeedClockHz      = 50_000_000
 
 	r1ErrorMask uint32 = 0xfff9a080
 
@@ -194,6 +200,10 @@ type CardInfo struct {
 	DeviceType byte
 	// Write cache state
 	CacheEnabled bool
+	// High Speed
+	HS bool
+	// Dual Data Rate
+	DDR bool
 
 	// Block size
 	BlockSize int
@@ -236,6 +246,7 @@ type SDHCI struct {
 	nister uint32
 	eister uint32
 	capr   uint32
+	ca1r   uint32
 	aesr   uint32
 	asar0  uint32
 	asar1  uint32
@@ -381,9 +392,10 @@ func (hw *SDHCI) initController(prescaler uint32) (err error) {
 	bits.Set16(&power, PCR_SDBPWR)
 	reg.Write8(hw.pcr, uint8(power))
 
-	// force card insertion
+	// force card insertion with single data rate sampling
 	cardDetect := uint16(reg.Read8(hw.mc1r))
 	bits.Set16(&cardDetect, MC1R_FCD)
+	bits.Clear16(&cardDetect, MC1R_DDR)
 	reg.Write8(hw.mc1r, uint8(cardDetect))
 
 	// enable all status events
@@ -468,6 +480,7 @@ func (hw *SDHCI) Init() (err error) {
 	hw.nister = hw.Base + SDMMC_NISTER
 	hw.eister = hw.Base + SDMMC_EISTER
 	hw.capr = hw.Base + SDMMC_CAPR
+	hw.ca1r = hw.Base + SDMMC_CA1R
 	hw.aesr = hw.Base + SDMMC_AESR
 	hw.asar0 = hw.Base + SDMMC_ASAR0
 	hw.asar1 = hw.Base + SDMMC_ASAR1
@@ -653,7 +666,7 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	}
 
 	if commandErr != nil {
-		err = fmt.Errorf("CMD%d transfer failed: %w", command, commandErr)
+		err = fmt.Errorf("CMD%d transfer failed, %w", command, commandErr)
 
 		if command != 18 || !issued {
 			err = hw.invalidateTransfer(err)
@@ -663,7 +676,7 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	}
 
 	if responseErr := checkR1(status); responseErr != nil {
-		err = fmt.Errorf("CMD%d transfer: %w", command, responseErr)
+		err = fmt.Errorf("CMD%d transfer, %w", command, responseErr)
 
 		if command != 18 {
 			err = hw.invalidateTransfer(err)
@@ -678,7 +691,7 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	}
 
 	if _, statusErr := hw.pollStatus(1<<NISTR_TRFC, transferTimeout); statusErr != nil {
-		err = fmt.Errorf("CMD%d transfer: %w", command, statusErr)
+		err = fmt.Errorf("CMD%d transfer, %w", command, statusErr)
 
 		if command != 18 {
 			err = hw.invalidateTransfer(err)
