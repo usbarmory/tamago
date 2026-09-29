@@ -14,13 +14,7 @@
 //   - SD Host Controller Simplified Specification - Version 3.00
 //   - JESD84-B51 - Embedded Multi-Media Card (eMMC) Electrical Standard (5.1) - 2015/02
 //
-// The driver supports sector-addressed 8-bit eMMC devices up to HS_DDR. It
-// initializes the controller and card, reports card metadata, and transfers
-// full 512-byte blocks. DMA allocations use dma.Default() unless callers provide
-// a controller-specific region. The region must be controller-accessible,
-// non-cacheable, and below 4 GiB. Multi-block transfers predefine their block
-// count with Auto CMD23 and are aborted with CMD12 only after an error; failed
-// stop recovery invalidates the instance until initialization.
+// The driver supports sector-addressed 8-bit eMMC devices up to HS_DDR.
 //
 // This package is only meant to be used with `GOOS=tamago` as supported by the
 // TamaGo framework for bare metal Go, see https://github.com/usbarmory/tamago.
