@@ -9,6 +9,9 @@
 #include "go_asm.h"
 #include "textflag.h"
 
+#define IRQ_STACK_SIZE 512
+GLOBL	·irqStack(SB),NOPTR,$IRQ_STACK_SIZE
+
 // func irq_enable()
 TEXT ·irq_enable(SB),$0
 	MSR	$0b0011, DAIFClr
@@ -26,8 +29,18 @@ TEXT ·wfi(SB),$0
 	RET
 
 TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
-	// skip live word kept by Go below RSP
-	SUB	$(18*16), RSP
+	// get interrupt stack
+	MOVD	$·irqStack+IRQ_STACK_SIZE(SB), R18_PLATFORM
+	AND	$~15, R18_PLATFORM
+
+	// switch stack
+	SUB	R18_PLATFORM, RSP, R18_PLATFORM
+	SUB	R18_PLATFORM, RSP, RSP
+	ADD	R18_PLATFORM, RSP, R18_PLATFORM
+
+	// save interrupted stack
+	SUB	$(17*16), RSP
+	MOVD	R18_PLATFORM, (16*16+8)(RSP)
 
 	// save caller registers
 	STP	(R0, R1), (1*16)(RSP)
@@ -76,6 +89,9 @@ done:
 	LDP	(2*16)(RSP), (R2, R3)
 	LDP	(1*16)(RSP), (R0, R1)
 
+	// restore interrupted stack
+	MOVD	(16*16+8)(RSP), R18_PLATFORM
+	MOVD	R18_PLATFORM, RSP
+
 	// exception return
-	ADD	$(18*16), RSP
 	ERET
