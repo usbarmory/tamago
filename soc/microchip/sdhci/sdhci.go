@@ -191,8 +191,8 @@ var (
 	// transfer.
 	ReadBlockTimeout = 1 * time.Millisecond
 	// InterruptPollInterval bounds how long a transfer or busy wait sleeps
-	// between status checks after EnableInterrupt, when no controller
-	// interrupt wakes it.
+	// between status checks after [SDHCI.EnableInterrupt], when no
+	// controller interrupt wakes it.
 	InterruptPollInterval = 1 * time.Millisecond
 
 	// ErrNotInitialized indicates that Detect has not completed successfully.

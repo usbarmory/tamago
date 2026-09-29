@@ -150,18 +150,15 @@ func (hw *SDHCI) pollStatus(expected uint16, timeout time.Duration) (uint32, err
 }
 
 // EnableInterrupt makes transfer and busy waits that outlast a short spin
-// sleep until ServiceInterrupts wakes them, instead of polling. Call it before
-// servicing the controller interrupt.
+// sleep until [SDHCI.ServiceInterrupts] wakes them, instead of polling. Call it
+// before servicing the controller interrupt.
 func (hw *SDHCI) EnableInterrupt() {
-	hw.Lock()
-	defer hw.Unlock()
-
 	hw.event = make(chan struct{}, 1)
 }
 
 // ServiceInterrupts services the controller interrupt. It masks the interrupt
 // signals and wakes a waiting transfer, which reads and clears the status.
-// Enable the controller interrupt only after Init.
+// Enable the controller interrupt only after [SDHCI.Init].
 func (hw *SDHCI) ServiceInterrupts() {
 	if hw.event == nil {
 		return
