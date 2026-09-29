@@ -62,6 +62,8 @@ var cmds = map[uint16]cmdParams{
 	18: {responseType: CR_RESPTYP_RL48, indexCheck: true, crcCheck: true, dataPresent: true},
 	// CMD24 - WRITE_BLOCK - write one block
 	24: {responseType: CR_RESPTYP_RL48, indexCheck: true, crcCheck: true, dataPresent: true},
+	// CMD25 - WRITE_MULTIPLE_BLOCK - write consecutive blocks
+	25: {responseType: CR_RESPTYP_RL48, indexCheck: true, crcCheck: true, dataPresent: true},
 }
 
 func commandValue(index uint16, params cmdParams) (command uint16) {
@@ -165,6 +167,10 @@ func (hw *SDHCI) pollStatusIgnoring(expected uint16, timeout time.Duration, igno
 					return 0, ignored, fmt.Errorf("ADMA2 interrupt 0x%04x", errorStatus|ignored)
 				}
 
+				if bits.Get16(&errorStatus, EISTR_ACMD) {
+					return 0, ignored, fmt.Errorf("auto command interrupt 0x%04x status 0x%04x", errorStatus|ignored, reg.Read16(hw.acesr))
+				}
+
 				return 0, ignored, fmt.Errorf("interrupt error 0x%04x", errorStatus|ignored)
 			}
 
@@ -214,24 +220,24 @@ func (hw *SDHCI) invalidateStop(transferErr error, stopErr error) error {
 	return hw.invalidateTransfer(recoveryErr)
 }
 
-func (hw *SDHCI) stopTransmission(transferErr error) error {
-	status, ignored, _, stopErr := hw.runCommand(12, 0, EISTR_DAT_LINE_ERROR_MASK)
+func (hw *SDHCI) stopTransmission(transferErr error, timeout time.Duration) error {
+	status, _, _, stopErr := hw.runCommand(12, 0, EISTR_DAT_LINE_ERROR_MASK)
 
 	if stopErr != nil {
 		return hw.invalidateStop(transferErr, stopErr)
 	}
 
-	if ignored != 0 {
-		if stopErr = hw.reset(1<<SRR_SWRSTDAT, ControllerSetupTimeout); stopErr != nil {
-			return hw.invalidateStop(transferErr, stopErr)
-		}
+	// The CMD12 busy end completes the command but not the aborted data
+	// transfer; only a data line reset clears its data inhibit.
+	if stopErr = hw.reset(1<<SRR_SWRSTDAT, ControllerSetupTimeout); stopErr != nil {
+		return hw.invalidateStop(transferErr, stopErr)
 	}
 
 	if stopErr = checkR1(status); stopErr != nil {
 		return hw.invalidateStop(transferErr, stopErr)
 	}
 
-	if stopErr = hw.waitState(CURRENT_STATE_TRAN, ControllerSetupTimeout); stopErr != nil {
+	if stopErr = hw.waitState(CURRENT_STATE_TRAN, timeout); stopErr != nil {
 		return hw.invalidateStop(transferErr, stopErr)
 	}
 

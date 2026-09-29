@@ -18,8 +18,9 @@
 // initializes the controller and card, reports card metadata, and transfers
 // full 512-byte blocks. DMA allocations use dma.Default() unless callers provide
 // a controller-specific region. The region must be controller-accessible,
-// non-cacheable, and below 4 GiB. Multi-block reads are stopped explicitly with
-// CMD12; failed stop recovery invalidates the instance until initialization.
+// non-cacheable, and below 4 GiB. Multi-block transfers predefine their block
+// count with Auto CMD23 and are aborted with CMD12 only after an error; failed
+// stop recovery invalidates the instance until initialization.
 //
 // This package is only meant to be used with `GOOS=tamago` as supported by the
 // TamaGo framework for bare metal Go, see https://github.com/usbarmory/tamago.
@@ -38,16 +39,21 @@ import (
 
 // SDMMC registers
 const (
+	SDMMC_SSAR = 0x00
+
 	SDMMC_BSR = 0x04
 	SDMMC_BCR = 0x06
 
 	SDMMC_ARG1R = 0x08
 
-	SDMMC_TMR  = 0x0c
-	TMR_DMAEN  = 0
-	TMR_BCEN   = 1
-	TMR_DTDSEL = 4
-	TMR_MSBSEL = 5
+	SDMMC_TMR        = 0x0c
+	TMR_DMAEN        = 0
+	TMR_BCEN         = 1
+	TMR_ACMDEN       = 2
+	TMR_ACMDEN_MASK  = 0x3
+	TMR_ACMDEN_CMD23 = 0x2
+	TMR_DTDSEL       = 4
+	TMR_MSBSEL       = 5
 
 	SDMMC_CR = 0x0e
 
@@ -111,11 +117,14 @@ const (
 	NISTR_ERRINT = 15
 
 	SDMMC_EISTR                      = 0x32
+	EISTR_ACMD                       = 8
 	EISTR_ADMA                       = 9
 	EISTR_DAT_LINE_ERROR_MASK uint16 = 0x0070
 
 	SDMMC_NISTER = 0x34
 	SDMMC_EISTER = 0x36
+
+	SDMMC_ACESR = 0x3c
 
 	SDMMC_CAPR = 0x40
 	CAPR_ADMA2 = 19
@@ -167,6 +176,9 @@ const (
 	// BlockSize is the size of a sector-addressed eMMC block.
 	BlockSize            = MMC_DEFAULT_BLOCK_SIZE
 	maxBlocksPerTransfer = 0xffff
+
+	// write command boundary in blocks
+	writeAlignment = 0x4000 / BlockSize
 )
 
 var (
@@ -231,6 +243,7 @@ type SDHCI struct {
 	Region *dma.Region
 
 	// control registers
+	ssar   uint32
 	bsr    uint32
 	bcr    uint32
 	arg1r  uint32
@@ -247,6 +260,7 @@ type SDHCI struct {
 	eistr  uint32
 	nister uint32
 	eister uint32
+	acesr  uint32
 	capr   uint32
 	ca1r   uint32
 	aesr   uint32
@@ -465,6 +479,7 @@ func (hw *SDHCI) Init() (err error) {
 		return
 	}
 
+	hw.ssar = hw.Base + SDMMC_SSAR
 	hw.bsr = hw.Base + SDMMC_BSR
 	hw.bcr = hw.Base + SDMMC_BCR
 	hw.arg1r = hw.Base + SDMMC_ARG1R
@@ -481,6 +496,7 @@ func (hw *SDHCI) Init() (err error) {
 	hw.eistr = hw.Base + SDMMC_EISTR
 	hw.nister = hw.Base + SDMMC_NISTER
 	hw.eister = hw.Base + SDMMC_EISTER
+	hw.acesr = hw.Base + SDMMC_ACESR
 	hw.capr = hw.Base + SDMMC_CAPR
 	hw.ca1r = hw.Base + SDMMC_CA1R
 	hw.aesr = hw.Base + SDMMC_AESR
@@ -532,44 +548,45 @@ func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) (
 		return
 	}
 
-	switch dtd {
-	case WRITE:
-		for len(buf) > 0 {
-			if err = hw.writeBlock(index, uint32(lba), buf[:BlockSize]); err != nil {
-				return
-			}
+	if dtd != WRITE && dtd != READ {
+		return errors.New("invalid transfer direction")
+	}
 
+	for len(buf) > 0 {
+		blocks := min(len(buf)/BlockSize, hw.maxBlocks)
+
+		// end each write command on a 16 KiB boundary
+		if dtd == WRITE && writeAlignment <= hw.maxBlocks {
+			limit := hw.maxBlocks - hw.maxBlocks%writeAlignment
+			blocks = min(len(buf)/BlockSize, limit-lba%writeAlignment)
+		}
+
+		length := blocks * BlockSize
+
+		if err = hw.transferDMA(index, dtd, uint32(lba), buf[:length], uint16(blocks)); err != nil {
+			return
+		}
+
+		// CMD13 reports programming errors once the card leaves the
+		// programming state
+		if dtd == WRITE {
 			if err = hw.waitState(CURRENT_STATE_TRAN, WriteTimeout); err != nil {
 				return hw.invalidateTransfer(err)
 			}
-
-			buf = buf[BlockSize:]
-			lba++
 		}
-	case READ:
-		for len(buf) > 0 {
-			blocks := min(len(buf)/BlockSize, hw.maxBlocks)
-			length := blocks * BlockSize
 
-			if err = hw.readBlocks(index, uint32(lba), buf[:length], uint16(blocks)); err != nil {
-				return
-			}
-
-			buf = buf[length:]
-			lba += blocks
-		}
-	default:
-		return errors.New("invalid transfer direction")
+		buf = buf[length:]
+		lba += blocks
 	}
 
 	return nil
 }
 
-// WriteBlocks transfers full blocks of data to the card. Each block uses
-// CMD24 so a failure cannot make the completion of later blocks ambiguous.
+// WriteBlocks transfers full blocks of data to the card. On error the contents
+// of the target blocks are undefined.
 func (hw *SDHCI) WriteBlocks(lba int, buf []byte) error {
-	// CMD24 - WRITE_BLOCK - write one block at a time
-	return hw.transferBlocks(24, WRITE, lba, buf)
+	// CMD25 - WRITE_MULTIPLE_BLOCK - write consecutive blocks (CMD24 for one)
+	return hw.transferBlocks(25, WRITE, lba, buf)
 }
 
 // ReadBlocks transfers full blocks of data from the card.
@@ -598,14 +615,6 @@ func (hw *SDHCI) Read(offset int64, size int64) (buf []byte, err error) {
 	buf = buf[start : start+int(size)]
 
 	return
-}
-
-func (hw *SDHCI) readBlocks(index uint16, lba uint32, buf []byte, blocks uint16) error {
-	return hw.transferDMA(index, READ, lba, buf, blocks)
-}
-
-func (hw *SDHCI) writeBlock(index uint16, lba uint32, buf []byte) error {
-	return hw.transferDMA(index, WRITE, lba, buf, 1)
 }
 
 func copyDMABuffer(dst []byte, src []byte) {
@@ -650,27 +659,51 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	bits.Set16(&transferMode, TMR_BCEN)
 	bits.SetTo16(&transferMode, TMR_DTDSEL, direction == READ)
 	bits.SetTo16(&transferMode, TMR_MSBSEL, multi)
+
+	if multi {
+		// predefine the block count so that the card ends the transfer itself
+		reg.Write(hw.ssar, uint32(blocks))
+		bits.SetN16(&transferMode, TMR_ACMDEN, TMR_ACMDEN_MASK, TMR_ACMDEN_CMD23)
+	}
+
 	reg.Write16(hw.tmr, transferMode)
 
 	command := index
 
-	if index == 18 && !multi {
+	switch {
+	case index == 18 && !multi:
 		// CMD17 - READ_SINGLE_BLOCK - read one block
 		command = 17
+	case index == 25 && !multi:
+		// CMD24 - WRITE_BLOCK - write one block
+		command = 24
+	}
+
+	// multiple-block transfers need CMD12 only to abort after an error
+	stop := command == 18 || command == 25
+
+	transferTimeout := CommandTimeout + ReadBlockTimeout*time.Duration(blocks)
+	stopTimeout := ControllerSetupTimeout
+
+	if direction == WRITE {
+		transferTimeout = WriteTimeout
+		stopTimeout = WriteTimeout
 	}
 
 	status, _, issued, commandErr := hw.runCommand(command, lba, 0)
 
-	if command == 18 && issued {
+	if stop && issued {
 		defer func() {
-			err = hw.stopTransmission(err)
+			if err != nil {
+				err = hw.stopTransmission(err, stopTimeout)
+			}
 		}()
 	}
 
 	if commandErr != nil {
 		err = fmt.Errorf("CMD%d transfer failed, %w", command, commandErr)
 
-		if command != 18 || !issued {
+		if !stop || !issued {
 			err = hw.invalidateTransfer(err)
 		}
 
@@ -680,22 +713,17 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	if responseErr := checkR1(status); responseErr != nil {
 		err = fmt.Errorf("CMD%d transfer, %w", command, responseErr)
 
-		if command != 18 {
+		if !stop {
 			err = hw.invalidateTransfer(err)
 		}
 
 		return
 	}
 
-	transferTimeout := CommandTimeout + ReadBlockTimeout*time.Duration(blocks)
-	if direction == WRITE {
-		transferTimeout = WriteTimeout
-	}
-
 	if _, statusErr := hw.pollStatus(1<<NISTR_TRFC, transferTimeout); statusErr != nil {
 		err = fmt.Errorf("CMD%d transfer, %w", command, statusErr)
 
-		if command != 18 {
+		if !stop {
 			err = hw.invalidateTransfer(err)
 		}
 
