@@ -23,6 +23,8 @@ const (
 	Write = 2
 )
 
+const pageSize = 4096
+
 // Descriptor represents a VirtIO virtual queue descriptor.
 //
 // All exported fields are used one-time at initialization, fields requiring
