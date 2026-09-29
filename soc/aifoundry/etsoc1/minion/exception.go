@@ -10,25 +10,22 @@ package minion
 
 import (
 	"runtime/goos"
-	"unsafe"
 
 	"github.com/usbarmory/tamago/internal/reg"
-	"github.com/usbarmory/tamago/riscv64"
 )
-
-func vector(fn riscv64.ExceptionHandler) uint64 {
-	return **((**uint64)(unsafe.Pointer(&fn)))
-}
 
 func encodeLongJump(ptr, pc uint64) uint64 {
 	off := uint64(ptr) - uint64(pc)
 	hi := uint32(off+0x800) >> 12
 	lo := uint32(off & 0xfff)
 
+	// gp (X3) is used as scratch register as it is never used by Go, this
+	// avoids clobbering registers which must be preserved on interrupts.
+	r := uint32(3)
+
 	// Volume I: RISC-V Unprivileged ISA V20191213
 	// RV32I Base Instruction Set
-	r := uint32(6)
-	auipc := (hi << 12) | (r << 7) | uint32(0b10111)
+	auipc := (hi << 12) | (r << 7) | uint32(0b0010111)
 	jalr := (lo << 20) | (r << 15) | uint32(0b1100111)
 
 	return uint64(auipc) | uint64(jalr)<<32
