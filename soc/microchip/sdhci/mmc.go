@@ -38,6 +38,8 @@ const (
 	STATUS_READY_FOR_DATA     = 8
 	CURRENT_STATE_TRAN        = 4
 
+	EXT_CSD_CACHE_SIZE = 249
+
 	EXT_CSD_SEC_COUNT = 212
 
 	EXT_CSD_DEVICE_TYPE  = 196
@@ -138,6 +140,7 @@ func (hw *SDHCI) detectCapabilitiesMMC() (err error) {
 	hw.card.DeviceType = extCSD[EXT_CSD_DEVICE_TYPE]
 	cacheControl := uint32(extCSD[EXT_CSD_CACHE_CTRL])
 	hw.card.CacheEnabled = bits.Get(&cacheControl, CACHE_ENABLED)
+	hw.card.CacheSize = int(binary.LittleEndian.Uint32(extCSD[EXT_CSD_CACHE_SIZE:])) * 1024
 
 	return
 }
@@ -338,6 +341,43 @@ func (hw *SDHCI) readExtCSD(buf []byte) error {
 
 	// CMD8 - SEND_EXT_CSD - read extended device data
 	return hw.transferDMA(8, READ, 0, buf, 1)
+}
+
+// EnableCache turns the card volatile write cache on or off. With the cache
+// on, a completed write may still be only in the card cache: callers must
+// Sync before relying on it surviving power loss. Turning the cache off
+// flushes it first. The card turns its cache off on every reset.
+func (hw *SDHCI) EnableCache(enable bool) error {
+	hw.Lock()
+	defer hw.Unlock()
+
+	if !hw.ready {
+		return ErrNotInitialized
+	}
+
+	if hw.card.CacheSize == 0 {
+		return errors.New("card has no volatile cache")
+	}
+
+	if hw.card.CacheEnabled == enable {
+		return nil
+	}
+
+	var value uint32
+
+	if enable {
+		bits.Set(&value, CACHE_ENABLED)
+	} else if err := hw.writeCardRegisterMMC(EXT_CSD_FLUSH_CACHE, 1, WriteTimeout); err != nil {
+		return hw.invalidateTransfer(fmt.Errorf("CMD6 FLUSH_CACHE, %w", err))
+	}
+
+	if err := hw.writeCardRegisterMMC(EXT_CSD_CACHE_CTRL, value, WriteTimeout); err != nil {
+		return hw.invalidateTransfer(fmt.Errorf("CMD6 CACHE_CTRL, %w", err))
+	}
+
+	hw.card.CacheEnabled = enable
+
+	return nil
 }
 
 // Sync flushes an enabled eMMC write cache to non-volatile storage.

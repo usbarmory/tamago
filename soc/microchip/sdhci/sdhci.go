@@ -208,6 +208,8 @@ type CardInfo struct {
 	DeviceType byte
 	// Write cache state
 	CacheEnabled bool
+	// Volatile write cache size in bytes, zero without a cache
+	CacheSize int
 	// High Speed
 	HS bool
 	// Dual Data Rate
