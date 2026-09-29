@@ -72,7 +72,7 @@ func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) (er
 	}
 
 	ptr, entry := r.Reserve(size, 0)
-	defer dma.Release(ptr)
+	defer r.Release(ptr)
 
 	binary.LittleEndian.PutUint64(entry[0:], addr)
 	binary.LittleEndian.PutUint32(entry[8:], data)
