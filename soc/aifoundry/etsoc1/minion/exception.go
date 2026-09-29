@@ -19,7 +19,7 @@ func encodeLongJump(ptr, pc uint64) uint64 {
 	hi := uint32(off+0x800) >> 12
 	lo := uint32(off & 0xfff)
 
-	// gp (X3) is used as scratch register as it is never used by Go, this
+	// gp (x3) is used as scratch register as it is never used by Go, this
 	// avoids clobbering registers which must be preserved on interrupts.
 	r := uint32(3)
 
