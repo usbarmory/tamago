@@ -6,6 +6,8 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+//go:build amd64
+
 package virtio
 
 import (
@@ -22,10 +24,7 @@ const (
 	deviceMax = 0x103f
 )
 
-const (
-	pageSize            = 4096
-	configurationLength = 20
-)
+const configurationLength = 20
 
 // VirtIO Common Configuration offsets (legacy interface)
 const (
