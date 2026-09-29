@@ -345,8 +345,8 @@ func (hw *SDHCI) readExtCSD(buf []byte) error {
 
 // EnableCache turns the card volatile write cache on or off. With the cache
 // on, a completed write may still be only in the card cache: callers must
-// Sync before relying on it surviving power loss. Turning the cache off
-// flushes it first. The card turns its cache off on every reset.
+// [SDHCI.Sync] before relying on it surviving power loss. Turning the cache
+// off flushes it first. The card turns its cache off on every reset.
 func (hw *SDHCI) EnableCache(enable bool) error {
 	hw.Lock()
 	defer hw.Unlock()
