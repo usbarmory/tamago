@@ -18,6 +18,16 @@ import (
 // interrupts.
 const IRQ_SIGNAL = syscall.SIGTRAP
 
+const irqStackSize = 0x1000
+
+var (
+	// irqStack holds the interrupt handler frame, the interrupted code may
+	// keep live data below its own stack pointer.
+	irqStack [irqStackSize]byte
+	// irqStackTop is the 16-byte aligned initial IRQ stack pointer.
+	irqStackTop uint64
+)
+
 // defined in irq.s
 func irq_enable()
 func irq_disable()

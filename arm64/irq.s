@@ -26,6 +26,16 @@ TEXT ·wfi(SB),$0
 	RET
 
 TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
+	// The interrupted code may keep live data below its stack pointer, save
+	// it in SP_EL0 (unused at EL1) and switch to the IRQ stack before any
+	// memory write. R18 is already clobbered by the vector table jump, R27
+	// (REGTMP) is not yet saved and must not be used.
+	MOVD	RSP, R18_PLATFORM
+	MSR	R18_PLATFORM, SP_EL0
+	MOVD	$·irqStackTop(SB), R18_PLATFORM
+	MOVD	(R18_PLATFORM), R18_PLATFORM
+	MOVD	R18_PLATFORM, RSP
+
 	// save caller registers
 	STP	(R0, R1), -(1*16)(RSP)
 	STP	(R2, R3), -(2*16)(RSP)
@@ -74,6 +84,10 @@ done:
 	LDP	-(3*16)(RSP), (R4, R5)
 	LDP	-(2*16)(RSP), (R2, R3)
 	LDP	-(1*16)(RSP), (R0, R1)
+
+	// restore interrupted stack pointer
+	MRS	SP_EL0, R18_PLATFORM
+	MOVD	R18_PLATFORM, RSP
 
 	// exception return
 	ERET

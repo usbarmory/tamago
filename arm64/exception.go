@@ -91,6 +91,8 @@ func (cpu *CPU) initVectorTable() {
 	// ELx, x>0
 	addJumps(vectorTable + 0x200)
 
+	irqStackTop = uint64(uintptr(unsafe.Pointer(&irqStack[0]))+irqStackSize) &^ 0xf
+
 	// set vector base address register
 	set_vbar(vectorTable)
 }
