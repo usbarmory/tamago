@@ -197,8 +197,8 @@ func (hw *SDHCI) waitInterrupt(expected uint16, deadline time.Time) {
 }
 
 func (hw *SDHCI) pollStatusIgnoring(expected uint16, timeout time.Duration, ignoredErrors uint16) (value uint32, ignored uint16, err error) {
-	started := time.Now()
-	deadline := started.Add(timeout)
+	start := time.Now()
+	deadline := start.Add(timeout)
 
 	for {
 		status := reg.Read16(hw.nistr)
@@ -230,14 +230,14 @@ func (hw *SDHCI) pollStatusIgnoring(expected uint16, timeout time.Duration, igno
 			return reg.Read(hw.rr), ignored, nil
 		}
 
-		now := time.Now()
+		end := time.Now()
 
-		if now.After(deadline) {
+		if end.After(deadline) {
 			return 0, ignored, fmt.Errorf("status 0x%04x timeout", expected)
 		}
 
 		// transfers and busy periods sleep once they outlast a short spin
-		if hw.event != nil && expected&(1<<NISTR_TRFC) != 0 && now.Sub(started) > interruptWaitThreshold {
+		if hw.event != nil && expected&(1<<NISTR_TRFC) != 0 && end.Sub(start) > interruptWaitThreshold {
 			hw.waitInterrupt(expected, deadline)
 		} else {
 			runtime.Gosched()
@@ -305,8 +305,8 @@ func (hw *SDHCI) stopTransmission(transferErr error, timeout time.Duration) erro
 }
 
 func (hw *SDHCI) waitState(state int, timeout time.Duration) error {
-	started := time.Now()
-	deadline := started.Add(timeout)
+	start := time.Now()
+	deadline := start.Add(timeout)
 
 	for {
 		status, err := hw.cmd(13, uint32(hw.card.RCA)<<16)
@@ -323,14 +323,14 @@ func (hw *SDHCI) waitState(state int, timeout time.Duration) error {
 			return nil
 		}
 
-		now := time.Now()
+		end := time.Now()
 
-		if now.After(deadline) {
+		if end.After(deadline) {
 			return fmt.Errorf("card ready timeout status=0x%08x", status)
 		}
 
 		// long busy periods sleep between polls once they outlast a short spin
-		if hw.event == nil || now.Sub(started) < interruptWaitThreshold {
+		if hw.event == nil || end.Sub(start) < interruptWaitThreshold {
 			runtime.Gosched()
 		} else {
 			time.Sleep(InterruptPollInterval)
