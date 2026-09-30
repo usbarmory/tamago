@@ -117,6 +117,8 @@ const (
 
 	SDMMC_NISTER = 0x34
 	SDMMC_EISTER = 0x36
+	SDMMC_NISIER = 0x38
+	SDMMC_EISIER = 0x3a
 
 	SDMMC_ACESR = 0x3c
 
@@ -158,6 +160,9 @@ const (
 	dataTimeoutCounter = 0x0e
 	allInterrupts      = 0xffff
 
+	// Waits spin this long before sleeping on the controller interrupt.
+	interruptWaitThreshold = 100 * time.Microsecond
+
 	mmcIdentificationClockHz = 400_000
 	mmcLegacyClockHz         = 25_000_000
 	mmcHighSpeedClockHz      = 50_000_000
@@ -185,6 +190,10 @@ var (
 	// ReadBlockTimeout is added to CommandTimeout for each block of a read
 	// transfer.
 	ReadBlockTimeout = 1 * time.Millisecond
+	// InterruptPollInterval bounds how long a transfer or busy wait sleeps
+	// between status checks after [SDHCI.EnableInterrupt], when no
+	// controller interrupt wakes it.
+	InterruptPollInterval = 1 * time.Millisecond
 
 	// ErrNotInitialized indicates that Detect has not completed successfully.
 	ErrNotInitialized = errors.New("eMMC card is not initialized")
@@ -227,6 +236,8 @@ type SDHCI struct {
 
 	// Base register
 	Base uint32
+	// Interrupt ID (placeholder for caller use)
+	IRQ int
 	// Generic Clock Configuration register
 	GCK uint32
 	// Generic Clock source frequency in Hz
@@ -256,6 +267,8 @@ type SDHCI struct {
 	eistr  uint32
 	nister uint32
 	eister uint32
+	nisier uint32
+	eisier uint32
 	acesr  uint32
 	capr   uint32
 	ca1r   uint32
@@ -267,6 +280,7 @@ type SDHCI struct {
 	// controller state
 	controllerReady bool
 	ready           bool
+	event           chan struct{}
 
 	// detected card properties
 	card CardInfo
@@ -492,6 +506,8 @@ func (hw *SDHCI) Init() (err error) {
 	hw.eistr = hw.Base + SDMMC_EISTR
 	hw.nister = hw.Base + SDMMC_NISTER
 	hw.eister = hw.Base + SDMMC_EISTER
+	hw.nisier = hw.Base + SDMMC_NISIER
+	hw.eisier = hw.Base + SDMMC_EISIER
 	hw.acesr = hw.Base + SDMMC_ACESR
 	hw.capr = hw.Base + SDMMC_CAPR
 	hw.ca1r = hw.Base + SDMMC_CA1R

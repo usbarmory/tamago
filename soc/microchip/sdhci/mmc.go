@@ -118,6 +118,8 @@ func (hw *SDHCI) writeCardRegisterMMC(register uint32, value uint32, timeout tim
 		return
 	}
 
+	hw.waitBusy(timeout)
+
 	return hw.waitState(CURRENT_STATE_TRAN, timeout)
 }
 
