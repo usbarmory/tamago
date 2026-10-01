@@ -133,11 +133,6 @@ func (cpu *CPU) ClearInterrupt() {
 		return
 	}
 
-	// ensure parent is waiting on channel
-	for !signal.Waiting() {
-		// stay on this M
-	}
-
 	// ensure we are not interrupting ·handleInterrupt on BSP
 	for irqHandling {
 		// stay on this M
@@ -166,9 +161,7 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	signal.Notify(c, IRQ_SIGNAL)
 
 	for {
-		// To avoid losing interrupts, service completion must happen
-		// only after we are sleeping.
-		go cpu.ClearInterrupt()
+		cpu.ClearInterrupt()
 		<-c
 		isr(currentVectorNumber())
 	}

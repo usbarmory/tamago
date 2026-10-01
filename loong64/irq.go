@@ -73,9 +73,7 @@ func (cpu *CPU) ServiceInterrupts(isr func()) {
 	signal.Notify(c, IRQ_SIGNAL)
 
 	for {
-		// To avoid losing interrupts, re-enabling must happen only after
-		// we are waiting.
-		go cpu.EnableInterrupts()
+		cpu.EnableInterrupts()
 		<-c
 		isr()
 	}
