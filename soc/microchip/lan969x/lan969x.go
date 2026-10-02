@@ -31,6 +31,7 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/gpio"
 	"github.com/usbarmory/tamago/soc/microchip/miim"
 	"github.com/usbarmory/tamago/soc/microchip/otpc"
+	"github.com/usbarmory/tamago/soc/microchip/rgmii"
 	"github.com/usbarmory/tamago/soc/microchip/sdhci"
 	"github.com/usbarmory/tamago/soc/microchip/sgpio"
 	"github.com/usbarmory/tamago/soc/microchip/temp"
@@ -154,6 +155,10 @@ const (
 	// Rewriter
 	REW_BASE = 0xe2600000
 
+	// RGMII clock configuration
+	RGMII0_CFG = HSIO_BASE + 0x78
+	RGMII1_CFG = HSIO_BASE + 0x8c
+
 	// Secure Digital Host Controller Interface
 	SDMMC0_BASE = 0xe0830000
 
@@ -247,6 +252,16 @@ var (
 	OTPC = &otpc.OTPC{
 		Base: OTPC_BASE,
 		Size: 16 * 1024,
+	}
+
+	// RGMII interfaces
+	RGMII0 = &rgmii.RGMII{
+		Base:        DEVRGMII0,
+		ClockConfig: RGMII0_CFG,
+	}
+	RGMII1 = &rgmii.RGMII{
+		Base:        DEVRGMII1,
+		ClockConfig: RGMII1_CFG,
 	}
 
 	// Secure Digital Host Controller Interface
