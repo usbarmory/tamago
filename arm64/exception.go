@@ -94,3 +94,8 @@ func (cpu *CPU) initVectorTable() {
 	// set vector base address register
 	set_vbar(vectorTable)
 }
+
+// CurrentEL returns the Current Exception Level.
+func (cpu *CPU) CurrentEL() uint64 {
+	return read_el()
+}
