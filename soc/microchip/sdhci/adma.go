@@ -21,6 +21,9 @@ const (
 	// Largest non-zero, word-aligned value in the 16-bit length field.
 	admaMaxLength = 65532
 
+	// Largest partial cache line bounced at either end of a direct read.
+	admaMaxEdge = 128
+
 	admaValid    = 1 << 0
 	admaEnd      = 1 << 1
 	admaTransfer = 0b10 << 4
@@ -34,24 +37,9 @@ type admaDescriptor struct {
 	next *admaDescriptor
 }
 
-func (descriptor *admaDescriptor) init(address uint, size int) {
-	for size > 0 {
-		length := min(size, admaMaxLength)
-
-		descriptor.Attribute = admaValid | admaTransfer
-		descriptor.Length = uint16(length)
-		descriptor.Address = uint32(address)
-
-		if length == size {
-			descriptor.Attribute |= admaEnd
-			return
-		}
-
-		address += uint(length)
-		size -= length
-		descriptor.next = &admaDescriptor{}
-		descriptor = descriptor.next
-	}
+type admaSegment struct {
+	address uint
+	size    int
 }
 
 // Bytes converts the descriptor chain to its ADMA2 byte representation.
@@ -72,13 +60,37 @@ func admaTableSize(size int) int {
 	return (size + admaMaxLength - 1) / admaMaxLength * admaDescriptorSize
 }
 
-func admaTable(address uint, size int) []byte {
-	if size <= 0 {
+func admaTable(segments ...admaSegment) []byte {
+	var first, last *admaDescriptor
+
+	for _, segment := range segments {
+		address, size := segment.address, segment.size
+
+		for size > 0 {
+			length := min(size, admaMaxLength)
+			descriptor := &admaDescriptor{
+				Attribute: admaValid | admaTransfer,
+				Length:    uint16(length),
+				Address:   uint32(address),
+			}
+
+			if last == nil {
+				first = descriptor
+			} else {
+				last.next = descriptor
+			}
+
+			last = descriptor
+			address += uint(length)
+			size -= length
+		}
+	}
+
+	if first == nil {
 		return nil
 	}
 
-	descriptor := &admaDescriptor{}
-	descriptor.init(address, size)
+	last.Attribute |= admaEnd
 
-	return descriptor.Bytes()
+	return first.Bytes()
 }

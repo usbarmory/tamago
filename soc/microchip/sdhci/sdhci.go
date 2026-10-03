@@ -23,8 +23,10 @@ package sdhci
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/dma"
@@ -230,6 +232,13 @@ type CardInfo struct {
 	Blocks int
 }
 
+// Cache represents CPU data cache maintenance by address range, as provided by
+// arm64.CPU.
+type Cache interface {
+	DataCacheLineSize() int
+	InvalidateDataCacheRange(addr uint, size int)
+}
+
 // SDHCI represents a Microchip SDHCI controller bound to an eMMC device.
 type SDHCI struct {
 	sync.Mutex
@@ -248,6 +257,11 @@ type SDHCI struct {
 	// defaults to dma.Default() and must be controller-accessible,
 	// non-cacheable, and below 4 GiB.
 	Region *dma.Region
+	// Cache optionally enables reads directly into word-aligned buffers
+	// below 4 GiB, invalidating the data cache around each transfer. Partial
+	// cache lines at either end of the buffer and all other transfers are
+	// copied through Region.
+	Cache Cache
 
 	// control registers
 	ssar   uint32
@@ -285,7 +299,8 @@ type SDHCI struct {
 	// detected card properties
 	card CardInfo
 
-	maxBlocks int
+	maxBlocks       int
+	maxDirectBlocks int
 }
 
 func genericClockPrescaler(parent uint32, target uint32) (uint32, error) {
@@ -431,14 +446,26 @@ func (hw *SDHCI) initController(prescaler uint32) (err error) {
 	return hw.setClockFrequency(mmcIdentificationClockHz)
 }
 
-func (hw *SDHCI) dmaBlockLimit() int {
+func (hw *SDHCI) dmaBlockLimit(direct bool) int {
 	available := int(hw.Region.Size()) - 2*(dmaAlignment-1)
-	blocks := min(available/BlockSize, maxBlocksPerTransfer)
+	blocks := maxBlocksPerTransfer
+
+	if !direct {
+		blocks = min(available/BlockSize, blocks)
+	}
 
 	for blocks > 0 {
 		size := blocks * BlockSize
+		required := admaTableSize(size)
 
-		if size+admaTableSize(size) <= available {
+		if direct {
+			// descriptors and bounce space for partial cache lines
+			required += 2*admaDescriptorSize + 2*admaMaxEdge + dmaAlignment
+		} else {
+			required += size
+		}
+
+		if required <= available {
 			return blocks
 		}
 
@@ -446,6 +473,32 @@ func (hw *SDHCI) dmaBlockLimit() int {
 	}
 
 	return 0
+}
+
+func (hw *SDHCI) directAddress(buf []byte, direction uint32) (addr uint, head int, direct bool, maintain bool) {
+	if reserved, regionAddress := hw.Region.Reserved(buf); reserved && regionAddress%admaAlignment == 0 {
+		return regionAddress, 0, true, false
+	}
+
+	// other writes are copied through the region
+	if hw.Cache == nil || direction != READ {
+		return
+	}
+
+	line := hw.Cache.DataCacheLineSize()
+	addr = uint(uintptr(unsafe.Pointer(&buf[0])))
+	head = int(-addr & uint(line-1))
+	direct = addr%admaAlignment == 0 && line <= admaMaxEdge && len(buf) >= 2*line &&
+		len(buf)%line == 0 && uint64(addr)+uint64(len(buf)) <= 1<<32
+
+	return addr, head, direct, direct
+}
+
+func copyEdge(dst []byte, src []byte) {
+	// Device memory accepts single-byte loads at any address
+	for i := range dst {
+		dst[i] = src[i]
+	}
 }
 
 // Init initializes the controller. Detect must be called afterward to
@@ -478,7 +531,8 @@ func (hw *SDHCI) Init() (err error) {
 		return errors.New("DMA memory exceeds ADMA2 address range")
 	}
 
-	hw.maxBlocks = hw.dmaBlockLimit()
+	hw.maxBlocks = hw.dmaBlockLimit(false)
+	hw.maxDirectBlocks = hw.dmaBlockLimit(true)
 	if hw.maxBlocks == 0 {
 		return errors.New("DMA memory is too small")
 	}
@@ -564,12 +618,18 @@ func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) (
 		return errors.New("invalid transfer direction")
 	}
 
+	maxBlocks := hw.maxBlocks
+
+	if _, _, direct, _ := hw.directAddress(buf, dtd); direct {
+		maxBlocks = hw.maxDirectBlocks
+	}
+
 	for len(buf) > 0 {
-		blocks := min(len(buf)/BlockSize, hw.maxBlocks)
+		blocks := min(len(buf)/BlockSize, maxBlocks)
 
 		// end each write command on a 16 KiB boundary
-		if dtd == WRITE && writeAlignment <= hw.maxBlocks {
-			limit := hw.maxBlocks - hw.maxBlocks%writeAlignment
+		if dtd == WRITE && writeAlignment <= maxBlocks {
+			limit := maxBlocks - maxBlocks%writeAlignment
 			blocks = min(len(buf)/BlockSize, limit-lba%writeAlignment)
 		}
 
@@ -601,7 +661,8 @@ func (hw *SDHCI) WriteBlocks(lba int, buf []byte) error {
 	return hw.transferBlocks(25, WRITE, lba, buf)
 }
 
-// ReadBlocks transfers full blocks of data from the card.
+// ReadBlocks transfers full blocks of data from the card. On error the
+// contents of buf are undefined.
 func (hw *SDHCI) ReadBlocks(lba int, buf []byte) error {
 	// CMD18 - READ_MULTIPLE_BLOCK - read consecutive blocks (CMD17 for one)
 	return hw.transferBlocks(18, READ, lba, buf)
@@ -643,14 +704,49 @@ func copyDMABuffer(dst []byte, src []byte) {
 }
 
 func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []byte, blocks uint16) (err error) {
-	dmaAddress, dmaBuffer := hw.Region.Reserve(len(buf), dmaAlignment)
-	defer hw.Region.Release(dmaAddress)
+	dmaAddress, head, direct, maintain := hw.directAddress(buf, direction)
+	segments := []admaSegment{{dmaAddress, len(buf)}}
+	var dmaBuffer, edges []byte
 
-	if direction == WRITE {
-		copyDMABuffer(dmaBuffer, buf)
+	if maintain {
+		// The controller writes the buffer while its goroutine waits, and a
+		// goroutine stack moves when it grows or shrinks. Pinning makes the
+		// buffer escape, so it is never on a stack.
+		var pinner runtime.Pinner
+		pinner.Pin(&buf[0])
+		defer pinner.Unpin()
 	}
 
-	descriptors := admaTable(dmaAddress, len(buf))
+	switch {
+	case maintain && head > 0:
+		// partial cache lines at both ends are shared with other data
+		tail := hw.Cache.DataCacheLineSize() - head
+		body := admaSegment{dmaAddress + uint(head), len(buf) - head - tail}
+
+		var edgeAddress uint
+		edgeAddress, edges = hw.Region.Reserve(head+tail, dmaAlignment)
+		defer hw.Region.Release(edgeAddress)
+
+		hw.Cache.InvalidateDataCacheRange(body.address, body.size)
+		defer hw.Cache.InvalidateDataCacheRange(body.address, body.size)
+
+		segments = []admaSegment{{edgeAddress, head}, body, {edgeAddress + uint(head), tail}}
+	case maintain:
+		// discard lines before the transfer and any refilled during it
+		hw.Cache.InvalidateDataCacheRange(dmaAddress, len(buf))
+		defer hw.Cache.InvalidateDataCacheRange(dmaAddress, len(buf))
+	case !direct:
+		dmaAddress, dmaBuffer = hw.Region.Reserve(len(buf), dmaAlignment)
+		defer hw.Region.Release(dmaAddress)
+
+		if direction == WRITE {
+			copyDMABuffer(dmaBuffer, buf)
+		}
+
+		segments = []admaSegment{{dmaAddress, len(buf)}}
+	}
+
+	descriptors := admaTable(segments...)
 	descriptorAddress, descriptorBuffer := hw.Region.Reserve(len(descriptors), dmaAlignment)
 	defer hw.Region.Release(descriptorAddress)
 	copyDMABuffer(descriptorBuffer, descriptors)
@@ -743,7 +839,13 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	}
 
 	if direction == READ {
-		copyDMABuffer(buf, dmaBuffer)
+		switch {
+		case !direct:
+			copyDMABuffer(buf, dmaBuffer)
+		case edges != nil:
+			copyEdge(buf[:head], edges[:head])
+			copyEdge(buf[len(buf)-len(edges)+head:], edges[head:])
+		}
 	}
 
 	return
