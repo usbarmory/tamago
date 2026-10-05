@@ -37,6 +37,7 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/temp"
 	"github.com/usbarmory/tamago/soc/microchip/trng"
 	"github.com/usbarmory/tamago/soc/microchip/wdt"
+	"github.com/usbarmory/tamago/soc/microchip/xdmac"
 )
 
 // LAN969x part identifiers
@@ -69,6 +70,9 @@ const (
 	FLEXCOM1_IRQ = 79
 	FLEXCOM2_IRQ = 80
 	FLEXCOM3_IRQ = 81
+
+	// Extensible DMA Controller, Non-secure channels
+	XDMAC_IRQ = 76
 
 	// Secure Digital Host Controller Interface
 	SDMMC0_IRQ = 96
@@ -179,6 +183,9 @@ const (
 
 	// Watchdog Timer
 	WDT_BASE = 0xe0090000
+
+	// Extensible DMA Controller
+	XDMAC_BASE = 0xe0068000
 )
 
 // Peripheral instances
@@ -291,6 +298,12 @@ var (
 	// Watchdog Timer
 	WDT = &wdt.WDT{
 		Base: WDT_BASE,
+	}
+
+	// Extensible DMA Controller
+	XDMAC = &xdmac.XDMAC{
+		Base: XDMAC_BASE,
+		IRQ:  XDMAC_IRQ,
 	}
 )
 
