@@ -54,6 +54,15 @@ func GetN64(addr uint64, pos int, mask int) uint64 {
 	return (r >> pos) & uint64(mask)
 }
 
+func SetN64(addr uint64, pos int, mask int, val uint64) {
+	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
+
+	r := atomic.LoadUint64(reg)
+	r = (r & (^(uint64(mask) << pos))) | ((val & uint64(mask)) << pos)
+
+	atomic.StoreUint64(reg, r)
+}
+
 func Read64(addr uint64) uint64 {
 	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
 	return atomic.LoadUint64(reg)
