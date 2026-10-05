@@ -26,12 +26,20 @@ type block struct {
 // On arm64 Go `copy` built-in cannot be safely used on device memory
 // as LDP/STP instructions require 8-byte alignment, for this reason
 // all `copy` against DMA buffers are forced to 8-byte aligned slices.
+//
+// From 1 KiB the arm64 `copy` also aligns its destination and moves the
+// source by the same amount, so slices are copied in smaller chunks.
 func copyAligned(dst, src []byte, align int) {
+	const chunk = 512
+
 	n := len(src)
 	r := n % align
 	n -= r
 
-	copy(dst, src[:n])
+	for i := 0; i < n; i += chunk {
+		end := min(i+chunk, n)
+		copy(dst[i:end], src[i:end])
+	}
 
 	for i := range r {
 		dst[n+i] = src[n+i]
