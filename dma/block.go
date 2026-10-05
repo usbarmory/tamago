@@ -8,7 +8,10 @@
 
 package dma
 
-import "unsafe"
+import (
+	"runtime"
+	"unsafe"
+)
 
 type block struct {
 	// pointer address
@@ -20,13 +23,32 @@ type block struct {
 	res bool
 }
 
+// On arm64 Go `copy` built-in cannot be safely used on device memory
+// as LDP/STP instructions require 8-byte alignment, for this reason
+// all `copy` against DMA buffers are forced to 8-byte aligned slices.
+func copyAligned(dst, src []byte, align int) {
+	n := len(src)
+	r := n % align
+	n -= r
+
+	copy(dst, src[:n])
+
+	for i := range r {
+		dst[n+i] = src[n+i]
+	}
+}
+
 func (b *block) read(off uint, buf []byte) {
 	var ptr unsafe.Pointer
 
 	ptr = unsafe.Add(ptr, b.addr+off)
 	mem := unsafe.Slice((*byte)(ptr), len(buf))
 
-	copy(buf, mem)
+	if runtime.GOARCH == "arm64" {
+		copyAligned(buf, mem, 8)
+	} else {
+		copy(buf, mem)
+	}
 }
 
 func (b *block) write(off uint, buf []byte) {
@@ -35,7 +57,11 @@ func (b *block) write(off uint, buf []byte) {
 	ptr = unsafe.Add(ptr, b.addr+off)
 	mem := unsafe.Slice((*byte)(ptr), len(buf))
 
-	copy(mem, buf)
+	if runtime.GOARCH == "arm64" {
+		copyAligned(mem, buf, 8)
+	} else {
+		copy(mem, buf)
+	}
 }
 
 func (b *block) slice() (buf []byte) {
