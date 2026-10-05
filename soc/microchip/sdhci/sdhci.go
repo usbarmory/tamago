@@ -245,8 +245,8 @@ type SDHCI struct {
 	// Requested Generic Clock frequency in Hz
 	TargetClock uint32
 	// Region represents the memory used for ADMA2 descriptors and data. It
-	// defaults to dma.Default() and must be controller-accessible,
-	// non-cacheable, and below 4 GiB.
+	// defaults to dma.Default() and must be controller-accessible and below
+	// 4 GiB. Buffers reserved from Region are transferred in place.
 	Region *dma.Region
 
 	// control registers
@@ -629,31 +629,25 @@ func (hw *SDHCI) Read(offset int64, size int64) (buf []byte, err error) {
 	return
 }
 
-func copyDMABuffer(dst []byte, src []byte) {
-	const size = 0x40
+func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []byte, blocks uint16) (err error) {
+	inPlace, dmaAddress := hw.Region.Reserved(buf)
 
-	// Bounded copies avoid arm64 memmove realigning Device accesses.
-	for len(src) >= size {
-		copy(dst[:size], src[:size])
-		dst, src = dst[size:], src[size:]
+	if inPlace && dmaAddress%dmaAlignment != 0 {
+		return fmt.Errorf("DMA region buffer %#x is not %d-byte aligned", dmaAddress, dmaAlignment)
 	}
 
-	// Payloads and descriptor tables are multiples of eight bytes.
-	copy(dst, src)
-}
-
-func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []byte, blocks uint16) (err error) {
-	dmaAddress, dmaBuffer := hw.Region.Reserve(len(buf), dmaAlignment)
-	defer hw.Region.Release(dmaAddress)
-
-	if direction == WRITE {
-		copyDMABuffer(dmaBuffer, buf)
+	if direction == WRITE || inPlace {
+		// returns a buffer in Region as is, copies any other
+		dmaAddress = hw.Region.Alloc(buf, dmaAlignment)
+		defer hw.Region.Free(dmaAddress)
+	} else {
+		dmaAddress, _ = hw.Region.Reserve(len(buf), dmaAlignment)
+		defer hw.Region.Release(dmaAddress)
 	}
 
 	descriptors := admaTable(dmaAddress, len(buf))
-	descriptorAddress, descriptorBuffer := hw.Region.Reserve(len(descriptors), dmaAlignment)
-	defer hw.Region.Release(descriptorAddress)
-	copyDMABuffer(descriptorBuffer, descriptors)
+	descriptorAddress := hw.Region.Alloc(descriptors, dmaAlignment)
+	defer hw.Region.Free(descriptorAddress)
 
 	// program the ADMA table
 	reg.Write(hw.asar0, uint32(descriptorAddress))
@@ -743,7 +737,8 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	}
 
 	if direction == READ {
-		copyDMABuffer(buf, dmaBuffer)
+		// leaves a buffer transferred in place unchanged
+		hw.Region.Read(dmaAddress, 0, buf)
 	}
 
 	return
