@@ -52,10 +52,9 @@ TEXT ·cache_enable(SB),$0
 	MCR	15, 0, R1, C1, C0, 0
 	RET
 
-// Adapted from Linux /arch/arm/mm/cache-v7.S
-// Using R8 instead of R10 as the latter is g in go runtime.
-//
 // func cache_flush_data()
+//
+// Adapted from Linux /arch/arm/mm/cache-v7.S.
 TEXT ·cache_flush_data(SB),$0
 	DMB	MB_SY
 	MRC	15, 1, R0, C0, C0, 1		// read CLIDR
