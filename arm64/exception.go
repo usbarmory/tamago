@@ -96,6 +96,6 @@ func (cpu *CPU) initVectorTable() {
 }
 
 // CurrentEL returns the Current Exception Level.
-func (cpu *CPU) CurrentEL() uint64 {
-	return read_el()
+func (cpu *CPU) CurrentEL() int {
+	return int(read_el() & 0b1100) >> 2
 }
