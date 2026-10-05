@@ -318,6 +318,8 @@ func (r *Region) alloc(size uint, align uint) *block {
 func (r *Region) free(usedBlock *block) {
 	defer r.defrag()
 
+	usedBlock.res = false
+
 	for e := r.freeBlocks.Front(); e != nil; e = e.Next() {
 		b := e.Value.(*block)
 
