@@ -46,6 +46,8 @@ const (
 	jobResultWords   = 2
 )
 
+var once sync.Once
+
 type jobRing struct {
 	sync.Mutex
 
@@ -63,8 +65,6 @@ type jobRing struct {
 	input uint32
 	// results queue
 	output uint32
-
-	once sync.Once
 }
 
 func (ring *jobRing) initQueue(words int, size int) uint32 {
@@ -77,6 +77,11 @@ func (ring *jobRing) init(base uint32, size int) {
 	ring.irjar = ring.base + CAAM_IRJAR_JRx
 	ring.orjrr = ring.base + CAAM_ORJRR_JRx
 	ring.orsfr = ring.base + CAAM_ORSFR_JRx
+
+	if ring.size > 0 {
+		dma.Free(uint(ring.input))
+		dma.Free(uint(ring.output))
+	}
 
 	ring.size = size
 	ring.input = ring.initQueue(jobWords, ring.size)
@@ -133,10 +138,7 @@ func (hw *CAAM) initJobRing() {
 	reg.Clear(jrstart, startJRx)
 	reg.Set(jrstart, startJRx)
 
-	if hw.jr == nil {
-		hw.jr = &jobRing{}
-	}
-
+	hw.jr = &jobRing{}
 	hw.jr.init(hw.Base+jobRingInterface, jobRingSize)
 
 	// initialize internal RNG access, required for certain CAAM commands
@@ -145,7 +147,7 @@ func (hw *CAAM) initJobRing() {
 
 // Job adds a job descriptor to the CAAM job input ring.
 func (hw *CAAM) Job(hdr *Header, jd []byte) (err error) {
-	hw.jr.once.Do(hw.initJobRing)
+	once.Do(hw.initJobRing)
 	return hw.jr.add(hdr, jd)
 }
 

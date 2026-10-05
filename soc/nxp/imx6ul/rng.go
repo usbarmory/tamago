@@ -13,7 +13,6 @@ import (
 	"time"
 	_ "unsafe"
 
-	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/rng"
 	"github.com/usbarmory/tamago/soc/nxp/caam"
 	"github.com/usbarmory/tamago/soc/nxp/rngb"
@@ -39,10 +38,9 @@ func initRNG() {
 	case IMX6UL:
 		// Cryptographic Acceleration and Assurance Module
 		CAAM = &caam.CAAM{
-			Base:            CAAM_BASE,
-			CCGR:            CCM_CCGR0,
-			CG:              CCGRx_CG5,
-			DeriveKeyMemory: dma.Default(),
+			Base: CAAM_BASE,
+			CCGR: CCM_CCGR0,
+			CG:   CCGRx_CG5,
 		}
 		CAAM.Init()
 

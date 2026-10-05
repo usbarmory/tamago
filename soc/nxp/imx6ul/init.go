@@ -93,6 +93,8 @@ func init() {
 
 				SNVS.DryIce = SNVS_LP_BASE
 			}
+
+			CAAM.DeriveKeyMemory = dma.Default()
 		}
 
 		OCOTP.Banks = 16

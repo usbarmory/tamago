@@ -56,6 +56,10 @@ func init() {
 	// use internal OCRAM (iRAM) as default DMA region
 	dma.Init(OCRAM_START, OCRAM_SIZE)
 
+	if Native {
+		CAAM.DeriveKeyMemory = dma.Default()
+	}
+
 	OCOTP.Init()
 
 	switch Family {
