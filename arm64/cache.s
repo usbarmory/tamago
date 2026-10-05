@@ -35,7 +35,7 @@ TEXT ·cache_flush_data(SB),$0
 	MRS	CLIDR_EL1, R0			// read CLIDR
 	LSR	$23, R0, R3			// move LoC into position
 	ANDS	$(7<<1), R3, R3			// extract LoC*2 from CLIDR
-	BEQ	finished			// if LoC is 0, nothing to invalidate
+	BEQ	finished			// if LoC is 0, nothing to clean
 start_invalidate_levels:
 	MOVD	$0, R10				// start at cache level 0
 invalidate_levels:
@@ -61,7 +61,7 @@ loop_sets:
 	ORR	R6, R10, R11			// factor way and cache level into R11
 	LSL	R2, R9, R6
 	ORR	R6, R11, R11			// factor set number into R11
-	DC	ISW, R11			// invalidate by set/way
+	DC	CISW, R11			// clean and invalidate by set/way
 	SUBS	$1, R9, R9			// decrement the set
 	BGE	loop_sets
 	SUBS	$1, R4, R4			// decrement the way
