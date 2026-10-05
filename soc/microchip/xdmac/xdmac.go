@@ -63,7 +63,9 @@ const (
 	CC_DWIDTH = 11
 	CC_CSIZE  = 8
 	CC_PROT   = 5
+	CC_DSYNC  = 4
 	CC_MBSIZE = 1
+	CC_TYPE   = 0
 
 	XDMAC_CDS_MSP = 0x2c
 	XDMAC_CSUS    = 0x30
@@ -230,6 +232,28 @@ func (hw *XDMAC) Copy(ch int, dst, src uint32, size int) (err error) {
 	bits.SetN(&config, CC_MBSIZE, 0b11, burst16)
 
 	return hw.transfer(ch, config, dst, src, uint32(size)>>width, hw.Timeout)
+}
+
+// CopyToPeripheral transfers size bytes from src to the peripheral register
+// dst on channel ch, one byte for each peripheral request, and waits for its
+// completion within the argument timeout (default: Timeout).
+func (hw *XDMAC) CopyToPeripheral(ch, perid int, dst, src uint32, size int, timeout time.Duration) (err error) {
+	if perid < 0 || perid >= noPeripheral {
+		return errors.New("invalid peripheral request line")
+	}
+
+	if err = hw.check(ch, dst, src, size); err != nil || size == 0 {
+		return
+	}
+
+	// incrementing source address, peripheral synchronized transfer
+	var config uint32
+	bits.SetN(&config, CC_PERID, 0x7f, uint32(perid))
+	bits.SetN(&config, CC_SAM, 0b11, 1)
+	bits.Set(&config, CC_DSYNC)
+	bits.Set(&config, CC_TYPE)
+
+	return hw.transfer(ch, config, dst, src, uint32(size), timeout)
 }
 
 func (hw *XDMAC) check(ch int, dst, src uint32, size int) error {
