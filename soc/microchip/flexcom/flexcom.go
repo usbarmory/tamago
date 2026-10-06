@@ -28,7 +28,6 @@ const (
 
 	FLEX_MR         = 0x00
 	MR_OPMODE       = 0
-	MR_OPMODE_MASK  = 0x3
 	MR_OPMODE_USART = 1
 	MR_OPMODE_TWI   = 3
 )
@@ -46,5 +45,5 @@ type FLEXCOM struct {
 }
 
 func (hw *FLEXCOM) mode(n int) {
-	reg.SetN(hw.Base+FLEX_MR, MR_OPMODE, MR_OPMODE_MASK, uint32(n))
+	reg.SetN(hw.Base+FLEX_MR, MR_OPMODE, 0b11, uint32(n))
 }

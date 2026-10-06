@@ -67,12 +67,12 @@ var cmds = map[uint16]cmdParams{
 }
 
 func commandValue(index uint16, params cmdParams) (command uint16) {
-	bits.SetN16(&command, CR_RESPTYP, CR_RESPTYP_MASK, params.responseType)
-	bits.SetN16(&command, CR_CMDTYP, CR_CMDTYP_MASK, params.commandType)
+	bits.SetN16(&command, CR_RESPTYP, 0b11, params.responseType)
+	bits.SetN16(&command, CR_CMDTYP, 0b11, params.commandType)
 	bits.SetTo16(&command, CR_CMDICEN, params.indexCheck)
 	bits.SetTo16(&command, CR_CMDCCEN, params.crcCheck)
 	bits.SetTo16(&command, CR_DPSEL, params.dataPresent)
-	bits.SetN16(&command, CR_CMDIDX, CR_CMDIDX_MASK, index)
+	bits.SetN16(&command, CR_CMDIDX, 0x3f, index)
 
 	return
 }
@@ -120,7 +120,7 @@ func (hw *SDHCI) runCommand(index uint16, argument uint32, ignoredErrors uint16)
 
 	// configure command signaling
 	mode := uint16(reg.Read8(hw.mc1r))
-	bits.SetN16(&mode, MC1R_CMDTYP, MC1R_CMDTYP_MASK, 0)
+	bits.SetN16(&mode, MC1R_CMDTYP, 0b11, 0)
 	bits.SetTo16(&mode, MC1R_OPD, params.openDrain)
 	bits.Set16(&mode, MC1R_FCD)
 	reg.Write8(hw.mc1r, uint8(mode))
@@ -319,7 +319,7 @@ func (hw *SDHCI) waitState(state int, timeout time.Duration) error {
 			return fmt.Errorf("CMD13 SEND_STATUS, %w", err)
 		}
 
-		if bits.Get(&status, STATUS_READY_FOR_DATA) && bits.GetN(&status, STATUS_CURRENT_STATE, STATUS_CURRENT_STATE_MASK) == uint32(state) {
+		if bits.Get(&status, STATUS_READY_FOR_DATA) && bits.GetN(&status, STATUS_CURRENT_STATE, 0xf) == uint32(state) {
 			return nil
 		}
 

@@ -44,7 +44,6 @@ const (
 	TMR_DMAEN        = 0
 	TMR_BCEN         = 1
 	TMR_ACMDEN       = 2
-	TMR_ACMDEN_MASK  = 0x3
 	TMR_ACMDEN_CMD23 = 0x2
 	TMR_DTDSEL       = 4
 	TMR_MSBSEL       = 5
@@ -52,7 +51,6 @@ const (
 	SDMMC_CR = 0x0e
 
 	CR_RESPTYP         = 0
-	CR_RESPTYP_MASK    = 0x3
 	CR_RESPTYP_NORESP  = 0x0
 	CR_RESPTYP_RL136   = 0x1
 	CR_RESPTYP_RL48    = 0x2
@@ -61,10 +59,8 @@ const (
 	CR_CMDICEN         = 4
 	CR_DPSEL           = 5
 	CR_CMDTYP          = 6
-	CR_CMDTYP_MASK     = 0x3
 	CR_CMDTYP_ABORT    = 0x3
 	CR_CMDIDX          = 8
-	CR_CMDIDX_MASK     = 0x3f
 
 	SDMMC_RR0 = 0x10
 
@@ -72,31 +68,26 @@ const (
 	PSR_CMDINHC = 0
 	PSR_CMDINHD = 1
 
-	SDMMC_HC1R       = 0x28
-	HC1R_DW_4BIT     = 1
-	HC1R_HSEN        = 2
-	HC1R_DMASEL      = 3
-	HC1R_DMASEL_MASK = 0x3
-	HC1R_EXTDW       = 5
+	SDMMC_HC1R   = 0x28
+	HC1R_DW_4BIT = 1
+	HC1R_HSEN    = 2
+	HC1R_DMASEL  = 3
+	HC1R_EXTDW   = 5
 
 	DMASEL_ADMA2_32 = 0b10
 
-	SDMMC_PCR        = 0x29
-	PCR_SDBPWR       = 0
-	PCR_SDBVSEL      = 1
-	PCR_SDBVSEL_MASK = 0x7
-	PCR_SDBVSEL_3V3  = 0x7
+	SDMMC_PCR       = 0x29
+	PCR_SDBPWR      = 0
+	PCR_SDBVSEL     = 1
+	PCR_SDBVSEL_3V3 = 0x7
 
-	SDMMC_CCR                = 0x2c
-	CCR_INTCLKEN             = 0
-	CCR_INTCLKS              = 1
-	CCR_SDCLKEN              = 2
-	CCR_CLKGSEL              = 5
-	CCR_SDCLKFSEL_UPPER      = 6
-	CCR_SDCLKFSEL_UPPER_MASK = 0x3
-	CCR_SDCLKFSEL_LOWER      = 8
-	CCR_SDCLKFSEL_LOWER_MASK = 0xff
-	CCR_SDCLKFSEL_MASK       = 0x3ff
+	SDMMC_CCR           = 0x2c
+	CCR_INTCLKEN        = 0
+	CCR_INTCLKS         = 1
+	CCR_SDCLKEN         = 2
+	CCR_CLKGSEL         = 5
+	CCR_SDCLKFSEL_UPPER = 6
+	CCR_SDCLKFSEL_LOWER = 8
 
 	SDMMC_TCR = 0x2e
 
@@ -133,12 +124,11 @@ const (
 	SDMMC_ASAR0 = 0x58
 	SDMMC_ASAR1 = 0x5c
 
-	SDMMC_MC1R       = 0x204
-	MC1R_CMDTYP      = 0
-	MC1R_CMDTYP_MASK = 0x3
-	MC1R_DDR         = 3
-	MC1R_OPD         = 4
-	MC1R_FCD         = 7
+	SDMMC_MC1R  = 0x204
+	MC1R_CMDTYP = 0
+	MC1R_DDR    = 3
+	MC1R_OPD    = 4
+	MC1R_FCD    = 7
 )
 
 // Generic Clock Configuration register fields
@@ -354,7 +344,7 @@ func (hw *SDHCI) setClockFrequency(frequencyHz uint32) (err error) {
 	sourceHz := hw.ParentClock / (prescaler + 1)
 	divisor := (uint64(sourceHz) + uint64(frequencyHz) - 1) / uint64(frequencyHz)
 
-	if divisor > CCR_SDCLKFSEL_MASK+1 {
+	if divisor > 1024 {
 		return errors.New("SD clock divider out of range")
 	}
 
@@ -375,8 +365,8 @@ func (hw *SDHCI) setClockFrequency(frequencyHz uint32) (err error) {
 	var clock uint16
 	bits.Set16(&clock, CCR_INTCLKEN)
 	bits.Set16(&clock, CCR_CLKGSEL)
-	bits.SetN16(&clock, CCR_SDCLKFSEL_UPPER, CCR_SDCLKFSEL_UPPER_MASK, divider>>8)
-	bits.SetN16(&clock, CCR_SDCLKFSEL_LOWER, CCR_SDCLKFSEL_LOWER_MASK, divider&CCR_SDCLKFSEL_LOWER_MASK)
+	bits.SetN16(&clock, CCR_SDCLKFSEL_UPPER, 0b11, divider>>8)
+	bits.SetN16(&clock, CCR_SDCLKFSEL_LOWER, 0xff, divider&0xff)
 	reg.Write16(hw.ccr, clock)
 
 	if !reg.WaitFor16(ClockSetupTimeout, hw.ccr, CCR_INTCLKS, 1, 1) {
@@ -414,7 +404,7 @@ func (hw *SDHCI) initController(prescaler uint32) (err error) {
 
 	// enable 3.3 V bus power
 	var power uint16
-	bits.SetN16(&power, PCR_SDBVSEL, PCR_SDBVSEL_MASK, PCR_SDBVSEL_3V3)
+	bits.SetN16(&power, PCR_SDBVSEL, 0b111, PCR_SDBVSEL_3V3)
 	bits.Set16(&power, PCR_SDBPWR)
 	reg.Write8(hw.pcr, uint8(power))
 
@@ -526,7 +516,7 @@ func (hw *SDHCI) Init() (err error) {
 
 	// select 32-bit ADMA2
 	hostControl := uint16(reg.Read8(hw.hc1r))
-	bits.SetN16(&hostControl, HC1R_DMASEL, HC1R_DMASEL_MASK, DMASEL_ADMA2_32)
+	bits.SetN16(&hostControl, HC1R_DMASEL, 0b11, DMASEL_ADMA2_32)
 	reg.Write8(hw.hc1r, uint8(hostControl))
 
 	hw.controllerReady = true
@@ -675,7 +665,7 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	if multi {
 		// predefine the block count so that the card ends the transfer itself
 		reg.Write(hw.ssar, uint32(blocks))
-		bits.SetN16(&transferMode, TMR_ACMDEN, TMR_ACMDEN_MASK, TMR_ACMDEN_CMD23)
+		bits.SetN16(&transferMode, TMR_ACMDEN, 0b11, TMR_ACMDEN_CMD23)
 	}
 
 	reg.Write16(hw.tmr, transferMode)
