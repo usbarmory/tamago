@@ -12,6 +12,9 @@ package arm64
 func cache_enable()
 func cache_disable()
 func cache_flush_data()
+func cache_line_size() uint64
+func cache_clean_range(start uint64, end uint64, line uint64)
+func cache_invalidate_range(start uint64, end uint64, line uint64)
 
 // EnableCache activates the ARM instruction and data caches.
 func (cpu *CPU) EnableCache() {
@@ -26,6 +29,28 @@ func (cpu *CPU) DisableCache() {
 // FlushDataCache flushes the ARM data cache.
 func (cpu *CPU) FlushDataCache() {
 	cache_flush_data()
+}
+
+// CleanDataCacheRange cleans the data cache lines covering the argument memory
+// range.
+func (cpu *CPU) CleanDataCacheRange(addr uint, size int) {
+	if size <= 0 {
+		return
+	}
+
+	line := cache_line_size()
+	cache_clean_range(uint64(addr)&^(line-1), uint64(addr)+uint64(size), line)
+}
+
+// InvalidateDataCacheRange invalidates the data cache lines covering the
+// argument memory range, including data outside it that shares those lines.
+func (cpu *CPU) InvalidateDataCacheRange(addr uint, size int) {
+	if size <= 0 {
+		return
+	}
+
+	line := cache_line_size()
+	cache_invalidate_range(uint64(addr)&^(line-1), uint64(addr)+uint64(size), line)
 }
 
 // FlushTLBs flushes the ARM Translation Lookaside Buffers.
