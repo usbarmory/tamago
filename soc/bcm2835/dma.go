@@ -84,11 +84,11 @@ const (
 
 	// Sets Priority on the AXI bus
 	DMA_CS_PRIORITY_SHIFT = 16
-	DMA_CS_PRIORITY_MASK  = 0xF
+	DMA_CS_PRIORITY_MASK  = 0xf
 
 	// Sets the Panic priority on the AXI bus
 	DMA_CS_PANIC_PRIORITY_SHIFT = 20
-	DMA_CS_PANIC_PRIORITY_MASK  = 0xF
+	DMA_CS_PANIC_PRIORITY_MASK  = 0xf
 
 	// Limits outstanding writes and waits for completion at end of transfer
 	DMA_CS_WAIT_FOR_OUTSTANDING_WRITES = 1 << 28
@@ -140,15 +140,15 @@ const (
 
 	// 4-bit burst length requested
 	DMA_TI_BURST_LENGTH_SHIFT = 12
-	DMA_TI_BURST_LENGTH_MASK  = 0xF
+	DMA_TI_BURST_LENGTH_MASK  = 0xf
 
 	// Peripheral ID for DREQ rate control
 	DMA_TI_BURST_PERMAP_SHIFT = 16
-	DMA_TI_BURST_PREMAP_MASK  = 0x1F
+	DMA_TI_BURST_PREMAP_MASK  = 0x1f
 
 	// Add wait cycles between each DMA read or write
 	DMA_TI_WAITS_SHIFT = 21
-	DMA_TI_WAITS_MASK  = 0x1F
+	DMA_TI_WAITS_MASK  = 0x1f
 
 	// Don't do wide bursts
 	DMA_TI_NO_WIDE_BURSTS = 0x1 << 26
@@ -167,15 +167,15 @@ const (
 
 	// Indicates outstanding writes
 	DMA_DEBUG_OUTSTANDING_WRITES_SHIFT = 4
-	DMA_DEBUG_OUTSTANDING_WRITE_MASK   = 0xF
+	DMA_DEBUG_OUTSTANDING_WRITE_MASK   = 0xf
 
 	// Gets the AXI ID of this channel
 	DMA_DEBUG_DMA_ID_SHIFT = 8
-	DMA_DEBUG_DMA_ID_MASK  = 0xFF
+	DMA_DEBUG_DMA_ID_MASK  = 0xff
 
 	// Gets the DMA engine state
 	DMA_DEBUG_DMA_STATE_SHIFT = 16
-	DMA_DEBUG_DMA_STATE_MASK  = 0xFF
+	DMA_DEBUG_DMA_STATE_MASK  = 0xff
 
 	// Gets the DMA version
 	DMA_DEBUG_VERSION_SHIFT = 25
