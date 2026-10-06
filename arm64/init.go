@@ -12,6 +12,8 @@ import (
 	_ "unsafe"
 )
 
+var mmu mmuMap
+
 // Init takes care of the lower level initialization triggered before runtime
 // setup (pre World start).
 //
@@ -23,7 +25,7 @@ func Init() {
 	// instructions to require 8-byte alignment.
 	//
 	// To prevent faults, MMU initialization is done as soon as possible in
-	// hwinit0, rather than in hwinit1.
-	cpu := &CPU{}
-	cpu.InitMMU()
+	// Hwinit0, rather than in Hwinit1.
+	mmu = mmuMap{}
+	mmu.Init()
 }
