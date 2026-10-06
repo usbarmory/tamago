@@ -134,6 +134,11 @@ const (
 	CFG_RGMII     = 1
 	CFG_RMII      = 2
 
+	RGMII_CFG    = 0x04
+	TX_CLK_CFG   = 2
+	RGMII_TX_RST = 1
+	RGMII_RX_RST = 0
+
 	DLL_CFG0 = 0x0c // rx
 	DLL_CFG1 = 0x10 // tx
 
@@ -146,6 +151,18 @@ const (
 // DEVRGMII registers
 const (
 	DEVRGMII1 = lan969x.DEVRGMII1
+
+	DEV_CFG_STATUS = 0x00
+
+	DEV_RST_CTRL = DEV_CFG_STATUS + 0x00
+
+	SPEED_SEL  = 20
+	SPEED_10M  = 0
+	SPEED_100M = 1
+	SPEED_1G   = 2
+
+	MAC_TX_RST = 4
+	MAC_RX_RST = 0
 
 	MAC_CFG_STATUS = 0x24
 
