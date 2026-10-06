@@ -28,23 +28,18 @@ const (
 	TWI_CR_MSEN  = 2
 	TWI_CR_SWRST = 7
 
-	FLEX_TWI_MMR        = 0x04
-	TWI_MMR_IADRSZ      = 8
-	TWI_MMR_IADRSZ_MASK = 0x3
-	TWI_MMR_MREAD       = 12
-	TWI_MMR_DADR        = 16
-	TWI_MMR_DADR_MASK   = 0x7f
+	FLEX_TWI_MMR   = 0x04
+	TWI_MMR_IADRSZ = 8
+	TWI_MMR_MREAD  = 12
+	TWI_MMR_DADR   = 16
 
 	FLEX_TWI_IADR = 0x0c
 
-	FLEX_TWI_CWGR       = 0x10
-	TWI_CWGR_CLDIV      = 0
-	TWI_CWGR_CLDIV_MASK = 0xff
-	TWI_CWGR_CHDIV      = 8
-	TWI_CWGR_CHDIV_MASK = 0xff
-	TWI_CWGR_CKDIV      = 16
-	TWI_CWGR_CKDIV_MASK = 0x7
-	TWI_CWGR_GCK        = 20
+	FLEX_TWI_CWGR  = 0x10
+	TWI_CWGR_CLDIV = 0
+	TWI_CWGR_CHDIV = 8
+	TWI_CWGR_CKDIV = 16
+	TWI_CWGR_GCK   = 20
 
 	FLEX_TWI_SR   = 0x20
 	TWI_SR_TXCOMP = 0
@@ -90,7 +85,7 @@ func (hw *TWI) reset() {
 }
 
 func (hw *TWI) init() (err error) {
-	if hw.ClockDivider > TWI_CWGR_CKDIV_MASK {
+	if hw.ClockDivider > 0b111 {
 		return fmt.Errorf("invalid TWI clock divider %d", hw.ClockDivider)
 	}
 
@@ -98,9 +93,9 @@ func (hw *TWI) init() (err error) {
 		hw.Timeout = TWITimeout
 	}
 
-	bits.SetN(&hw.clock, TWI_CWGR_CLDIV, TWI_CWGR_CLDIV_MASK, uint32(hw.ClockLowDivider))
-	bits.SetN(&hw.clock, TWI_CWGR_CHDIV, TWI_CWGR_CHDIV_MASK, uint32(hw.ClockHighDivider))
-	bits.SetN(&hw.clock, TWI_CWGR_CKDIV, TWI_CWGR_CKDIV_MASK, uint32(hw.ClockDivider))
+	bits.SetN(&hw.clock, TWI_CWGR_CLDIV, 0xff, uint32(hw.ClockLowDivider))
+	bits.SetN(&hw.clock, TWI_CWGR_CHDIV, 0xff, uint32(hw.ClockHighDivider))
+	bits.SetN(&hw.clock, TWI_CWGR_CKDIV, 0b111, uint32(hw.ClockDivider))
 	bits.SetTo(&hw.clock, TWI_CWGR_GCK, hw.GenericClock)
 
 	hw.reset()
@@ -112,7 +107,7 @@ func (hw *TWI) configure(target uint8, addr uint32, alen int, read bool) (err er
 	switch {
 	case hw.Base == 0:
 		return errors.New("invalid FLEXCOM controller instance")
-	case target > TWI_MMR_DADR_MASK:
+	case target > 0x7f:
 		return fmt.Errorf("invalid device address %#x", target)
 	case alen < 0 || alen > TWI_IADRSZ_MAX:
 		return fmt.Errorf("invalid internal device address size %d", alen)
@@ -122,9 +117,9 @@ func (hw *TWI) configure(target uint8, addr uint32, alen int, read bool) (err er
 	}
 
 	var mode uint32
-	bits.SetN(&mode, TWI_MMR_IADRSZ, TWI_MMR_IADRSZ_MASK, uint32(alen))
+	bits.SetN(&mode, TWI_MMR_IADRSZ, 0b11, uint32(alen))
 	bits.SetTo(&mode, TWI_MMR_MREAD, read)
-	bits.SetN(&mode, TWI_MMR_DADR, TWI_MMR_DADR_MASK, uint32(target))
+	bits.SetN(&mode, TWI_MMR_DADR, 0x7f, uint32(target))
 	reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_MMR, mode)
 	reg.Write(hw.Base+FLEX_TWI_OFFSET+FLEX_TWI_IADR, addr)
 

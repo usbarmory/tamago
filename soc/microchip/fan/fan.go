@@ -30,17 +30,13 @@ const (
 	CFG_GATE_ENA         = 2
 	CFG_INV_POL          = 3
 	CFG_DUTY_CYCLE       = 16
-	CFG_DUTY_CYCLE_MASK  = 0xff
 
 	PWM_FREQ             = 0x04
 	FREQ_PWM_FREQ        = 0
-	FREQ_PWM_FREQ_MASK   = 0xffff
 	FREQ_CLK_CYCLES_10US = 16
-	FREQ_CLK_CYCLES_MASK = 0xfff
 
-	FAN_CNT          = 0x08
-	CNT_FAN_CNT      = 0
-	CNT_FAN_CNT_MASK = 0xffff
+	FAN_CNT     = 0x08
+	CNT_FAN_CNT = 0
 
 	FAN_CLOCK_HZ          = 328125000
 	FAN_CLOCK_CYCLES_10US = FAN_CLOCK_HZ / 100000
@@ -89,7 +85,7 @@ func (hw *FAN) Init() (err error) {
 
 	divider := FAN_CLOCK_HZ / hw.PWM / 256
 
-	if divider == 0 || divider > FREQ_PWM_FREQ_MASK {
+	if divider == 0 || divider > 0xffff {
 		return errors.New("invalid fan PWM frequency")
 	}
 
@@ -101,8 +97,8 @@ func (hw *FAN) Init() (err error) {
 	defer hw.Unlock()
 
 	var freq uint32
-	bits.SetN(&freq, FREQ_PWM_FREQ, FREQ_PWM_FREQ_MASK, divider)
-	bits.SetN(&freq, FREQ_CLK_CYCLES_10US, FREQ_CLK_CYCLES_MASK, FAN_CLOCK_CYCLES_10US)
+	bits.SetN(&freq, FREQ_PWM_FREQ, 0xffff, divider)
+	bits.SetN(&freq, FREQ_CLK_CYCLES_10US, 0xfff, FAN_CLOCK_CYCLES_10US)
 	reg.Write(hw.Base+PWM_FREQ, freq)
 
 	var cfg uint32
@@ -121,7 +117,7 @@ func (hw *FAN) SetDuty(duty uint8) {
 		return
 	}
 
-	reg.SetN(hw.Base+FAN_CFG, CFG_DUTY_CYCLE, CFG_DUTY_CYCLE_MASK, uint32(duty))
+	reg.SetN(hw.Base+FAN_CFG, CFG_DUTY_CYCLE, 0xff, uint32(duty))
 }
 
 // Duty returns the configured PWM duty cycle.
@@ -130,7 +126,7 @@ func (hw *FAN) Duty() (duty uint8) {
 		return
 	}
 
-	return uint8(reg.GetN(hw.Base+FAN_CFG, CFG_DUTY_CYCLE, CFG_DUTY_CYCLE_MASK))
+	return uint8(reg.GetN(hw.Base+FAN_CFG, CFG_DUTY_CYCLE, 0xff))
 }
 
 // Frequency returns the configured PWM frequency.
@@ -139,7 +135,7 @@ func (hw *FAN) Frequency() (freq uint32) {
 		return
 	}
 
-	divider := reg.GetN(hw.Base+PWM_FREQ, FREQ_PWM_FREQ, FREQ_PWM_FREQ_MASK)
+	divider := reg.GetN(hw.Base+PWM_FREQ, FREQ_PWM_FREQ, 0xffff)
 
 	if divider == 0 {
 		return
@@ -154,5 +150,5 @@ func (hw *FAN) TachoCount() (count uint16) {
 		return
 	}
 
-	return uint16(reg.GetN(hw.Base+FAN_CNT, CNT_FAN_CNT, CNT_FAN_CNT_MASK))
+	return uint16(reg.GetN(hw.Base+FAN_CNT, CNT_FAN_CNT, 0xffff))
 }

@@ -25,22 +25,18 @@ import (
 )
 
 const (
-	SIO_CFG                 = 0x10
-	CFG_SIO_PORT_WIDTH      = 3
-	CFG_SIO_PORT_WIDTH_MASK = 0x3
-	CFG_SIO_AUTO_REPEAT     = 6
+	SIO_CFG             = 0x10
+	CFG_SIO_PORT_WIDTH  = 3
+	CFG_SIO_AUTO_REPEAT = 6
 
-	SIO_CLOCK                 = 0x14
-	CLOCK_SYS_CLK_PERIOD      = 0
-	CLOCK_SYS_CLK_PERIOD_MASK = 0xff
-	CLOCK_SIO_CLK_FREQ        = 8
-	CLOCK_SIO_CLK_FREQ_MASK   = 0xfff
+	SIO_CLOCK            = 0x14
+	CLOCK_SYS_CLK_PERIOD = 0
+	CLOCK_SIO_CLK_FREQ   = 8
 
-	SIO_PORT_CFG             = 0x18
-	PORT_CFG_BIT_SOURCE      = 12
-	PORT_CFG_BIT_SOURCE_MASK = 0x7
-	BIT_SOURCE_FORCED_LOW    = 0
-	BIT_SOURCE_FORCED_HIGH   = 1
+	SIO_PORT_CFG           = 0x18
+	PORT_CFG_BIT_SOURCE    = 12
+	BIT_SOURCE_FORCED_LOW  = 0
+	BIT_SOURCE_FORCED_HIGH = 1
 
 	SIO_PORT_ENA = 0x98
 
@@ -75,20 +71,20 @@ func (hw *SGPIO) Init() (err error) {
 		return errors.New("invalid SGPIO controller instance")
 	case hw.PortWidth < 1 || hw.PortWidth > PORT_WIDTH_MAX:
 		return fmt.Errorf("invalid SGPIO port width %d", hw.PortWidth)
-	case hw.ClockPeriod == 0 || hw.ClockPeriod > CLOCK_SYS_CLK_PERIOD_MASK:
+	case hw.ClockPeriod == 0 || hw.ClockPeriod > 0xff:
 		return fmt.Errorf("invalid SGPIO clock period %d", hw.ClockPeriod)
-	case hw.ClockDivider == 0 || hw.ClockDivider > CLOCK_SIO_CLK_FREQ_MASK:
+	case hw.ClockDivider == 0 || hw.ClockDivider > 0xfff:
 		return fmt.Errorf("invalid SGPIO clock divider %d", hw.ClockDivider)
 	}
 
 	var config uint32
-	bits.SetN(&config, CFG_SIO_PORT_WIDTH, CFG_SIO_PORT_WIDTH_MASK, uint32(hw.PortWidth-1))
+	bits.SetN(&config, CFG_SIO_PORT_WIDTH, 0b11, uint32(hw.PortWidth-1))
 	bits.SetTo(&config, CFG_SIO_AUTO_REPEAT, hw.AutoRepeat)
 	reg.Write(hw.Base+SIO_CFG, config)
 
 	var clock uint32
-	bits.SetN(&clock, CLOCK_SYS_CLK_PERIOD, CLOCK_SYS_CLK_PERIOD_MASK, hw.ClockPeriod)
-	bits.SetN(&clock, CLOCK_SIO_CLK_FREQ, CLOCK_SIO_CLK_FREQ_MASK, hw.ClockDivider)
+	bits.SetN(&clock, CLOCK_SYS_CLK_PERIOD, 0xff, hw.ClockPeriod)
+	bits.SetN(&clock, CLOCK_SIO_CLK_FREQ, 0xfff, hw.ClockDivider)
 	reg.Write(hw.Base+SIO_CLOCK, clock)
 
 	return
@@ -132,7 +128,7 @@ func (hw *SGPIO) SetBit(port, bit int, high bool) (err error) {
 	}
 
 	addr := hw.Base + SIO_PORT_CFG + uint32(port*4)
-	reg.SetN(addr, PORT_CFG_BIT_SOURCE+bit*3, PORT_CFG_BIT_SOURCE_MASK, source)
+	reg.SetN(addr, PORT_CFG_BIT_SOURCE+bit*3, 0b111, source)
 
 	return
 }
