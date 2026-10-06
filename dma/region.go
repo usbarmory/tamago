@@ -23,6 +23,9 @@ type Region struct {
 	start uint
 	size  uint
 
+	// data cache line size
+	line uint
+
 	freeBlocks *list.List
 	usedBlocks map[uint]*block
 }
@@ -39,6 +42,7 @@ func Default() *Region {
 func (r *Region) Init(start uint, size uint) {
 	r.start = start
 	r.size = size
+	r.line = cacheLineSize()
 
 	b := &block{
 		addr: start,
@@ -115,6 +119,7 @@ func (r *Region) Reserve(size int, align int) (addr uint, buf []byte) {
 
 	b := r.alloc(uint(size), uint(align))
 	b.res = true
+	r.clean(b.addr, b.size)
 
 	r.usedBlocks[b.addr] = b
 
@@ -147,15 +152,19 @@ func (r *Region) Alloc(buf []byte, align int) (addr uint) {
 		return 0
 	}
 
-	if res, addr := r.Reserved(buf); res {
-		return addr
-	}
+	res, addr := r.Reserved(buf)
 
 	r.Lock()
 	defer r.Unlock()
 
+	if res {
+		r.clean(addr, uint(size))
+		return addr
+	}
+
 	b := r.alloc(uint(size), uint(align))
 	b.write(0, buf)
+	r.clean(b.addr, uint(size))
 
 	r.usedBlocks[b.addr] = b
 
@@ -179,12 +188,15 @@ func (r *Region) Read(addr uint, off int, buf []byte) {
 		return
 	}
 
-	if res, _ := r.Reserved(buf); res {
-		return
-	}
+	res, bufAddr := r.Reserved(buf)
 
 	r.Lock()
 	defer r.Unlock()
+
+	if res {
+		r.invalidate(bufAddr, uint(size))
+		return
+	}
 
 	b, ok := r.usedBlocks[addr]
 
@@ -196,6 +208,7 @@ func (r *Region) Read(addr uint, off int, buf []byte) {
 		panic("invalid read parameters")
 	}
 
+	r.invalidate(b.addr+uint(off), uint(size))
 	b.read(uint(off), buf)
 }
 
@@ -226,6 +239,7 @@ func (r *Region) Write(addr uint, off int, buf []byte) {
 	}
 
 	b.write(uint(off), buf)
+	r.clean(b.addr+uint(off), uint(size))
 }
 
 // Free frees the memory region stored at the passed address, the region must
@@ -267,6 +281,9 @@ func (r *Region) alloc(size uint, align uint) *block {
 	if align == 0 || align&(align-1) != 0 {
 		align = DefaultAlignment
 	}
+
+	// buffers must not share cache lines
+	align = max(align, r.line)
 
 	// find suitable block
 	for e = r.freeBlocks.Front(); e != nil; e = e.Next() {
