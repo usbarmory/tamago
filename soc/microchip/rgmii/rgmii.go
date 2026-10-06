@@ -26,12 +26,10 @@ import (
 // DEVRGMII registers
 const (
 	DEV_RST_CTRL = 0x00
-
-	SPEED_SEL      = 20
-	SPEED_SEL_MASK = 0b111
-	SPEED_10M      = 0
-	SPEED_100M     = 1
-	SPEED_1G       = 2
+	SPEED_SEL    = 20
+	SPEED_10M    = 0
+	SPEED_100M   = 1
+	SPEED_1G     = 2
 
 	MAC_TX_RST = 4
 	MAC_RX_RST = 0
@@ -43,11 +41,10 @@ const (
 
 // HSIOWRAP RGMII_CFG fields
 const (
-	TX_CLK_CFG      = 2
-	TX_CLK_CFG_MASK = 0b111
-	TX_CLK_10M      = 3
-	TX_CLK_100M     = 2
-	TX_CLK_1G       = 1
+	TX_CLK_CFG  = 2
+	TX_CLK_10M  = 3
+	TX_CLK_100M = 2
+	TX_CLK_1G   = 1
 
 	RGMII_TX_RST = 1
 	RGMII_RX_RST = 0
@@ -100,8 +97,8 @@ func (hw *RGMII) SetSpeed(speed int) (err error) {
 	reg.Set(hw.ClockConfig, RGMII_RX_RST)
 
 	// match clock selectors
-	reg.SetN(hw.ClockConfig, TX_CLK_CFG, TX_CLK_CFG_MASK, txClock)
-	reg.SetN(hw.Base+DEV_RST_CTRL, SPEED_SEL, SPEED_SEL_MASK, macSpeed)
+	reg.SetN(hw.ClockConfig, TX_CLK_CFG, 0b111, txClock)
+	reg.SetN(hw.Base+DEV_RST_CTRL, SPEED_SEL, 0b111, macSpeed)
 
 	// release clock domains
 	reg.Clear(hw.ClockConfig, RGMII_TX_RST)
