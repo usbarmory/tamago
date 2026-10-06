@@ -146,25 +146,6 @@ func enablePort() (err error) {
 
 func initRGMII(speed int) (err error) {
 	var val uint32
-	var txClock uint32
-	var macSpeed uint32
-
-	switch speed {
-	case 100:
-		txClock = 2
-		macSpeed = SPEED_100M
-	case 1000:
-		txClock = 1
-		macSpeed = SPEED_1G
-	default:
-		return fmt.Errorf("invalid management link speed (%d)", speed)
-	}
-
-	// take RGMII out of reset and match the negotiated link speed
-	bits.SetN(&val, TX_CLK_CFG, 0b111, txClock)
-	bits.Clear(&val, RGMII_TX_RST)
-	bits.Clear(&val, RGMII_RX_RST)
-	reg.Write(XMIICFG1+RGMII_CFG, val)
 
 	// enable RGMII0 on the GPIOs
 	reg.SetN(XMIICFG0+XMII_CFG, GPIO_XMII_CFG, 0b11, CFG_RGMII)
@@ -195,14 +176,8 @@ func initRGMII(speed int) (err error) {
 	reg.SetN(DEVRGMII1+MAC_IFG_CFG, RX_IFG2, 0x0f, 1) // rx inter frame gap (second part)
 	reg.SetN(DEVRGMII1+MAC_IFG_CFG, RX_IFG1, 0x0f, 5) // rx inter frame gap (first part)
 
-	// set MAC speed
-	reg.SetN(DEVRGMII1+DEV_RST_CTRL, SPEED_SEL, 0b111, macSpeed)
-
-	// clear reset from clock domains
-	reg.Clear(DEVRGMII1+DEV_RST_CTRL, MAC_TX_RST)
-	reg.Clear(DEVRGMII1+DEV_RST_CTRL, MAC_RX_RST)
-
-	return
+	// match the negotiated link speed and clear reset from clock domains
+	return lan969x.RGMII1.SetSpeed(speed)
 }
 
 func initVLAN(port uint32) {
