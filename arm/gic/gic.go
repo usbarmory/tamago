@@ -65,6 +65,11 @@ const (
 	AEOIR_ID   = 0
 )
 
+const (
+	Reserved = 1020
+	Spurious = 1023
+)
+
 // GIC represents a Generic Interrupt Controller (GICv2) instance.
 type GIC struct {
 	// Base register
@@ -156,8 +161,8 @@ func (hw *GIC) DisableInterrupt(id int) {
 func (hw *GIC) GetInterrupt() (id int) {
 	m := reg.GetN(hw.gicc+GICC_IAR, IAR_ID, 0x3ff)
 
-	if m < 1020 {
-		reg.Write(hw.gicc+GICC_EOIR, (m&0x3ff)<<EOIR_ID)
+	if m < Reserved {
+		reg.Write(hw.gicc+GICC_EOIR, m<<EOIR_ID)
 	}
 
 	return int(m)
@@ -168,8 +173,8 @@ func (hw *GIC) GetInterrupt() (id int) {
 func (hw *GIC) GetNonSecureInterrupt() (id int) {
 	m := reg.GetN(hw.gicc+GICC_AIAR, AIAR_ID, 0x3ff)
 
-	if m < 1020 {
-		reg.Write(hw.gicc+GICC_AEOIR, (m&0x3ff)<<AEOIR_ID)
+	if m < Reserved {
+		reg.Write(hw.gicc+GICC_AEOIR, m<<AEOIR_ID)
 	}
 
 	return int(m)

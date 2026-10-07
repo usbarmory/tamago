@@ -58,10 +58,11 @@ const (
 )
 
 const (
-	firstSGI = 0    // Software Generated Interrupts (SGI)
-	firstPPI = 16   // Private Peripheral Interrupts (PPI)
-	firstSPI = 32   //  Shared Peripheral Interrupts (SPI)
-	firstSIN = 1020 //     Special Interrupt Numbers
+	FirstSGI = 0    // Software Generated Interrupts (SGI)
+	FirstPPI = 16   // Private Peripheral Interrupts (PPI)
+	FirstSPI = 32   // Shared Peripheral Interrupts (SPI)
+	FirstSIN = 1020 // Special Interrupt Numbers
+	Spurious = 1023 // Spurious Interrupt
 )
 
 // GIC represents a Generic Interrupt Controller (GICv3) instance.
@@ -142,7 +143,7 @@ func (hw *GIC) irq(m int, enable bool) {
 	i := m % 32
 
 	if enable {
-		if m < firstSPI {
+		if m < FirstSPI {
 			reg.Clear(hw.GICR+GICR_IGROUPR+4*n, i)
 		} else {
 			// route to core identified at initialization
@@ -156,7 +157,7 @@ func (hw *GIC) irq(m int, enable bool) {
 		off += GICD_ICENABLER
 	}
 
-	if m < firstSPI {
+	if m < FirstSPI {
 		reg.SetTo(hw.GICR+SGI_BASE+off+4*n, i, true)
 	} else {
 		reg.SetTo(hw.GICD+off+4*n, i, true)
@@ -183,7 +184,7 @@ func (hw *GIC) GetInterrupt() (id int) {
 
 	m := read_icc_iar0() & 0xffffff
 
-	if m < firstSIN {
+	if m < FirstSIN {
 		write_icc_eoir0(m)
 	}
 
