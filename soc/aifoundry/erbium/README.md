@@ -50,10 +50,12 @@ Soft float requirement
 This target requires a specific `GOOS=tamago` compiler branch to support the
 following:
 
-  * `GOSOFT=1`: compiler build time variable to enable soft float for `riscv64`, removing
-    requirement for `ad` extensions and forcing single-threaded operation.
+  * `GOEXPERIMENT=softfloat`: compiler build time variable to enable soft float
+    for `riscv64`, removing requirement for `ad` extensions and forcing
+    single-threaded operation.
 
-  * `tiny`: build tag to support considerable reduction of RAM allocation requirements.
+  * `tiny`: build tag to support considerable reduction of RAM allocation
+    requirements.
 
 The [kotama repository](https://github.com/usbarmory/kotama) provides
 instructions and a reference implementation for this target.

@@ -51,16 +51,18 @@ Supported hardware
 Compiling
 =========
 
-Go distribution supporting `GOOS=tamago GOSOFT=1`
-------------------------------------------------
+Go distribution supporting `GOOS=tamago GOEXPERIMENT=softfloat`
+---------------------------------------------------------------
 
 This target requires a specific `GOOS=tamago` compiler branch to support the
 following:
 
-  * `GOSOFT=1`: compiler build time variable to enable soft float for `riscv64`, removing
-    requirement for `ad` extensions and forcing single-threaded operation.
+  * `GOEXPERIMENT=softfloat`: compiler build time variable to enable soft float
+    for `riscv64`, removing requirement for `ad` extensions and forcing
+    single-threaded operation.
 
-  * `tiny`: build tag to support considerable reduction of RAM allocation requirements.
+  * `tiny`: build tag to support considerable reduction of RAM allocation
+    requirements.
 
 The [kotama repository](https://github.com/usbarmory/kotama) provides
 instructions and a reference implementation for this target.
@@ -83,7 +85,7 @@ Go applications can be compiled as usual, using the compiler built in the
 previous step, but with the addition of the following flags/variables:
 
 ```sh
-GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARCH=riscv64 GOSOFT=1 \
+GOOS=tamago GOOSPKG=github.com/usbarmory/tamago GOARCH=riscv64 GOEXPERIMENT=softfloat \
 	${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main.go
 ```
 

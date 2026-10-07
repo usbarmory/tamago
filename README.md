@@ -231,7 +231,7 @@ GOOS=tamago GOARCH=arm64 ${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main
 GOOS=tamago GOARCH=riscv64 ${TAMAGO} build -ldflags "-T 0x80010000 -R 0x1000" main.go
 
 # Example for AI Foundry Erbium
-GOOS=tamago GOARCH=riscv64 GOSOFT=1 ${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main.go
+GOOS=tamago GOARCH=riscv64 GOEXPERIMENT=softfloat ${TAMAGO} build -ldflags "-T 0x40010000 -R 0x1000" main.go
 
 # Example for QEMU LoongArch virt
 GOOS=tamago GOARCH=loong64 ${TAMAGO} build -ldflags "-T 0x1000000 -R 0x1000" main.go
