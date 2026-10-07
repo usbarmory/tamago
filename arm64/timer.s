@@ -22,9 +22,9 @@ TEXT ·read_cntfrq(SB),$0-4
 TEXT ·write_cntkctl(SB),$0-4
 	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 	// D12.8.15 CNTKCTL_EL1, Counter-timer Kernel Control register
-	MOVW	val+0(FP), R0
-	ISB	SY
+	MOVWU	val+0(FP), R0
 	MSR	R0, CNTKCTL_EL1
+	ISB	SY
 
 	RET
 
@@ -42,10 +42,11 @@ TEXT ·read_cntpct(SB),$0-8
 TEXT ·write_cntptval(SB),$0-5
 	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
 	// D12.8.18 CNTP_TVAL_EL0, Counter-timer Physical Timer TimerValue register
-	MOVW	val+0(FP), R0
+	MOVWU	val+0(FP), R0
 	MOVB	enable+4(FP), R1
 
 	MSR	R0, CNTP_TVAL_EL0
 	MSR	R1, CNTP_CTL_EL0
+	ISB	SY
 
 	RET
