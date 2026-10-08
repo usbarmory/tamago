@@ -81,17 +81,23 @@ func (hw *UART) Init() {
 }
 
 // EnableInterrupt enables interrupt generation for receive FIFOs. Once enabled
-// [UART.Read] and [UART.Rx] block, as required, on the argument channel rather
-// than polling for valid data. A nil channel disables receive interrupts and
-// restores polling.
-func (hw *UART) EnableInterrupt(rx chan bool) {
-	if rx == nil {
-		reg.Out8(hw.Base+IER, 0)
-	} else {
-		reg.Out8(hw.Base+IER, 1<<IER_ERBFI)
+// [UART.Read] and [UART.Rx] block until an interrupt is serviced with
+// [UART.ServiceInterrupt].
+func (hw *UART) EnableInterrupt() {
+	if hw.rx != nil {
+		return
 	}
 
-	hw.rx = rx
+	hw.rx = make(chan bool, 1)
+	reg.Out8(hw.Base+IER, 1<<IER_ERBFI)
+}
+
+// ServiceInterrupt services a receive FIFOs interrupt.
+func (hw *UART) ServiceInterrupt() {
+	select {
+	case hw.rx <- true:
+	default:
+	}
 }
 
 // Tx transmits a single character to the serial port.

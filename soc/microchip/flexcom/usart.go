@@ -42,10 +42,10 @@ const (
 	US_MR_CHRL   = 6
 
 	FLEX_US_IER     = 0x08
-	US_IER_TXRDY_IE = 1
 	US_IER_RXRDY_IE = 0
 
-	FLEX_US_IDR = 0x0c
+	FLEX_US_IDR     = 0x0c
+	US_IDR_RXRDY_ID = 0
 
 	FLEX_US_CSR  = 0x14
 	US_CSR_TXRDY = 1
@@ -148,17 +148,25 @@ func (hw *USART) Init() {
 }
 
 // EnableInterrupt enables interrupt generation for receive FIFOs. Once enabled
-// [USART.Read] and [USART.Rx] block, as required, on the argument channel
-// rather than polling for valid data. A nil channel disables receive
-// interrupts and restores polling.
-func (hw *USART) EnableInterrupt(rx chan bool) {
-	if rx == nil {
-		reg.Write(hw.idr, 1<<US_IER_RXRDY_IE)
-	} else {
-		reg.Write(hw.ier, 1<<US_IER_RXRDY_IE)
+// [USART.Read] and [USART.Rx] block until an interrupt is serviced with
+// [USART.ServiceInterrupt].
+func (hw *USART) EnableInterrupt() {
+	if hw.rx != nil {
+		return
 	}
 
-	hw.rx = rx
+	hw.rx = make(chan bool, 1)
+	reg.Write(hw.ier, 1<<US_IER_RXRDY_IE)
+}
+
+// ServiceInterrupt services a receive FIFOs interrupt.
+func (hw *USART) ServiceInterrupt() {
+	reg.Write(hw.idr, 1<<US_IDR_RXRDY_ID)
+
+	select {
+	case hw.rx <- true:
+	default:
+	}
 }
 
 // Tx transmits a single character to the serial port.
@@ -183,6 +191,7 @@ func (hw *USART) Rx(block bool) (c byte, valid bool) {
 		}
 
 		if hw.rx != nil {
+			reg.Write(hw.ier, 1<<US_IER_RXRDY_IE)
 			<-hw.rx
 		} else {
 			runtime.Gosched()
