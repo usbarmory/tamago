@@ -79,7 +79,6 @@ finished:
 
 // func cache_line_size() uint64
 TEXT ·cache_line_size(SB),$0-8
-	// CTR_EL0.DminLine is the log2 word count of the smallest data line
 	MRS	CTR_EL0, R0
 	UBFX	$16, R0, $4, R0
 	MOVD	$4, R1
@@ -87,8 +86,8 @@ TEXT ·cache_line_size(SB),$0-8
 	MOVD	R0, ret+0(FP)
 	RET
 
-// func cache_clean_range(start uint64, end uint64, line uint64)
-TEXT ·cache_clean_range(SB),$0-24
+// func cache_clean_data(start, end, line uint64)
+TEXT ·cache_clean_data(SB),$0-24
 	MOVD	start+0(FP), R0
 	MOVD	end+8(FP), R1
 	MOVD	line+16(FP), R2
@@ -100,8 +99,8 @@ clean:
 	DSB	SY
 	RET
 
-// func cache_invalidate_range(start uint64, end uint64, line uint64)
-TEXT ·cache_invalidate_range(SB),$0-24
+// func cache_invalidate_data(start, end, line uint64)
+TEXT ·cache_invalidate_data(SB),$0-24
 	MOVD	start+0(FP), R0
 	MOVD	end+8(FP), R1
 	MOVD	line+16(FP), R2
