@@ -236,8 +236,7 @@ type SDHCI struct {
 	TargetClock uint32
 	// Region represents the memory used for ADMA2 descriptors and data. It
 	// defaults to dma.Default() and must be controller-accessible,
-	// non-cacheable, and below 4 GiB. Buffers reserved from Region are
-	// transferred in place.
+	// non-cacheable, and below 4 GiB.
 	Region *dma.Region
 
 	// control registers
@@ -566,7 +565,7 @@ func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) (
 
 		length := blocks * BlockSize
 
-		if err = hw.transferDMA(index, dtd, uint32(lba), buf[:length], uint16(blocks)); err != nil {
+		if err = hw.transfer(index, dtd, uint32(lba), buf[:length], uint16(blocks)); err != nil {
 			return
 		}
 
@@ -620,8 +619,7 @@ func (hw *SDHCI) Read(offset int64, size int64) (buf []byte, err error) {
 	return
 }
 
-func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []byte, blocks uint16) (err error) {
-	// returns a buffer reserved from Region as is, copies any other
+func (hw *SDHCI) transfer(index uint16, direction uint32, lba uint32, buf []byte, blocks uint16) (err error) {
 	dmaAddress := hw.Region.Alloc(buf, dmaAlignment)
 	defer hw.Region.Free(dmaAddress)
 
