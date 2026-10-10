@@ -14,6 +14,7 @@ import (
 	"fmt"
 
 	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 	"github.com/usbarmory/tamago/soc/microchip/xdmac"
 )
@@ -114,9 +115,16 @@ func (hw *QSPI) readMemory(command Command, offset uint32, buf []byte) (err erro
 	return hw.finishTransfer()
 }
 
+func (hw *QSPI) dmaSize() int {
+	// one aligned region allocation, in whole words
+	align := uint(max(hw.Region.Alignment, dma.DefaultAlignment))
+	pad := min(-hw.Region.Start()&(align-1), hw.Region.Size())
+	return min(DMAMaxSize, int(hw.Region.Size()-pad)&^7)
+}
+
 func (hw *QSPI) readDMA(buf []byte, src uint32) (err error) {
 	for done := 0; done < len(buf); {
-		n := min(len(buf)-done, DMAMaxSize)
+		n := min(len(buf)-done, hw.dmaSize())
 
 		if err = hw.readDMAChunk(buf[done:done+n], src+uint32(done)); err != nil {
 			return fmt.Errorf("DMA read, %w", err)

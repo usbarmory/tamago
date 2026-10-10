@@ -198,7 +198,7 @@ func (hw *QSPI) Init() (err error) {
 		hw.Region = dma.Default()
 	}
 
-	if hw.DMA != nil && (hw.Region == nil || hw.Region.End() > 1<<32) {
+	if hw.DMA != nil && (hw.Region == nil || hw.Region.End() > 1<<32 || hw.dmaSize() < DMAMinSize) {
 		return ErrInvalidInstance
 	}
 
