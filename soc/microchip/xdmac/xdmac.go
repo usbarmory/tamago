@@ -95,6 +95,10 @@ const Timeout = 1 * time.Second
 // when waiting for channel interrupts.
 var InterruptPollInterval = 1 * time.Millisecond
 
+// ErrBusy is returned when a channel fails to stop, it can still access the
+// memory of its last transfer.
+var ErrBusy = errors.New("channel busy timeout")
+
 // XDMAC represents an XDMAC controller instance.
 type XDMAC struct {
 	// Base register
@@ -157,7 +161,7 @@ func (hw *XDMAC) quiesce(ch int, timeout time.Duration) (err error) {
 
 func (hw *XDMAC) wait(ch int, timeout time.Duration) error {
 	if !reg.WaitFor(timeout, hw.Base+XDMAC_GS, ch, 1, 0) {
-		return errors.New("channel busy timeout")
+		return ErrBusy
 	}
 
 	return nil
@@ -287,8 +291,9 @@ func (hw *XDMAC) transfer(ch int, config uint32, dst uint32, src uint32, units u
 
 	if err != nil {
 		remaining := reg.Read(channel + XDMAC_CUBC)
-		hw.quiesce(ch, timeout)
-		return fmt.Errorf("channel %d transfer, %w (%d units remaining, status %#x)", ch, err, remaining, status)
+		err = fmt.Errorf("channel %d transfer, %w (%d units remaining, status %#x)", ch, err, remaining, status)
+
+		return errors.Join(err, hw.quiesce(ch, timeout))
 	}
 
 	if err = hw.quiesce(ch, timeout); err != nil {
