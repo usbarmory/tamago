@@ -164,14 +164,16 @@ type QSPI struct {
 	// Register polling timeout (default: Timeout)
 	Timeout time.Duration
 
-	// DMA controller for memory-mapped reads (optional)
+	// DMA controller for memory-mapped reads (optional, unused after a
+	// channel fails to stop)
 	DMA *xdmac.XDMAC
 	// DMA controller channel
 	DMAChannel int
 	// DMA region for memory-mapped reads (default: dma.Default())
 	Region *dma.Region
 
-	ready bool
+	ready   bool
+	dmaBusy bool
 }
 
 // Ready returns whether the controller is initialized.

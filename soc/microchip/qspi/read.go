@@ -10,10 +10,12 @@ package qspi
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
+	"github.com/usbarmory/tamago/soc/microchip/xdmac"
 )
 
 func instructionFrame(command Command) (frame uint32, err error) {
@@ -101,7 +103,7 @@ func (hw *QSPI) readMemory(command Command, offset uint32, buf []byte) (err erro
 		return err
 	}
 
-	if hw.DMA != nil && len(buf) >= DMAMinSize {
+	if hw.DMA != nil && !hw.dmaBusy && len(buf) >= DMAMinSize {
 		if err = hw.readDMA(buf, hw.MMAP+offset); err != nil {
 			return
 		}
@@ -129,9 +131,16 @@ func (hw *QSPI) readDMA(buf []byte, src uint32) (err error) {
 func (hw *QSPI) readDMAChunk(buf []byte, src uint32) (err error) {
 	// returns a buffer reserved from Region as is, copies any other
 	addr := hw.Region.Alloc(buf, 0)
+
+	if err = hw.DMA.Copy(hw.DMAChannel, uint32(addr), src, len(buf)); errors.Is(err, xdmac.ErrBusy) {
+		// the channel can still write the buffer
+		hw.dmaBusy = true
+		return
+	}
+
 	defer hw.Region.Free(addr)
 
-	if err = hw.DMA.Copy(hw.DMAChannel, uint32(addr), src, len(buf)); err != nil {
+	if err != nil {
 		return
 	}
 
