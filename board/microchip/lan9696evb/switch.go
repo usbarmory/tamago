@@ -20,8 +20,12 @@ func ramInit(addr uint32) {
 	reg.Wait(addr, RAM_INIT, 1, 0)
 }
 
-// InitSwitchCore initializes and enables the switch core.
+// InitSwitchCore resets, initializes and enables the switch core.
 func InitSwitchCore() {
+	// reset switch core, which a VCore reset leaves running
+	lan969x.SoftReset(lan969x.VCoreProtection)
+	reg.Wait(lan969x.GCB_SOFT_RST, lan969x.SOFT_SWC_RST, 1, 0)
+
 	// initialize memories
 	ramInit(ANA_AC_RAM_INIT)     // Analyzer Access Control
 	ramInit(ASM_RAM_INIT)        // Assembler
