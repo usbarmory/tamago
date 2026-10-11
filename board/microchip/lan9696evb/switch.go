@@ -20,7 +20,8 @@ func ramInit(addr uint32) {
 	reg.Wait(addr, RAM_INIT, 1, 0)
 }
 
-func initializeSwitchCore() {
+// InitSwitchCore initializes and enables the switch core.
+func InitSwitchCore() {
 	// initialize memories
 	ramInit(ANA_AC_RAM_INIT)     // Analyzer Access Control
 	ramInit(ASM_RAM_INIT)        // Assembler

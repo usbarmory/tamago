@@ -40,8 +40,3 @@ func Init() {
 	// initialize console
 	USART0.Init()
 }
-
-func init() {
-	// initialize switch memories, calendar, VLANs and core
-	initializeSwitchCore()
-}
