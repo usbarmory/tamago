@@ -23,6 +23,9 @@ type Region struct {
 	start uint
 	size  uint
 
+	// data cache writeback granule
+	granule uint
+
 	freeBlocks *list.List
 	usedBlocks map[uint]*block
 }
@@ -39,6 +42,7 @@ func Default() *Region {
 func (r *Region) Init(start uint, size uint) {
 	r.start = start
 	r.size = size
+	r.granule = 0
 
 	b := &block{
 		addr: start,
@@ -49,6 +53,27 @@ func (r *Region) Init(start uint, size uint) {
 	r.freeBlocks.PushFront(b)
 
 	r.usedBlocks = make(map[uint]*block)
+}
+
+// SetCache sets, before any allocation, whether the region is cacheable,
+// enabling data cache maintenance in Alloc(), Read() and Write().
+func (r *Region) SetCache(cacheable bool) {
+	r.Lock()
+	defer r.Unlock()
+
+	if len(r.usedBlocks) != 0 {
+		panic("set the region cache mode before any allocation")
+	}
+
+	r.granule = 0
+
+	if cacheable {
+		r.granule = cacheGranule()
+	}
+
+	if r.granule != 0 && (r.start|r.size)&(r.granule-1) != 0 {
+		panic("align the cacheable region to the data cache writeback granule")
+	}
 }
 
 // Start returns the DMA region start address.
@@ -64,6 +89,11 @@ func (r *Region) End() uint {
 // Size returns the DMA region size.
 func (r *Region) Size() uint {
 	return r.size
+}
+
+// Alignment returns the minimum alignment of allocated buffers.
+func (r *Region) Alignment() int {
+	return int(max(DefaultAlignment, r.granule))
 }
 
 // FreeBlocks returns the DMA region free blocks addresses and size.
@@ -96,7 +126,7 @@ func (r *Region) UsedBlocks() map[uint]uint {
 // Reserving buffers with Reserve() allows applications to pre-allocate DMA
 // regions, avoiding unnecessary memory copy operations when performance is a
 // concern. Reserved buffers cause Alloc() and Read() to return without any
-// allocation or memory copy.
+// allocation or memory copy, unless the region is cacheable.
 //
 // Great care must be taken on reserved buffer as:
 //   - buf contents are uninitialized (unlike when using Alloc())
@@ -136,7 +166,7 @@ func (r *Region) Reserved(buf []byte) (res bool, addr uint) {
 // freed up with Free().
 //
 // If the argument is a buffer previously created with Reserve(), then its
-// address is return without any re-allocation.
+// address is returned without re-allocation, unless the region is cacheable.
 //
 // The optional alignment must be a power of 2 and word alignment is always
 // enforced, 0 means 4 on 32-bit platforms and 8 on 64-bit ones.
@@ -147,7 +177,7 @@ func (r *Region) Alloc(buf []byte, align int) (addr uint) {
 		return 0
 	}
 
-	if res, addr := r.Reserved(buf); res {
+	if res, addr := r.Reserved(buf); res && r.granule == 0 {
 		return addr
 	}
 
@@ -156,6 +186,7 @@ func (r *Region) Alloc(buf []byte, align int) (addr uint) {
 
 	b := r.alloc(uint(size), uint(align))
 	b.write(0, buf)
+	r.clean(b.addr, uint(size))
 
 	r.usedBlocks[b.addr] = b
 
@@ -171,7 +202,7 @@ func (r *Region) Alloc(buf []byte, align int) (addr uint) {
 //
 // If the argument is a buffer previously created with Reserve(), then the
 // function returns without modifying it, as it is assumed for the buffer to be
-// already updated.
+// already updated, unless the region is cacheable.
 func (r *Region) Read(addr uint, off int, buf []byte) {
 	size := len(buf)
 
@@ -179,7 +210,7 @@ func (r *Region) Read(addr uint, off int, buf []byte) {
 		return
 	}
 
-	if res, _ := r.Reserved(buf); res {
+	if res, _ := r.Reserved(buf); res && r.granule == 0 {
 		return
 	}
 
@@ -196,6 +227,7 @@ func (r *Region) Read(addr uint, off int, buf []byte) {
 		panic("invalid read parameters")
 	}
 
+	r.invalidate(b.addr+uint(off), uint(size))
 	b.read(uint(off), buf)
 }
 
@@ -226,6 +258,7 @@ func (r *Region) Write(addr uint, off int, buf []byte) {
 	}
 
 	b.write(uint(off), buf)
+	r.clean(b.addr+uint(off), uint(size))
 }
 
 // Free frees the memory region stored at the passed address, the region must
@@ -267,6 +300,9 @@ func (r *Region) alloc(size uint, align uint) *block {
 	if align < DefaultAlignment || align&(align-1) != 0 {
 		align = DefaultAlignment
 	}
+
+	// buffers must not share cache lines
+	align = max(align, r.granule)
 
 	// find suitable block
 	for e = r.freeBlocks.Front(); e != nil; e = e.Next() {

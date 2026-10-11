@@ -235,8 +235,8 @@ type SDHCI struct {
 	// Requested Generic Clock frequency in Hz
 	TargetClock uint32
 	// Region represents the memory used for ADMA2 descriptors and data. It
-	// defaults to dma.Default() and must be controller-accessible,
-	// non-cacheable, and below 4 GiB.
+	// defaults to dma.Default() and must be controller-accessible, below
+	// 4 GiB, and declared with SetCache() if cacheable.
 	Region *dma.Region
 
 	// control registers
@@ -422,7 +422,8 @@ func (hw *SDHCI) initController(prescaler uint32) (err error) {
 }
 
 func (hw *SDHCI) dmaBlockLimit() int {
-	available := int(hw.Region.Size()) - 2*(dmaAlignment-1)
+	align := max(dmaAlignment, hw.Region.Alignment())
+	available := int(hw.Region.Size()) - 2*(align-1)
 	blocks := min(available/BlockSize, maxBlocksPerTransfer)
 
 	for blocks > 0 {
