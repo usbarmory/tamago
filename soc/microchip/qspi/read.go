@@ -9,7 +9,6 @@
 package qspi
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -165,7 +164,12 @@ func copyFromMMAP(dst []byte, src uint32) {
 	}
 
 	for ; i+8 <= len(dst); i += 8 {
-		binary.LittleEndian.PutUint64(dst[i:], reg.Read64(uint64(src)+uint64(i)))
+		v := reg.Read64(uint64(src) + uint64(i))
+
+		// byte stores keep Device memory destinations aligned
+		for j := range 8 {
+			dst[i+j] = byte(v >> (8 * j))
+		}
 	}
 
 	for ; i < len(dst); i++ {
