@@ -565,7 +565,7 @@ func (hw *SDHCI) transferBlocks(index uint16, dtd uint32, lba int, buf []byte) (
 
 		length := blocks * BlockSize
 
-		if err = hw.transferDMA(index, dtd, uint32(lba), buf[:length], uint16(blocks)); err != nil {
+		if err = hw.transfer(index, dtd, uint32(lba), buf[:length], uint16(blocks)); err != nil {
 			return
 		}
 
@@ -619,31 +619,17 @@ func (hw *SDHCI) Read(offset int64, size int64) (buf []byte, err error) {
 	return
 }
 
-func copyDMABuffer(dst []byte, src []byte) {
-	const size = 0x40
+func (hw *SDHCI) transfer(index uint16, direction uint32, lba uint32, buf []byte, blocks uint16) (err error) {
+	dmaAddress := hw.Region.Alloc(buf, dmaAlignment)
+	defer hw.Region.Free(dmaAddress)
 
-	// Bounded copies avoid arm64 memmove realigning Device accesses.
-	for len(src) >= size {
-		copy(dst[:size], src[:size])
-		dst, src = dst[size:], src[size:]
-	}
-
-	// Payloads and descriptor tables are multiples of eight bytes.
-	copy(dst, src)
-}
-
-func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []byte, blocks uint16) (err error) {
-	dmaAddress, dmaBuffer := hw.Region.Reserve(len(buf), dmaAlignment)
-	defer hw.Region.Release(dmaAddress)
-
-	if direction == WRITE {
-		copyDMABuffer(dmaBuffer, buf)
+	if dmaAddress%dmaAlignment != 0 {
+		return fmt.Errorf("DMA buffer %#x is not %d-byte aligned", dmaAddress, dmaAlignment)
 	}
 
 	descriptors := admaTable(dmaAddress, len(buf))
-	descriptorAddress, descriptorBuffer := hw.Region.Reserve(len(descriptors), dmaAlignment)
-	defer hw.Region.Release(descriptorAddress)
-	copyDMABuffer(descriptorBuffer, descriptors)
+	descriptorAddress := hw.Region.Alloc(descriptors, dmaAlignment)
+	defer hw.Region.Free(descriptorAddress)
 
 	// program the ADMA table
 	reg.Write(hw.asar0, uint32(descriptorAddress))
@@ -733,7 +719,7 @@ func (hw *SDHCI) transferDMA(index uint16, direction uint32, lba uint32, buf []b
 	}
 
 	if direction == READ {
-		copyDMABuffer(buf, dmaBuffer)
+		hw.Region.Read(dmaAddress, 0, buf)
 	}
 
 	return
