@@ -21,7 +21,6 @@ import (
 
 const (
 	PHY_ADDR            = 0x03
-	MAC_FID             = 1
 	ManagementPortIndex = 29
 )
 
@@ -45,7 +44,7 @@ var ManagementPort = &devcpu.Port{
 	Queue:    lan969x.DEVCPU_QS,
 	Analyzer: lan969x.ANA,
 	Enable:   enablePort,
-	FID:      MAC_FID,
+	FID:      lan969x.MAC_FID,
 }
 
 func initGPIO(num, fn int) {

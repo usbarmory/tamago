@@ -1,4 +1,4 @@
-// LAN969x 24-port EVB support for tamago/arm64
+// Microchip LAN969x configuration and support
 // https://github.com/usbarmory/tamago
 //
 // Copyright (c) The TamaGo Authors. All Rights Reserved.
@@ -6,10 +6,36 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-package lan9696evb
+package lan969x
 
 import (
 	"github.com/usbarmory/tamago/internal/reg"
+)
+
+// Calendar registers
+const (
+	QSYS_RAM_INIT = QSYS_BASE + 0x89c
+	QSYS_CALCFG   = QSYS_BASE + 0x874
+
+	QSYS_CAL_AUTO0 = QSYS_CALCFG + 0x00
+	QSYS_CAL_AUTO1 = QSYS_CALCFG + 0x04
+	QSYS_CAL_AUTO2 = QSYS_CALCFG + 0x08
+	QSYS_CAL_AUTO3 = QSYS_CALCFG + 0x0c
+	GBPS_1         = 1
+
+	QSYS_CAL_CTRL     = QSYS_CALCFG + 0x24
+	CAL_CTRL_CAL_MODE = 11
+	MODE_HALT         = 10
+	MODE_CAL_AUTO     = 8
+
+	DSM_CFG      = DSM_BASE + 0x14
+	TAXI_CAL_CFG = DSM_CFG + 0xc98
+	CAL_SEL_STAT = 23
+	CAL_SWITCH   = 22
+	CAL_PGM_SEL  = 21
+	CAL_IDX      = 15
+	CAL_PGM_VAL  = 1
+	CAL_PGM_ENA  = 0
 )
 
 const CalendarLength = 30
