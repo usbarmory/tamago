@@ -21,8 +21,7 @@ import (
 
 const (
 	PHY_ADDR            = 0x03
-	MAC_FID             = 1
-	ManagementPortIndex = PORT29
+	ManagementPortIndex = 29
 )
 
 var (
@@ -40,12 +39,12 @@ var (
 //
 // CPU port 0 (D30) is used for injection and extraction of frames.
 var ManagementPort = &devcpu.Port{
-	Index:    PORT29,
+	Index:    ManagementPortIndex,
 	IRQ:      lan969x.XTR_READY_IRQ,
 	Queue:    lan969x.DEVCPU_QS,
 	Analyzer: lan969x.ANA,
 	Enable:   enablePort,
-	FID:      MAC_FID,
+	FID:      lan969x.MAC_FID,
 }
 
 func initGPIO(num, fn int) {
@@ -139,7 +138,7 @@ func enablePort() (err error) {
 	initCapture(PORT_CFG30)
 
 	// reset injection flow control
-	resetInjectionFlowControl(PORT29)
+	resetInjectionFlowControl(ManagementPortIndex)
 
 	return nil
 }
