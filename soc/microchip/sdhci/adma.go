@@ -14,9 +14,6 @@ import (
 )
 
 const (
-	// ADMA2 data and descriptor addresses are word aligned.
-	admaAlignment = 4
-
 	admaDescriptorSize = 8
 	// Largest non-zero, word-aligned value in the 16-bit length field.
 	admaMaxLength = 65532

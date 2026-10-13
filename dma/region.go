@@ -20,6 +20,21 @@ const DefaultAlignment = (32 << (^uint(0) >> 63)) / 8
 type Region struct {
 	sync.Mutex
 
+	// Alignment is an optional alignment enforcement which can be used to
+	// automatically override [Region.Alloc] and [Region.Reserve] align
+	// arguments which are below this value.
+	Alignment int
+
+	// Clean is an optional cache cleaning function, when defined it is
+	// invoked after write operations to ensure that, when dealing with
+	// cached DMA regions, peripherals read up-to-date memory.
+	Clean func(addr uint, size int)
+
+	// Invalidate is an optional cache invalidation function, when defined
+	// it is invoked before read operations to ensure that, when dealing
+	// with cached DMA regions, CPU reads up-to-date memory.
+	Invalidate func(addr uint, size int)
+
 	start uint
 	size  uint
 
@@ -113,6 +128,7 @@ func (r *Region) Reserve(size int, align int) (addr uint, buf []byte) {
 	r.Lock()
 	defer r.Unlock()
 
+	align = max(align, r.Alignment)
 	b := r.alloc(uint(size), uint(align))
 	b.res = true
 
@@ -148,14 +164,23 @@ func (r *Region) Alloc(buf []byte, align int) (addr uint) {
 	}
 
 	if res, addr := r.Reserved(buf); res {
+		if r.Clean != nil {
+			r.Clean(addr, size)
+		}
+
 		return addr
 	}
 
 	r.Lock()
 	defer r.Unlock()
 
+	align = max(align, r.Alignment)
 	b := r.alloc(uint(size), uint(align))
 	b.write(0, buf)
+
+	if r.Clean != nil {
+		r.Clean(b.addr, size)
+	}
 
 	r.usedBlocks[b.addr] = b
 
@@ -179,7 +204,11 @@ func (r *Region) Read(addr uint, off int, buf []byte) {
 		return
 	}
 
-	if res, _ := r.Reserved(buf); res {
+	if res, addr := r.Reserved(buf); res {
+		if r.Invalidate != nil {
+			r.Invalidate(addr, size)
+		}
+
 		return
 	}
 
@@ -194,6 +223,10 @@ func (r *Region) Read(addr uint, off int, buf []byte) {
 
 	if uint(off+size) > b.size {
 		panic("invalid read parameters")
+	}
+
+	if r.Invalidate != nil {
+		r.Invalidate(addr+uint(off), size)
 	}
 
 	b.read(uint(off), buf)
@@ -226,6 +259,10 @@ func (r *Region) Write(addr uint, off int, buf []byte) {
 	}
 
 	b.write(uint(off), buf)
+
+	if r.Clean != nil {
+		r.Clean(addr+uint(off), size)
+	}
 }
 
 // Free frees the memory region stored at the passed address, the region must

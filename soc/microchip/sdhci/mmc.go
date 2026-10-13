@@ -280,6 +280,10 @@ func (hw *SDHCI) Detect() (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
+	if hw.ready {
+		return
+	}
+
 	hw.ready = false
 	hw.card = CardInfo{}
 
@@ -341,7 +345,7 @@ func (hw *SDHCI) readExtCSD(buf []byte) error {
 	}
 
 	// CMD8 - SEND_EXT_CSD - read extended device data
-	return hw.transferDMA(8, READ, 0, buf, 1)
+	return hw.transfer(8, READ, 0, buf, 1)
 }
 
 // EnableCache turns the card volatile write cache on or off. With the cache
