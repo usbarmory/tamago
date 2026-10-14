@@ -42,6 +42,10 @@ func write_cntkctl(val uint32)
 func read_cntpct() uint64
 func write_cntptval(val uint32, enable bool)
 
+// Busyloop spins the processor for busy waiting purposes, taking a counter
+// value for the number of loops.
+func Busyloop(count uint32)
+
 // InitGenericTimers initializes ARMv8 Generic Timers.
 func (cpu *CPU) InitGenericTimers(base uint32, freq uint32) {
 	if freq != 0 {

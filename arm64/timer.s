@@ -50,3 +50,13 @@ TEXT ·write_cntptval(SB),$0-5
 	ISB	SY
 
 	RET
+
+// func Busyloop(count uint32)
+TEXT ·Busyloop(SB),$0-4
+	MOVWU	count+0(FP), R0
+	CBZ	R0, done
+loop:
+	SUBS	$1, R0, R0
+	BNE	loop
+done:
+	RET
