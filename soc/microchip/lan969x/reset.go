@@ -9,6 +9,7 @@
 package lan969x
 
 import (
+	"github.com/usbarmory/tamago/arm64"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -94,8 +95,15 @@ func Reset(target ResetTarget) {
 	reg.Write(CPU_RESET, uint32(target))
 }
 
+// 100 µs
+const resetDelay = 100000
+
 // SoftReset writes the reset protection and resets the switch core.
 func SoftReset(protection ResetProtection) {
 	reg.Write(CPU_RESET_PROT_STAT, uint32(protection))
 	reg.Write(GCB_SOFT_RST, 1<<SOFT_SWC_RST)
+
+	// wait for CPU bus to settle without yielding
+	arm64.Busyloop(resetDelay)
+	reg.Wait(GCB_SOFT_RST, SOFT_SWC_RST, 1, 0)
 }

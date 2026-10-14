@@ -80,7 +80,6 @@ func ramInit(addr uint32) {
 func InitSwitchCore() {
 	// reset switch core, which a VCore reset leaves running
 	SoftReset(VCoreProtection)
-	reg.Wait(GCB_SOFT_RST, SOFT_SWC_RST, 1, 0)
 
 	// initialize memories
 	ramInit(ANA_AC_RAM_INIT)     // Analyzer Access Control
