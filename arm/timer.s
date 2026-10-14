@@ -63,7 +63,7 @@ TEXT ·write_cntptval(SB),$0-5
 
 // func Busyloop(count uint32)
 TEXT ·Busyloop(SB),$0-4
-	MOVW count+0(FP), R0
+	MOVW	count+0(FP), R0
 loop:
 	SUB.S	$1, R0, R0
 	CMP	$0, R0
