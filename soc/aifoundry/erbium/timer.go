@@ -16,7 +16,7 @@ import (
 
 // Oscillator frequencies
 const (
-	CoreFreq        = 200e6 // 200 MHz
+	CoreFreq        = 1e9 // 1 GHz
 	TimerMultiplier = 50000
 )
 
