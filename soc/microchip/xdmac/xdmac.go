@@ -116,9 +116,7 @@ type XDMAC struct {
 // [XDMAC.ServiceInterrupts] must then be called on each XDMAC interrupt.
 func (hw *XDMAC) EnableInterrupt() {
 	for ch := range Channels {
-		hw.channels[ch].Lock()
 		hw.events[ch] = make(chan struct{}, 1)
-		hw.channels[ch].Unlock()
 	}
 }
 
@@ -152,9 +150,9 @@ func (hw *XDMAC) quiesce(ch int, timeout time.Duration) (err error) {
 		return fmt.Errorf("disable channel %d, %w", ch, err)
 	}
 
-	// channel registers are writable only once the channel is idle
-	reg.Write(hw.channel(ch)+XDMAC_CID, 0xff)
-	reg.Read(hw.channel(ch) + XDMAC_CIS)
+	n := hw.channel(ch)
+	reg.Write(n+XDMAC_CID, 0xff)
+	reg.Read(n + XDMAC_CIS)
 
 	return
 }
@@ -210,7 +208,7 @@ func (hw *XDMAC) waitTransfer(ch int, timeout time.Duration) (status uint32, err
 
 // Copy copies size bytes from src to dst on channel ch and waits for its
 // completion, the caller is responsible for cache maintenance.
-func (hw *XDMAC) Copy(ch int, dst uint32, src uint32, size int) (err error) {
+func (hw *XDMAC) Copy(ch int, dst, src uint32, size int) (err error) {
 	if err = hw.check(ch, dst, src, size); err != nil || size == 0 {
 		return
 	}
@@ -234,7 +232,7 @@ func (hw *XDMAC) Copy(ch int, dst uint32, src uint32, size int) (err error) {
 	return hw.transfer(ch, config, dst, src, uint32(size)>>width, hw.Timeout)
 }
 
-func (hw *XDMAC) check(ch int, dst uint32, src uint32, size int) error {
+func (hw *XDMAC) check(ch int, dst, src uint32, size int) error {
 	if hw.Base == 0 || ch < 0 || ch >= Channels {
 		return errors.New("invalid instance or channel")
 	}
@@ -246,7 +244,7 @@ func (hw *XDMAC) check(ch int, dst uint32, src uint32, size int) error {
 	return nil
 }
 
-func (hw *XDMAC) transfer(ch int, config uint32, dst uint32, src uint32, units uint32, timeout time.Duration) (err error) {
+func (hw *XDMAC) transfer(ch int, config, dst, src, units uint32, timeout time.Duration) (err error) {
 	hw.channels[ch].Lock()
 	defer hw.channels[ch].Unlock()
 
@@ -272,7 +270,6 @@ func (hw *XDMAC) transfer(ch int, config uint32, dst uint32, src uint32, units u
 	bits.Set(&config, CC_PROT)
 
 	channel := hw.channel(ch)
-
 	reg.Write(channel+XDMAC_CSA, src)
 	reg.Write(channel+XDMAC_CDA, dst)
 	reg.Write(channel+XDMAC_CNDA, 0)

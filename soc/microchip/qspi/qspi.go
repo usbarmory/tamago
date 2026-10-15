@@ -91,13 +91,13 @@ const (
 // Timeout is the default timeout for QSPI operations.
 const Timeout = 200 * time.Millisecond
 
-// DMA transfer sizes, memory-mapped reads shorter than DMAMinSize are copied by
-// the CPU while longer ones are split in transfers of at most DMAMaxSize, each
-// allocating a buffer from the DMA region unless the destination is reserved
-// from it.
+// DMA transfer sizes, memory-mapped reads shorter than MinDMASize are copied
+// by the CPU while longer ones are split in transfers of at most MaxDMASize,
+// each allocating a buffer from the DMA region unless the destination is
+// reserved from it.
 const (
-	DMAMinSize = 64
-	DMAMaxSize = 1 << 20
+	MinDMASize = 64
+	MaxDMASize = 1 << 20
 )
 
 const (
@@ -165,11 +165,11 @@ type QSPI struct {
 	Timeout time.Duration
 
 	// DMA controller for memory-mapped reads (optional, unused after a
-	// channel fails to stop)
+	// channel fails to stop, see [MinDMASize] and [MaxDMASize])
 	DMA *xdmac.XDMAC
 	// DMA controller channel
 	DMAChannel int
-	// DMA region for memory-mapped reads (default: dma.Default())
+	// DMA region for memory-mapped reads (default: dma.Default()), see
 	Region *dma.Region
 
 	ready   bool
@@ -198,11 +198,12 @@ func (hw *QSPI) Init() (err error) {
 		hw.Region = dma.Default()
 	}
 
-	if hw.DMA != nil && (hw.Region == nil || hw.Region.End() > 1<<32 || hw.dmaSize() < DMAMinSize) {
+	if hw.DMA != nil && (hw.Region == nil || hw.Region.End() > 1<<32 || hw.dmaSize() < MinDMASize) {
 		return ErrInvalidInstance
 	}
 
 	prescaler, err := gck.Prescaler(hw.ParentClock, hw.TargetClock)
+
 	if err != nil {
 		return err
 	}
@@ -212,8 +213,8 @@ func (hw *QSPI) Init() (err error) {
 	}
 
 	// end any transfer left active by an earlier boot stage
-	if err := hw.shutdown(); err != nil {
-		return err
+	if err = hw.shutdown(); err != nil {
+		return
 	}
 
 	// disable write protection
@@ -225,8 +226,8 @@ func (hw *QSPI) Init() (err error) {
 	// the clock may be stopped
 	reg.Write(hw.Base+QSPI_CR, 1<<CR_DLLOFF)
 
-	if err := hw.waitClear(QSPI_SR, SR_DLOCK, "DLL disable"); err != nil {
-		return err
+	if err = hw.waitClear(QSPI_SR, SR_DLOCK, "DLL disable"); err != nil {
+		return
 	}
 
 	gck.Enable(hw.GCK, prescaler)
@@ -237,16 +238,16 @@ func (hw *QSPI) Init() (err error) {
 	bits.Set(&control, CR_STPCAL)
 	reg.Write(hw.Base+QSPI_CR, control)
 
-	if err := hw.waitSet(QSPI_SR, SR_DLOCK, "DLL lock"); err != nil {
-		return err
+	if err = hw.waitSet(QSPI_SR, SR_DLOCK, "DLL lock"); err != nil {
+		return
 	}
 
-	if err := hw.command(CR_QSPIDIS); err != nil {
-		return err
+	if err = hw.command(CR_QSPIDIS); err != nil {
+		return
 	}
 
-	if err := hw.command(CR_SWRST); err != nil {
-		return err
+	if err = hw.command(CR_SWRST); err != nil {
+		return
 	}
 
 	gckHz := hw.ParentClock / (prescaler + 1)
@@ -260,16 +261,16 @@ func (hw *QSPI) Init() (err error) {
 	bits.SetN(&serialClock, SCR_DLYBS, 0xff, gckCycles(clockDelay, gckHz, 0xff))
 	reg.Write(hw.Base+QSPI_SCR, serialClock)
 
-	if err := hw.command(CR_UPDCFG); err != nil {
-		return err
+	if err = hw.command(CR_UPDCFG); err != nil {
+		return
 	}
 
-	if err := hw.command(CR_QSPIEN); err != nil {
-		return err
+	if err = hw.command(CR_QSPIEN); err != nil {
+		return
 	}
 
-	if err := hw.waitSet(QSPI_SR, SR_QSPIENS, "controller enable"); err != nil {
-		return err
+	if err = hw.waitSet(QSPI_SR, SR_QSPIENS, "controller enable"); err != nil {
+		return
 	}
 
 	hw.ready = true
@@ -295,11 +296,11 @@ func (hw *QSPI) shutdown() (err error) {
 
 	firstErr := hw.finishTransfer()
 
-	if err := hw.command(CR_QSPIDIS); err != nil {
+	if err = hw.command(CR_QSPIDIS); err != nil {
 		return errors.Join(firstErr, err)
 	}
 
-	if err := hw.command(CR_SWRST); err != nil {
+	if err = hw.command(CR_SWRST); err != nil {
 		return errors.Join(firstErr, err)
 	}
 
@@ -365,12 +366,12 @@ func (hw *QSPI) changeInstructionFrame(frame uint32) (err error) {
 }
 
 func (hw *QSPI) finishTransfer() (err error) {
-	if err := hw.waitClear(QSPI_SR, SR_RBUSY, "read completion"); err != nil {
-		return err
+	if err = hw.waitClear(QSPI_SR, SR_RBUSY, "read completion"); err != nil {
+		return
 	}
 
-	if err := hw.command(CR_LASTXFER); err != nil {
-		return err
+	if err = hw.command(CR_LASTXFER); err != nil {
+		return
 	}
 
 	return hw.waitSet(QSPI_SR, SR_HIDLE, "controller idle")

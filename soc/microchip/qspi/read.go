@@ -18,22 +18,22 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/xdmac"
 )
 
-func instructionFrame(command Command) (frame uint32, err error) {
-	if command.Width > QuadCommand || command.DummyCycles > 31 {
+func instructionFrame(cmd Command) (frame uint32, err error) {
+	if cmd.Width > QuadCommand || cmd.DummyCycles > 31 {
 		return 0, ErrInvalidCommand
 	}
 
 	var addressLength uint32
 
-	switch command.AddressBits {
+	switch cmd.AddressBits {
 	case 8, 16, 24, 32:
-		addressLength = uint32(command.AddressBits/8 - 1)
+		addressLength = uint32(cmd.AddressBits/8 - 1)
 	default:
 		return 0, ErrInvalidCommand
 	}
 
-	bits.SetN(&frame, IFR_WIDTH, 0xf, uint32(command.Width))
-	bits.SetN(&frame, IFR_NBDUM, 0x1f, uint32(command.DummyCycles))
+	bits.SetN(&frame, IFR_WIDTH, 0xf, uint32(cmd.Width))
+	bits.SetN(&frame, IFR_NBDUM, 0x1f, uint32(cmd.DummyCycles))
 	bits.SetN(&frame, IFR_ADDRL, 0b11, addressLength)
 	bits.Set(&frame, IFR_TFRTYP)
 	bits.Set(&frame, IFR_DATAEN)
@@ -45,15 +45,15 @@ func instructionFrame(command Command) (frame uint32, err error) {
 
 // ReadMemory reads serial memory at the argument offset through the
 // memory-mapped aperture, using DMA when configured.
-func (session *Session) ReadMemory(command Command, offset uint32, buf []byte) (err error) {
-	if session.hw == nil {
+func (s *Session) ReadMemory(cmd Command, offset uint32, buf []byte) (err error) {
+	if s.hw == nil {
 		return ErrSessionClosed
 	}
 
-	return session.hw.readMemory(command, offset, buf)
+	return s.hw.readMemory(cmd, offset, buf)
 }
 
-func (hw *QSPI) memoryFrame(command Command, offset uint32, size int) (frame uint32, err error) {
+func (hw *QSPI) memoryFrame(cmd Command, offset uint32, size int) (frame uint32, err error) {
 	if hw.MMAP == 0 {
 		return 0, ErrInvalidInstance
 	}
@@ -67,18 +67,18 @@ func (hw *QSPI) memoryFrame(command Command, offset uint32, size int) (frame uin
 		return 0, ErrRange
 	}
 
-	if frame, err = instructionFrame(command); err != nil {
+	if frame, err = instructionFrame(cmd); err != nil {
 		return
 	}
 
-	if end > uint64(1)<<command.AddressBits {
+	if end > uint64(1)<<cmd.AddressBits {
 		return 0, ErrCommandAddress
 	}
 
 	return
 }
 
-func (hw *QSPI) readMemory(command Command, offset uint32, buf []byte) (err error) {
+func (hw *QSPI) readMemory(cmd Command, offset uint32, buf []byte) (err error) {
 	if !hw.ready {
 		return ErrNotInitialized
 	}
@@ -87,9 +87,10 @@ func (hw *QSPI) readMemory(command Command, offset uint32, buf []byte) (err erro
 		return nil
 	}
 
-	frame, err := hw.memoryFrame(command, offset, len(buf))
+	frame, err := hw.memoryFrame(cmd, offset, len(buf))
+
 	if err != nil {
-		return err
+		return
 	}
 
 	defer func() {
@@ -98,12 +99,13 @@ func (hw *QSPI) readMemory(command Command, offset uint32, buf []byte) (err erro
 		}
 	}()
 
-	reg.Write(hw.Base+QSPI_RICR, uint32(command.Instruction))
-	if err := hw.changeInstructionFrame(frame); err != nil {
+	reg.Write(hw.Base+QSPI_RICR, uint32(cmd.Instruction))
+
+	if err = hw.changeInstructionFrame(frame); err != nil {
 		return err
 	}
 
-	if hw.DMA != nil && !hw.dmaBusy && len(buf) >= DMAMinSize {
+	if hw.DMA != nil && !hw.dmaBusy && len(buf) >= MinDMASize {
 		if err = hw.readDMA(buf, hw.MMAP+offset); err != nil {
 			return
 		}
@@ -115,10 +117,9 @@ func (hw *QSPI) readMemory(command Command, offset uint32, buf []byte) (err erro
 }
 
 func (hw *QSPI) dmaSize() int {
-	// one aligned region allocation, in whole words
 	align := uint(max(hw.Region.Alignment, dma.DefaultAlignment))
 	pad := min(-hw.Region.Start()&(align-1), hw.Region.Size())
-	return min(DMAMaxSize, int(hw.Region.Size()-pad)&^7)
+	return min(MaxDMASize, int(hw.Region.Size()-pad)&^7)
 }
 
 func (hw *QSPI) readDMA(buf []byte, src uint32) (err error) {
@@ -138,8 +139,9 @@ func (hw *QSPI) readDMA(buf []byte, src uint32) (err error) {
 func (hw *QSPI) readDMAChunk(buf []byte, src uint32) (err error) {
 	// returns a buffer reserved from Region as is, copies any other
 	addr := hw.Region.Alloc(buf, 0)
+	err = hw.DMA.Copy(hw.DMAChannel, uint32(addr), src, len(buf))
 
-	if err = hw.DMA.Copy(hw.DMAChannel, uint32(addr), src, len(buf)); errors.Is(err, xdmac.ErrBusy) {
+	if errors.Is(err, xdmac.ErrBusy) {
 		// the channel can still write the buffer
 		hw.dmaBusy = true
 		return
@@ -179,38 +181,38 @@ func copyFromMMAP(dst []byte, src uint32) {
 
 // ReadCommand issues a single width command, with optional address, and reads
 // its response in buf.
-func (session *Session) ReadCommand(command Command, address uint32, buf []byte) (err error) {
-	if session.hw == nil {
+func (s *Session) ReadCommand(cmd Command, address uint32, buf []byte) (err error) {
+	if s.hw == nil {
 		return ErrSessionClosed
 	}
 
-	if !session.hw.ready {
+	if !s.hw.ready {
 		return ErrNotInitialized
 	}
 
-	if err := validateSerialCommand(command, false); err != nil {
-		return err
+	if err = validateSerialCommand(cmd, false); err != nil {
+		return
 	}
 
-	if err := validateCommandAddress(command, address); err != nil {
-		return err
+	if err = validateCommandAddress(cmd, address); err != nil {
+		return
 	}
 
 	defer func() {
 		if err != nil {
-			err = session.hw.invalidateTransfer(err)
+			err = s.hw.invalidateTransfer(err)
 		}
 	}()
 
 	var frame uint32
-	bits.SetN(&frame, IFR_WIDTH, 0xf, uint32(command.Width))
-	bits.SetN(&frame, IFR_NBDUM, 0x1f, uint32(command.DummyCycles))
+	bits.SetN(&frame, IFR_WIDTH, 0xf, uint32(cmd.Width))
+	bits.SetN(&frame, IFR_NBDUM, 0x1f, uint32(cmd.DummyCycles))
 	bits.Set(&frame, IFR_SMRM)
 	bits.Set(&frame, IFR_APBTFRTYP)
 	bits.Set(&frame, IFR_INSTEN)
 
-	if command.AddressBits != 0 {
-		bits.SetN(&frame, IFR_ADDRL, 0b11, uint32(command.AddressBits/8-1))
+	if cmd.AddressBits != 0 {
+		bits.SetN(&frame, IFR_ADDRL, 0b11, uint32(cmd.AddressBits/8-1))
 		bits.Set(&frame, IFR_ADDREN)
 	}
 
@@ -218,43 +220,42 @@ func (session *Session) ReadCommand(command Command, address uint32, buf []byte)
 		bits.Set(&frame, IFR_DATAEN)
 	}
 
-	reg.Write(session.hw.Base+QSPI_IAR, address)
-	reg.Write(session.hw.Base+QSPI_RICR, uint32(command.Instruction))
+	reg.Write(s.hw.Base+QSPI_IAR, address)
+	reg.Write(s.hw.Base+QSPI_RICR, uint32(cmd.Instruction))
 
 	// frames without data use WICR
-	reg.Write(session.hw.Base+QSPI_WICR, uint32(command.Instruction))
+	reg.Write(s.hw.Base+QSPI_WICR, uint32(cmd.Instruction))
 
-	if err := session.hw.changeInstructionFrame(frame); err != nil {
-		return fmt.Errorf("read command 0x%02x, %w", command.Instruction, err)
+	if err = s.hw.changeInstructionFrame(frame); err != nil {
+		return fmt.Errorf("read command 0x%02x, %w", cmd.Instruction, err)
 	}
 
-	reg.Read(session.hw.Base + QSPI_ISR)
+	reg.Read(s.hw.Base + QSPI_ISR)
 
-	if err := session.hw.command(CR_STTFR); err != nil {
-		return fmt.Errorf("read command 0x%02x, %w", command.Instruction, err)
+	if err = s.hw.command(CR_STTFR); err != nil {
+		return fmt.Errorf("read command 0x%02x, %w", cmd.Instruction, err)
 	}
 
 	for i := range buf {
-		if err := session.hw.waitSet(QSPI_ISR, ISR_RDRF, "read data"); err != nil {
-			return fmt.Errorf("read command 0x%02x byte %d, %w", command.Instruction, i, err)
+		if err = s.hw.waitSet(QSPI_ISR, ISR_RDRF, "read data"); err != nil {
+			return fmt.Errorf("read command 0x%02x byte %d, %w", cmd.Instruction, i, err)
 		}
 
-		// the last read ends the transfer
 		if i == len(buf)-1 {
-			err = session.hw.command(CR_LASTXFER)
+			err = s.hw.command(CR_LASTXFER)
 		} else {
-			err = session.hw.synchronize()
+			err = s.hw.synchronize()
 		}
 
 		if err != nil {
-			return fmt.Errorf("read command 0x%02x byte %d, %w", command.Instruction, i, err)
+			return fmt.Errorf("read command 0x%02x byte %d, %w", cmd.Instruction, i, err)
 		}
 
-		buf[i] = byte(reg.Read(session.hw.Base + QSPI_RDR))
+		buf[i] = byte(reg.Read(s.hw.Base + QSPI_RDR))
 	}
 
-	if err := session.hw.waitSet(QSPI_ISR, ISR_CSRA, "read command completion"); err != nil {
-		return fmt.Errorf("read command 0x%02x, %w", command.Instruction, err)
+	if err = s.hw.waitSet(QSPI_ISR, ISR_CSRA, "read command completion"); err != nil {
+		return fmt.Errorf("read command 0x%02x, %w", cmd.Instruction, err)
 	}
 
 	return nil

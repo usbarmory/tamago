@@ -29,34 +29,34 @@ func (hw *QSPI) Serialize(operation func(*Session) error) (err error) {
 		return ErrInvalidOperation
 	}
 
-	session := &Session{hw: hw}
-	defer func() { session.hw = nil }()
+	s := &Session{hw: hw}
+	defer func() { s.hw = nil }()
 
-	return operation(session)
+	return operation(s)
 }
 
-func validateSerialCommand(command Command, write bool) (err error) {
+func validateSerialCommand(cmd Command, write bool) (err error) {
 	// only single width is supported through registers
-	if command.Width != Single || command.DummyCycles > 31 {
+	if cmd.Width != Single || cmd.DummyCycles > 31 {
 		return ErrInvalidCommand
 	}
 
-	switch command.AddressBits {
+	switch cmd.AddressBits {
 	case 0, 8, 16, 24, 32:
 	default:
 		return ErrInvalidCommand
 	}
 
 	// writes send the address as data, without dummy cycles
-	if write && command.DummyCycles != 0 {
+	if write && cmd.DummyCycles != 0 {
 		return ErrInvalidCommand
 	}
 
 	return nil
 }
 
-func validateCommandAddress(command Command, address uint32) (err error) {
-	if command.AddressBits == 0 {
+func validateCommandAddress(cmd Command, address uint32) (err error) {
+	if cmd.AddressBits == 0 {
 		if address != 0 {
 			return ErrCommandAddress
 		}
@@ -64,7 +64,7 @@ func validateCommandAddress(command Command, address uint32) (err error) {
 		return nil
 	}
 
-	if command.AddressBits < 32 && address >= 1<<command.AddressBits {
+	if cmd.AddressBits < 32 && address >= 1<<cmd.AddressBits {
 		return ErrCommandAddress
 	}
 
