@@ -31,12 +31,14 @@ import (
 	"github.com/usbarmory/tamago/soc/microchip/gpio"
 	"github.com/usbarmory/tamago/soc/microchip/miim"
 	"github.com/usbarmory/tamago/soc/microchip/otpc"
+	"github.com/usbarmory/tamago/soc/microchip/qspi"
 	"github.com/usbarmory/tamago/soc/microchip/rgmii"
 	"github.com/usbarmory/tamago/soc/microchip/sdhci"
 	"github.com/usbarmory/tamago/soc/microchip/sgpio"
 	"github.com/usbarmory/tamago/soc/microchip/temp"
 	"github.com/usbarmory/tamago/soc/microchip/trng"
 	"github.com/usbarmory/tamago/soc/microchip/wdt"
+	"github.com/usbarmory/tamago/soc/microchip/xdmac"
 )
 
 // LAN969x part identifiers
@@ -69,6 +71,9 @@ const (
 	FLEXCOM1_IRQ = 79
 	FLEXCOM2_IRQ = 80
 	FLEXCOM3_IRQ = 81
+
+	// Extensible DMA Controller, Non-secure channels
+	XDMAC_IRQ = 76
 
 	// Secure Digital Host Controller Interface
 	SDMMC0_IRQ = 96
@@ -149,6 +154,10 @@ const (
 	// Queue Forwarding
 	QFWD_BASE = 0xe20b0000
 
+	// Quad SPI controller and memory-mapped aperture
+	QSPI0_BASE = 0xe0804000
+	QSPI0_MMAP = 0x20000000
+
 	// Queue System Configuration
 	QSYS_BASE = 0xe20a0000
 
@@ -179,6 +188,9 @@ const (
 
 	// Watchdog Timer
 	WDT_BASE = 0xe0090000
+
+	// Extensible DMA Controller
+	XDMAC_BASE = 0xe0068000
 )
 
 // Peripheral instances
@@ -254,6 +266,16 @@ var (
 		Size: 16 * 1024,
 	}
 
+	// Quad SPI controller 0
+	QSPI0 = &qspi.QSPI{
+		Base:        QSPI0_BASE,
+		MMAP:        QSPI0_MMAP,
+		MMAPSize:    qspi0MMAPSize,
+		GCK:         CPU_BASE + gckConfigOffset + qspi0ClockID*4,
+		ParentClock: qspi0ParentClock,
+		TargetClock: qspi0TargetClock,
+	}
+
 	// RGMII interfaces
 	RGMII0 = &rgmii.RGMII{
 		Base:        DEVRGMII0,
@@ -291,6 +313,12 @@ var (
 	// Watchdog Timer
 	WDT = &wdt.WDT{
 		Base: WDT_BASE,
+	}
+
+	// Extensible DMA Controller
+	XDMAC = &xdmac.XDMAC{
+		Base: XDMAC_BASE,
+		IRQ:  XDMAC_IRQ,
 	}
 )
 
