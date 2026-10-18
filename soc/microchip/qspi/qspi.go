@@ -169,7 +169,7 @@ type QSPI struct {
 	DMA *xdmac.XDMAC
 	// DMA controller channel
 	DMAChannel int
-	// DMA region for memory-mapped reads (default: dma.Default()), see
+	// DMA region for memory-mapped reads (default: dma.Default())
 	Region *dma.Region
 
 	ready   bool
