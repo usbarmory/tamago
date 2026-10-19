@@ -227,8 +227,8 @@ type SDHCI struct {
 	// Requested Generic Clock frequency in Hz
 	TargetClock uint32
 	// Region represents the memory used for ADMA2 descriptors and data. It
-	// defaults to dma.Default() and must be controller-accessible,
-	// non-cacheable, and below 4 GiB.
+	// defaults to dma.Default() and must be controller-accessible and
+	// below 4 GiB.
 	Region *dma.Region
 
 	// control registers
