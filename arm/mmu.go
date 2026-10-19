@@ -210,8 +210,9 @@ func (cpu *CPU) SetAttributes(start, end, flags uint32) {
 	cpu.updateMMU(start, end, 0, int(mask), flags)
 }
 
-// SetAttribute (re)configures a single attribute flag on the first-level
-// translation tables for the provided memory range.
-func (cpu *CPU) SetAttribute(start, end, pos, val uint32) {
-	cpu.updateMMU(start, end, 0, int(pos), val<<pos)
+// SetAttribute (re)configures the bits selected by mask to the corresponding
+// bits of val on the first-level translation tables for the provided memory
+// range.
+func (cpu *CPU) SetAttribute(start, end, mask, val uint32) {
+	cpu.updateMMU(start, end, 0, int(mask), val)
 }
