@@ -6,8 +6,12 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-// func rdrand() uint32
-TEXT ·rdrand(SB),$0-4
-	RDRANDL	AX
-	MOVL	AX, ret+0(FP)
+// func rdrand() (val uint64, ok bool)
+TEXT ·rdrand(SB),$0-9
+	RDRANDQ	AX
+	SETCS	BX
+
+	MOVQ	AX, val+0(FP)
+	MOVB	BX, ok+8(FP)
+
 	RET

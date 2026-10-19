@@ -14,8 +14,22 @@ import (
 	"github.com/usbarmory/tamago/internal/rng"
 )
 
+// Intel® Digital Random Number Generator (DRNG)
+// Software Implementation Guide - 5.2.1.
+const rdrandRetries = 10
+
 // defined in rng.s
-func rdrand() uint32
+func rdrand() (val uint64, ok bool)
+
+func rdrandWord() uint64 {
+	for i := 0; i < rdrandRetries; i++ {
+		if val, ok := rdrand(); ok {
+			return val
+		}
+	}
+
+	panic("RDRAND failure")
+}
 
 // GetRandomData returns len(b) random bytes gathered from the RDRAND instruction.
 func GetRandomData(b []byte) {
@@ -23,7 +37,9 @@ func GetRandomData(b []byte) {
 	need := len(b)
 
 	for read < need {
-		read = rng.Fill(b, read, rdrand())
+		val := rdrandWord()
+		read = rng.Fill(b, read, uint32(val))
+		read = rng.Fill(b, read, uint32(val>>32))
 	}
 }
 
