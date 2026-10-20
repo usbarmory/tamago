@@ -32,7 +32,7 @@ type CPU struct {
 	// see [CPU.Idle] and [CPU.IdleTime]
 	idle uint64
 
-	mmu *mmuMap
+	mmu *mmu
 }
 
 // defined in arm64.s
@@ -49,7 +49,7 @@ func (cpu *CPU) DefaultIdleGovernor(pollUntil int64) {
 // Init performs initialization of an ARM64 core instance.
 func (cpu *CPU) Init() {
 	// MMU initialization already performed at runtime/goos.Hwinit0
-	cpu.mmu = &mmu
+	cpu.mmu = &m
 
 	goos.Exit = exit
 	goos.Idle = cpu.DefaultIdleGovernor

@@ -12,7 +12,7 @@ import (
 	_ "unsafe"
 )
 
-var mmu mmuMap
+var m mmu
 
 // Init takes care of the lower level initialization triggered before runtime
 // setup (pre World start).
@@ -26,6 +26,6 @@ func Init() {
 	//
 	// To prevent faults, MMU initialization is done as soon as possible in
 	// Hwinit0, rather than in Hwinit1.
-	mmu = mmuMap{}
-	mmu.Init()
+	m = mmu{}
+	m.Init()
 }
