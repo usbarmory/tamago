@@ -25,6 +25,12 @@ type CapabilityMSIX struct {
 	TableOffset    uint32
 	PBAOffset      uint32
 
+	// Table optionally holds the virtual address of the MSI-X table, it
+	// must be set when the table is not accessible at its physical address
+	// (e.g. BARs which are not identity mapped), When zero the table is
+	// accessed at the physical address of its BAR (see TableBAR).
+	Table uint64
+
 	device *Device
 	off    uint32
 }
@@ -51,6 +57,14 @@ func (msix *CapabilityMSIX) TableSize() int {
 	return int(msix.MessageControl&0x7ff) + 1
 }
 
+// TableBAR returns the Base Address Register index (BIR) and offset of the
+// MSI-X table.
+func (msix *CapabilityMSIX) TableBAR() (bir int, offset uint32) {
+	bir = int(msix.TableOffset & 0b111)
+	offset = msix.TableOffset &^ 0b111
+	return
+}
+
 // EnableInterrupt configures an MSI-X interrupt entry and enables the MSI-X
 // table.
 func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) (err error) {
@@ -58,9 +72,13 @@ func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) (er
 		return errors.New("invalid capability instance")
 	}
 
-	bir := int(msix.TableOffset & 0b111)
-	bar := uint64(msix.device.BaseAddress(bir)) &^ 0xf
-	table := bar + uint64(msix.TableOffset&^0b111)
+	table := msix.Table
+
+	if table == 0 {
+		bir, offset := msix.TableBAR()
+		bar := uint64(msix.device.BaseAddress(bir)) &^ 0xf
+		table = bar + uint64(offset)
+	}
 
 	size := 16
 	off := uint64(size * n)

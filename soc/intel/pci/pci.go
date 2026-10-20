@@ -22,11 +22,6 @@ import (
 )
 
 const (
-	CONFIG_ADDRESS = 0x0cf8
-	CONFIG_DATA    = 0x0cfc
-)
-
-const (
 	maxBuses   = 256
 	maxDevices = 32
 )
@@ -38,6 +33,20 @@ const (
 	RevisionID         = 0x08
 	Bar0               = 0x10
 	CapabilitiesOffset = 0x34
+)
+
+const (
+	CONFIG_ADDRESS = 0x0cf8
+	CONFIG_DATA    = 0x0cfc
+)
+
+// Command register fields
+// (PCI Local Bus Specification 3.0 - 6.2.2 Device Control).
+const (
+	COMMAND_INTERRUPT_DISABLE = 10
+	COMMAND_BUS_MASTER        = 2
+	COMMAND_MEMORY_SPACE      = 1
+	COMMAND_IO_SPACE          = 0
 )
 
 // Device represents a PCI device.
@@ -75,26 +84,6 @@ func (d *Device) Write(fn uint32, off uint32, val uint32) {
 
 	reg.Out32(CONFIG_ADDRESS, d.address(fn, off))
 	reg.Out32(CONFIG_DATA, val)
-}
-
-// BaseAddress returns a device Base Address register (BAR).
-func (d *Device) BaseAddress(n int) uint {
-	if n > 5 {
-		return 0
-	}
-
-	off := Bar0 + uint32(n)*4
-	bar := d.Read(0, Bar0+uint32(n)*4)
-
-	// decode BAR Type
-	switch bits.GetN(&bar, 1, 0b11) {
-	case 0b00:
-		return uint(bar)
-	case 0b10:
-		return uint(d.Read(0, off+4))<<32 | uint(bar)&0xfffffff0
-	}
-
-	return 0
 }
 
 func (d *Device) probe() bool {
@@ -145,4 +134,11 @@ func Devices(bus int) (devices []*Device) {
 	}
 
 	return
+}
+
+// SetCommand sets or clears a Command register bit for function 0.
+func (d *Device) SetCommand(pos int, val bool) {
+	cmd := d.Read(0, Command) & 0xffff
+	bits.SetTo(&cmd, pos, val)
+	d.Write(0, Command, cmd)
 }
