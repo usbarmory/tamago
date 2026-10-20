@@ -70,6 +70,9 @@ type CPU struct {
 	features Features
 	// core frequency in Hz
 	freq uint32
+
+	// page table allocation state (see ConfigureMMU)
+	mmu mmu
 }
 
 // defined in amd64.s

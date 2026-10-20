@@ -10,12 +10,17 @@ package amd64
 
 import (
 	"fmt"
+	"runtime"
+	"sync"
 
 	"github.com/usbarmory/tamago/bits"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
-const CR0_WP = 16
+const (
+	CR0_WP   = 16
+	CR4_LA57 = 12
+)
 
 // Memory region attributes
 const (
@@ -44,12 +49,53 @@ const (
 	tableEntries = 512
 	indexMask    = 0x1ff
 	addrMask     = 0x000ffffffffff000
+
+	pageTableSize = tableEntries * 8
 )
+
+type mmu struct {
+	sync.Mutex
+
+	arenaNext uint64
+	arenaEnd  uint64
+}
+
+func alignDown(addr uint64, align uint64) uint64 {
+	return addr &^ (align - 1)
+}
+
+func alignUp(addr uint64, align uint64) uint64 {
+	return alignDown(addr+align-1, align)
+}
+
+func (m *mmu) alloc() (addr uint64) {
+	if m.arenaEnd == 0 {
+		ramStart, _ := runtime.MemRegion()
+		textStart, _ := runtime.TextRegion()
+
+		m.arenaNext = alignUp(ramStart, pageTableSize)
+		m.arenaEnd = alignDown(textStart, pageTableSize)
+	}
+
+	if m.arenaNext+pageTableSize > m.arenaEnd {
+		panic("out of page table space; link binary higher in RAM")
+	}
+
+	addr = m.arenaNext
+	m.arenaNext += pageTableSize
+
+	for i := uint64(0); i < tableEntries; i++ {
+		reg.Write64(addr+8*i, 0)
+	}
+
+	return
+}
 
 // defined in mmu.s
 func read_cr0() uint64
 func write_cr0(val uint64)
 func read_cr3() uint64
+func read_cr4() uint64
 func set_ext_pdpt(index int, flags uint64)
 func flush_tlb()
 
@@ -149,6 +195,98 @@ func (cpu *CPU) ConfigurePDPT(start, end, flags uint64) {
 		}
 
 		set_ext_pdpt(index, flags)
+	}
+
+	flush_tlb()
+}
+
+func tableIndex(addr uint64, shift int) uint64 {
+	return (addr >> shift) & indexMask
+}
+
+// pdEntry returns the Page Directory (2 MB) entry address for the argument
+// virtual address, allocating missing tables and splitting a 1 GB page into
+// 2 MB pages with the same attributes if needed.
+func (cpu *CPU) pdEntry(addr uint64) uint64 {
+	pml4e := (read_cr3() & addrMask) + 8*tableIndex(addr, indexPML4)
+
+	if reg.Read64(pml4e)&TTE_P == 0 {
+		reg.Write64(pml4e, cpu.mmu.alloc()|TTE_RW|TTE_P)
+	}
+
+	pdpte := (reg.Read64(pml4e) & addrMask) + 8*tableIndex(addr, indexPDPT)
+	tte := reg.Read64(pdpte)
+
+	switch {
+	case tte&TTE_P == 0:
+		reg.Write64(pdpte, cpu.mmu.alloc()|TTE_RW|TTE_P)
+	case tte&TTE_PS != 0:
+		next := cpu.mmu.alloc()
+
+		// the large page attributes (including PAT) keep their position
+		for i := uint64(0); i < tableEntries; i++ {
+			reg.Write64(next+8*i, tte+i<<indexPD)
+		}
+
+		reg.Write64(pdpte, next|TTE_RW|TTE_P)
+	}
+
+	return (reg.Read64(pdpte) & addrMask) + 8*tableIndex(addr, indexPD)
+}
+
+// ConfigureMMU (re)configures the page tables for the provided memory range
+// with the argument attribute flags. An alias argument greater than zero
+// specifies the physical address corresponding to the start argument in case
+// virtual memory is required, otherwise a flat 1:1 mapping is set.
+func (cpu *CPU) ConfigureMMU(start, end, alias, flags uint64) {
+	const size = 1 << indexPD
+
+	if cr4 := read_cr4(); bits.Get64(&cr4, CR4_LA57) {
+		panic("5-level paging is not supported")
+	}
+
+	for _, addr := range []uint64{start, end - 1} {
+		if top := addr >> 47; top != 0 && top != 0x1ffff {
+			panic("non-canonical address")
+		}
+	}
+
+	if alias > 0 && (alias-start)%size != 0 {
+		panic("alias and start offset differ within 2 MB")
+	}
+
+	start, alias = alignDown(start, size), alignDown(alias, size)
+	end = alignUp(end, size)
+
+	cpu.mmu.Lock()
+	defer cpu.mmu.Unlock()
+
+	// page tables might be write protected
+	cr0 := read_cr0()
+	cpu.SetWriteProtect(false)
+	defer write_cr0(cr0)
+
+	for addr := start; addr < end; addr += size {
+		pa := addr
+
+		if alias > 0 {
+			pa = alias + (addr - start)
+		}
+
+		pde := cpu.pdEntry(addr)
+
+		if tte := reg.Read64(pde); tte&TTE_P != 0 && tte&TTE_PS == 0 {
+			// update existing 4 KB pages, bit 7 is PAT instead of PS
+			pt := tte & addrMask
+
+			for i := uint64(0); i < tableEntries; i++ {
+				reg.Write64(pt+8*i, (pa+i<<indexPT)|flags&^TTE_PS)
+			}
+
+			continue
+		}
+
+		reg.Write64(pde, pa|flags|TTE_PS)
 	}
 
 	flush_tlb()

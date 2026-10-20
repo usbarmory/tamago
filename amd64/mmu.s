@@ -28,6 +28,12 @@ TEXT ·read_cr3(SB),$0-8
 	MOVQ	AX, ret+0(FP)
 	RET
 
+// func read_cr4() uint64
+TEXT ·read_cr4(SB),$0-8
+	MOVQ	CR4, AX
+	MOVQ	AX, ret+0(FP)
+	RET
+
 // func set_ext_pdpt(index int, flags uint64)
 TEXT ·set_ext_pdpt(SB),NOSPLIT,$0-16
 	// detect cpuinit override
