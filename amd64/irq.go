@@ -138,9 +138,8 @@ func setIDT(start int, end int) {
 // ClearInterrupt signals the end of an interrupt handling routine.
 func (cpu *CPU) ClearInterrupt() {
 	if cpu.init == 0 {
-		cpu.LAPIC.ClearInterrupt()
-		cpu.LAPIC.SetTaskPriority(0)
 		irqLock = false
+		cpu.LAPIC.ClearInterrupt()
 		return
 	}
 

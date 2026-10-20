@@ -118,8 +118,8 @@ TEXT ·handleInterrupt(SB),NOSPLIT|NOFRAME,$0
 
 	// hold pending all device interrupts until CPU.ClearInterrupt, as the
 	// End-Of-Interrupt is deferred and a single vector (·isr) is tracked
-	MOVL	$(const_LAPIC_TPR), AX
-	MOVL	$(const_irqServicingPriority), (AX)
+	MOVL	$(const_irqServicingPriority>>4), AX
+	MOVQ	AX, CR8
 
 	SUBQ	$8, SP
 	MOVQ	$(const_IRQ_SIGNAL), AX
@@ -171,8 +171,8 @@ TEXT ·handleRelay(SB),NOSPLIT|NOFRAME,$0
 	MOVL	$0, (AX)
 
 	// accept device interrupts again
-	MOVL	$(const_LAPIC_TPR), AX
-	MOVL	$0, (AX)
+	XORQ	AX, AX
+	MOVQ	AX, CR8
 
 	// restore caller registers
 	POPQ	AX
