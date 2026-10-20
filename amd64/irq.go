@@ -41,6 +41,16 @@ const (
 	// routine to the BSP.
 	IRQ_RELAY = 239 // priority 14
 
+	// IRQ_MAX represents the highest interrupt vector which can be
+	// serviced by [CPU.ServiceInterrupts], vectors of the IRQ_RELAY
+	// priority class and above are reserved.
+	IRQ_MAX = (IRQ_RELAY &^ 0xf) - 1
+
+	// irqServicingPriority is the Task Priority set while an interrupt is
+	// serviced, so that vectors up to IRQ_MAX are held pending until
+	// [CPU.ClearInterrupt] rather than preempting the one being serviced.
+	irqServicingPriority = IRQ_MAX &^ 0xf
+
 	// IRQ_WAKEUP represents the interrupt vector raised by [CPU.SetAlarm],
 	// it cannot be serviced by [CPU.ServiceInterrupt] as the IRQ is
 	// handled internally to resume halted processors.
@@ -129,6 +139,7 @@ func setIDT(start int, end int) {
 func (cpu *CPU) ClearInterrupt() {
 	if cpu.init == 0 {
 		cpu.LAPIC.ClearInterrupt()
+		cpu.LAPIC.SetTaskPriority(0)
 		irqLock = false
 		return
 	}
@@ -152,6 +163,10 @@ func (cpu *CPU) WaitInterrupt() {
 // resumed when a user defined interrupt is received, an argument function can
 // be set for servicing. It must only be called from a single goroutine at a
 // time.
+//
+// Interrupts are serviced one at a time, while an interrupt is being serviced
+// all vectors up to [IRQ_MAX] are held pending by the LAPIC, and delivered in
+// priority order once [CPU.ClearInterrupt] is invoked.
 func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	if isr == nil {
 		cpu.ISR = func(_ int) { return }

@@ -37,6 +37,7 @@ const (
 
 // aliased constants
 const (
+	LAPIC_TPR  = LAPIC_BASE + lapic.LAPIC_TPR
 	LAPIC_EOI  = LAPIC_BASE + lapic.LAPIC_EOI
 	LAPIC_SVR  = LAPIC_BASE + lapic.LAPIC_SVR
 	LAPIC_ICRL = LAPIC_BASE + lapic.LAPIC_ICRL

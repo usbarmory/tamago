@@ -29,6 +29,7 @@ const (
 	LAPIC_VER   = 0x30
 	VER_ENTRIES = 16
 
+	LAPIC_TPR = 0x80
 	LAPIC_EOI = 0xb0
 
 	LAPIC_SVR  = 0xf0
@@ -96,6 +97,13 @@ func (io *LAPIC) Enable() {
 // Disable disables the Local APIC.
 func (io *LAPIC) Disable() {
 	reg.Clear(io.Base+LAPIC_SVR, SVR_ENABLE)
+}
+
+// SetTaskPriority sets the Task Priority Register, interrupts of a priority
+// class (vector / 16) lower or equal than the class of the argument are held
+// pending.
+func (io *LAPIC) SetTaskPriority(val uint32) {
+	reg.Write(io.Base+LAPIC_TPR, val&0xff)
 }
 
 // ClearInterrupt signals the end of an interrupt handling routine.
