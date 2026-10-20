@@ -154,7 +154,9 @@ func (cpu *CPU) WaitInterrupt() {
 // time.
 func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	if isr == nil {
-		isr = func(_ int) { return }
+		cpu.ISR = func(_ int) { return }
+	} else {
+		cpu.ISR = isr
 	}
 
 	c := make(chan os.Signal, 1)
@@ -163,6 +165,6 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
 	for {
 		cpu.ClearInterrupt()
 		<-c
-		isr(currentVectorNumber())
+		cpu.ISR(currentVectorNumber())
 	}
 }

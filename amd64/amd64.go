@@ -60,6 +60,10 @@ type CPU struct {
 	// LAPIC represents the Local APIC instance
 	LAPIC *lapic.LAPIC
 
+	// ISR represents the interrupt service routine invoked by
+	// [CPU.ServiceInterrupts]
+	ISR func(int)
+
 	// init represents the last initialized CPU index
 	init int
 	// features
