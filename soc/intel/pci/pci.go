@@ -59,6 +59,12 @@ type Device struct {
 	Device uint16
 	// Revision ID
 	Revision uint8
+	// Prog IF
+	ProgIF uint8
+	// Subclass
+	Subclass uint8
+	// Class Code
+	ClassCode uint8
 
 	// PCI Slot
 	Slot uint32
@@ -98,12 +104,18 @@ func (d *Device) probe() bool {
 	}
 
 	d.Device = uint16(val >> 16)
-	d.Revision = uint8(d.Read(0, RevisionID))
+
+	val = d.Read(0, RevisionID)
+
+	d.Revision = uint8(val)
+	d.ProgIF = uint8(val >> 8)
+	d.Subclass = uint8(val >> 16)
+	d.ClassCode = uint8(val >> 24)
 
 	return true
 }
 
-// Probe probes a PCI device.
+// Probe probes a PCI device by vendor and device identifiers.
 func Probe(bus int, vendor uint16, device uint16) *Device {
 	d := &Device{
 		Bus: uint32(bus),
@@ -114,6 +126,30 @@ func Probe(bus int, vendor uint16, device uint16) *Device {
 
 		if d.probe() && d.Vendor == vendor && d.Device == device {
 			return d
+		}
+	}
+
+	return nil
+}
+
+// ProbeFunction probes the nth (starting from 0) PCI device providing the
+// argument functions.
+func ProbeFunction(bus int, n int, class uint8, subclass uint8, progIF uint8) *Device {
+	var i int
+
+	d := &Device{
+		Bus: uint32(bus),
+	}
+
+	for slot := range uint32(maxDevices) {
+		d.Slot = slot
+
+		if d.probe() && d.ClassCode == class && d.Subclass == subclass && d.ProgIF == progIF {
+			if n == i {
+				return d
+			}
+
+			i++
 		}
 	}
 
