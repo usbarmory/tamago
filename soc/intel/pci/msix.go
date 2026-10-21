@@ -12,6 +12,7 @@ import (
 	"encoding/binary"
 	"errors"
 
+	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/dma"
 )
 
@@ -99,4 +100,33 @@ func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) (er
 	msix.device.Write(0, msix.off, 1<<msixEnable)
 
 	return
+}
+
+// MapMSIX returns the device MSI-X capability, with its table mapped as device
+// memory (see [Device.MapBAR]).
+func (d *Device) MapMSIX(cpu *amd64.CPU) (msix *CapabilityMSIX, err error) {
+	for off, hdr := range d.Capabilities() {
+		if hdr.Vendor != MSIX {
+			continue
+		}
+
+		msix = &CapabilityMSIX{}
+
+		if err = msix.Unmarshal(d, off); err != nil {
+			return nil, err
+		}
+
+		bir, offset := msix.TableBAR()
+		va, _, err := d.MapBAR(cpu, bir)
+
+		if err != nil {
+			return nil, err
+		}
+
+		msix.Table = va + uint64(offset)
+
+		return msix, nil
+	}
+
+	return nil, errors.New("MSI-X capability not found")
 }
