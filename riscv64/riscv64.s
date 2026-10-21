@@ -32,4 +32,6 @@ TEXT ·Init(SB),NOSPLIT|NOFRAME,$0
 // func exit(int32)
 TEXT ·exit(SB),$0-4
 	// wait forever in low-power state
+again:
 	WORD	$0x10500073 // wfi
+	JMP	again
