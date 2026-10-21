@@ -21,4 +21,6 @@ TEXT ·exit(SB),$0-4
 	WORD	$0xe10f0000 // mrs r0, CPSR
 	ORR	$1<<7, R0   // mask IRQs
 	WORD	$0xe121f000 // msr CPSR_c, r0
+again:
 	WORD	$0xe320f003 // wfi
+	B	again
