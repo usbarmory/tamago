@@ -10,4 +10,6 @@
 TEXT ·exit(SB),$0-4
 	// wait forever in low-power state
 	MSR	$0b1111, DAIFSet	// disable all interrupts
+again:
 	WFI
+	B	again
