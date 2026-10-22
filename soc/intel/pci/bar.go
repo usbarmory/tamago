@@ -36,7 +36,7 @@ const (
 	// (510-512 TiB)
 	barWindow = 0x7f80_0000_0000
 
-	pageSize = 1 << 21
+	mmuPageSize = 1 << 21
 )
 
 // barMapping represents a BAR mapped within the virtual address window.
@@ -164,8 +164,8 @@ func (d *Device) MapBAR(cpu *amd64.CPU, n int) (va uint64, size uint64, err erro
 	}
 
 	// keep the physical address offset within 2 MB pages
-	va = barMappings.next + pa%pageSize
-	end := (va + size + pageSize - 1) &^ (pageSize - 1)
+	va = barMappings.next + pa%mmuPageSize
+	end := (va + size + mmuPageSize - 1) &^ (mmuPageSize - 1)
 
 	if end > maxIdentity || end < va {
 		return 0, 0, fmt.Errorf("BAR%d exceeds the virtual address window", n)

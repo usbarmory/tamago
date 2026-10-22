@@ -26,14 +26,10 @@ type CapabilityMSIX struct {
 	TableOffset    uint32
 	PBAOffset      uint32
 
-	// Table optionally holds the virtual address of the MSI-X table, it
-	// must be set when the table is not accessible at its physical address
-	// (e.g. BARs which are not identity mapped), When zero the table is
-	// accessed at the physical address of its BAR (see TableBAR).
-	Table uint64
-
 	device *Device
 	off    uint32
+
+	table uint64
 }
 
 // Unmarshal decodes a PCI MSI-X Capability from the argument device
@@ -73,7 +69,7 @@ func (msix *CapabilityMSIX) EnableInterrupt(n int, addr uint64, data uint32) (er
 		return errors.New("invalid capability instance")
 	}
 
-	table := msix.Table
+	table := msix.table
 
 	if table == 0 {
 		bir, offset := msix.TableBAR()
@@ -123,7 +119,7 @@ func (d *Device) MapMSIX(cpu *amd64.CPU) (msix *CapabilityMSIX, err error) {
 			return nil, err
 		}
 
-		msix.Table = va + uint64(offset)
+		msix.table = va + uint64(offset)
 
 		return msix, nil
 	}

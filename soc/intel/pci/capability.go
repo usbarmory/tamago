@@ -60,7 +60,7 @@ func (hdr *CapabilityHeader) Unmarshal(d *Device, off uint32) (err error) {
 // List.
 func (d *Device) Capabilities() func(func(off uint32, hdr *CapabilityHeader) bool) {
 	return func(yield func(uint32, *CapabilityHeader) bool) {
-		off := d.Read(0, CapabilitiesOffset)
+		off := d.Read(0, CapabilitiesOffset) & 0xfc
 
 		for off != 0 {
 			hdr := &CapabilityHeader{}

@@ -132,7 +132,7 @@ func Probe(bus int, vendor uint16, device uint16) *Device {
 	return nil
 }
 
-// ProbeFunction probes the nth (starting from 0) PCI device providing the
+// ProbeFunction probes the nth (starting from 0) PCI device matching the
 // argument functions.
 func ProbeFunction(bus int, n int, class uint8, subclass uint8, progIF uint8) *Device {
 	var i int
