@@ -56,7 +56,7 @@ const (
 type WDOG struct {
 	sync.Mutex
 
-	// Module index
+	// Module index (placeholder for caller use)
 	Index int
 	// Base register
 	Base uint32

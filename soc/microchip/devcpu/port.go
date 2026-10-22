@@ -54,7 +54,7 @@ type Stats struct {
 type Port struct {
 	sync.Mutex
 
-	// Port index
+	// Port index (placeholder for caller use)
 	Index int
 	// Group index
 	Group int

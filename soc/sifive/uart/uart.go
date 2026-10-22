@@ -51,7 +51,7 @@ const (
 
 // UART represents a serial port instance.
 type UART struct {
-	// Controller index
+	// Controller index (placeholder for caller use)
 	Index int
 	// Base register
 	Base uint32

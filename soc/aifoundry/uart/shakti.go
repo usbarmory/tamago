@@ -30,7 +30,7 @@ const (
 
 // Shakti represents a Shakti serial port instance.
 type Shakti struct {
-	// Controller index
+	// Controller index (placeholder for caller use)
 	Index int
 	// Base register
 	Base uint32

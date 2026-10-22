@@ -57,7 +57,7 @@ const Timeout = 100 * time.Millisecond
 type I2C struct {
 	sync.Mutex
 
-	// Controller index
+	// Controller index (placeholder for caller use)
 	Index int
 	// Base register
 	Base uint32

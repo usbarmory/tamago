@@ -27,7 +27,7 @@ const (
 
 // GPIO controller instance
 type GPIO struct {
-	// Controller index
+	// Controller index (placeholder for caller use)
 	Index int
 	// Base register
 	Base uint32

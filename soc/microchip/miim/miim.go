@@ -58,7 +58,7 @@ const Timeout = 1 * time.Second
 type MIIM struct {
 	sync.Mutex
 
-	// Controller index
+	// Controller index (placeholder for caller use)
 	Index int
 	// Base register
 	Base uint32
