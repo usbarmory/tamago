@@ -69,6 +69,7 @@ var (
 
 // defined in irq.s
 func load_idt() (idt uintptr, irqHandler uintptr)
+func set_cr8(val uint64)
 func wfi()
 
 //go:nosplit
@@ -139,6 +140,8 @@ func setIDT(start int, end int) {
 func (cpu *CPU) ClearInterrupt() {
 	if cpu.init == 0 {
 		irqLock = false
+		// accept device interrupts again
+		set_cr8(0)
 		cpu.LAPIC.ClearInterrupt()
 		return
 	}

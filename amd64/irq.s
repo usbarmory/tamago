@@ -62,6 +62,12 @@ done:
 	STI
 	RET
 
+// func set_cr8(val uint64)
+TEXT ·set_cr8(SB),NOSPLIT,$0-8
+	MOVQ	val+0(FP), AX
+	MOVQ	AX, CR8
+	RET
+
 // func wfi()
 TEXT ·wfi(SB),NOSPLIT|NOFRAME,$0
 	// disable interrupts to avoid races while checking state
