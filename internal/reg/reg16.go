@@ -14,18 +14,19 @@ import (
 )
 
 // As sync/atomic does not provide 16-bit support, note that these functions do
-// not necessarily enforce memory ordering.
+// not enforce memory ordering at the CPU level, as no barriers are issued.
+//
+// All accesses are performed through Read16 and Write16, which must not be
+// inlined to ensure that each access is issued exactly once, with 16-bit width
+// and in program order, as the compiler might otherwise combine or eliminate
+// plain memory accesses (e.g. two consecutive reads of the same register).
 
 func Get16(addr uint32, pos int) bool {
-	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
-	r := *reg
-
-	return (r>>pos)&1 == 1
+	return (Read16(addr)>>pos)&1 == 1
 }
 
 func Set16(addr uint32, pos int) {
-	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
-	*reg |= (1 << pos)
+	Write16(addr, Read16(addr)|(1<<pos))
 }
 
 func SetTo16(addr uint32, pos int, val bool) {
@@ -37,38 +38,36 @@ func SetTo16(addr uint32, pos int, val bool) {
 }
 
 func Clear16(addr uint32, pos int) {
-	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
-	*reg &= ^(1 << pos)
+	Write16(addr, Read16(addr)&^(1<<pos))
 }
 
 func GetN16(addr uint32, pos int, mask int) uint16 {
-	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
-	return (*reg >> pos) & uint16(mask)
+	return (Read16(addr) >> pos) & uint16(mask)
 }
 
 func SetN16(addr uint32, pos int, mask int, val uint16) {
-	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
-	*reg = (*reg & (^(uint16(mask) << pos))) | ((val & uint16(mask)) << pos)
+	r := Read16(addr)
+	Write16(addr, (r&(^(uint16(mask) << pos)))|((val&uint16(mask))<<pos))
 }
 
 func ClearN16(addr uint32, pos int, mask int) {
-	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
-	*reg &= ^(uint16(mask) << pos)
+	Write16(addr, Read16(addr)&^(uint16(mask)<<pos))
 }
 
+//go:noinline
 func Read16(addr uint32) uint16 {
 	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
 	return *reg
 }
 
+//go:noinline
 func Write16(addr uint32, val uint16) {
 	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
 	*reg = val
 }
 
 func Or16(addr uint32, val uint16) {
-	reg := (*uint16)(unsafe.Pointer(uintptr(addr)))
-	*reg |= val
+	Write16(addr, Read16(addr)|val)
 }
 
 func Wait16(addr uint32, pos int, mask int, val uint16) {

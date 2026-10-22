@@ -15,8 +15,7 @@ import (
 )
 
 func Get64(addr uint64, pos int) bool {
-	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
-	r := atomic.LoadUint64(reg)
+	r := Read64(addr)
 
 	return (r>>pos)&1 == 1
 }
@@ -24,7 +23,7 @@ func Get64(addr uint64, pos int) bool {
 func Set64(addr uint64, pos int) {
 	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
 
-	r := atomic.LoadUint64(reg)
+	r := Read64(addr)
 	r |= (1 << pos)
 
 	atomic.StoreUint64(reg, r)
@@ -41,15 +40,14 @@ func SetTo64(addr uint64, pos int, val bool) {
 func Clear64(addr uint64, pos int) {
 	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
 
-	r := atomic.LoadUint64(reg)
+	r := Read64(addr)
 	r &= ^(1 << pos)
 
 	atomic.StoreUint64(reg, r)
 }
 
 func GetN64(addr uint64, pos int, mask int) uint64 {
-	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
-	r := atomic.LoadUint64(reg)
+	r := Read64(addr)
 
 	return (r >> pos) & uint64(mask)
 }
@@ -57,7 +55,7 @@ func GetN64(addr uint64, pos int, mask int) uint64 {
 func SetN64(addr uint64, pos int, mask int, val uint64) {
 	reg := (*uint64)(unsafe.Pointer(uintptr(addr)))
 
-	r := atomic.LoadUint64(reg)
+	r := Read64(addr)
 	r = (r & (^(uint64(mask) << pos))) | ((val & uint64(mask)) << pos)
 
 	atomic.StoreUint64(reg, r)
@@ -73,10 +71,16 @@ func Read64As32(addr uint64) uint32 {
 	return atomic.LoadUint32(reg)
 }
 
-// defined in reg_*.s
+// defined in reg_*.s to avoid register read
 func Write64(addr uint64, val uint64)
 
+// Write64As32 uses a plain store, as sync/atomic stores might read the
+// register (see Write), therefore, as Write, it does not enforce memory
+// ordering. It must not be inlined to ensure that the store is issued exactly
+// once and with 32-bit width.
+//
+//go:noinline
 func Write64As32(addr uint64, val uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	atomic.StoreUint32(reg, val)
+	*reg = val
 }

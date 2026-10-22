@@ -20,8 +20,7 @@ import (
 )
 
 func Get(addr uint32, pos int) bool {
-	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	r := atomic.LoadUint32(reg)
+	r := Read(addr)
 
 	return (r>>pos)&1 == 1
 }
@@ -29,7 +28,7 @@ func Get(addr uint32, pos int) bool {
 func Set(addr uint32, pos int) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 
-	r := atomic.LoadUint32(reg)
+	r := Read(addr)
 	r |= (1 << pos)
 
 	atomic.StoreUint32(reg, r)
@@ -46,15 +45,14 @@ func SetTo(addr uint32, pos int, val bool) {
 func Clear(addr uint32, pos int) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 
-	r := atomic.LoadUint32(reg)
+	r := Read(addr)
 	r &= ^(1 << pos)
 
 	atomic.StoreUint32(reg, r)
 }
 
 func GetN(addr uint32, pos int, mask int) uint32 {
-	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
-	r := atomic.LoadUint32(reg)
+	r := Read(addr)
 
 	return (r >> pos) & uint32(mask)
 }
@@ -62,7 +60,7 @@ func GetN(addr uint32, pos int, mask int) uint32 {
 func SetN(addr uint32, pos int, mask int, val uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 
-	r := atomic.LoadUint32(reg)
+	r := Read(addr)
 	r = (r & (^(uint32(mask) << pos))) | ((val & uint32(mask)) << pos)
 
 	atomic.StoreUint32(reg, r)
@@ -71,7 +69,7 @@ func SetN(addr uint32, pos int, mask int, val uint32) {
 func ClearN(addr uint32, pos int, mask int) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 
-	r := atomic.LoadUint32(reg)
+	r := Read(addr)
 	r &= ^(uint32(mask) << pos)
 
 	atomic.StoreUint32(reg, r)
@@ -85,7 +83,7 @@ func Read(addr uint32) uint32 {
 	return atomic.LoadUint32(reg)
 }
 
-// defined in reg_*.s
+// defined in reg_*.s to avoid register read
 func Write(addr uint32, val uint32)
 
 func Write32(addr uint32, val uint32) {
@@ -95,14 +93,14 @@ func Write32(addr uint32, val uint32) {
 func WriteBack(addr uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 
-	r := atomic.LoadUint32(reg)
+	r := Read(addr)
 	atomic.StoreUint32(reg, r)
 }
 
 func Or(addr uint32, val uint32) {
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 
-	r := atomic.LoadUint32(reg)
+	r := Read(addr)
 	r |= val
 
 	atomic.StoreUint32(reg, r)

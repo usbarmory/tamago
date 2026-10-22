@@ -7,8 +7,8 @@
 
 // func Move(dst uint32, src uint32)
 TEXT ·Move(SB),$0-8
-	MOVW	dst+0(FP), T0
-	MOVW	src+4(FP), T1
+	MOVWU	dst+0(FP), T0
+	MOVWU	src+4(FP), T1
 
 	// copy src to dst
 	MOVW	(T1), T3
@@ -22,7 +22,7 @@ TEXT ·Move(SB),$0-8
 
 // func Read8(addr uint32) uint8
 TEXT ·Read8(SB),$0-9
-	MOVW	addr+0(FP), T0
+	MOVWU	addr+0(FP), T0
 	MOVBU	(T0), T1
 	MOVB	T1, ret+8(FP)
 
@@ -30,7 +30,7 @@ TEXT ·Read8(SB),$0-9
 
 // func Write8(addr uint32, val uint8)
 TEXT ·Write8(SB),$0-5
-	MOVW	addr+0(FP), T0
+	MOVWU	addr+0(FP), T0
 	MOVBU	val+4(FP), T1
 
 	MOVB	T1, (T0)
@@ -39,7 +39,7 @@ TEXT ·Write8(SB),$0-5
 
 // func Write(addr uint32, val uint32)
 TEXT ·Write(SB),$0-8
-	MOVW	addr+0(FP), T0
+	MOVWU	addr+0(FP), T0
 	MOVW	val+4(FP), T1
 
 	MOVW	T1, (T0)
