@@ -35,6 +35,8 @@ const (
 const (
 	bankSize = 32
 	banks    = 3
+	// every bank has one GPIO_ALT register per function selector bit
+	altBits = 3
 )
 
 // GPIO represents a GPIO controller instance.
@@ -75,7 +77,7 @@ func (hw *GPIO) Init(num int) (pin *Pin, err error) {
 		clr: hw.Base + GPIO_OUT_CLR + bank(num, 4),
 		in:  hw.Base + GPIO_IN + bank(num, 4),
 		oe:  hw.Base + GPIO_OE + bank(num, 4),
-		alt: hw.Base + GPIO_ALT + bank(num, 4),
+		alt: hw.Base + GPIO_ALT + bank(num, altBits*4),
 	}
 
 	return
@@ -107,7 +109,7 @@ func (pin *Pin) Value() (high bool) {
 }
 
 func (pin *Pin) alternateFunctionRegister(bit int) uint32 {
-	return pin.alt + uint32(bit*banks*4)
+	return pin.alt + uint32(bit*4)
 }
 
 // Function selects a GPIO line overlaid function.
