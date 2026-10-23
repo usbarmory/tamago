@@ -28,7 +28,7 @@ func WaitFor8(timeout time.Duration, addr uint32, pos int, mask int, val uint8) 
 		runtime.Gosched()
 
 		if time.Since(start) >= timeout {
-			return false
+			return GetN8(addr, pos, mask) == val
 		}
 	}
 

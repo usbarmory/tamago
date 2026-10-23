@@ -83,7 +83,7 @@ func WaitFor16(timeout time.Duration, addr uint32, pos int, mask int, val uint16
 		runtime.Gosched()
 
 		if time.Since(start) >= timeout {
-			return false
+			return GetN16(addr, pos, mask) == val
 		}
 	}
 

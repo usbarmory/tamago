@@ -119,7 +119,7 @@ func WaitFor(timeout time.Duration, addr uint32, pos int, mask int, val uint32) 
 		runtime.Gosched()
 
 		if time.Since(start) >= timeout {
-			return false
+			return GetN(addr, pos, mask) == val
 		}
 	}
 
