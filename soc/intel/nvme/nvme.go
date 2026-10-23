@@ -294,8 +294,9 @@ func (hw *NVMe) initControllerConfiguration() (err error) {
 	return
 }
 
-// Init initializes an NVMe controller instance: the controller is reset and
-// enabled, I/O queues are created and active namespaces identified.
+// Init initializes an NVMe controller instance, the controller is reset and
+// enabled, I/O queues are created and active namespaces identified,
+// [NVMe.ServiceInterrupt] must be running before it is invoked.
 func (hw *NVMe) Init() (err error) {
 	hw.Lock()
 	defer hw.Unlock()
