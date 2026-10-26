@@ -19,3 +19,9 @@ TEXT ·read_misa(SB),NOSPLIT,$0-8
 	CSRRS	ZERO, MISA, T0
 	MOV	T0, ret+0(FP)
 	RET
+
+// func Rdtime() uint64
+TEXT ·Rdtime(SB),NOSPLIT,$0-8
+	RDTIME	X10
+	MOV	X10, ret+0(FP)
+	RET
