@@ -162,16 +162,6 @@ func (io *MMIO) SetQueueSize(index int, n int) {
 	reg.Write(io.Base+QueueNum, uint32(n))
 }
 
-// InterruptStatus returns the interrupt status and reason.
-func (io *MMIO) InterruptStatus() (buffer bool, config bool) {
-	s := reg.Read(io.Base + InterruptStatus)
-
-	buffer = bits.Get(&s, 0)
-	config = bits.Get(&s, 1)
-
-	return
-}
-
 // Status returns the device status.
 func (io *MMIO) Status() uint32 {
 	return reg.Read(io.Base + Status)
@@ -207,4 +197,28 @@ func (io *MMIO) ConfigVersion() uint32 {
 // implement the [VirtIO] interface and always returns an error.
 func (io *MMIO) EnableInterrupt(_ int, _ int) (err error) {
 	return errors.New("unimplemented")
+}
+
+func (io *MMIO) interruptStatus(ack bool) (buffer bool, config bool) {
+	s := reg.Read(io.Base + InterruptStatus)
+
+	if ack {
+		reg.Write(io.Base+InterruptACK, s)
+	}
+
+	buffer = bits.Get(&s, 0)
+	config = bits.Get(&s, 1)
+
+	return
+}
+
+// InterruptStatus returns the interrupt status and reason.
+func (io *MMIO) InterruptStatus() (buffer bool, config bool) {
+	return io.interruptStatus(false)
+}
+
+// ClearInterrupt acknowledges the device interrupt, returning its status and
+// reason.
+func (io *MMIO) ClearInterrupt() (buffer bool, config bool) {
+	return io.interruptStatus(true)
 }
