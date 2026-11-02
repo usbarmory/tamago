@@ -73,7 +73,19 @@ TEXT ·wfi(SB),NOSPLIT|NOFRAME,$0
 	// disable interrupts to avoid races while checking state
 	CLI
 
+	// locate the IRQ_WAKEUP flag of this processor
+	MOVL	$(const_LAPIC_ID), AX
+	MOVL	(AX), AX
+	SHRL	$(const_ID), AX
+	LEAQ	·irqWake(SB), BX
+	ADDQ	AX, BX
+
 	MOVB	·irqLock(SB), AX
+	CMPB	AX, $1
+	JE	done
+
+	// do not wait for an IRQ_WAKEUP already taken
+	MOVB	(BX), AX
 	CMPB	AX, $1
 	JE	done
 
@@ -81,6 +93,8 @@ TEXT ·wfi(SB),NOSPLIT|NOFRAME,$0
 	STI
 	HLT
 done:
+	// returning serves any IRQ_WAKEUP taken so far
+	MOVB	$0, (BX)
 	STI
 	RET
 
@@ -92,12 +106,21 @@ TEXT ·ignoreInterrupt(SB),NOSPLIT|NOFRAME,$0
 
 	// save caller registers
 	PUSHQ	AX
+	PUSHQ	BX
+
+	// record the wakeup for wfi, which may not have halted yet
+	MOVL	$(const_LAPIC_ID), AX
+	MOVL	(AX), AX
+	SHRL	$(const_ID), AX
+	LEAQ	·irqWake(SB), BX
+	MOVB	$1, (BX)(AX*1)
 
 	// clear interrupt
 	MOVL	$(const_LAPIC_EOI), AX
 	MOVL	$0, (AX)
 
 	// restore caller registers
+	POPQ	BX
 	POPQ	AX
 
 	// return to caller

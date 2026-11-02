@@ -37,10 +37,12 @@ const (
 
 // aliased constants
 const (
+	LAPIC_ID   = LAPIC_BASE + lapic.LAPIC_ID
 	LAPIC_EOI  = LAPIC_BASE + lapic.LAPIC_EOI
 	LAPIC_SVR  = LAPIC_BASE + lapic.LAPIC_SVR
 	LAPIC_ICRL = LAPIC_BASE + lapic.LAPIC_ICRL
 
+	ID         = lapic.ID
 	SVR_ENABLE = lapic.SVR_ENABLE
 
 	ICR_DST      = lapic.ICR_DST
