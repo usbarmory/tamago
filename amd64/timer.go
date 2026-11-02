@@ -15,8 +15,12 @@ import (
 	"github.com/usbarmory/tamago/kvm/clock"
 )
 
-// nanoseconds
-const refFreq uint32 = 1e9
+const (
+	// nanoseconds
+	refFreq = 1e9
+	// QEMU emulated LAPIC timer rate
+	qemuTimerFreq = 1e9
+)
 
 // ACPI PM Timer constants
 const (
@@ -34,12 +38,12 @@ func (cpu *CPU) calibrateByPairing() {
 	_, nsecB, tscB := kvmclock.Pairing()
 
 	if den := uint64(nsecB - nsecA); den != 0 {
-		cpu.freq = uint32(((tscB - tscA) * uint64(refFreq)) / den)
+		cpu.freq = ((tscB - tscA) * uint64(refFreq)) / den
 	}
 }
 
 // calibrate frequency based on ACPI PM timer
-func (cpu *CPU) calibrateByTimer() {
+func (cpu *CPU) calibrateByACPITimer() {
 	var apmB uint32
 	var tscB uint64
 
@@ -64,30 +68,61 @@ func (cpu *CPU) calibrateByTimer() {
 	}
 
 	if den := (apmB - apmA) & mask; den != 0 {
-		cpu.freq = uint32((tscB-tscA)/uint64(den)) * ACPI_PM_FREQ
+		cpu.freq = (tscB - tscA) / uint64(den) * ACPI_PM_FREQ
 	}
 
 	return
 }
 
-func (cpu *CPU) detectCoreFrequency() {
-	if den, num, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); den != 0 {
-		if nominalFreq == 0 {
-			baseFreq, _, _, _ := cpuid(CPUID_CPU_FRQ, 0)
-			nominalFreq = uint32(uint64(baseFreq) * 1e6 * uint64(den) / uint64(num))
-		}
+// calibrate frequency based on QEMU LAPIC timer
+func (cpu *CPU) calibrateByLAPICTimer() {
+	reg.Write(LAPIC_SVR, reg.Read(LAPIC_SVR)|0x1ff)
+	reg.Write(LAPIC_TIMER_DIV, 0b1011)
+	reg.Write(LAPIC_TIMER, 1<<16|IRQ_WAKEUP)
 
-		cpu.freq = uint32((uint64(num) * uint64(nominalFreq)) / uint64(den))
+	reg.Write(LAPIC_TIMER_INIT, 0xffffffff)
+	defer reg.Write(LAPIC_TIMER_INIT, 0)
+
+	t0 := read_tsc()
+	elapsed := uint32(0)
+
+	// 20ms at 1 GHz
+	for elapsed < qemuTimerFreq/50 {
+		elapsed = 0xffffffff - reg.Read(LAPIC_TIMER_CUR)
+	}
+
+	t1 := read_tsc()
+	cpu.freq = (t1 - t0) * uint64(qemuTimerFreq) / uint64(elapsed)
+}
+
+func (cpu *CPU) detectCoreFrequency() {
+	if cpu.features.TCG {
+		if cpu.calibrateByLAPICTimer(); cpu.freq != 0 {
+			return
+		}
+	}
+
+	maxLeaf, _, _, _ := cpuid(CPUID_VENDOR, 0)
+
+	if maxLeaf >= CPUID_TSC_CCC {
+		if den, num, nominalFreq, _ := cpuid(CPUID_TSC_CCC, 0); den != 0 && num != 0 {
+			if nominalFreq == 0 && maxLeaf >= CPUID_CPU_FRQ {
+				baseFreq, _, _, _ := cpuid(CPUID_CPU_FRQ, 0)
+				nominalFreq = uint32(uint64(baseFreq) * 1e6 * uint64(den) / uint64(num))
+			}
+
+			cpu.freq = (uint64(num) * uint64(nominalFreq)) / uint64(den)
+		}
 	}
 
 	if cpu.features.KVM {
 		if khz, _, _, _ := cpuid(CPUID_KVM_TSC_KHZ, 0); khz != 0 {
-			cpu.freq = khz * 1000
+			cpu.freq = uint64(khz) * 1000
 		} else {
 			cpu.calibrateByPairing()
 
 			if cpu.freq == 0 {
-				cpu.calibrateByTimer()
+				cpu.calibrateByACPITimer()
 			}
 		}
 	}
@@ -106,7 +141,7 @@ func (cpu *CPU) detectCoreFrequency() {
 		den := float64(bits.GetN(&pstate, 8, 0b111111)) / 8
 
 		if num != 0 && den != 0 {
-			cpu.freq = uint32(num/den) * 1e6
+			cpu.freq = uint64(num/den) * 1e6
 		}
 	}
 
@@ -125,7 +160,7 @@ func (cpu *CPU) initTimers() {
 }
 
 // Freq() returns the AMD64 core frequency.
-func (cpu *CPU) Freq() (hz uint32) {
+func (cpu *CPU) Freq() (hz uint64) {
 	return cpu.freq
 }
 
