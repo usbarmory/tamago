@@ -118,5 +118,7 @@ func init() {
 	dma.Init(dmaStart, dmaSize)
 
 	// initialize KVM pvclock as needed
-	pvclock.Init(AMD64)
+	if AMD64.Features().KVM {
+		pvclock.Init(AMD64)
+	}
 }
