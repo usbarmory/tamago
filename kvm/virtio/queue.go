@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"runtime"
 	"sync"
 
 	"github.com/usbarmory/tamago/dma"
@@ -330,19 +331,32 @@ func (d *VirtualQueue) Pop(buf []byte) (n int, err error) {
 	return
 }
 
-// Push supplies a single available buffer to the virtual queue.
+// Push supplies a single available buffer to the virtual queue, when all
+// descriptors are in use it waits for the device to return one.
 func (d *VirtualQueue) Push(buf []byte) {
 	d.Lock()
 	defer d.Unlock()
 
-	index := d.Available.Ring(d.Available.index % d.size)
+	n := d.Available.index % d.size
+
+	if d.Available.index-d.Used.last == d.size {
+		for d.Used.Index() == d.Used.last {
+			runtime.Gosched()
+		}
+
+		used := d.Used.Ring(d.Used.last % d.size)
+		d.Available.SetRingIndex(n, uint16(used.Index))
+		d.Used.last += 1
+	}
+
+	index := d.Available.Ring(n)
 
 	// update Descriptor length
 	off := 8 + index*16
 	binary.LittleEndian.PutUint32(d.buf[off:], uint32(len(buf)))
 
 	d.Descriptors[index].Write(buf)
-	d.Available.SetRingIndex(d.Available.index%d.size, index)
+	d.Available.SetRingIndex(n, index)
 
 	d.Available.SetIndex(d.Available.index + 1)
 }
