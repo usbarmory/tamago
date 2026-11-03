@@ -273,8 +273,8 @@ git clone https://github.com/usbarmory/tamago-example
 cd tamago-example && make qemu
 ```
 
-Applications using TamaGo
-=========================
+Projects using TamaGo
+=====================
 
 * [go-boot](https://github.com/usbarmory/go-boot) - the bare metal Go UEFI boot manager
 * [GoKey](https://github.com/usbarmory/GoKey) - the bare metal Go smartcard
@@ -287,6 +287,7 @@ Applications using TamaGo
 * [tamago-sev-example](https://github.com/usbarmory/tamago-sev-example) - Confidential VM (AMD SEV-SNP) example
 * [kotama](https://github.com/usbarmory/kotama) - Tiny RISC-V target demonstrator
 * [kanzashi](https://github.com/abarisani/kanzashi) - Bare Metal Agent
+* [eggshell](https://github.com/usbarmory/eggshell) - a bare metal Go kernel for Linux binaries
 
 External drivers using TamaGo
 =============================
