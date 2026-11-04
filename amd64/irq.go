@@ -65,6 +65,9 @@ var (
 	// IRQ handling goroutine and state
 	irqHandling bool
 	irqLock     bool
+
+	// IRQ_WAKEUP taken and not yet consumed by wfi, by LAPIC ID
+	irqWake [256]bool
 )
 
 // defined in irq.s
