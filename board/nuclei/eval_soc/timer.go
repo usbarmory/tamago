@@ -15,6 +15,7 @@
 package eval_soc
 
 import (
+	"github.com/usbarmory/tamago/riscv64"
 	_ "unsafe"
 )
 
@@ -22,9 +23,6 @@ import (
 // nuclei_evalsoc machine (the `timer_freq` field of its SoC configuration).
 // It is independent of the real FSL91030 CLINT rate (fsl91030.RTCCLK).
 const TIMER_FREQ = 32768
-
-// defined in timer_riscv64.s
-func rdtime() uint64
 
 func mulDiv(x, m, d uint64) uint64 {
 	divx := x / d
@@ -36,5 +34,5 @@ func mulDiv(x, m, d uint64) uint64 {
 
 //go:linkname nanotime runtime/goos.Nanotime
 func nanotime() int64 {
-	return int64(mulDiv(rdtime(), 1e9, TIMER_FREQ))
+	return int64(mulDiv(riscv64.Rdtime(), 1e9, TIMER_FREQ))
 }
