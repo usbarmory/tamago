@@ -111,12 +111,12 @@ func Init(cpu *amd64.CPU) {
 	switch {
 	case features.TSCInvariant && !features.KVM:
 		// no action required as TSC is reliable
-	case features.TSCInvariant && features.KVM && features.KVMClockMSR > 0:
+	case features.TSCInvariant && features.KVM && features.KVMSystemTimeMSR > 0:
 		// no action required as TSC is reliable but we
 		// opportunistically adjust once with kvmclock
-		initTimeInfo(features.KVMClockMSR)
+		initTimeInfo(features.KVMSystemTimeMSR)
 		cpu.SetTime(pvClock(cpu, nil))
-	case features.KVM && features.KVMClockMSR > 0:
+	case features.KVM && features.KVMSystemTimeMSR > 0:
 		// TSC must be adjusted as it is not reliable through state
 		// changes.
 		//
@@ -125,7 +125,7 @@ func Init(cpu *amd64.CPU) {
 		// interval.
 		//
 		// If ever required pvClockSync() can be moved to Go assembly.
-		initTimeInfo(features.KVMClockMSR)
+		initTimeInfo(features.KVMSystemTimeMSR)
 		go pvClockSync(cpu)
 	default:
 		panic("could not set system timer")

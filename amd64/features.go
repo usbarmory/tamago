@@ -81,6 +81,9 @@ const (
 
 // kvmclock MSRs
 const (
+	MSR_KVM_WALL_CLOCK     = 0x11
+	MSR_KVM_WALL_CLOCK_NEW = 0x4b564d00
+
 	MSR_KVM_SYSTEM_TIME     = 0x12
 	MSR_KVM_SYSTEM_TIME_NEW = 0x4b564d01
 )
@@ -102,10 +105,13 @@ type Features struct {
 	// TCG indicates whether QEMU Tiny Code Generator emulation is
 	// detected.
 	TCG bool
+
 	// KVM indicates whether a Kernel-base Virtual Machine is detected.
 	KVM bool
-	// KVMClockMSR returns the kvmclock Model Specific Register.
-	KVMClockMSR uint32
+	// KVMWallClockMSR returns the KVM Wall Clock Model Specific Register.
+	KVMWallClockMSR uint32
+	// KVMSystemTimeMSR returns the KVM System Timer Model Specific Register.
+	KVMSystemTimeMSR uint32
 }
 
 // defined in features.s
@@ -136,11 +142,13 @@ func (cpu *CPU) initFeatures() {
 		kvmFeatures, _, _, _ := cpuid(CPUID_KVM_FEATURES, 0)
 
 		if bits.Get(&kvmFeatures, FEATURES_CLOCKSOURCE) {
-			cpu.features.KVMClockMSR = MSR_KVM_SYSTEM_TIME
+			cpu.features.KVMWallClockMSR = MSR_KVM_WALL_CLOCK
+			cpu.features.KVMSystemTimeMSR = MSR_KVM_SYSTEM_TIME
 		}
 
 		if bits.Get(&kvmFeatures, FEATURES_CLOCKSOURCE2) {
-			cpu.features.KVMClockMSR = MSR_KVM_SYSTEM_TIME_NEW
+			cpu.features.KVMWallClockMSR = MSR_KVM_WALL_CLOCK_NEW
+			cpu.features.KVMSystemTimeMSR = MSR_KVM_SYSTEM_TIME_NEW
 		}
 	}
 
