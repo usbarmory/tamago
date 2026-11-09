@@ -79,6 +79,21 @@ const (
 	SDMMC0_IRQ = 96
 )
 
+// XDMAC peripheral hardware request lines
+const (
+	QSPI0_RX_DMA = 0
+	QSPI0_TX_DMA = 1
+
+	FLEXCOM0_RX_DMA = 2
+	FLEXCOM0_TX_DMA = 3
+	FLEXCOM1_RX_DMA = 4
+	FLEXCOM1_TX_DMA = 5
+	FLEXCOM2_RX_DMA = 6
+	FLEXCOM2_TX_DMA = 7
+	FLEXCOM3_RX_DMA = 8
+	FLEXCOM3_TX_DMA = 9
+)
+
 // Peripheral registers
 const (
 	// Analyzer
