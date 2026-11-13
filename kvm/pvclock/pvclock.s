@@ -15,6 +15,11 @@ DATA	·time_info<>+0x08(SB)/8, $0x0000000000000000
 DATA	·time_info<>+0x10(SB)/8, $0x0000000000000000
 GLOBL	·time_info<>(SB),RODATA,$32
 
+// holder for struct pvclock_wall_clock
+DATA	·wall_clock<>+0x00(SB)/8, $0x0000000000000000
+DATA	·wall_clock<>+0x08(SB)/8, $0x0000000000000000
+GLOBL	·wall_clock<>(SB),RODATA,$16
+
 // func pvclock(msr uint32) uint32
 TEXT ·pvclock(SB),$0-12
 	MOVL	msr+0(FP), CX
@@ -22,5 +27,14 @@ TEXT ·pvclock(SB),$0-12
 	MOVL	$0, DX
 	MOVL	AX, ptr+8(FP)
 	ORL	$1, AX
+	WRMSR
+	RET
+
+// func wallclock(msr uint32) uint32
+TEXT ·wallclock(SB),$0-12
+	MOVL	msr+0(FP), CX
+	MOVL	$·wall_clock<>(SB), AX
+	MOVL	$0, DX
+	MOVL	AX, ptr+8(FP)
 	WRMSR
 	RET
