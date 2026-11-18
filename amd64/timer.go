@@ -183,6 +183,11 @@ func (cpu *CPU) SetTime(ns int64) {
 	cpu.TimerOffset = ns - int64(float64(read_tsc())*cpu.TimerMultiplier)
 }
 
+// AdjustCounter adjusts the system time by the argument counter delta.
+func (cpu *CPU) AdjustCounter(delta int64) {
+	cpu.TimerOffset += int64(float64(delta) * cpu.TimerMultiplier)
+}
+
 // SetAlarm sets a physical timer to the absolute time matching the argument
 // nanoseconds value, an interrupt (see [IRQ_WAKEUP] is generated on
 // expiration. The timer is enabled only on [CPU] instances supporting

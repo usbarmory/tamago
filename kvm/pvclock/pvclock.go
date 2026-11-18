@@ -107,6 +107,10 @@ func pvClock(cpu *amd64.CPU, timeInfo *pvClockTimeInfo) int64 {
 		timeInfo = &pvClockTimeInfo{}
 	}
 
+	return pvClockDelta(cpu, timeInfo) + int64(timeInfo.SystemTime)
+}
+
+func pvClockDelta(cpu *amd64.CPU, timeInfo *pvClockTimeInfo) int64 {
 	binary.Decode(timeInfoBuffer, binary.LittleEndian, timeInfo)
 	delta := cpu.Counter() - timeInfo.Timestamp
 
@@ -123,21 +127,12 @@ func pvClock(cpu *amd64.CPU, timeInfo *pvClockTimeInfo) int64 {
 	r.Mul(d, m)
 	r.Rsh(r, 32)
 
-	return int64(r.Uint64() + timeInfo.SystemTime)
+	return int64(r.Uint64())
 }
 
-// pvClockSync adjusts the CPU system timer offset by the drift of the TSC
-// against the KVM host wall clock, so that a time set by the application is
-// kept.
 func pvClockSync(cpu *amd64.CPU) {
 	version := uint32(0)
 	timeInfo := &pvClockTimeInfo{}
-
-	drift := func() int64 {
-		return wallClock(cpu) - int64(float64(cpu.Counter())*cpu.TimerMultiplier)
-	}
-
-	last := drift()
 
 	for {
 		time.Sleep(TimeInfoUpdate)
@@ -149,10 +144,7 @@ func pvClockSync(cpu *amd64.CPU) {
 		}
 
 		version = timeInfo.Version
-
-		d := drift()
-		cpu.TimerOffset += d - last
-		last = d
+		cpu.AdjustCounter(pvClockDelta(cpu, timeInfo))
 	}
 }
 
