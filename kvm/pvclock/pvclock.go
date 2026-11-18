@@ -7,8 +7,8 @@
 // that can be found in the LICENSE file.
 
 // Package pvclock implements a driver for the KVM specific paravirtualized
-// clocksource following the MSR_KVM_SYSTEM_TIME_NEW KVM-specific MSR as
-// described at:
+// clocksource following the MSR_KVM_SYSTEM_TIME_NEW and MSR_KVM_WALL_CLOCK_NEW
+// KVM-specific MSRs as described at:
 //
 //	https://docs.kernel.org/virt/kvm/x86/msr.html
 //
@@ -24,6 +24,7 @@ import (
 
 	"github.com/usbarmory/tamago/amd64"
 	"github.com/usbarmory/tamago/dma"
+	"github.com/usbarmory/tamago/internal/reg"
 )
 
 type pvClockTimeInfo struct {
@@ -37,15 +38,22 @@ type pvClockTimeInfo struct {
 	_          [2]uint8
 }
 
-// defined in timer.s
+type pvClockWallClock struct {
+	Version uint32
+	Sec     uint32
+	Nsec    uint32
+}
+
 func pvclock(msr uint32) (ptr uint32)
 
 var (
 	// TimeInfoUpdate is the kvmclock sync interval
 	TimeInfoUpdate time.Duration = 1 * time.Second
 
-	// host shared DMA buffer
-	timeInfoBuffer []byte
+	// host shared DMA buffers
+	timeInfoBuffer  []byte
+	wallClockAddr   uint
+	wallClockBuffer []byte
 )
 
 func initTimeInfo(msr uint32) {
@@ -61,11 +69,48 @@ func initTimeInfo(msr uint32) {
 	_, timeInfoBuffer = r.Reserve(size, 0)
 }
 
+func initWallClock(cpu *amd64.CPU) {
+	cpu.SetTime(pvClock(cpu, nil))
+	wallClockAddr, wallClockBuffer = dma.Reserve(16, 4)
+}
+
+// wallClock returns the host wall clock time in nanoseconds, KVM computes it
+// when the MSR is written.
+func wallClock(cpu *amd64.CPU) int64 {
+	wc := &pvClockWallClock{}
+
+	reg.WriteMSR(uint64(cpu.Features().KVMWallClockMSR), uint64(wallClockAddr))
+
+	for {
+		binary.Decode(wallClockBuffer, binary.LittleEndian, wc)
+
+		if wc.Version%2 == 0 && wc.Version == binary.LittleEndian.Uint32(wallClockBuffer) {
+			break
+		}
+	}
+
+	return int64(wc.Sec)*int64(time.Second) + int64(wc.Nsec) + pvClock(cpu, nil)
+}
+
+// Now returns the KVM host wall clock time, or the zero time if Init found no
+// kvmclock.
+func Now(cpu *amd64.CPU) time.Time {
+	if wallClockBuffer == nil {
+		return time.Time{}
+	}
+
+	return time.Unix(0, wallClock(cpu))
+}
+
 func pvClock(cpu *amd64.CPU, timeInfo *pvClockTimeInfo) int64 {
 	if timeInfo == nil {
 		timeInfo = &pvClockTimeInfo{}
 	}
 
+	return pvClockDelta(cpu, timeInfo) + int64(timeInfo.SystemTime)
+}
+
+func pvClockDelta(cpu *amd64.CPU, timeInfo *pvClockTimeInfo) int64 {
 	binary.Decode(timeInfoBuffer, binary.LittleEndian, timeInfo)
 	delta := cpu.Counter() - timeInfo.Timestamp
 
@@ -82,7 +127,7 @@ func pvClock(cpu *amd64.CPU, timeInfo *pvClockTimeInfo) int64 {
 	r.Mul(d, m)
 	r.Rsh(r, 32)
 
-	return int64(r.Uint64() + timeInfo.SystemTime)
+	return int64(r.Uint64())
 }
 
 func pvClockSync(cpu *amd64.CPU) {
@@ -99,7 +144,7 @@ func pvClockSync(cpu *amd64.CPU) {
 		}
 
 		version = timeInfo.Version
-		cpu.SetTime(pvClock(cpu, timeInfo))
+		cpu.AdjustCounter(pvClockDelta(cpu, timeInfo))
 	}
 }
 
@@ -115,7 +160,7 @@ func Init(cpu *amd64.CPU) {
 		// no action required as TSC is reliable but we
 		// opportunistically adjust once with kvmclock
 		initTimeInfo(features.KVMSystemTimeMSR)
-		cpu.SetTime(pvClock(cpu, nil))
+		initWallClock(cpu)
 	case features.KVM && features.KVMSystemTimeMSR > 0:
 		// TSC must be adjusted as it is not reliable through state
 		// changes.
@@ -126,6 +171,7 @@ func Init(cpu *amd64.CPU) {
 		//
 		// If ever required pvClockSync() can be moved to Go assembly.
 		initTimeInfo(features.KVMSystemTimeMSR)
+		initWallClock(cpu)
 		go pvClockSync(cpu)
 	default:
 		panic("could not set system timer")
