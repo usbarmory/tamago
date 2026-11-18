@@ -31,6 +31,8 @@ const (
 	GAMMA
 	// USB armory Mk II LAN - UA-MKII-LAN
 	LAN
+	// USB armory Mk II (rev. δ) - UA-MKII-δ
+	DELTA
 )
 
 // Peripheral instances
@@ -72,6 +74,8 @@ func Model() (m uint32, s string) {
 		s = "UA-MKII-β"
 	case GAMMA:
 		s = "UA-MKII-γ"
+	case DELTA:
+		s = "UA-MKII-δ"
 	case LAN:
 		s = "UA-MKII-LAN"
 	default:

@@ -83,7 +83,7 @@ func init() {
 	model := model()
 
 	switch model {
-	case BETA, GAMMA:
+	case BETA, GAMMA, DELTA:
 		wpSD.Mode(USDHC1_WP_MODE)
 		wpSD.Select(DAISY_CSI_DATA04)
 		wpSD.Ctl(ctl)
