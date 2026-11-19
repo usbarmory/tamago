@@ -386,3 +386,24 @@ func (cpu *CPU) ConfigureMMU(start, end, alias, flags uint64) {
 
 	cpu.FlushTLBs()
 }
+
+func (cpu *CPU) updateMMU(start, end uint64, pos int, mask int, val uint64) {
+	start = start >> 21
+	end = end >> 21
+
+	for i := start; i < end; i++ {
+		page := cpu.mmu.l2Entry(i << 21)
+		reg.SetN64(page, pos, mask, val)
+	}
+
+	cpu.FlushTLBs()
+}
+
+// SetAttributes (re)configures the second-level translation tables for the
+// provided memory range with the argument attribute flags.
+func (cpu *CPU) SetAttributes(start, end, flags uint64) {
+	mask := TTE_EXECUTE_NEVER | TTE_INNER_SH | TTE_OUTER_SH | TTE_NON_SH |
+		TTE_PAGE | TTE_TABLE | TTE_BLOCK
+
+	cpu.updateMMU(start, end, 0, int(mask), flags)
+}
