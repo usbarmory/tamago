@@ -6,13 +6,13 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
+//go:build !linkhwinit0
+
 package arm64
 
 import (
 	_ "unsafe"
 )
-
-var m mmu
 
 // Init takes care of the lower level initialization triggered before runtime
 // setup (pre World start).
