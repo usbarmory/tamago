@@ -24,9 +24,11 @@ const (
 // Exception Class
 // Table D12.2.36 ARM Architecture Reference Manual ARMv8
 const (
-	ESR_EC    = 26
-	EC_SVC64  = 0b010101
-	EC_SERROR = 0b101111
+	ESR_EC     = 26
+	EC_UNKNOWN = 0b000000
+	EC_SVC64   = 0b010101
+	EC_SYSREG  = 0b011000
+	EC_SERROR  = 0b101111
 )
 
 // defined in exception.s
