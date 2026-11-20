@@ -42,6 +42,14 @@ func read_mcause() uint64
 func read_scause() uint64
 func trapHandler()
 
+// ExceptionHandler represents a trap handler, its address is set in Direct
+// mode as trap vector (see [CPU.SetExceptionHandler],
+// [CPU.SetSupervisorExceptionHandler]) and therefore receives all exceptions
+// and interrupts.
+//
+// The handler must be an assembly function marked NOSPLIT|NOFRAME, as its
+// address is taken from the function value (i.e. its ABI wrapper). Fatal
+// exceptions can be handled in Go by overriding [SystemExceptionHandler].
 type ExceptionHandler func()
 
 func vector(fn ExceptionHandler) uint64 {
@@ -75,6 +83,10 @@ func DefaultSupervisorExceptionHandler() {
 }
 
 // SystemExceptionHandler allows to override the default exception handler.
+//
+// The handler executes on the stack and goroutine (g) of the interrupted code,
+// with interrupts masked, and must not return. It should avoid allocations,
+// locks or any runtime state which might be inconsistent at exception time.
 var SystemExceptionHandler = DefaultExceptionHandler
 
 func systemException() {

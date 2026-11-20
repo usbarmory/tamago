@@ -38,6 +38,13 @@ func read_esr() uint64
 func handleException()
 func handleInterrupt()
 
+// ExceptionHandler represents an exception vector entry point, reached through
+// a trampoline which uses R18 to branch to it (its value at exception time is
+// therefore lost).
+//
+// The handler must be an assembly function marked NOSPLIT|NOFRAME, as its
+// address is taken from the function value (i.e. its ABI wrapper). Fatal
+// exceptions can be handled in Go by overriding [SystemExceptionHandler].
 type ExceptionHandler func()
 
 func (fn ExceptionHandler) vector() uint64 {
@@ -63,6 +70,10 @@ func DefaultExceptionHandler(pc uintptr) {
 }
 
 // SystemExceptionHandler allows to override the default exception handler.
+//
+// The handler executes on the stack and goroutine (g) of the interrupted code,
+// with interrupts masked, and must not return. It should avoid allocations,
+// locks or any runtime state which might be inconsistent at exception time.
 var SystemExceptionHandler = DefaultExceptionHandler
 
 func systemException(pc uintptr) {

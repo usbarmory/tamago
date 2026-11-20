@@ -43,10 +43,11 @@ func DefaultExceptionHandler() {
 	exception.Throw(eip)
 }
 
-// SystemExceptionHandler allows to override the default exception handler
-// executed at any exception by the table returned by SystemVectorTable(),
-// which is used by default when initializing the CPU instance (e.g.
-// CPU.Init()).
+// SystemExceptionHandler allows to override the default exception handler.
+//
+// The handler executes on the stack and goroutine (g) of the interrupted code,
+// with interrupts masked, and must not return. It should avoid allocations,
+// locks or any runtime state which might be inconsistent at exception time.
 var SystemExceptionHandler = DefaultExceptionHandler
 
 // EnableExceptions initializes handling of processor exceptions through

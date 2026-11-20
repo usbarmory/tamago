@@ -39,7 +39,13 @@ const (
 // defined in exception.s
 func trapHandler()
 
-// ExceptionHandler represents an exception handler function.
+// ExceptionHandler represents an exception handler, its address is set as
+// exception entry (see [CPU.SetExceptionHandler]) shared by all general
+// exceptions and interrupts.
+//
+// The handler must be an assembly function marked NOSPLIT|NOFRAME, as its
+// address is taken from the function value (i.e. its ABI wrapper). Fatal
+// exceptions can be handled in Go by overriding [SystemExceptionHandler].
 type ExceptionHandler func()
 
 func vector(fn ExceptionHandler) uint64 {
@@ -60,6 +66,10 @@ func DefaultExceptionHandler() {
 }
 
 // SystemExceptionHandler allows to override the default exception handler.
+//
+// The handler executes on the stack and goroutine (g) of the interrupted code,
+// with interrupts masked, and must not return. It should avoid allocations,
+// locks or any runtime state which might be inconsistent at exception time.
 var SystemExceptionHandler = DefaultExceptionHandler
 
 func systemException() {

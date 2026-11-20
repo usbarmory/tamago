@@ -60,6 +60,14 @@ var (
 	isThrowing bool
 )
 
+// ExceptionHandler represents an exception vector entry point, reached through
+// a jump table entry which loads its address in the program counter (see
+// [CPU.SetVectorTable]), with the stack pointer of all exception modes set to
+// a single shared exception stack.
+//
+// The handler must be an assembly function marked NOSPLIT|NOFRAME, as it is
+// invoked directly at exception entry. Fatal exceptions can be handled in Go
+// by overriding [SystemExceptionHandler].
 type ExceptionHandler func()
 
 func vector(fn ExceptionHandler) uint32 {
@@ -93,6 +101,10 @@ func DefaultExceptionHandler() {
 // executed at any exception by the table returned by SystemVectorTable(),
 // which is used by default when initializing the CPU instance (e.g.
 // CPU.Init()).
+//
+// The handler executes on the stack and goroutine (g) of the interrupted code,
+// with interrupts masked, and must not return. It should avoid allocations,
+// locks or any runtime state which might be inconsistent at exception time.
 var SystemExceptionHandler = DefaultExceptionHandler
 
 // SystemVectorTable returns a vector table that, for all exceptions, switches
