@@ -104,6 +104,8 @@ func (cpu *CPU) initVectorTable() {
 	addJumps(vectorTable, handleException, handleInterrupt)
 	// ELx, x>0
 	addJumps(vectorTable+0x200, handleException, handleInterrupt)
+	// Lower EL, AArch64
+	addJumps(vectorTable+0x400, handleException, handleInterrupt)
 
 	// set vector base address register
 	set_vbar(vectorTable)
