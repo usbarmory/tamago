@@ -24,3 +24,9 @@ TEXT ·read_el(SB),$0-8
 	MRS	CurrentEL, R0
 	MOVD	R0, ret+0(FP)
 	RET
+
+// func read_esr() uint64
+TEXT ·read_esr(SB),$0-8
+	MRS	ESR_EL1, R0
+	MOVD	R0, ret+0(FP)
+	RET
