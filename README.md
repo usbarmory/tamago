@@ -255,6 +255,7 @@ definition for the `runtime/goos` overlay:
 * `linkcpuinit`: override `cpuinit`
 * `linkhwinit0`: override `goos.Hwinit0`
 * `tiny`: reduce heap allocation requirements
+* `el1secure`: start unikernel in EL1 Secure state (only on `GOARCH=arm64`)
 
 Executing and debugging
 =======================

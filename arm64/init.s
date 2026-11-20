@@ -9,6 +9,7 @@
 //go:build !linkcpuinit
 
 #include "arm64.h"
+#include "go_asm.h"
 #include "textflag.h"
 
 TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
@@ -33,10 +34,11 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 
 	// D12.2.99 SCR_EL3, Secure Configuration Register
 	MOVD	$0, R0
+	// set Non-secure state according to build tag
+	ORR	$(const_scrNS)<<0, R0
 	ORR	$1<<10, R0	// set lower levels as AArch64
 	ORR	$1<<5, R0	// set reserved bit
 	ORR	$1<<4, R0	// set reserved bit
-	ORR	$1<<0, R0	// set Non-secure state
 	WORD	$0xd51e1100	// msr scr_el3, x0
 
 	// D12.2.44 HCR_EL2, Hypervisor Configuration Register
