@@ -393,6 +393,12 @@ func (cpu *CPU) updateMMU(start, end uint64, pos int, mask int, val uint64) {
 
 	for i := start; i < end; i++ {
 		page := cpu.mmu.l2Entry(i << 21)
+
+		if reg.Read64(page)&0b11 != TTE_BLOCK {
+			// split/invalid entries are ignored
+			continue
+		}
+
 		reg.SetN64(page, pos, mask, val)
 	}
 
