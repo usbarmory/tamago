@@ -131,5 +131,5 @@ func (cpu *CPU) SetLowerVectorTable(syncHandler, irqHandler ExceptionHandler) {
 
 // CurrentEL returns the Current Exception Level.
 func (cpu *CPU) CurrentEL() int {
-	return int(read_el()&0b1100) >> 2
+	return int((read_el() >> 2) & 0b11)
 }
