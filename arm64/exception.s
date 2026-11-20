@@ -13,6 +13,17 @@ TEXT ·handleException(SB),NOSPLIT|NOFRAME,$0
 	MOVD	R0, 8(RSP)	// arg
 	JMP	·systemException(SB)
 
+// Lower EL trampolines (see addLowerJump) push the interrupted R18 value,
+// default handlers discard it.
+
+TEXT ·handleLowerException(SB),NOSPLIT|NOFRAME,$0
+	ADD	$16, RSP
+	JMP	·handleException(SB)
+
+TEXT ·handleLowerInterrupt(SB),NOSPLIT|NOFRAME,$0
+	ADD	$16, RSP
+	JMP	·handleInterrupt(SB)
+
 // func set_vbar(addr uint64)
 TEXT ·set_vbar(SB),NOSPLIT,$0
 	MOVD	addr+0(FP), R0
