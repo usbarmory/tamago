@@ -21,8 +21,8 @@ const (
 	vecTableJump = 0xd61f0240 // br x18
 )
 
-// Exception Class
-// Table D12.2.36 ARM Architecture Reference Manual ARMv8
+// Exception classes
+// (D12.2.36 ARM Architecture Reference Manual ARMv8).
 const (
 	ESR_EC     = 26
 	EC_UNKNOWN = 0b000000
@@ -75,9 +75,9 @@ func addJump(addr uint64, fn ExceptionHandler) {
 	reg.Write64(addr+8, fn.vector())
 }
 
-func addJumps(addr uint64, errHandler, irqHandler ExceptionHandler) {
+func addJumps(addr uint64, syncHandler, irqHandler ExceptionHandler) {
 	// Synchronous Exception
-	addJump(addr, errHandler)
+	addJump(addr, syncHandler)
 
 	// IRQ or vIRQ
 	addr += 0x80
@@ -89,7 +89,7 @@ func addJumps(addr uint64, errHandler, irqHandler ExceptionHandler) {
 
 	// SError or vSError
 	addr += 0x80
-	addJump(addr, errHandler)
+	addJump(addr, syncHandler)
 }
 
 //go:nosplit
@@ -100,9 +100,9 @@ func (cpu *CPU) initVectorTable() {
 	// initialize jump tables
 	// Table D1-7 ARM Architecture Reference Manual ARMv8
 
-	// EL0
+	// current EL with SP_EL0
 	addJumps(vectorTable, handleException, handleInterrupt)
-	// ELx, x>0
+	// current with ELx, x>0
 	addJumps(vectorTable+0x200, handleException, handleInterrupt)
 	// Lower EL, AArch64
 	addJumps(vectorTable+0x400, handleException, handleInterrupt)
@@ -113,9 +113,9 @@ func (cpu *CPU) initVectorTable() {
 
 // SetLowerVectorTable updates the CPU exception handling vector table, for
 // lower exception levels.
-func (cpu *CPU) SetLowerVectorTable(errHandler, irqHandler ExceptionHandler) {
+func (cpu *CPU) SetLowerVectorTable(syncHandler, irqHandler ExceptionHandler) {
 	vectorTable := uint64(goos.RamStart)
-	addJumps(vectorTable+0x400, errHandler, irqHandler)
+	addJumps(vectorTable+0x400, syncHandler, irqHandler)
 }
 
 // CurrentEL returns the Current Exception Level.
