@@ -221,7 +221,7 @@ func (r *Region) Read(addr uint, off int, buf []byte) {
 		panic("read of unallocated pointer")
 	}
 
-	if uint(off+size) > b.size {
+	if off < 0 || uint(off+size) > b.size {
 		panic("invalid read parameters")
 	}
 
@@ -254,7 +254,7 @@ func (r *Region) Write(addr uint, off int, buf []byte) {
 		return
 	}
 
-	if uint(off+size) > b.size {
+	if off < 0 || uint(off+size) > b.size {
 		panic("invalid write parameters")
 	}
 
