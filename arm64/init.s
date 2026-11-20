@@ -21,21 +21,23 @@ TEXT cpuinit(SB),NOSPLIT|NOFRAME,$0
 	CMP	$1, R0
 	BEQ	init
 
-	// While tamago has been tested in Secure EL3, we drop to Non-secure
-	// EL1 to ease chain loading from TF-A or bootloaders, as on AArch64
-	// the OS is expected to run at this level.
+	// While tamago has been tested in EL3, we drop to EL1 to ease chain
+	// loading from TF-A or bootloaders, as on AArch64 the OS is expected
+	// to run at this level.
 	//
 	// Future tamago unikernels for TF-A replacement or Secure monitors can
-	// branch here to remain in EL3 provided that _EL1 register access is
-	// replaced with _EL3.
+	// branch here to remain in EL3 provided that EL1 register access is
+	// replaced with EL3.
 
 	// ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture
 	// profile.
 
 	// D12.2.99 SCR_EL3, Secure Configuration Register
 	MOVD	$0, R0
+
 	// set Non-secure state according to build tag
 	ORR	$(const_scrNS)<<0, R0
+
 	ORR	$1<<10, R0	// set lower levels as AArch64
 	ORR	$1<<5, R0	// set reserved bit
 	ORR	$1<<4, R0	// set reserved bit

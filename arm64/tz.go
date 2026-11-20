@@ -8,18 +8,14 @@
 
 package arm64
 
-import (
-	_ "unsafe"
-)
-
-// NonSecure returns whether the processor security mode is non-secure (e.g.
-// TrustZone Normal World.
+// NonSecure returns whether the CPU initialization was set as non-secure (e.g.
+// TrustZone Normal World) at compile time.
 func (cpu *CPU) NonSecure() bool {
 	return scrNS == 1
 }
 
-// Secure returns whether the processor security mode is secure (e.g. TrustZone
-// Secure World).
+// Secure returns whether the CPU initialization was set as secure (e.g.
+// TrustZone Secure World) at compile time.
 func (cpu *CPU) Secure() bool {
 	return !cpu.NonSecure()
 }
