@@ -62,8 +62,8 @@ func DefaultExceptionHandler(pc uintptr) {
 
 	isThrowing = true
 
-	el := (read_el() & 0b1100) >> 2
-	ec := (read_esr() & 0b111111) >> ESR_EC
+	el := (read_el() >> 2) & 0b11
+	ec := (read_esr() >> ESR_EC) & 0b111111)
 
 	print("EL", int(el), " exception class ", int(ec), "\n")
 	exception.Throw(pc)
