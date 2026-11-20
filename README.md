@@ -249,10 +249,11 @@ Build tags
 The following build tags allow applications to override the package own
 definition for the `runtime/goos` overlay:
 
-* `linkramstart`: override `ramStart`
-* `linkramsize`: override `ramSize`
-* `linkprintk`: override `printk`
+* `linkramstart`: override `goos.RamStart`
+* `linkramsize`: override `goos.RamSize`
+* `linkprintk`: override `goos.Printk`
 * `linkcpuinit`: override `cpuinit`
+* `linkhwinit0`: override `goos.Hwinit0`
 * `tiny`: reduce heap allocation requirements
 
 Executing and debugging
