@@ -37,8 +37,8 @@ type SecretsPage struct {
 	LaunchMitVector uint64
 }
 
-// Init initializes a Secrets Page instance, mapping the argument memory
-// location for guest/hypervisor access.
+// Init initializes a Secrets Page instance decoding the contents of the
+// argument memory location.
 func (s *SecretsPage) Init(addr uint, size int) (err error) {
 	if addr == 0 {
 		return errors.New("invalid address")
