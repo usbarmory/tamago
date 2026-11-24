@@ -198,15 +198,19 @@ func (ring *bufferDescriptorRing) next() (wrap bool) {
 func (ring *bufferDescriptorRing) pop(buf []byte) (n int, err error) {
 	bd := ring.bds[ring.index]
 
-	bd.Length = uint16(bd.desc[0])
-	bd.Length |= uint16(bd.desc[1]) << 8
-
 	bd.Status = uint16(bd.desc[2])
 	bd.Status |= uint16(bd.desc[3]) << 8
 
 	if bd.Status&(1<<BD_RX_ST_E) != 0 {
 		return
 	}
+
+	// The length must be read only once the descriptor is known to be
+	// owned by software: the MAC updates length and status while this
+	// function polls, reading the length first can pair the length of the
+	// frame previously held by this descriptor with the new status.
+	bd.Length = uint16(bd.desc[0])
+	bd.Length |= uint16(bd.desc[1]) << 8
 
 	ring.next()
 
