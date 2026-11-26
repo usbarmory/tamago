@@ -125,6 +125,10 @@ func (hw *GVE) Init() (err error) {
 		hw.Region = dma.Default()
 	}
 
+	if hw.Region == nil {
+		return errors.New("invalid DMA region")
+	}
+
 	hw.registers = uint32(hw.Device.BaseAddress(registersBAR))
 	hw.doorbells = uint32(hw.Device.BaseAddress(doorbellsBAR))
 

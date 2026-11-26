@@ -11,6 +11,7 @@ package virtio
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"runtime"
 	"sync"
@@ -37,7 +38,8 @@ type Descriptor struct {
 	Next    uint16
 
 	// DMA buffer (addressed data)
-	buf []byte
+	region *dma.Region
+	buf    []byte
 }
 
 // Bytes converts the descriptor structure to byte array format.
@@ -55,7 +57,11 @@ func (d *Descriptor) Bytes() []byte {
 // Init initializes a virtual queue descriptor for the given reserved DMA
 // buffer, which must have been previously created with dma.Reserve().
 func (d *Descriptor) Init(buf []byte, flags uint16) {
-	res, addr := dma.Reserved(buf)
+	if d.region == nil {
+		d.region = dma.Default()
+	}
+
+	res, addr := d.region.Reserved(buf)
 
 	if !res {
 		return
@@ -70,7 +76,7 @@ func (d *Descriptor) Init(buf []byte, flags uint16) {
 
 // Destroy removes a virtual queue descriptor from physical memory.
 func (d *Descriptor) Destroy() {
-	dma.Release(uint(d.Address))
+	d.region.Release(uint(d.Address))
 }
 
 // Read copies the contents of the descriptor buffer to b.
@@ -207,6 +213,11 @@ type VirtualQueue struct {
 	Available   Available
 	Used        Used
 
+	// Region represents the memory region for shared DMA buffers, it is
+	// initialized to the global DMA region if unset during
+	// [VirtualQueue.Init].
+	Region *dma.Region
+
 	// DMA buffer
 	buf    []byte
 	desc   uint // physical address for QueueDesc
@@ -241,18 +252,31 @@ func (d *VirtualQueue) Bytes() ([]byte, int, int) {
 }
 
 // Init initializes a split virtual queue for the given size.
-func (d *VirtualQueue) Init(size int, length int, flags uint16) {
+func (d *VirtualQueue) Init(size int, length int, flags uint16) (err error) {
 	d.Lock()
 	defer d.Unlock()
 
+	if size <= 0 || length <= 0 {
+		return errors.New("invalid argument")
+	}
+
+	if d.Region == nil {
+		d.Region = dma.Default()
+	}
+
+	if d.Region == nil {
+		return errors.New("invalid DMA region")
+	}
+
 	// To avoid excessive DMA region fragmentation a single allocation
 	// reserves all descriptor buffers.
-	_, buf := dma.Reserve(size*length, 0)
+	_, buf := d.Region.Reserve(size*length, 0)
 
 	for i := range size {
 		off := length * i
 
 		desc := &Descriptor{}
+		desc.region = d.Region
 		desc.Init(buf[off:off+length], flags)
 
 		ring := &Ring{}
@@ -269,7 +293,7 @@ func (d *VirtualQueue) Init(size int, length int, flags uint16) {
 
 	// allocate DMA buffer
 	buf, driver, device := d.Bytes()
-	d.desc, d.buf = dma.Reserve(len(buf), pageSize)
+	d.desc, d.buf = d.Region.Reserve(len(buf), pageSize)
 	copy(d.buf, buf)
 
 	// calculate area pointers
@@ -280,6 +304,8 @@ func (d *VirtualQueue) Init(size int, length int, flags uint16) {
 	// assign DMA slices
 	d.Available.buf = d.buf[driver:device]
 	d.Used.buf = d.buf[device:]
+
+	return
 }
 
 // Destroy removes a split virtual queue from physical memory.
@@ -291,7 +317,7 @@ func (d *VirtualQueue) Destroy() {
 	d.Available.buf = nil
 	d.Used.buf = nil
 
-	dma.Release(d.desc)
+	d.Region.Release(d.desc)
 }
 
 // Address returns the virtual queue physical address.

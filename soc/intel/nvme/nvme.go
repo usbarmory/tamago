@@ -309,6 +309,10 @@ func (hw *NVMe) Init() (err error) {
 		hw.Region = dma.Default()
 	}
 
+	if hw.Region == nil {
+		return errors.New("invalid DMA region")
+	}
+
 	if hw.nq = hw.Queues; hw.nq <= 0 {
 		hw.nq = defaultQueues
 	}
