@@ -43,6 +43,7 @@ type pvClockWallClock struct {
 	Nsec    uint32
 }
 
+// defined in pvclock.s
 func pvclock(msr uint32) (ptr uint32)
 func wallclock(msr uint32) (ptr uint32)
 
