@@ -97,12 +97,12 @@ type ECSPI struct {
 
 // Init initializes an ECSPI controller instance in master mode 0 (CPOL=0
 // CPHA=0).
-func (hw *ECSPI) Init() {
+func (hw *ECSPI) Init() (err error) {
 	hw.Lock()
 	defer hw.Unlock()
 
 	if hw.Base == 0 || hw.CCGR == 0 {
-		panic("invalid ECSPI controller instance")
+		return errors.New("invalid ECSPI controller instance")
 	}
 
 	if hw.Timeout == 0 {
@@ -140,6 +140,8 @@ func (hw *ECSPI) Init() {
 
 	// out of reset
 	reg.Set(hw.conreg, CONREG_EN)
+
+	return
 }
 
 // GetFreq returns the frequency of SCLK line.
