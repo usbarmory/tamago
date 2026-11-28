@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/usbarmory/tamago/bits"
+	"github.com/usbarmory/tamago/dma"
 	"github.com/usbarmory/tamago/internal/reg"
 )
 
@@ -35,6 +36,8 @@ const (
 	XDMAC_GD  = 0x20
 	XDMAC_GS  = 0x24
 
+	XDMAC_GSWF = 0x50
+
 	XDMAC_CH      = 0x60
 	XDMAC_CH_SIZE = 0x40
 
@@ -43,6 +46,7 @@ const (
 
 	XDMAC_CIS  = 0x0c
 	CIS_BIS    = 0
+	CIS_FIS    = 3
 	CIS_RBEIS  = 4
 	CIS_WBEIS  = 5
 	CIS_ROIS   = 6
@@ -52,18 +56,27 @@ const (
 	XDMAC_CSA  = 0x10
 	XDMAC_CDA  = 0x14
 	XDMAC_CNDA = 0x18
-	XDMAC_CNDC = 0x1c
+
+	XDMAC_CNDC  = 0x1c
+	CNDC_NDVIEW = 3
+	CNDC_NDDUP  = 2
+	CNDC_NDSUP  = 1
+	CNDC_NDE    = 0
+
 	XDMAC_CUBC = 0x20
 	XDMAC_CBC  = 0x24
 
 	XDMAC_CC  = 0x28
 	CC_PERID  = 24
+	CC_INITD  = 21
 	CC_DAM    = 18
 	CC_SAM    = 16
 	CC_DWIDTH = 11
 	CC_CSIZE  = 8
 	CC_PROT   = 5
+	CC_DSYNC  = 4
 	CC_MBSIZE = 1
+	CC_TYPE   = 0
 
 	XDMAC_CDS_MSP = 0x2c
 	XDMAC_CSUS    = 0x30
@@ -107,9 +120,12 @@ type XDMAC struct {
 	IRQ int
 	// Transfer timeout (default: Timeout)
 	Timeout time.Duration
+	// DMA region for circular transfer descriptors (default: dma.Default())
+	Region *dma.Region
 
 	channels [Channels]sync.Mutex
 	events   [Channels]chan struct{}
+	circular [Channels]circular
 }
 
 // EnableInterrupt enables waiting for channel interrupts during transfers,
@@ -230,6 +246,28 @@ func (hw *XDMAC) Copy(ch int, dst, src uint32, size int) (err error) {
 	bits.SetN(&config, CC_MBSIZE, 0b11, burst16)
 
 	return hw.transfer(ch, config, dst, src, uint32(size)>>width, hw.Timeout)
+}
+
+// CopyToPeripheral transfers size bytes from src to the peripheral register
+// dst on channel ch, one byte for each peripheral request, and waits for its
+// completion within the argument timeout (default: Timeout).
+func (hw *XDMAC) CopyToPeripheral(ch, perid int, dst, src uint32, size int, timeout time.Duration) (err error) {
+	if perid < 0 || perid >= noPeripheral {
+		return errors.New("invalid peripheral request line")
+	}
+
+	if err = hw.check(ch, dst, src, size); err != nil || size == 0 {
+		return
+	}
+
+	// incrementing source address, peripheral synchronized transfer
+	var config uint32
+	bits.SetN(&config, CC_PERID, 0x7f, uint32(perid))
+	bits.SetN(&config, CC_SAM, 0b11, 1)
+	bits.Set(&config, CC_DSYNC)
+	bits.Set(&config, CC_TYPE)
+
+	return hw.transfer(ch, config, dst, src, uint32(size), timeout)
 }
 
 func (hw *XDMAC) check(ch int, dst, src uint32, size int) error {
